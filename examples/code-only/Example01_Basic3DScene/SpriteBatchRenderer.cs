@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
@@ -14,6 +15,7 @@ public class SpriteBatchRenderer : SyncScript
     private float _fontSize = 25;
     private string _text = "This text is in Arial 20 with anti-alias\nand multiline...";
     private DelegateSceneRenderer? _sceneRenderer;
+    private CameraComponent? _camera = null;
 
     public override void Start()
     {
@@ -21,6 +23,7 @@ public class SpriteBatchRenderer : SyncScript
         _font = Content.Load<SpriteFont>("StrideDefaultFont");
         //_ctx = new RenderDrawContext(Services, RenderContext.GetShared(Services), Game.GraphicsContext);
         _sceneRenderer = new DelegateSceneRenderer(Draw);
+        _camera = SceneSystem.SceneInstance.RootScene.Entities.FirstOrDefault(x => x.Get<CameraComponent>() != null)?.Get<CameraComponent>();
 
         var renderCollection = (SceneRendererCollection)SceneSystem.GraphicsCompositor.Game;
 
@@ -56,8 +59,10 @@ public class SpriteBatchRenderer : SyncScript
     {
         var spriteBatch = new SpriteBatch(GraphicsDevice);
 
+        var screen = _camera.WorldToScreenPoint(ref Entity.Transform.Position, GraphicsDevice);
+
         spriteBatch.Begin(drawContext.GraphicsContext);
-        spriteBatch.DrawString(_font, "Hello world 2", new Vector2(Entity.Transform.Position.Y, 200), Color.Red);
+        spriteBatch.DrawString(_font, "Hello World 2", 20, screen + new Vector2(0, -50), Color.Red);
         spriteBatch.End();
     }
 }

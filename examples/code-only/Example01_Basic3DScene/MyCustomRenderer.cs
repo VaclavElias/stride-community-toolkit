@@ -28,7 +28,7 @@ public class MyCustomRenderer : SceneRendererBase
 
         //_spriteBatch = new SpriteBatch(graphicsDevice);
         _spriteBatch.Begin(drawContext.GraphicsContext);
-        _spriteBatch.DrawString(_font, "Hello World 1.2", new Vector2(100, 100), Color.White);
+        _spriteBatch.DrawString(_font, "Hello World 1.2", 20, new Vector2(100, 100), Color.White);
         //_spriteBatch.Draw(_texture, Vector2.Zero);
         _spriteBatch.End();
     }
