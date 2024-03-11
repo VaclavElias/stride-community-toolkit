@@ -72,8 +72,6 @@ void Start(Scene rootScene)
     game.AddProfiler();
     //game.ShowColliders();
 
-    //AddSpriteBatchRenderer(rootScene);
-
     _camera = game.SceneSystem.SceneInstance.RootScene.Entities.FirstOrDefault(x => x.Get<CameraComponent>() != null)?.Get<CameraComponent>();
 
     // needed for Raycast
