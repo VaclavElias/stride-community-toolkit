@@ -30,5 +30,5 @@ public class Primitive3DCreationOptions : PrimitiveCreationOptions
     /// By default, a <see cref="BodyComponent"/> is assigned to the entity to handle physics simulations,
     /// but you can override this with a custom physics component if needed.
     /// </remarks>
-    public CollidableComponent Component { get; set; } = new BodyComponent() { Collider = new CompoundCollider() };
+    public CollidableComponent? Component { get; set; } = new BodyComponent() { Collider = new CompoundCollider() };
 }
