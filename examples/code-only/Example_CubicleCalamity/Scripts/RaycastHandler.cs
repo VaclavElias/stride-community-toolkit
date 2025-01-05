@@ -1,5 +1,6 @@
 using Example_CubicleCalamity.Components;
 using Example_CubicleCalamity.Shared;
+using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -25,14 +26,20 @@ public class RaycastHandler : AsyncScript
 
         if (cameraComponent == null) return;
 
+        var simulation = Entity.GetSimulation();
+
+        if (simulation == null) return;
+
         while (Game.IsRunning)
         {
             if (Input.HasMouse && Input.IsMouseButtonPressed(MouseButton.Left))
             {
-                var hitResult = cameraComponent.RaycastMouse(this);
+                svar hitResult = cameraComponent.RaycastMouse(simulation, Input.MousePosition);
 
-                if (hitResult.Succeeded)
-                    OnEntityHit(hitResult.Collider.Entity);
+                if (hitResult != null)
+                {
+                    OnEntityHit(hitResult.Collidable.Entity);
+                }
             }
 
             await Script.NextFrame();

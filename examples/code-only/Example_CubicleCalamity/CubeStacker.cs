@@ -59,7 +59,6 @@ public class CubeStacker
         entity.Scene = scene;
 
         var test = entity.GetSimulation();
-
         //scene.Entities.Add(entity);
     }
 
