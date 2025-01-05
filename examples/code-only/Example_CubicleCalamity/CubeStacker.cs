@@ -1,13 +1,14 @@
 using Example_CubicleCalamity.Components;
 using Example_CubicleCalamity.Scripts;
 using Example_CubicleCalamity.Shared;
-using Stride.CommunityToolkit.Bullet;
+using Stride.BepuPhysics;
+using Stride.BepuPhysics.Definitions.Colliders;
+using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
-using Stride.Physics;
 using Stride.Rendering;
 using Stride.Rendering.Colors;
 using Stride.Rendering.Lights;
@@ -17,7 +18,7 @@ namespace Example_CubicleCalamity;
 public class CubeStacker
 {
     private readonly Game _game;
-    private readonly Dictionary<Color, Material> _materials = new();
+    private readonly Dictionary<Color, Material> _materials = [];
     private readonly Random _random = new();
     private double _elapsedTime;
     private int _layer = 1;
@@ -29,8 +30,8 @@ public class CubeStacker
         _game.SetupBase3DScene();
         _game.AddProfiler();
 
-        AddMaterials();
         AddGizmo(scene);
+        AddMaterials();
 
         //_translationGizmo = new TranslationGizmo(_game.GraphicsDevice);
         //var gizmoEntity = _translationGizmo.Create(scene);
@@ -56,6 +57,8 @@ public class CubeStacker
             new RaycastHandler()
         };
         entity.Scene = scene;
+
+        var test = entity.GetSimulation();
 
         //scene.Entities.Add(entity);
     }
@@ -98,6 +101,7 @@ public class CubeStacker
         var entities = new List<Entity>();
 
         for (var x = 0; x < Constants.Rows; x++)
+        {
             for (var z = 0; z < Constants.Rows; z++)
             {
                 var entity = CreateCube(_game, Constants.CubeSize);
@@ -112,6 +116,7 @@ public class CubeStacker
 
                 entities.Add(entity);
             }
+        }
 
         return entities;
     }
@@ -120,18 +125,20 @@ public class CubeStacker
     {
         foreach (var entity in entities)
         {
-            var collider = new RigidbodyComponent();
+            var collider = new CompoundCollider();
 
-            collider.ColliderShapes.Add(new BoxColliderShapeDesc
+            collider.Colliders.Add(new BoxCollider
             {
                 Size = Constants.CubeSize,
             });
 
-            entity.Add(collider);
+            var collidableCompoment = new BodyComponent() { Collider = collider };
 
-            collider.LinearVelocity = new Vector3(0, -1f, 0); // Set an initial velocity along the Y-axis
-            collider.LinearFactor = new Vector3(0, 1, 0); // Restrict linear motion to the Y-axis
-            collider.AngularFactor = Vector3.Zero; // Restrict angular rotation on all axes
+            entity.Add(collidableCompoment);
+
+            collidableCompoment.LinearVelocity = new Vector3(0, -1f, 0); // Set an initial velocity along the Y-axis
+            //collidableCompoment.LinearFactor = new Vector3(0, 1, 0); // Restrict linear motion to the Y-axis
+            //collidableCompoment.AngularFactor = Vector3.Zero; // Restrict angular rotation on all axes
         }
     }
 
