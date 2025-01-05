@@ -26,6 +26,14 @@ public static class GameExtensions
         game.Add3DGround();
     }
 
+    /// <summary>
+    /// Adds a 3D ground entity to the game with a default size of 10x10 units. The ground is created as a plane, and a collider can be optionally added.
+    /// </summary>
+    /// <param name="game">The Game instance to which the ground entity will be added.</param>
+    /// <param name="entityName">The optional name for the ground entity. If not provided, it defaults to "Ground".</param>
+    /// <param name="size">The size of the ground, specified as a 2D vector. If not provided, it defaults to (10, 10) units.</param>
+    /// <param name="includeCollider">Specifies whether to add a collider to the ground. Defaults to true.</param>
+    /// <returns>The created Entity object representing the 3D ground.</returns>
     public static Entity Add3DGround(this Game game, string? entityName = GameDefaults.DefaultGroundName, Vector2? size = null, bool includeCollider = true)
         => CreateGround(game, entityName, size, includeCollider, PrimitiveModelType.Plane);
 
@@ -121,6 +129,18 @@ public static class GameExtensions
         return entity;
     }
 
+    /// <summary>
+    /// Creates a primitive 3D model entity of the specified type with optional customizations.
+    /// </summary>
+    /// <param name="game">The game instance.</param>
+    /// <param name="type">The type of primitive model to create.</param>
+    /// <param name="options">The options for creating the primitive model. If null, default options are used.</param>
+    /// <returns>A new entity representing the specified primitive model.</returns>
+    /// <remarks>
+    /// The <paramref name="options"/> parameter allows specifying various settings such as entity name, material,
+    /// collider inclusion, size and render group.
+    /// If size is null, default dimensions are used for the model. If no collider is included, the entity is returned without it.
+    /// </remarks>
     public static Entity Create3DPrimitive(this IGame game, PrimitiveModelType type, Primitive3DCreationOptions? options = null)
     {
         options ??= new();
@@ -130,11 +150,13 @@ public static class GameExtensions
         var model = modelBase.Generate(game.Services);
 
         if (options.Material != null)
+        {
             model.Materials.Add(options.Material);
+        }
 
         var entity = new Entity(options.EntityName) { new ModelComponent(model) { RenderGroup = options.RenderGroup } };
 
-        if (!options.IncludeCollider) return entity;
+        if (!options.IncludeCollider || options.Component is null) return entity;
 
         if (type == PrimitiveModelType.TriangularPrism)
         {
@@ -176,7 +198,7 @@ public static class GameExtensions
 
             var compoundCollier = options.Component.Collider as CompoundCollider;
 
-            compoundCollier.Colliders.Add(colliderShape);
+            compoundCollier?.Colliders.Add(colliderShape);
 
             entity.Add(options.Component);
         }
