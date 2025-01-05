@@ -185,7 +185,7 @@ public static class GameExtensions
     /// <returns>A new entity representing the specified primitive model.</returns>
     /// <remarks>
     /// The <paramref name="options"/> parameter allows specifying various settings such as entity name, material,
-    /// collider inclusion, size, render group, and 2D flag. Dimensions in the Vector3 for size are used in the order X, Y, Z.
+    /// collider inclusion, size, render group, and 2D flag.
     /// If size is null, default dimensions are used for the model. If no collider is included, the entity is returned without it.
     /// </remarks>
     public static Entity Create3DPrimitive(this IGame game, PrimitiveModelType type, Primitive3DCreationOptions? options = null)
