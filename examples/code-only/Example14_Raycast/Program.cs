@@ -18,7 +18,6 @@ Entity? entity = null;
 BodyComponent? body = null;
 Buffer? vertexBuffer = null;
 Vector3[] vertices = new Vector3[2]; // Start and end points
-bool isMoving = false;
 
 using var game = new Game();
 
@@ -34,6 +33,7 @@ void Start(Scene scene)
     entity = game.Create3DPrimitive(PrimitiveModelType.Sphere);
     entity.Transform.Position = new Vector3(0, 8, 0);
     body = entity.Get<BodyComponent>();
+
     entity.Scene = scene;
 
     camera = scene.GetCamera();
@@ -66,9 +66,11 @@ void Update(Scene scene, GameTime time)
                 return;
             }
 
-            // ToDo: This point needs to be corrected, because lineEntity is a chidld of entity
+            // Transform the hit point from world space to local space of the sphere entity
+            var localHitPoint = Vector3.Transform(hitInfo.Point, Matrix.Invert(entity.Transform.WorldMatrix));
+
             // Update the end vertex
-            vertices[1] = hitInfo.Point;
+            vertices[1] = localHitPoint.XYZ();
 
             // Re-upload vertex data to GPU
             vertexBuffer?.SetData(game.GraphicsContext.CommandList, vertices);
@@ -77,9 +79,27 @@ void Update(Scene scene, GameTime time)
 
             if (body is null) return;
 
-            body.ApplyImpulse(hitInfo.Point * 0.5f, new());
+            // Calculate direction from sphere center to hit point
+            var sphereCenter = entity.Transform.WorldMatrix.TranslationVector;
+            var direction = hitInfo.Point - sphereCenter;
+
+            // Normalize the direction
+            direction.Normalize();
+
+            // Define the impulse magnitude (adjust as needed)
+            var impulseMagnitude = 0.5f;
+
+            // Calculate the impulse vector
+            var impulse = direction * impulseMagnitude;
+
+            // Calculate an offset to apply the impulse at the surface of the sphere
+            var sphereRadius = 1f; // Replace with your sphere's actual radius if different
+            var offset = direction * sphereRadius;
+
+            // Apply the impulse at the offset position to induce rotation
+            body.ApplyImpulse(impulse, offset);
+
             body.Awake = true;
-            isMoving = true;
         }
         else
         {
@@ -92,7 +112,7 @@ Entity CreateLineEntity(Game game)
 {
     // Initialize vertices (start at origin, end at origin)
     vertices[0] = Vector3.Zero;
-    vertices[1] = Vector3.One;
+    vertices[1] = new(-1, 1, 1);
 
     // Create vertex buffer with start and end points
     vertexBuffer = Buffer.New(game.GraphicsDevice, vertices, BufferFlags.VertexBuffer);
