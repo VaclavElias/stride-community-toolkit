@@ -16,8 +16,11 @@ Entity? entity2 = null;
 BodyComponent? body1 = null;
 BodyComponent? body2 = null;
 
-bool isButtonPressed = false;
-bool movementStoped = false;
+// Flag to indicate that the sphere is currently being dragged.
+bool isDraggingSphere = false;
+
+// The Y position at which the sphere should be dragged (i.e. stays above the ground).
+const float DragYPosition = 2f;
 
 using var game = new Game();
 
@@ -39,6 +42,7 @@ void Start(Scene scene)
     entity1 = game.Create3DPrimitive(PrimitiveModelType.Sphere);
     entity1.Transform.Position = new Vector3(-2, 8, -2);
     body1 = entity1.Get<BodyComponent>();
+    body1.Kinematic = true;
 
     entity2 = game.Create3DPrimitive(PrimitiveModelType.Sphere);
     entity2.Transform.Position = new Vector3(-2.1f, 16, -2.9f);
@@ -74,47 +78,71 @@ void Start(Scene scene)
     mainCamera = scene.GetCamera();
 }
 
+// ProcessMouseDrag
 void Update(Scene scene, GameTime time)
 {
     if (mainCamera == null) return;
 
-    if (game.Input.IsMouseButtonDown(MouseButton.Left))
+    // On mouse button press, attempt to select the sphere.
+    if (game.Input.IsMouseButtonPressed(MouseButton.Left))
     {
-        isButtonPressed = true;
-    }
-
-    if (isButtonPressed && game.Input.IsMouseButtonDown(MouseButton.Left))
-    {
-        // Cast a ray from the camera into the scene based on the mouse position
-        var hit = mainCamera.Raycast(game.Input.MousePosition, 100, out var hitInfo);
-
-        if (hit)
+        if (TrySelectSphere(game.Input.MousePosition))
         {
-            if (hitInfo.Collidable.Entity == entity1)
-            {
-                if (!movementStoped)
-                {
-                    body1.LinearVelocity = Vector3.Zero;
-                    body1.AngularVelocity = Vector3.Zero;
+            // Stop any existing motion.
+            body1.LinearVelocity = Vector3.Zero;
+            body1.AngularVelocity = Vector3.Zero;
 
-                    movementStoped = true;
-                }
-
-                body1.Position = hitInfo.Point;
-
-                Console.WriteLine($"Hit entity: {hitInfo.Point}");
-            }
-            else
-            {
-                Console.WriteLine($"No desired hit.");
-            }
+            isDraggingSphere = true;
         }
-
     }
 
-    if (isButtonPressed && game.Input.IsMouseButtonReleased(MouseButton.Left))
+    // While the mouse button is held, update the sphere's position along the ground.
+    if (isDraggingSphere && game.Input.IsMouseButtonDown(MouseButton.Left))
     {
-        isButtonPressed = false;
-        movementStoped = false;
+        // Compute the intersection point of the mouse ray with the horizontal ground plane.
+        Vector3 groundPosition = GetGroundIntersection(game.Input.MousePosition);
+
+        // Update the sphere's position to follow the mouse, but fix the Y value.
+        body1.Position = new Vector3(groundPosition.X, DragYPosition, groundPosition.Z);
     }
+
+    // When the mouse button is released, stop dragging.
+    if (isDraggingSphere && game.Input.IsMouseButtonReleased(MouseButton.Left))
+    {
+        isDraggingSphere = false;
+    }
+}
+
+bool TrySelectSphere(Vector2 mousePosition)
+{
+    // Perform a raycast from the camera into the scene.
+    bool hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
+
+    if (hit && hitInfo.Collidable.Entity == entity1)
+    {
+        Console.WriteLine("Sphere selected for dragging.");
+
+        return true;
+    }
+
+    return false;
+}
+
+Vector3 GetGroundIntersection(Vector2 mousePosition)
+{
+    // Generate a ray from the camera through the mouse position.
+    // Note: Replace 'GetRayFromScreenPoint' with the appropriate method if needed.
+    Ray ray = mainCamera.GetPickRay(mousePosition);
+
+    // Define a horizontal plane at Y = 0 (ground level).
+    Plane groundPlane = new Plane(Vector3.UnitY, 0);
+
+    // Calculate intersection of the ray with the ground plane.
+    if (ray.Intersects(groundPlane, out float distance))
+    {
+        return ray.Position + ray.Direction * distance;
+    }
+
+    // If no intersection is found, return a default vector.
+    return Vector3.Zero;
 }
