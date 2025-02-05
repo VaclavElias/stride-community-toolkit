@@ -32,7 +32,6 @@ using var game = new Game();
 // Run the game loop with the Start and Update methods
 game.Run(start: Start, update: Update);
 
-
 // Sets up the initial scene with a skybox, profiler, ground reference, and a sphere with physics
 void Start(Scene scene)
 {
