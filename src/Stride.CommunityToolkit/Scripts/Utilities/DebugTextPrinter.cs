@@ -66,6 +66,12 @@ public class DebugTextPrinter
     /// </summary>
     public void Initialize() => SetStartPosition(_currentPosition);
 
+    /// <summary>
+    /// Initializes the screen position by setting the starting position based on the specified display position.
+    /// </summary>
+    /// <param name="startPosition"></param>
+    public void Initialize(DisplayPosition startPosition) => SetStartPosition(startPosition);
+
     private static DisplayPosition GetNextPosition(DisplayPosition currentPosition) => currentPosition switch
     {
         DisplayPosition.TopLeft => DisplayPosition.TopRight,
