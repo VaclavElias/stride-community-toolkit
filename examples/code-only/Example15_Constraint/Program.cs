@@ -20,12 +20,10 @@ float dragYPosition = 0;
 Vector3 dragOffset = Vector3.Zero;
 Vector3 lastSpherePosition = Vector3.Zero;
 
-// Flag to indicate that the sphere is currently being dragged.
+// Flag to indicate that the sphere is currently being dragged
 bool isDraggingSphere = false;
 
-// The Y position at which the sphere should be dragged (i.e. stays above the ground).
-//const float DragYPosition = 2f;
-
+// Initialize the game instance
 using var game = new Game();
 
 // Run the game loop with the Start and Update methods
@@ -33,19 +31,25 @@ game.Run(start: Start, update: Update);
 
 void Start(Scene scene)
 {
-    // Setup a basic 3D scene with a skybox and a ground gizmo.
+    // Set up a basic 3D scene with skybox, profiler, and a ground gizmo
     game.SetupBase3DScene();
     game.AddSkybox();
-    game.AddGroundGizmo(showAxisName: true);
+    game.AddProfiler();
+    game.AddGroundGizmo(new(-5, 0, -5), showAxisName: true);
 
+    // Added just for a visual reference
     var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule" });
     entity.Transform.Position = new Vector3(0, 3, 0);
     entity.Scene = scene;
 
-    draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Draggable Sphere" });
+    draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new()
+    {
+        EntityName = "Draggable Sphere",
+        Material = game.CreateMaterial(Color.Gold)
+    });
     draggableSphere.Transform.Position = new Vector3(-2, 4, -2);
     draggableBody = draggableSphere.Get<BodyComponent>();
-    draggableBody.Kinematic = true;
+    //draggableBody.Kinematic = true;
 
     connectedSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Connected Sphere" });
     connectedSphere.Transform.Position = new Vector3(-2.1f, 3, -2.9f);
@@ -60,19 +64,6 @@ void Start(Scene scene)
     };
 
     draggableSphere.Add(constrain1);
-
-    //var constrain2 = new SwingLimitConstraintComponent
-    //{
-    //    A = body1,
-    //    B = body1,
-    //    AxisLocalA = Vector3.UnitZ,
-    //    AxisLocalB = Vector3.UnitZ,
-    //    SpringDampingRatio = 1,
-    //    SpringFrequency = 120,
-    //    MaximumSwingAngle = MathF.PI * 0.05f,
-    //};
-
-    //entity1.Add(constrain2);
 
     draggableSphere.Scene = scene;
     connectedSphere.Scene = scene;
@@ -92,15 +83,7 @@ void Update(Scene scene, GameTime time)
     // On mouse button press, attempt to select the sphere.
     if (game.Input.IsMouseButtonPressed(MouseButton.Left))
     {
-        if (TrySelectSphere(game.Input.MousePosition))
-        {
-            // Stop any existing motion.
-            draggableBody.LinearVelocity = Vector3.Zero;
-            draggableBody.AngularVelocity = Vector3.Zero;
-
-            isDraggingSphere = true;
-            dragYPosition = draggableBody.Position.Y;
-        }
+        ProcessMouseClick();
     }
 
     // While the mouse button is held, update the sphere's position along the ground.
@@ -119,8 +102,25 @@ void Update(Scene scene, GameTime time)
     {
         isDraggingSphere = false;
 
+        draggableBody.Kinematic = false;
+
         draggableBody.Awake = true;
     }
+}
+
+void ProcessMouseClick()
+{
+    if (draggableBody is null || !TrySelectSphere(game.Input.MousePosition)) return;
+
+    // Stop any existing motion.
+    //draggableBody.LinearVelocity = Vector3.Zero;
+    //draggableBody.AngularVelocity = Vector3.Zero;
+
+    draggableBody.Kinematic = true;
+
+    isDraggingSphere = true;
+
+    dragYPosition = draggableBody.Position.Y;
 }
 
 bool TrySelectSphere(Vector2 mousePosition)
@@ -131,8 +131,6 @@ bool TrySelectSphere(Vector2 mousePosition)
     if (hit && hitInfo.Collidable.Entity == draggableSphere)
     {
         Console.WriteLine($"Sphere selected for dragging: {hitInfo.Collidable.Entity.Transform.Position}");
-
-        //var clickIntersection = GetNewPosition(mousePosition);
 
         // Record the offset so the sphere doesn't recenter.
         dragOffset = draggableBody!.Position - hitInfo.Point;
@@ -162,6 +160,6 @@ Vector3 GetNewPosition(Vector2 mousePosition)
 
 static void DisplayInstructions(Game game)
 {
-    game.DebugTextSystem.Print("Click the sphere and hold to move it around", new(5, 50));
+    game.DebugTextSystem.Print("Hold a key Y to move vertically", new(5, 30));
+    game.DebugTextSystem.Print("Click the golden sphere and hold to move it around", new(5, 50));
 }
-//game.DebugTextSystem.Print("Hold a key Y to move vertically", new(5, 30));
