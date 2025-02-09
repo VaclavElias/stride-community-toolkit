@@ -10,7 +10,7 @@ using Stride.Games;
 using Stride.Input;
 
 // Constant vertical speed (units per second) for smooth vertical adjustments.
-const float VerticalSpeed = 3.0f;
+const float VerticalSpeed = 4.0f;
 
 // Game entities and components
 CameraComponent? mainCamera = null;
@@ -19,8 +19,11 @@ Entity? connectedSphere = null;
 BodyComponent? draggableBody = null;
 BodyComponent? connectedBody = null;
 
-// The Y position at which the sphere is dragged; its value is adjusted via key presses
-float dragYPosition = 0;
+// The fixed Y level for horizontal dragging (captured at drag start)
+float initialDragY = 0;
+
+// The additional vertical offset applied via key presses (starts at 0)
+float verticalOffset = 0;
 
 // The offset between the sphere's center and the initial click point to avoid recentering
 Vector3 dragOffset = Vector3.Zero;
@@ -85,7 +88,7 @@ void Start(Scene scene)
 
 void Update(Scene scene, GameTime time)
 {
-    if (mainCamera == null) return;
+    if (mainCamera == null || draggableBody is null) return;
 
     // Display on-screen instructions for the user
     DisplayInstructions(game);
@@ -99,22 +102,28 @@ void Update(Scene scene, GameTime time)
     // While the mouse button is held down, update the sphere's position
     if (isDraggingSphere && game.Input.IsMouseButtonDown(MouseButton.Left))
     {
-        // Compute the new position based on the mouse's intersection with the horizontal plane,
-        // then add the offset recorded when the sphere was selected
-        var newPosition = GetNewPosition(game.Input.MousePosition) + dragOffset;
+        // Get the horizontal (XZ) intersection point using the fixed initialDragY
+        var horizontalPos = GetNewPosition(game.Input.MousePosition);
+
+        // Add the stored drag offset to maintain the initial click offset.
+        var newPosition = horizontalPos + dragOffset;
 
         // Adjust the vertical (Y-axis) position smoothly based on delta time and key presses.
         if (game.Input.IsKeyDown(Keys.Z))
         {
-            dragYPosition += VerticalSpeed * (float)time.Elapsed.TotalSeconds;
-        }
-        if (game.Input.IsKeyDown(Keys.X))
-        {
-            dragYPosition -= VerticalSpeed * (float)time.Elapsed.TotalSeconds;
+            verticalOffset += VerticalSpeed * (float)time.Elapsed.TotalSeconds;
         }
 
+        if (game.Input.IsKeyDown(Keys.X))
+        {
+            verticalOffset -= VerticalSpeed * (float)time.Elapsed.TotalSeconds;
+        }
+
+        // The final Y position is the initial drag level plus the vertical offset.
+        float finalY = initialDragY + verticalOffset;
+
         // Update the sphere's position while locking the Y coordinate
-        draggableBody.Position = new Vector3(newPosition.X, dragYPosition, newPosition.Z);
+        draggableBody.Position = new Vector3(newPosition.X, finalY, newPosition.Z);
 
         lastSpherePosition = draggableBody.Position;
     }
@@ -142,8 +151,11 @@ void ProcessMouseClick()
 
     isDraggingSphere = true;
 
-    // Lock the current Y position
-    dragYPosition = draggableBody.Position.Y;
+    // Capture the current Y level to use for horizontal dragging
+    initialDragY = draggableBody.Position.Y;
+
+    // Reset the vertical offset
+    verticalOffset = 0;
 }
 
 // Attempts to select the sphere by performing a raycast from the mouse position
@@ -175,9 +187,9 @@ Vector3 GetNewPosition(Vector2 mousePosition)
 
     // Define a horizontal plane at Y = dragYPosition.
     // For a plane defined by Normal and D, D must be -dragYPosition
-    var horizontalPlane = new Plane(Vector3.UnitY, -dragYPosition);
+    var horizontalPlane = new Plane(Vector3.UnitY, -initialDragY);
 
-    if (ray.Intersects(horizontalPlane, out float distance))
+    if (ray.Intersects(in horizontalPlane, out float distance))
     {
         return ray.Position + ray.Direction * distance;
     }
