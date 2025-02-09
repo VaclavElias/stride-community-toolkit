@@ -3,6 +3,7 @@ using Stride.BepuPhysics.Constraints;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -11,6 +12,7 @@ using Stride.Input;
 
 // Constant vertical speed (units per second) for smooth vertical adjustments.
 const float VerticalSpeed = 4.0f;
+DebugTextPrinter? instructions = null;
 
 // Game entities and components
 CameraComponent? mainCamera = null;
@@ -48,55 +50,9 @@ void Start(Scene scene)
     game.AddProfiler();
     game.AddGroundGizmo(new(-5, 0, -5), showAxisName: true);
 
-    // Create an additional capsule for visual reference
-    var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule" });
-    entity.Transform.Position = new Vector3(0, 3, 0);
-    entity.Scene = scene;
+    InitializeDebugTextPrinter();
 
-    // Create the draggable sphere with a golden material
-    // Initially, the sphere is not kinematic. It will become kinematic while dragging
-    draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new()
-    {
-        EntityName = "Draggable Sphere",
-        Material = game.CreateMaterial(Color.Gold)
-    });
-    draggableSphere.Transform.Position = new Vector3(-2, 4, -2);
-    draggableBody = draggableSphere.Get<BodyComponent>();
-
-    // Create a second sphere to demonstrate a connected constraint
-    connectedSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Connected Sphere" });
-    connectedSphere.Transform.Position = new Vector3(-2.1f, 3, -2.9f);
-    connectedBody = connectedSphere.Get<BodyComponent>();
-
-    // Set up a distance limit constraint between the draggable and connected spheres
-    var distanceLimit = new DistanceLimitConstraintComponent
-    {
-        A = draggableBody,
-        B = connectedBody,
-        MinimumDistance = 1,
-        MaximumDistance = 3.0f
-    };
-
-    var distanceServo = new DistanceServoConstraintComponent
-    {
-        A = draggableBody,
-        B = connectedBody,
-        TargetDistance = 3.0f,
-    };
-
-    var ballSocket = new BallSocketConstraintComponent
-    {
-        A = draggableBody,
-        B = connectedBody,
-        LocalOffsetA = new Vector3(0, 1f, 0),
-        LocalOffsetB = new Vector3(0, -1f, 0)
-    };
-
-    draggableSphere.Add(ballSocket);
-
-    // Add both entities to the scene
-    draggableSphere.Scene = scene;
-    connectedSphere.Scene = scene;
+    InitializeEntities(scene);
 
     // Retrieve the active camera from the scene
     mainCamera = scene.GetCamera();
@@ -106,8 +62,13 @@ void Update(Scene scene, GameTime time)
 {
     if (mainCamera == null || draggableBody is null) return;
 
+    if (game.Input.IsKeyPressed(Keys.R))
+    {
+        ResetTheScene(scene);
+    }
+
     // Display on-screen instructions for the user
-    DisplayInstructions(game);
+    DisplayInstructions();
 
     // On mouse button press, attempt to select the sphere
     if (game.Input.IsMouseButtonPressed(MouseButton.Left))
@@ -155,6 +116,20 @@ void Update(Scene scene, GameTime time)
         // Wake the body to ensure physics updates
         draggableBody.Awake = true;
     }
+}
+
+void ResetTheScene(Scene scene)
+{
+    if (draggableSphere is null || connectedSphere is null) return;
+
+    draggableSphere.Scene = null;
+    connectedSphere.Scene = null;
+    draggableBody = null;
+    connectedBody = null;
+    draggableSphere = null;
+    connectedSphere = null;
+
+    InitializeEntities(scene);
 }
 
 // Processes the initial mouse click and selects the draggable sphere
@@ -214,8 +189,80 @@ Vector3 GetNewPosition(Vector2 mousePosition)
     return lastSpherePosition;
 }
 
-static void DisplayInstructions(Game game)
+void DisplayInstructions()
 {
-    game.DebugTextSystem.Print("Hold Z to move up, X to move down", new(5, 30));
-    game.DebugTextSystem.Print("Click the golden sphere and drag to move it (Y-axis locked)", new(5, 50));
+    instructions?.Print();
+}
+
+void InitializeEntities(Scene scene)
+{
+    // Create an additional capsule for visual reference
+    var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule" });
+    entity.Transform.Position = new Vector3(0, 3, 0);
+    entity.Scene = scene;
+
+    // Create the draggable sphere with a golden material
+    // Initially, the sphere is not kinematic. It will become kinematic while dragging
+    draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new()
+    {
+        EntityName = "Draggable Sphere",
+        Material = game.CreateMaterial(Color.Gold)
+    });
+    draggableSphere.Transform.Position = new Vector3(-2, 4, -2);
+    draggableBody = draggableSphere.Get<BodyComponent>();
+
+    // Create a second sphere to demonstrate a connected constraint
+    connectedSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Connected Sphere" });
+    connectedSphere.Transform.Position = new Vector3(-2.1f, 3, -2.9f);
+    connectedBody = connectedSphere.Get<BodyComponent>();
+
+    // Set up a distance limit constraint between the draggable and connected spheres
+    var distanceLimit = new DistanceLimitConstraintComponent
+    {
+        A = draggableBody,
+        B = connectedBody,
+        MinimumDistance = 1,
+        MaximumDistance = 3.0f
+    };
+
+    var distanceServo = new DistanceServoConstraintComponent
+    {
+        A = draggableBody,
+        B = connectedBody,
+        TargetDistance = 3.0f,
+    };
+
+    var ballSocket = new BallSocketConstraintComponent
+    {
+        A = draggableBody,
+        B = connectedBody,
+        LocalOffsetA = new Vector3(0, 1f, 0),
+        LocalOffsetB = new Vector3(0, -1f, 0)
+    };
+
+    draggableSphere.Add(ballSocket);
+
+    // Add both entities to the scene
+    draggableSphere.Scene = scene;
+    connectedSphere.Scene = scene;
+}
+
+void InitializeDebugTextPrinter()
+{
+    var screenSize = new Int2(game.GraphicsDevice.Presenter.BackBuffer.Width, game.GraphicsDevice.Presenter.BackBuffer.Height);
+
+    instructions = new DebugTextPrinter()
+    {
+        DebugTextSystem = game.DebugTextSystem,
+        TextSize = new(205, 17 * 4),
+        ScreenSize = screenSize,
+        Instructions = [
+            new("GAME INSTRUCTIONS"),
+            new("Click the golden sphere and drag to move it (Y-axis locked)"),
+            new("Hold Z to move up, X to move down the golded sphere", Color.Yellow),
+            new("Press R to reset the scene", Color.Yellow),
+        ]
+    };
+
+    instructions.Initialize(DisplayPosition.BottomLeft);
 }
