@@ -11,16 +11,20 @@ using Stride.Input;
 
 // Game entities and components
 CameraComponent? mainCamera = null;
-Entity? entity1 = null;
-Entity? entity2 = null;
-BodyComponent? body1 = null;
-BodyComponent? body2 = null;
+Entity? draggableSphere = null;
+Entity? connectedSphere = null;
+BodyComponent? draggableBody = null;
+BodyComponent? connectedBody = null;
+float dragYPosition = 0;
+
+Vector3 dragOffset = Vector3.Zero;
+Vector3 lastSpherePosition = Vector3.Zero;
 
 // Flag to indicate that the sphere is currently being dragged.
 bool isDraggingSphere = false;
 
 // The Y position at which the sphere should be dragged (i.e. stays above the ground).
-const float DragYPosition = 2f;
+//const float DragYPosition = 2f;
 
 using var game = new Game();
 
@@ -29,34 +33,33 @@ game.Run(start: Start, update: Update);
 
 void Start(Scene scene)
 {
+    // Setup a basic 3D scene with a skybox and a ground gizmo.
     game.SetupBase3DScene();
     game.AddSkybox();
     game.AddGroundGizmo(showAxisName: true);
 
-    var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule);
-
-    entity.Transform.Position = new Vector3(0, 8, 0);
-
+    var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule" });
+    entity.Transform.Position = new Vector3(0, 3, 0);
     entity.Scene = scene;
 
-    entity1 = game.Create3DPrimitive(PrimitiveModelType.Sphere);
-    entity1.Transform.Position = new Vector3(-2, 8, -2);
-    body1 = entity1.Get<BodyComponent>();
-    body1.Kinematic = true;
+    draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Draggable Sphere" });
+    draggableSphere.Transform.Position = new Vector3(-2, 4, -2);
+    draggableBody = draggableSphere.Get<BodyComponent>();
+    draggableBody.Kinematic = true;
 
-    entity2 = game.Create3DPrimitive(PrimitiveModelType.Sphere);
-    entity2.Transform.Position = new Vector3(-2.1f, 16, -2.9f);
-    body2 = entity2.Get<BodyComponent>();
+    connectedSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Connected Sphere" });
+    connectedSphere.Transform.Position = new Vector3(-2.1f, 3, -2.9f);
+    connectedBody = connectedSphere.Get<BodyComponent>();
 
     var constrain1 = new DistanceLimitConstraintComponent
     {
-        A = body1,
-        B = body2,
+        A = draggableBody,
+        B = connectedBody,
         MinimumDistance = 0,
         MaximumDistance = 3.0f,
     };
 
-    entity1.Add(constrain1);
+    draggableSphere.Add(constrain1);
 
     //var constrain2 = new SwingLimitConstraintComponent
     //{
@@ -71,8 +74,8 @@ void Start(Scene scene)
 
     //entity1.Add(constrain2);
 
-    entity1.Scene = scene;
-    entity2.Scene = scene;
+    draggableSphere.Scene = scene;
+    connectedSphere.Scene = scene;
 
     // Retrieve the active camera from the scene
     mainCamera = scene.GetCamera();
@@ -83,44 +86,56 @@ void Update(Scene scene, GameTime time)
 {
     if (mainCamera == null) return;
 
+    // Display on-screen instructions for the user
+    DisplayInstructions(game);
+
     // On mouse button press, attempt to select the sphere.
     if (game.Input.IsMouseButtonPressed(MouseButton.Left))
     {
         if (TrySelectSphere(game.Input.MousePosition))
         {
             // Stop any existing motion.
-            body1.LinearVelocity = Vector3.Zero;
-            body1.AngularVelocity = Vector3.Zero;
+            draggableBody.LinearVelocity = Vector3.Zero;
+            draggableBody.AngularVelocity = Vector3.Zero;
 
             isDraggingSphere = true;
+            dragYPosition = draggableBody.Position.Y;
         }
     }
 
     // While the mouse button is held, update the sphere's position along the ground.
     if (isDraggingSphere && game.Input.IsMouseButtonDown(MouseButton.Left))
     {
-        // Compute the intersection point of the mouse ray with the horizontal ground plane.
-        Vector3 groundPosition = GetGroundIntersection(game.Input.MousePosition);
+        var newPosition = GetNewPosition(game.Input.MousePosition) + dragOffset;
 
         // Update the sphere's position to follow the mouse, but fix the Y value.
-        body1.Position = new Vector3(groundPosition.X, DragYPosition, groundPosition.Z);
+        draggableBody.Position = new Vector3(newPosition.X, dragYPosition, newPosition.Z);
+
+        lastSpherePosition = draggableBody.Position;
     }
 
     // When the mouse button is released, stop dragging.
     if (isDraggingSphere && game.Input.IsMouseButtonReleased(MouseButton.Left))
     {
         isDraggingSphere = false;
+
+        draggableBody.Awake = true;
     }
 }
 
 bool TrySelectSphere(Vector2 mousePosition)
 {
     // Perform a raycast from the camera into the scene.
-    bool hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
+    var hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
 
-    if (hit && hitInfo.Collidable.Entity == entity1)
+    if (hit && hitInfo.Collidable.Entity == draggableSphere)
     {
-        Console.WriteLine("Sphere selected for dragging.");
+        Console.WriteLine($"Sphere selected for dragging: {hitInfo.Collidable.Entity.Transform.Position}");
+
+        //var clickIntersection = GetNewPosition(mousePosition);
+
+        // Record the offset so the sphere doesn't recenter.
+        dragOffset = draggableBody!.Position - hitInfo.Point;
 
         return true;
     }
@@ -128,21 +143,25 @@ bool TrySelectSphere(Vector2 mousePosition)
     return false;
 }
 
-Vector3 GetGroundIntersection(Vector2 mousePosition)
+Vector3 GetNewPosition(Vector2 mousePosition)
 {
-    // Generate a ray from the camera through the mouse position.
-    // Note: Replace 'GetRayFromScreenPoint' with the appropriate method if needed.
-    Ray ray = mainCamera.GetPickRay(mousePosition);
+    // Create a ray from the camera through the mouse position.
+    var ray = mainCamera!.GetPickRay(mousePosition);
+    // Define a horizontal plane at Y = dragYPosition.
+    // For a plane defined by Normal and D, D must be -dragYPosition.
+    var horizontalPlane = new Plane(Vector3.UnitY, -dragYPosition);
 
-    // Define a horizontal plane at Y = 0 (ground level).
-    Plane groundPlane = new Plane(Vector3.UnitY, 0);
-
-    // Calculate intersection of the ray with the ground plane.
-    if (ray.Intersects(groundPlane, out float distance))
+    if (ray.Intersects(horizontalPlane, out float distance))
     {
         return ray.Position + ray.Direction * distance;
     }
 
-    // If no intersection is found, return a default vector.
-    return Vector3.Zero;
+    // Fallback to the last known sphere position if no intersection is found.
+    return lastSpherePosition;
 }
+
+static void DisplayInstructions(Game game)
+{
+    game.DebugTextSystem.Print("Click the sphere and hold to move it around", new(5, 50));
+}
+//game.DebugTextSystem.Print("Hold a key Y to move vertically", new(5, 30));
