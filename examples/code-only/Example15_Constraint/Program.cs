@@ -72,7 +72,6 @@ void Start(Scene scene)
     mainCamera = scene.GetCamera();
 }
 
-// ProcessMouseDrag
 void Update(Scene scene, GameTime time)
 {
     if (mainCamera == null) return;
@@ -90,6 +89,16 @@ void Update(Scene scene, GameTime time)
     if (isDraggingSphere && game.Input.IsMouseButtonDown(MouseButton.Left))
     {
         var newPosition = GetNewPosition(game.Input.MousePosition) + dragOffset;
+
+        if (game.Input.IsKeyDown(Keys.Z))
+        {
+            dragYPosition += 0.001f;
+        }
+
+        if (game.Input.IsKeyDown(Keys.X))
+        {
+            dragYPosition -= 0.001f;
+        }
 
         // Update the sphere's position to follow the mouse, but fix the Y value.
         draggableBody.Position = new Vector3(newPosition.X, dragYPosition, newPosition.Z);
@@ -111,10 +120,6 @@ void Update(Scene scene, GameTime time)
 void ProcessMouseClick()
 {
     if (draggableBody is null || !TrySelectSphere(game.Input.MousePosition)) return;
-
-    // Stop any existing motion.
-    //draggableBody.LinearVelocity = Vector3.Zero;
-    //draggableBody.AngularVelocity = Vector3.Zero;
 
     draggableBody.Kinematic = true;
 
