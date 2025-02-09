@@ -69,14 +69,30 @@ void Start(Scene scene)
     connectedBody = connectedSphere.Get<BodyComponent>();
 
     // Set up a distance limit constraint between the draggable and connected spheres
-    var constrain1 = new DistanceLimitConstraintComponent
+    var distanceLimit = new DistanceLimitConstraintComponent
     {
         A = draggableBody,
         B = connectedBody,
-        MinimumDistance = 0,
-        MaximumDistance = 3.0f,
+        MinimumDistance = 1,
+        MaximumDistance = 3.0f
     };
-    draggableSphere.Add(constrain1);
+
+    var distanceServo = new DistanceServoConstraintComponent
+    {
+        A = draggableBody,
+        B = connectedBody,
+        TargetDistance = 3.0f,
+    };
+
+    var ballSocket = new BallSocketConstraintComponent
+    {
+        A = draggableBody,
+        B = connectedBody,
+        LocalOffsetA = new Vector3(0, 1f, 0),
+        LocalOffsetB = new Vector3(0, -1f, 0)
+    };
+
+    draggableSphere.Add(ballSocket);
 
     // Add both entities to the scene
     draggableSphere.Scene = scene;
