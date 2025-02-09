@@ -9,15 +9,23 @@ using Stride.Engine;
 using Stride.Games;
 using Stride.Input;
 
+// Constant vertical speed (units per second) for smooth vertical adjustments.
+const float VerticalSpeed = 3.0f;
+
 // Game entities and components
 CameraComponent? mainCamera = null;
 Entity? draggableSphere = null;
 Entity? connectedSphere = null;
 BodyComponent? draggableBody = null;
 BodyComponent? connectedBody = null;
+
+// The Y position at which the sphere is dragged; its value is adjusted via key presses
 float dragYPosition = 0;
 
+// The offset between the sphere's center and the initial click point to avoid recentering
 Vector3 dragOffset = Vector3.Zero;
+
+// Last known valid sphere position (used as a fallback)
 Vector3 lastSpherePosition = Vector3.Zero;
 
 // Flag to indicate that the sphere is currently being dragged
@@ -37,11 +45,13 @@ void Start(Scene scene)
     game.AddProfiler();
     game.AddGroundGizmo(new(-5, 0, -5), showAxisName: true);
 
-    // Added just for a visual reference
+    // Create an additional capsule for visual reference
     var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule" });
     entity.Transform.Position = new Vector3(0, 3, 0);
     entity.Scene = scene;
 
+    // Create the draggable sphere with a golden material
+    // Initially, the sphere is not kinematic. It will become kinematic while dragging
     draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new()
     {
         EntityName = "Draggable Sphere",
@@ -49,12 +59,13 @@ void Start(Scene scene)
     });
     draggableSphere.Transform.Position = new Vector3(-2, 4, -2);
     draggableBody = draggableSphere.Get<BodyComponent>();
-    //draggableBody.Kinematic = true;
 
+    // Create a second sphere to demonstrate a connected constraint
     connectedSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Connected Sphere" });
     connectedSphere.Transform.Position = new Vector3(-2.1f, 3, -2.9f);
     connectedBody = connectedSphere.Get<BodyComponent>();
 
+    // Set up a distance limit constraint between the draggable and connected spheres
     var constrain1 = new DistanceLimitConstraintComponent
     {
         A = draggableBody,
@@ -62,9 +73,9 @@ void Start(Scene scene)
         MinimumDistance = 0,
         MaximumDistance = 3.0f,
     };
-
     draggableSphere.Add(constrain1);
 
+    // Add both entities to the scene
     draggableSphere.Scene = scene;
     connectedSphere.Scene = scene;
 
@@ -79,65 +90,74 @@ void Update(Scene scene, GameTime time)
     // Display on-screen instructions for the user
     DisplayInstructions(game);
 
-    // On mouse button press, attempt to select the sphere.
+    // On mouse button press, attempt to select the sphere
     if (game.Input.IsMouseButtonPressed(MouseButton.Left))
     {
         ProcessMouseClick();
     }
 
-    // While the mouse button is held, update the sphere's position along the ground.
+    // While the mouse button is held down, update the sphere's position
     if (isDraggingSphere && game.Input.IsMouseButtonDown(MouseButton.Left))
     {
+        // Compute the new position based on the mouse's intersection with the horizontal plane,
+        // then add the offset recorded when the sphere was selected
         var newPosition = GetNewPosition(game.Input.MousePosition) + dragOffset;
 
+        // Adjust the vertical (Y-axis) position smoothly based on delta time and key presses.
         if (game.Input.IsKeyDown(Keys.Z))
         {
-            dragYPosition += 0.001f;
+            dragYPosition += VerticalSpeed * (float)time.Elapsed.TotalSeconds;
         }
-
         if (game.Input.IsKeyDown(Keys.X))
         {
-            dragYPosition -= 0.001f;
+            dragYPosition -= VerticalSpeed * (float)time.Elapsed.TotalSeconds;
         }
 
-        // Update the sphere's position to follow the mouse, but fix the Y value.
+        // Update the sphere's position while locking the Y coordinate
         draggableBody.Position = new Vector3(newPosition.X, dragYPosition, newPosition.Z);
 
         lastSpherePosition = draggableBody.Position;
     }
 
-    // When the mouse button is released, stop dragging.
+    // When the mouse button is released, stop dragging
     if (isDraggingSphere && game.Input.IsMouseButtonReleased(MouseButton.Left))
     {
         isDraggingSphere = false;
 
+        // Set the sphere back to non-kinematic so physics can resume
         draggableBody.Kinematic = false;
 
+        // Wake the body to ensure physics updates
         draggableBody.Awake = true;
     }
 }
 
+// Processes the initial mouse click and selects the draggable sphere
 void ProcessMouseClick()
 {
     if (draggableBody is null || !TrySelectSphere(game.Input.MousePosition)) return;
 
+    // Set the sphere to be kinematic while dragging
     draggableBody.Kinematic = true;
 
     isDraggingSphere = true;
 
+    // Lock the current Y position
     dragYPosition = draggableBody.Position.Y;
 }
 
+// Attempts to select the sphere by performing a raycast from the mouse position
+// If successful, calculates the offset between the sphere's center and the click point
 bool TrySelectSphere(Vector2 mousePosition)
 {
-    // Perform a raycast from the camera into the scene.
+    // Perform a raycast from the camera into the scene
     var hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
 
     if (hit && hitInfo.Collidable.Entity == draggableSphere)
     {
         Console.WriteLine($"Sphere selected for dragging: {hitInfo.Collidable.Entity.Transform.Position}");
 
-        // Record the offset so the sphere doesn't recenter.
+        // Calculate the offset between the sphere's center and the hit point
         dragOffset = draggableBody!.Position - hitInfo.Point;
 
         return true;
@@ -146,12 +166,15 @@ bool TrySelectSphere(Vector2 mousePosition)
     return false;
 }
 
+// Computes the intersection point between the camera's pick ray and a horizontal plane at dragYPosition
+// This is used to update the sphere's new position based on mouse movement
 Vector3 GetNewPosition(Vector2 mousePosition)
 {
-    // Create a ray from the camera through the mouse position.
+    // Create a pick ray from the camera through the given mouse position
     var ray = mainCamera!.GetPickRay(mousePosition);
+
     // Define a horizontal plane at Y = dragYPosition.
-    // For a plane defined by Normal and D, D must be -dragYPosition.
+    // For a plane defined by Normal and D, D must be -dragYPosition
     var horizontalPlane = new Plane(Vector3.UnitY, -dragYPosition);
 
     if (ray.Intersects(horizontalPlane, out float distance))
@@ -159,12 +182,12 @@ Vector3 GetNewPosition(Vector2 mousePosition)
         return ray.Position + ray.Direction * distance;
     }
 
-    // Fallback to the last known sphere position if no intersection is found.
+    // If no intersection is found, return the last known sphere position
     return lastSpherePosition;
 }
 
 static void DisplayInstructions(Game game)
 {
-    game.DebugTextSystem.Print("Hold a key Y to move vertically", new(5, 30));
-    game.DebugTextSystem.Print("Click the golden sphere and hold to move it around", new(5, 50));
+    game.DebugTextSystem.Print("Hold Z to move up, X to move down", new(5, 30));
+    game.DebugTextSystem.Print("Click the golden sphere and drag to move it (Y-axis locked)", new(5, 50));
 }
