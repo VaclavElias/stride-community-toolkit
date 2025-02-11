@@ -18,8 +18,18 @@ DebugTextPrinter? instructions = null;
 CameraComponent? mainCamera = null;
 Entity? draggableSphere = null;
 Entity? connectedSphere = null;
+Entity? referenceCapsule = null;
 BodyComponent? draggableBody = null;
 BodyComponent? connectedBody = null;
+
+Entity? foundationBlock = null;
+Entity? platform = null;
+
+BodyComponent? foundationBody = null;
+BodyComponent? platformBody = null;
+
+List<Entity?> entities = [];
+List<BodyComponent?> bodies = [];
 
 // The fixed Y level for horizontal dragging (captured at drag start)
 float initialDragY = 0;
@@ -51,7 +61,6 @@ void Start(Scene scene)
     game.AddGroundGizmo(new(-5, 0, -5), showAxisName: true);
 
     InitializeDebugTextPrinter();
-
     InitializeEntities(scene);
 
     // Retrieve the active camera from the scene
@@ -118,18 +127,121 @@ void Update(Scene scene, GameTime time)
     }
 }
 
-void ResetTheScene(Scene scene)
+void InitializeEntities(Scene scene)
 {
-    if (draggableSphere is null || connectedSphere is null) return;
+    InitializeDistanceLimintConstraintExamples(scene);
+    InitializeBallSocketConstraintExample(scene);
+    InitializePointOnLineServoConstraintExample(scene);
+}
 
-    draggableSphere.Scene = null;
-    connectedSphere.Scene = null;
-    draggableBody = null;
-    connectedBody = null;
-    draggableSphere = null;
-    connectedSphere = null;
+void InitializeDistanceLimintConstraintExamples(Scene scene)
+{
+    // Create an additional capsule for visual reference
+    referenceCapsule = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule" });
+    referenceCapsule.Transform.Position = new Vector3(0, 3, 0);
+    referenceCapsule.Scene = scene;
 
-    InitializeEntities(scene);
+    // Create the draggable sphere with a golden material
+    // Initially, the sphere is not kinematic. It will become kinematic while dragging
+    draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new()
+    {
+        EntityName = "Draggable Sphere",
+        Material = game.CreateMaterial(Color.Gold)
+    });
+    draggableSphere.Transform.Position = new Vector3(-2, 4, -2);
+    draggableBody = draggableSphere.Get<BodyComponent>();
+
+    // Create a second sphere to demonstrate a connected constraint
+    connectedSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Connected Sphere" });
+    connectedSphere.Transform.Position = new Vector3(-2.1f, 3, -2.9f);
+    connectedBody = connectedSphere.Get<BodyComponent>();
+
+    // Set up a distance limit constraint between the draggable and connected spheres
+    var distanceLimit = new DistanceLimitConstraintComponent
+    {
+        A = draggableBody,
+        B = connectedBody,
+        MinimumDistance = 1,
+        MaximumDistance = 3.0f
+    };
+
+    var distanceServo = new DistanceServoConstraintComponent
+    {
+        A = draggableBody,
+        B = connectedBody,
+        TargetDistance = 3.0f,
+        SpringDampingRatio = 2,
+        //SpringFrequency = 1,
+    };
+
+    draggableSphere.Add(distanceServo);
+
+    // Add both entities to the scene
+    draggableSphere.Scene = scene;
+    connectedSphere.Scene = scene;
+
+    entities.AddRange([referenceCapsule, draggableSphere, connectedSphere]);
+    bodies.AddRange([draggableBody, connectedBody]);
+}
+
+void InitializeBallSocketConstraintExample(Scene scene)
+{
+    const float FoundationHeight = 3;
+    const float FoundationWidth = 0.3f;
+    const float PlatformHeight = 0.2f;
+    const float PlatformWidth = 3;
+    var exampleOffset = new Vector3(4, 0, -4);
+
+    foundationBlock = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+    {
+        EntityName = "Foundation Block",
+        Size = new(FoundationWidth, FoundationHeight, FoundationWidth),
+        Material = game.CreateMaterial(Color.Beige),
+    });
+    foundationBlock.Transform.Position = new Vector3(0, FoundationHeight / 2, 0) + exampleOffset;
+    foundationBody = foundationBlock.Get<BodyComponent>();
+    foundationBody.Kinematic = true;
+
+    platform = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+    {
+        EntityName = "Platform",
+        Size = new(PlatformWidth, PlatformHeight, PlatformWidth),
+        Material = game.CreateMaterial(Color.Bisque),
+    });
+    platform.Transform.Position = new Vector3(0, FoundationHeight + PlatformHeight, 0) + exampleOffset;
+    platformBody = platform.Get<BodyComponent>();
+
+    var ballSocket = new BallSocketConstraintComponent
+    {
+        A = foundationBody,
+        B = platformBody,
+        // Adjusting socket to be at the top of the foundation
+        LocalOffsetA = new Vector3(0, 1.6f, 0),
+        // Adjusting socket to be at the bottom of the platform
+        LocalOffsetB = new Vector3(0, -0.1f, 0),
+    };
+
+    var ballSocket2 = new BallSocketMotorConstraintComponent
+    {
+        A = foundationBody,
+        B = platformBody,
+        LocalOffsetB = new Vector3(0, -0.1f, 0),
+        TargetVelocityLocalA = new Vector3(0, -100, 0),
+    };
+
+    foundationBlock.Add(ballSocket);
+    //foundationBlock.Add(ballSocket2);
+
+    foundationBlock.Scene = scene;
+    platform.Scene = scene;
+
+    entities.AddRange([foundationBlock, platform]);
+    bodies.AddRange([foundationBody, platformBody]);
+}
+
+void InitializePointOnLineServoConstraintExample(Scene scene)
+{
+
 }
 
 // Processes the initial mouse click and selects the draggable sphere
@@ -189,62 +301,28 @@ Vector3 GetNewPosition(Vector2 mousePosition)
     return lastSpherePosition;
 }
 
+// Resets the scene by removing all entities and reinitializing them
+void ResetTheScene(Scene scene)
+{
+    for (int i = 0; i < entities.Count; i++)
+    {
+        if (entities[i] is null) continue;
+
+        entities[i]!.Scene = null;
+        entities[i] = null;
+    }
+
+    for (int i = 0; i < bodies.Count; i++)
+    {
+        bodies[i] = null;
+    }
+
+    InitializeEntities(scene);
+}
+
 void DisplayInstructions()
 {
     instructions?.Print();
-}
-
-void InitializeEntities(Scene scene)
-{
-    // Create an additional capsule for visual reference
-    var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule" });
-    entity.Transform.Position = new Vector3(0, 3, 0);
-    entity.Scene = scene;
-
-    // Create the draggable sphere with a golden material
-    // Initially, the sphere is not kinematic. It will become kinematic while dragging
-    draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new()
-    {
-        EntityName = "Draggable Sphere",
-        Material = game.CreateMaterial(Color.Gold)
-    });
-    draggableSphere.Transform.Position = new Vector3(-2, 4, -2);
-    draggableBody = draggableSphere.Get<BodyComponent>();
-
-    // Create a second sphere to demonstrate a connected constraint
-    connectedSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Connected Sphere" });
-    connectedSphere.Transform.Position = new Vector3(-2.1f, 3, -2.9f);
-    connectedBody = connectedSphere.Get<BodyComponent>();
-
-    // Set up a distance limit constraint between the draggable and connected spheres
-    var distanceLimit = new DistanceLimitConstraintComponent
-    {
-        A = draggableBody,
-        B = connectedBody,
-        MinimumDistance = 1,
-        MaximumDistance = 3.0f
-    };
-
-    var distanceServo = new DistanceServoConstraintComponent
-    {
-        A = draggableBody,
-        B = connectedBody,
-        TargetDistance = 3.0f,
-    };
-
-    var ballSocket = new BallSocketConstraintComponent
-    {
-        A = draggableBody,
-        B = connectedBody,
-        LocalOffsetA = new Vector3(0, 1f, 0),
-        LocalOffsetB = new Vector3(0, -1f, 0)
-    };
-
-    draggableSphere.Add(ballSocket);
-
-    // Add both entities to the scene
-    draggableSphere.Scene = scene;
-    connectedSphere.Scene = scene;
 }
 
 void InitializeDebugTextPrinter()
