@@ -16,7 +16,7 @@ void Start(Scene rootScene)
 
     var entity = game.Create3DPrimitive(PrimitiveModelType.Cube);
 
-    entity.Transform.Position = new Vector3(1f, 0.5f, 3f);
+    entity.Transform.Position = new Vector3(-1f, 0.5f, -1f);
 
     entity.Scene = rootScene;
 }
