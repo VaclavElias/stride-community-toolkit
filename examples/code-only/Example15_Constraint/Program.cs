@@ -137,7 +137,7 @@ void InitializeEntities(Scene scene)
 void InitializeDistanceLimintConstraintExamples(Scene scene)
 {
     // Create an additional capsule for visual reference
-    referenceCapsule = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule" });
+    referenceCapsule = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule", Material = game.CreateMaterial(Color.Orange) });
     referenceCapsule.Transform.Position = new Vector3(0, 3, 0);
     referenceCapsule.Scene = scene;
 
