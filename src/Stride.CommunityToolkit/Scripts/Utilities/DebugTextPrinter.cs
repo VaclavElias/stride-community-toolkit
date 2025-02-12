@@ -52,6 +52,18 @@ public class DebugTextPrinter
     }
 
     /// <summary>
+    /// Prints the specified list of text elements, rendering them line by line on the screen.
+    /// </summary>
+    /// <param name="textElements"></param>
+    public void Print(List<TextElement> textElements)
+    {
+        Instructions.Clear();
+        Instructions.AddRange(textElements);
+
+        Print();
+    }
+
+    /// <summary>
     /// Changes the starting position for printing text, rotating through predefined screen positions (TopRight, BottomRight, BottomLeft, TopLeft).
     /// </summary>
     public void ChangeStartPosition()
