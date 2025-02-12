@@ -95,6 +95,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example01_Basic3DScene_Mesh
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example15_Constraint_Simple", "examples\code-only\Example15_Constraint_Simple\Example15_Constraint_Simple.csproj", "{BCD5396A-A2E8-4383-BE0E-26ED3CAF7961}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example01_Material", "examples\code-only\Example01_Material\Example01_Material.csproj", "{90E859C7-EB5E-4423-85F4-7B65FEAF5B5E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -256,6 +258,10 @@ Global
 		{BCD5396A-A2E8-4383-BE0E-26ED3CAF7961}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCD5396A-A2E8-4383-BE0E-26ED3CAF7961}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCD5396A-A2E8-4383-BE0E-26ED3CAF7961}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90E859C7-EB5E-4423-85F4-7B65FEAF5B5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90E859C7-EB5E-4423-85F4-7B65FEAF5B5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90E859C7-EB5E-4423-85F4-7B65FEAF5B5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90E859C7-EB5E-4423-85F4-7B65FEAF5B5E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -290,6 +296,7 @@ Global
 		{490BB399-8A47-43C7-9D8C-7D7DF900CB50} = {30457B66-9E10-4290-9744-D0079DE0448B}
 		{24CE40E8-F42C-44E4-936F-86BB74CAFDBF} = {30457B66-9E10-4290-9744-D0079DE0448B}
 		{BCD5396A-A2E8-4383-BE0E-26ED3CAF7961} = {30457B66-9E10-4290-9744-D0079DE0448B}
+		{90E859C7-EB5E-4423-85F4-7B65FEAF5B5E} = {30457B66-9E10-4290-9744-D0079DE0448B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C7A8C18E-C1F5-492F-8173-51EC9495B78C}
