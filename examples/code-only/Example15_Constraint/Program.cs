@@ -136,6 +136,23 @@ void InitializeEntities(Scene scene)
 
 void InitializeDistanceLimintConstraintExamples(Scene scene)
 {
+    var testCube = game.Create3DPrimitive(PrimitiveModelType.Cube, new() { EntityName = "Test Cube" });
+    testCube.Transform.Position = new Vector3(3, 3, 3);
+    var testCubeBody = testCube.Get<BodyComponent>();
+    testCubeBody.FrictionCoefficient = 0.1f;
+
+    var angularServoSetB = new OneBodyAngularServoConstraintComponent
+    {
+        TargetOrientation = Quaternion.Identity,
+        A = testCubeBody,
+        ServoMaximumForce = 1000,
+        SpringDampingRatio = 10,
+        SpringFrequency = 300,
+    };
+
+    testCube.Add(angularServoSetB);
+    testCube.Scene = scene;
+
     // Create an additional capsule for visual reference
     referenceCapsule = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule", Material = game.CreateMaterial(Color.Orange) });
     referenceCapsule.Transform.Position = new Vector3(0, 3, 0);
@@ -241,12 +258,100 @@ void InitializeBallSocketConstraintExample(Scene scene)
 
 void InitializePointOnLineServoConstraintExample(Scene scene)
 {
+    var lineEntity = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+    {
+        EntityName = "Line",
+        Size = new(0.01f, 10, 0.01f),
+        Material = game.CreateMaterial(Color.DarkGray),
+    });
+    lineEntity.Transform.Position = new Vector3(-4, 5f, 0);
+    var lineBody = lineEntity.Get<BodyComponent>();
+    lineBody.Kinematic = true;
+    lineEntity.Scene = scene;
 
+    const float CubeSpringDampingRation = 100;
+    const float SpringFrequency = 40;
+    const float FrictionCoefficient = 0.5f; // Default 1
+
+    for (int i = 0; i < 10; i++)
+    {
+        var cubeEntitySetA = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+        {
+            EntityName = "CubeStack",
+            Size = new(1, 1, 1),
+            Material = game.CreateMaterial(Color.DarkRed),
+        });
+        cubeEntitySetA.Transform.Position = new Vector3(-4, i * 2, -1);
+        var cubeBodySetA = cubeEntitySetA.Get<BodyComponent>();
+        cubeBodySetA.SpringDampingRatio = CubeSpringDampingRation;
+        cubeBodySetA.SpringFrequency = SpringFrequency;
+        cubeBodySetA.FrictionCoefficient = FrictionCoefficient;
+
+        var lineServoConstraintSetA = new PointOnLineServoConstraintComponent
+        {
+            A = lineBody,
+            B = cubeBodySetA,
+            LocalOffsetA = new Vector3(0, 0, -1f),
+            LocalOffsetB = new Vector3(0, 0, 0),
+            LocalDirection = new Vector3(0, 1, 0),
+            ServoMaximumForce = 1000,
+
+        };
+
+        var angularServoSetA = new OneBodyAngularServoConstraintComponent
+        {
+            TargetOrientation = Quaternion.Identity,
+            A = cubeBodySetA,
+            ServoMaximumForce = 1000,
+            SpringDampingRatio = 10,
+            //SpringFrequency = 30,
+        };
+
+        //cubeEntitySetA.Add(lineServoConstraintSetA);
+        cubeEntitySetA.Add(angularServoSetA);
+        cubeEntitySetA.Scene = scene;
+
+        var cubeEntitySetB = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+        {
+            EntityName = "CubeStack",
+            Size = new(1, 1, 1),
+            Material = game.CreateMaterial(Color.DarkRed),
+        });
+        cubeEntitySetB.Transform.Position = new Vector3(-4, i * 2, -2);
+        var cubeBodySetB = cubeEntitySetB.Get<BodyComponent>();
+        cubeBodySetB.SpringDampingRatio = CubeSpringDampingRation;
+        cubeBodySetB.SpringFrequency = SpringFrequency;
+        cubeBodySetB.FrictionCoefficient = FrictionCoefficient;
+
+        var lineServoConstraintSetB = new PointOnLineServoConstraintComponent
+        {
+            A = lineBody,
+            B = cubeBodySetB,
+            LocalOffsetA = new Vector3(0, 0, -2f),
+            LocalOffsetB = new Vector3(0, 0, 0),
+            LocalDirection = new Vector3(0, 1, 0),
+            ServoMaximumForce = 1000,
+        };
+        var angularServoSetB = new OneBodyAngularServoConstraintComponent
+        {
+            TargetOrientation = Quaternion.Identity,
+            A = cubeBodySetB,
+            ServoMaximumForce = 1000,
+            SpringDampingRatio = 10,
+            //SpringFrequency = 30,
+        };
+
+        //cubeEntitySetB.Add(lineServoConstraintSetB);
+        cubeEntitySetB.Add(angularServoSetB);
+        cubeEntitySetB.Scene = scene;
+    }
 }
 
 // Processes the initial mouse click and selects the draggable sphere
 void ProcessMouseClick()
 {
+    TryRemoveCubeStack(game.Input.MousePosition);
+
     if (draggableBody is null || !TrySelectSphere(game.Input.MousePosition)) return;
 
     // Set the sphere to be kinematic while dragging
@@ -259,6 +364,16 @@ void ProcessMouseClick()
 
     // Reset the vertical offset
     verticalOffset = 0;
+}
+
+void TryRemoveCubeStack(Vector2 mousePosition)
+{
+    var hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
+
+    if (hit && hitInfo.Collidable.Entity.Name == "CubeStack")
+    {
+        hitInfo.Collidable.Entity.Scene = null;
+    }
 }
 
 // Attempts to select the sphere by performing a raycast from the mouse position
