@@ -1,5 +1,6 @@
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -16,11 +17,11 @@ game.Run(start: (Scene rootScene) =>
     game.SetupBase3DScene();
     game.AddSkybox();
 
-    //var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule);
+    var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule);
 
-    //entity.Transform.Position = new Vector3(0, 8, 0);
+    entity.Transform.Position = new Vector3(0, 8, 0);
 
-    //entity.Scene = rootScene;
+    entity.Scene = rootScene;
 
     CreateMeshEntity(game.GraphicsDevice, rootScene, new(0, 1, 0), b => BuildCylinderMesh(b, 1000, 0.5f, 8));
 });

@@ -131,7 +131,8 @@ void InitializeEntities(Scene scene)
 {
     InitializeDistanceLimintConstraintExamples(scene);
     InitializeBallSocketConstraintExample(scene);
-    InitializePointOnLineServoConstraintExample(scene);
+    //InitializePointOnLineServoConstraintExample(scene);
+    InitializePointOnLineServoConstraintExample2(scene);
 }
 
 void InitializeDistanceLimintConstraintExamples(Scene scene)
@@ -256,6 +257,129 @@ void InitializeBallSocketConstraintExample(Scene scene)
     bodies.AddRange([foundationBody, platformBody]);
 }
 
+void InitializePointOnLineServoConstraintExample2(Scene scene)
+{
+    // Create two separate line entities for better control of each stack
+    var lineEntityA = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+    {
+        EntityName = "LineA",
+        Size = new(0.01f, 10, 0.01f),
+        Material = game.CreateMaterial(new Color(0.5f, 0.5f, 0.5f, 0.3f)),
+    });
+    lineEntityA.Transform.Position = new Vector3(-4, 5f, 0);
+    var lineBodyA = lineEntityA.Get<BodyComponent>();
+    lineBodyA.Kinematic = true;
+    lineBodyA.CollisionLayer = CollisionLayer.Layer1;
+
+    //var collidable = lineEntityA.Get<CollidableComponent>();
+    //if (collidable != null)
+    //{
+    //    collidable.CollisionLayer = CollisionLayer.Layer1;
+    //}
+
+    lineEntityA.Scene = scene;
+
+    //var lineEntityB = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+    //{
+    //    EntityName = "LineB",
+    //    Size = new(0.01f, 10, 0.01f),
+    //    Material = game.CreateMaterial(Color.DarkGray),
+    //});
+    //lineEntityB.Transform.Position = new Vector3(-4, 5f, -2);
+    //var lineBodyB = lineEntityB.Get<BodyComponent>();
+    //lineBodyB.Kinematic = true;
+    //lineEntityB.Scene = scene;
+
+    // Enhanced settings for better sliding
+    const float CubeSpringDampingRation = 50; // Reduced from 100
+    const float SpringFrequency = 20;         // Reduced from 40
+    const float FrictionCoefficient = 0.1f;   // Reduced from 0.5f for smoother sliding
+    const float ServoMaxForce = 500;          // Reduced from 1000 for softer constraints
+
+    for (int i = 0; i < 10; i++)
+    {
+        // First stack (SetA)
+        var cubeEntitySetA = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+        {
+            EntityName = "CubeStackA",
+            Size = new(0.9f, 0.9f, 0.9f),    // Slightly smaller cubes to prevent collision overlap
+            Material = game.CreateMaterial(Color.DarkRed),
+        });
+        cubeEntitySetA.Transform.Position = new Vector3(-4, i * 2, 0);
+        var cubeBodySetA = cubeEntitySetA.Get<BodyComponent>();
+        cubeBodySetA.SpringDampingRatio = CubeSpringDampingRation;
+        cubeBodySetA.SpringFrequency = SpringFrequency;
+        cubeBodySetA.FrictionCoefficient = FrictionCoefficient;
+        cubeBodySetA.CollisionLayer = CollisionLayer.Layer2;
+
+        // Tighter constraint with the line to prevent X/Z drift
+        var lineServoConstraintSetA = new PointOnLineServoConstraintComponent
+        {
+            A = lineBodyA,
+            B = cubeBodySetA,
+            LocalOffsetA = Vector3.Zero,     // Anchor directly on line
+            LocalOffsetB = Vector3.Zero,     // Anchor at center of cube
+            LocalDirection = new Vector3(0, 1, 0),
+            ServoMaximumForce = ServoMaxForce,
+            SpringFrequency = 15,            // Add explicit spring frequency for smoother motion
+            SpringDampingRatio = 1,          // Critical damping
+        };
+
+        // Keep orientation aligned with world axes
+        var angularServoSetA = new OneBodyAngularServoConstraintComponent
+        {
+            TargetOrientation = Quaternion.Identity,
+            A = cubeBodySetA,
+            ServoMaximumForce = ServoMaxForce,
+            SpringDampingRatio = 5,
+            SpringFrequency = 15,            // Enable frequency for more responsive rotation control
+        };
+
+        //cubeEntitySetA.Add(lineServoConstraintSetA);
+        //cubeEntitySetA.Add(angularServoSetA);
+        cubeEntitySetA.Scene = scene;
+
+        // Second stack (SetB)
+        var cubeEntitySetB = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+        {
+            EntityName = "CubeStackB",
+            Size = new(0.9f, 0.9f, 0.9f),    // Slightly smaller cubes
+            Material = game.CreateMaterial(Color.DarkRed),
+        });
+        cubeEntitySetB.Transform.Position = new Vector3(-4, i * 2, -1);
+        var cubeBodySetB = cubeEntitySetB.Get<BodyComponent>();
+        cubeBodySetB.SpringDampingRatio = CubeSpringDampingRation;
+        cubeBodySetB.SpringFrequency = SpringFrequency;
+        cubeBodySetB.FrictionCoefficient = FrictionCoefficient;
+
+        //// Use the second line entity for this stack
+        //var lineServoConstraintSetB = new PointOnLineServoConstraintComponent
+        //{
+        //    A = lineBodyB,
+        //    B = cubeBodySetB,
+        //    LocalOffsetA = Vector3.Zero,     // Anchor directly on line
+        //    LocalOffsetB = Vector3.Zero,     // Anchor at center of cube
+        //    LocalDirection = new Vector3(0, 1, 0),
+        //    ServoMaximumForce = ServoMaxForce,
+        //    SpringFrequency = 15,
+        //    SpringDampingRatio = 1,
+        //};
+
+        //var angularServoSetB = new OneBodyAngularServoConstraintComponent
+        //{
+        //    TargetOrientation = Quaternion.Identity,
+        //    A = cubeBodySetB,
+        //    ServoMaximumForce = ServoMaxForce,
+        //    SpringDampingRatio = 5,
+        //    SpringFrequency = 15,
+        //};
+
+        //cubeEntitySetB.Add(lineServoConstraintSetB);
+        //cubeEntitySetB.Add(angularServoSetB);
+        //cubeEntitySetB.Scene = scene;
+    }
+}
+
 void InitializePointOnLineServoConstraintExample(Scene scene)
 {
     var lineEntity = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
@@ -307,7 +431,7 @@ void InitializePointOnLineServoConstraintExample(Scene scene)
             //SpringFrequency = 30,
         };
 
-        //cubeEntitySetA.Add(lineServoConstraintSetA);
+        cubeEntitySetA.Add(lineServoConstraintSetA);
         cubeEntitySetA.Add(angularServoSetA);
         cubeEntitySetA.Scene = scene;
 
@@ -341,7 +465,7 @@ void InitializePointOnLineServoConstraintExample(Scene scene)
             //SpringFrequency = 30,
         };
 
-        //cubeEntitySetB.Add(lineServoConstraintSetB);
+        cubeEntitySetB.Add(lineServoConstraintSetB);
         cubeEntitySetB.Add(angularServoSetB);
         cubeEntitySetB.Scene = scene;
     }
@@ -370,10 +494,42 @@ void TryRemoveCubeStack(Vector2 mousePosition)
 {
     var hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
 
-    if (hit && hitInfo.Collidable.Entity.Name == "CubeStack")
+    if (hit && (hitInfo.Collidable.Entity.Name == "CubeStackA" || hitInfo.Collidable.Entity.Name == "CubeStackB"))
     {
+        // Get the stack name to determine which column was clicked
+        string stackName = hitInfo.Collidable.Entity.Name;
+
+        // Apply small upward force to cubes above the clicked one to ensure movement
+        var clickedY = hitInfo.Collidable.Entity.Transform.Position.Y;
+        var clickedZ = hitInfo.Collidable.Entity.Transform.Position.Z;
+
+        // Remove the clicked cube
         hitInfo.Collidable.Entity.Scene = null;
+
+        // Find and nudge cubes above this position in the same stack
+        foreach (var entity in game.SceneSystem.SceneInstance.RootScene.Entities)
+        {
+            if (entity.Name == stackName)
+            {
+                var pos = entity.Transform.Position;
+                if (Math.Abs(pos.Z - clickedZ) < 0.1f && pos.Y > clickedY)
+                {
+                    // Add a tiny impulse to get things moving
+                    var body = entity.Get<BodyComponent>();
+                    if (body != null)
+                    {
+                        body.ApplyLinearImpulse(new Vector3(0, -0.01f, 0));
+                        body.Awake = true;
+                    }
+                }
+            }
+        }
     }
+
+    //if (hit && hitInfo.Collidable.Entity.Name == "CubeStack")
+    //{
+    //    hitInfo.Collidable.Entity.Scene = null;
+    //}
 }
 
 // Attempts to select the sphere by performing a raycast from the mouse position
