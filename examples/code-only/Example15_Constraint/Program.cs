@@ -11,6 +11,14 @@ using Stride.Engine;
 using Stride.Games;
 using Stride.Input;
 
+// This example demonstrates these constraints: DistanceLimit, DistanceServo, BallSocket, PointOnLineServo
+// The user can drag a golden sphere horizontally and adjust its vertical position with Z and X keys
+// The scene can be reset by pressing R
+// DistanceLimit: Connects two spheres with a minimum and maximum distance
+// DistanceServo: Connects two spheres with a target distance and spring settings
+// BallSocket: Connects two entities with a ball-and-socket joint
+// PointOnLineServo: Connects a cube to a line with a servo constraint
+
 // Constant vertical speed (units per second) for smooth vertical adjustments.
 const float VerticalSpeed = 4.0f;
 const string DraggableEntityName = "Draggable Sphere";
@@ -182,7 +190,6 @@ void InitializeEntities(Scene scene)
     CreateDistanceLimintConstraintExamples(scene);
     CreateDistanceServoConstraintExamples(scene);
     CreateBallSocketConstraintExample(scene);
-    //InitializePointOnLineServoConstraintExample(scene);
     CreatePointOnLineServoConstraintExample2(scene);
 }
 
@@ -376,97 +383,6 @@ void CreatePointOnLineServoConstraintExample2(Scene scene)
         var angularServoSetB = CreateOneBodyAngularServoConstraint(cubeBodySetB);
 
         lineEntityB.Add(pointOnLineServoConstraintSetB);
-        cubeEntitySetB.Add(angularServoSetB);
-        cubeEntitySetB.Scene = scene;
-    }
-}
-
-void InitializePointOnLineServoConstraintExample(Scene scene)
-{
-    var lineEntity = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-    {
-        EntityName = "Line",
-        Size = new(0.01f, 10, 0.01f),
-        Material = game.CreateMaterial(Color.DarkGray),
-    });
-    lineEntity.Transform.Position = new Vector3(-4, 5f, 0);
-    var lineBody = lineEntity.Get<BodyComponent>();
-    lineBody.Kinematic = true;
-    lineEntity.Scene = scene;
-
-    const float CubeSpringDampingRation = 100;
-    const float SpringFrequency = 40;
-    const float FrictionCoefficient = 0.5f; // Default 1
-
-    for (int i = 0; i < 10; i++)
-    {
-        var cubeEntitySetA = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-        {
-            EntityName = "CubeStack",
-            Size = new(1, 1, 1),
-            Material = game.CreateMaterial(Color.DarkRed),
-        });
-        cubeEntitySetA.Transform.Position = new Vector3(-4, i * 2, -1);
-        var cubeBodySetA = cubeEntitySetA.Get<BodyComponent>();
-        cubeBodySetA.SpringDampingRatio = CubeSpringDampingRation;
-        cubeBodySetA.SpringFrequency = SpringFrequency;
-        cubeBodySetA.FrictionCoefficient = FrictionCoefficient;
-
-        var lineServoConstraintSetA = new PointOnLineServoConstraintComponent
-        {
-            A = lineBody,
-            B = cubeBodySetA,
-            LocalOffsetA = new Vector3(0, 0, -1f),
-            LocalOffsetB = new Vector3(0, 0, 0),
-            LocalDirection = new Vector3(0, 1, 0),
-            ServoMaximumForce = 1000,
-
-        };
-
-        var angularServoSetA = new OneBodyAngularServoConstraintComponent
-        {
-            TargetOrientation = Quaternion.Identity,
-            A = cubeBodySetA,
-            ServoMaximumForce = 1000,
-            SpringDampingRatio = 10,
-            //SpringFrequency = 30,
-        };
-
-        cubeEntitySetA.Add(lineServoConstraintSetA);
-        cubeEntitySetA.Add(angularServoSetA);
-        cubeEntitySetA.Scene = scene;
-
-        var cubeEntitySetB = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-        {
-            EntityName = "CubeStack",
-            Size = new(1, 1, 1),
-            Material = game.CreateMaterial(Color.DarkRed),
-        });
-        cubeEntitySetB.Transform.Position = new Vector3(-4, i * 2, -2);
-        var cubeBodySetB = cubeEntitySetB.Get<BodyComponent>();
-        cubeBodySetB.SpringDampingRatio = CubeSpringDampingRation;
-        cubeBodySetB.SpringFrequency = SpringFrequency;
-        cubeBodySetB.FrictionCoefficient = FrictionCoefficient;
-
-        var lineServoConstraintSetB = new PointOnLineServoConstraintComponent
-        {
-            A = lineBody,
-            B = cubeBodySetB,
-            LocalOffsetA = new Vector3(0, 0, -2f),
-            LocalOffsetB = new Vector3(0, 0, 0),
-            LocalDirection = new Vector3(0, 1, 0),
-            ServoMaximumForce = 1000,
-        };
-        var angularServoSetB = new OneBodyAngularServoConstraintComponent
-        {
-            TargetOrientation = Quaternion.Identity,
-            A = cubeBodySetB,
-            ServoMaximumForce = 1000,
-            SpringDampingRatio = 10,
-            //SpringFrequency = 30,
-        };
-
-        cubeEntitySetB.Add(lineServoConstraintSetB);
         cubeEntitySetB.Add(angularServoSetB);
         cubeEntitySetB.Scene = scene;
     }
