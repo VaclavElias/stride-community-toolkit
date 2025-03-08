@@ -14,18 +14,13 @@ using Stride.Input;
 // Constant vertical speed (units per second) for smooth vertical adjustments.
 const float VerticalSpeed = 4.0f;
 const string DraggableEntityName = "Draggable Sphere";
+const string ConnectedEntityName = "Connected Sphere";
 
 DebugTextPrinter? instructions = null;
 
 // Game entities and components
 CameraComponent? mainCamera = null;
 BodyComponent? draggableBody = null;
-
-Entity? foundationBlock = null;
-Entity? platform = null;
-
-BodyComponent? foundationBody = null;
-BodyComponent? platformBody = null;
 
 List<Entity?> entities = [];
 List<BodyComponent?> bodies = [];
@@ -222,7 +217,7 @@ void CreateDistanceLimintConstraintExamples(Scene scene)
     draggableBody.CollisionLayer = CollisionLayer.Layer5;
 
     // Create a second sphere to demonstrate a connected constraint
-    var connectedSphere = CreateEntity(PrimitiveModelType.Sphere, "Connected Sphere", Color.Blue, new Vector3(-2.1f, 3, -2.9f));
+    var connectedSphere = CreateEntity(PrimitiveModelType.Sphere, ConnectedEntityName, Color.Blue, new Vector3(-2.1f, 3, -2.9f));
     var connectedBody = connectedSphere.Get<BodyComponent>();
     connectedBody.CollisionLayer = CollisionLayer.Layer5;
 
@@ -253,7 +248,7 @@ void CreateDistanceServoConstraintExamples(Scene scene)
     var draggableBody = draggableSphere.Get<BodyComponent>();
     draggableBody.CollisionLayer = CollisionLayer.Layer5;
 
-    var connectedSphere = CreateEntity(PrimitiveModelType.Sphere, "Connected Sphere", Color.LightBlue, new Vector3(-2.1f, 6, -2.9f));
+    var connectedSphere = CreateEntity(PrimitiveModelType.Sphere, ConnectedEntityName, Color.LightBlue, new Vector3(-2.1f, 6, -2.9f));
     var connectedBody = connectedSphere.Get<BodyComponent>();
     connectedBody.CollisionLayer = CollisionLayer.Layer5;
 
@@ -280,46 +275,40 @@ void CreateDistanceServoConstraintExamples(Scene scene)
 void CreateBallSocketConstraintExample(Scene scene)
 {
     const float FoundationHeight = 3;
-    const float FoundationWidth = 0.3f;
+    const float FoundationWidth = 0.2f;
     const float PlatformHeight = 0.2f;
     const float PlatformWidth = 3;
     var exampleOffset = new Vector3(4, 0, -4);
 
-    foundationBlock = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+    var foundationBlock = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
     {
         EntityName = "Foundation Block",
         Size = new(FoundationWidth, FoundationHeight, FoundationWidth),
         Material = game.CreateMaterial(Color.Beige),
     });
     foundationBlock.Transform.Position = new Vector3(0, FoundationHeight / 2, 0) + exampleOffset;
-    foundationBody = foundationBlock.Get<BodyComponent>();
+    var foundationBody = foundationBlock.Get<BodyComponent>();
     foundationBody.Kinematic = true;
+    foundationBody.CollisionLayer = CollisionLayer.Layer5;
 
-    platform = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+    var platform = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
     {
         EntityName = "Platform",
         Size = new(PlatformWidth, PlatformHeight, PlatformWidth),
         Material = game.CreateMaterial(Color.Bisque),
     });
     platform.Transform.Position = new Vector3(0, FoundationHeight + PlatformHeight, 0) + exampleOffset;
-    platformBody = platform.Get<BodyComponent>();
+    var platformBody = platform.Get<BodyComponent>();
+    platformBody.CollisionLayer = CollisionLayer.Layer5;
 
     var ballSocket = new BallSocketConstraintComponent
     {
         A = foundationBody,
         B = platformBody,
         // Adjusting socket to be at the top of the foundation
-        LocalOffsetA = new Vector3(0, 1.6f, 0),
+        LocalOffsetA = new Vector3(0, 1.5f, 0),
         // Adjusting socket to be at the bottom of the platform
         LocalOffsetB = new Vector3(0, -0.1f, 0),
-    };
-
-    var ballSocket2 = new BallSocketMotorConstraintComponent
-    {
-        A = foundationBody,
-        B = platformBody,
-        LocalOffsetB = new Vector3(0, -0.1f, 0),
-        TargetVelocityLocalA = new Vector3(0, -100, 0),
     };
 
     foundationBlock.Add(ballSocket);
