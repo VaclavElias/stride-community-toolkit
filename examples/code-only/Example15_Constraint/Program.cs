@@ -16,6 +16,12 @@ const float VerticalSpeed = 4.0f;
 const string DraggableEntityName = "Draggable Sphere";
 const string ConnectedEntityName = "Connected Sphere";
 
+// Enhanced settings for better sliding
+const float CubeSpringDampingRation = 50; // Reduced from 100
+const float SpringFrequency = 20;         // Reduced from 40
+const float FrictionCoefficient = 0.1f;   // Reduced from 0.5f for smoother sliding
+const float ServoMaxForce = 500;          // Reduced from 1000 for softer constraints
+
 DebugTextPrinter? instructions = null;
 
 // Game entities and components
@@ -36,6 +42,9 @@ collisionMatrix.Set(lineLayer, groundLayer, shouldCollide: true);
 collisionMatrix.Set(lineLayer, otherLayer, shouldCollide: true);
 collisionMatrix.Set(groundLayer, otherLayer, shouldCollide: true);
 collisionMatrix.Set(otherLayer, otherLayer, shouldCollide: true);
+collisionMatrix.Set(cubeLayer, groundLayer, shouldCollide: true);
+collisionMatrix.Set(cubeLayer, otherLayer, shouldCollide: true);
+collisionMatrix.Set(cubeLayer, cubeLayer, shouldCollide: true);
 
 // The fixed Y level for horizontal dragging (captured at drag start)
 float initialDragY = 0;
@@ -179,7 +188,7 @@ void InitializeEntities(Scene scene)
 
 void CreateReferenceCube(Scene scene)
 {
-    var referenceCube = CreateEntity(PrimitiveModelType.Cube, "Reference Cube", Color.Purple, new Vector3(3, 3, 3));
+    var referenceCube = CreateCubeEntity("Reference Cube", Color.Purple, new Vector3(3, 3, 3));
 
     var referenceCubeBody = referenceCube.Get<BodyComponent>();
     referenceCubeBody.FrictionCoefficient = 0.1f;
@@ -278,26 +287,21 @@ void CreateBallSocketConstraintExample(Scene scene)
     const float FoundationWidth = 0.2f;
     const float PlatformHeight = 0.2f;
     const float PlatformWidth = 3;
+
     var exampleOffset = new Vector3(4, 0, -4);
 
-    var foundationBlock = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-    {
-        EntityName = "Foundation Block",
-        Size = new(FoundationWidth, FoundationHeight, FoundationWidth),
-        Material = game.CreateMaterial(Color.Beige),
-    });
-    foundationBlock.Transform.Position = new Vector3(0, FoundationHeight / 2, 0) + exampleOffset;
+    var foundationSize = new Vector3(FoundationWidth, FoundationHeight, FoundationWidth);
+    var foundationPosition = new Vector3(0, FoundationHeight / 2, 0) + exampleOffset;
+
+    var platformSize = new Vector3(PlatformWidth, PlatformHeight, PlatformWidth);
+    var platformPosition = new Vector3(0, FoundationHeight + PlatformHeight / 2, 0) + exampleOffset;
+
+    var foundationBlock = CreateCubeEntity("Foundation Block", Color.Beige, foundationPosition, foundationSize);
     var foundationBody = foundationBlock.Get<BodyComponent>();
     foundationBody.Kinematic = true;
     foundationBody.CollisionLayer = CollisionLayer.Layer5;
 
-    var platform = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-    {
-        EntityName = "Platform",
-        Size = new(PlatformWidth, PlatformHeight, PlatformWidth),
-        Material = game.CreateMaterial(Color.Bisque),
-    });
-    platform.Transform.Position = new Vector3(0, FoundationHeight + PlatformHeight, 0) + exampleOffset;
+    var platform = CreateCubeEntity("Platform", Color.Bisque, platformPosition, platformSize);
     var platformBody = platform.Get<BodyComponent>();
     platformBody.CollisionLayer = CollisionLayer.Layer5;
 
@@ -324,123 +328,56 @@ void CreateBallSocketConstraintExample(Scene scene)
 void CreatePointOnLineServoConstraintExample2(Scene scene)
 {
     // Create two separate line entities for better control of each stack
-    var lineEntityA = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-    {
-        EntityName = "LineA",
-        Size = new(0.01f, 10, 0.01f),
-        Material = game.CreateMaterial(new Color(0.5f, 0.5f, 0.5f, 0.3f)),
-    });
-    lineEntityA.Transform.Position = new Vector3(-4, 5f, 0);
+
+    var lineSize = new Vector3(0.1f, 10, 0.1f);
+    var lineOffset = new Vector3(-4, 5f, 0);
+    var libeBOffset = new Vector3(0, 0, -1);
+
+    var lineAPosition = lineOffset;
+    var lineEntityA = CreateCubeEntity("LineA", Color.Gold, lineAPosition, lineSize);
+
     var lineBodyA = lineEntityA.Get<BodyComponent>();
     lineBodyA.Kinematic = true;
     lineBodyA.CollisionLayer = CollisionLayer.Layer1;
-
-    //var collidable = lineEntityA.Get<CollidableComponent>();
-    //if (collidable != null)
-    //{
-    //    collidable.CollisionLayer = CollisionLayer.Layer1;
-    //}
-
     lineEntityA.Scene = scene;
 
-    //var lineEntityB = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-    //{
-    //    EntityName = "LineB",
-    //    Size = new(0.01f, 10, 0.01f),
-    //    Material = game.CreateMaterial(Color.DarkGray),
-    //});
-    //lineEntityB.Transform.Position = new Vector3(-4, 5f, -2);
-    //var lineBodyB = lineEntityB.Get<BodyComponent>();
-    //lineBodyB.Kinematic = true;
-    //lineEntityB.Scene = scene;
+    var lineBPosition = lineOffset + libeBOffset;
+    var lineEntityB = CreateCubeEntity("LineB", Color.Gold, lineBPosition, lineSize);
 
-    // Enhanced settings for better sliding
-    const float CubeSpringDampingRation = 50; // Reduced from 100
-    const float SpringFrequency = 20;         // Reduced from 40
-    const float FrictionCoefficient = 0.1f;   // Reduced from 0.5f for smoother sliding
-    const float ServoMaxForce = 500;          // Reduced from 1000 for softer constraints
+    var lineBodyB = lineEntityB.Get<BodyComponent>();
+    lineBodyB.Kinematic = true;
+    lineBodyB.CollisionLayer = CollisionLayer.Layer1;
+    lineEntityB.Scene = scene;
+
+    var cubeSize = new Vector3(0.99f);
 
     for (int i = 0; i < 10; i++)
     {
         // First stack (SetA)
-        var cubeEntitySetA = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-        {
-            EntityName = "CubeStackA",
-            Size = new(0.9f, 0.9f, 0.9f),    // Slightly smaller cubes to prevent collision overlap
-            Material = game.CreateMaterial(Color.DarkRed),
-        });
-        cubeEntitySetA.Transform.Position = new Vector3(-4, i * 2, 0);
-        var cubeBodySetA = cubeEntitySetA.Get<BodyComponent>();
-        cubeBodySetA.SpringDampingRatio = CubeSpringDampingRation;
-        cubeBodySetA.SpringFrequency = SpringFrequency;
-        cubeBodySetA.FrictionCoefficient = FrictionCoefficient;
-        cubeBodySetA.CollisionLayer = CollisionLayer.Layer2;
+        var cubePositionA = lineOffset + new Vector3(0, i * 2, 0);
+        var cubeEntitySetA = CreateCubeEntity("CubeStackA", Color.DarkRed, cubePositionA, cubeSize);
+        var cubeBodySetA = SetupCubeBody(cubeEntitySetA);
 
         // Tighter constraint with the line to prevent X/Z drift
-        var lineServoConstraintSetA = new PointOnLineServoConstraintComponent
-        {
-            A = lineBodyA,
-            B = cubeBodySetA,
-            LocalOffsetA = Vector3.Zero,     // Anchor directly on line
-            LocalOffsetB = Vector3.Zero,     // Anchor at center of cube
-            LocalDirection = new Vector3(0, 1, 0),
-            ServoMaximumForce = ServoMaxForce,
-            SpringFrequency = 15,            // Add explicit spring frequency for smoother motion
-            SpringDampingRatio = 1,          // Critical damping
-        };
-
+        var pointOnLineServoConstraintSetA = CreatePointOnLineServoConstraint(lineBodyA, cubeBodySetA);
         // Keep orientation aligned with world axes
-        var angularServoSetA = new OneBodyAngularServoConstraintComponent
-        {
-            TargetOrientation = Quaternion.Identity,
-            A = cubeBodySetA,
-            ServoMaximumForce = ServoMaxForce,
-            SpringDampingRatio = 5,
-            SpringFrequency = 15,            // Enable frequency for more responsive rotation control
-        };
+        var angularServoSetA = CreateOneBodyAngularServoConstraint(cubeBodySetA);
 
-        //cubeEntitySetA.Add(lineServoConstraintSetA);
-        //cubeEntitySetA.Add(angularServoSetA);
+        lineEntityA.Add(pointOnLineServoConstraintSetA);
+        cubeEntitySetA.Add(angularServoSetA);
         cubeEntitySetA.Scene = scene;
 
         // Second stack (SetB)
-        var cubeEntitySetB = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
-        {
-            EntityName = "CubeStackB",
-            Size = new(0.9f, 0.9f, 0.9f),    // Slightly smaller cubes
-            Material = game.CreateMaterial(Color.DarkRed),
-        });
-        cubeEntitySetB.Transform.Position = new Vector3(-4, i * 2, -1);
-        var cubeBodySetB = cubeEntitySetB.Get<BodyComponent>();
-        cubeBodySetB.SpringDampingRatio = CubeSpringDampingRation;
-        cubeBodySetB.SpringFrequency = SpringFrequency;
-        cubeBodySetB.FrictionCoefficient = FrictionCoefficient;
+        var cubePositionB = lineOffset + libeBOffset + new Vector3(0, i * 2, 0);
+        var cubeEntitySetB = CreateCubeEntity("CubeStackB", Color.DarkRed, cubePositionB, cubeSize);
+        var cubeBodySetB = SetupCubeBody(cubeEntitySetB);
 
-        //// Use the second line entity for this stack
-        //var lineServoConstraintSetB = new PointOnLineServoConstraintComponent
-        //{
-        //    A = lineBodyB,
-        //    B = cubeBodySetB,
-        //    LocalOffsetA = Vector3.Zero,     // Anchor directly on line
-        //    LocalOffsetB = Vector3.Zero,     // Anchor at center of cube
-        //    LocalDirection = new Vector3(0, 1, 0),
-        //    ServoMaximumForce = ServoMaxForce,
-        //    SpringFrequency = 15,
-        //    SpringDampingRatio = 1,
-        //};
+        var pointOnLineServoConstraintSetB = CreatePointOnLineServoConstraint(lineBodyB, cubeBodySetB);
+        var angularServoSetB = CreateOneBodyAngularServoConstraint(cubeBodySetB);
 
-        //var angularServoSetB = new OneBodyAngularServoConstraintComponent
-        //{
-        //    TargetOrientation = Quaternion.Identity,
-        //    A = cubeBodySetB,
-        //    ServoMaximumForce = ServoMaxForce,
-        //    SpringDampingRatio = 5,
-        //    SpringFrequency = 15,
-        //};
-
-        //cubeEntitySetB.Add(lineServoConstraintSetB);
-        //cubeEntitySetB.Add(angularServoSetB);
-        //cubeEntitySetB.Scene = scene;
+        lineEntityB.Add(pointOnLineServoConstraintSetB);
+        cubeEntitySetB.Add(angularServoSetB);
+        cubeEntitySetB.Scene = scene;
     }
 }
 
@@ -680,15 +617,58 @@ void InitializeDebugTextPrinter()
     instructions.Initialize(DisplayPosition.BottomLeft);
 }
 
-Entity CreateEntity(PrimitiveModelType type, string name, Color color, Vector3 position)
+Entity CreateCubeEntity(string name, Color color, Vector3 position, Vector3? size = null)
+    => CreateEntity(PrimitiveModelType.Cube, name, color, position, size);
+
+Entity CreateEntity(PrimitiveModelType type, string name, Color color, Vector3 position, Vector3? size = null)
 {
     var entity = game.Create3DPrimitive(type, new()
     {
         EntityName = name,
         Material = game.CreateMaterial(color),
+        Size = size
     });
 
     entity.Transform.Position = position;
 
     return entity;
+}
+
+static BodyComponent SetupCubeBody(Entity cubeEntitySetA)
+{
+    var cubeBodySetA = cubeEntitySetA.Get<BodyComponent>();
+    cubeBodySetA.SpringDampingRatio = CubeSpringDampingRation;
+    cubeBodySetA.SpringFrequency = SpringFrequency;
+    cubeBodySetA.FrictionCoefficient = FrictionCoefficient;
+    cubeBodySetA.CollisionLayer = CollisionLayer.Layer2;
+
+    return cubeBodySetA;
+}
+
+static PointOnLineServoConstraintComponent CreatePointOnLineServoConstraint(BodyComponent lineBodyA, BodyComponent cubeBodySetA)
+{
+    return new PointOnLineServoConstraintComponent
+    {
+        A = lineBodyA,
+        B = cubeBodySetA,
+        LocalOffsetA = Vector3.Zero,     // Anchor directly on line
+        LocalOffsetB = Vector3.Zero,     // Anchor at center of cube
+        LocalDirection = new Vector3(0, 1, 0),
+        ServoMaximumForce = ServoMaxForce,
+        SpringFrequency = 15,            // Add explicit spring frequency for smoother motion
+        SpringDampingRatio = 1,          // Critical damping
+    };
+}
+
+static OneBodyAngularServoConstraintComponent CreateOneBodyAngularServoConstraint(BodyComponent cubeBodySetA)
+{
+    var angularServoSetA = new OneBodyAngularServoConstraintComponent
+    {
+        TargetOrientation = Quaternion.Identity,
+        A = cubeBodySetA,
+        ServoMaximumForce = ServoMaxForce,
+        SpringDampingRatio = 5,
+        SpringFrequency = 15,            // Enable frequency for more responsive rotation control
+    };
+    return angularServoSetA;
 }
