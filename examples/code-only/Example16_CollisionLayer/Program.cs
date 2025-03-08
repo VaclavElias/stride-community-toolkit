@@ -7,6 +7,8 @@ using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
+// This example demonstrates CollisionLayer feature, two players colliding with each other and not colliding with the enemy entity (red cube)
+
 // Define collision layers to control which objects can collide with each other
 // Objects within the same layer can collide with each other
 var playerLayer = CollisionLayer.Layer1;
@@ -33,7 +35,6 @@ void Start(Scene scene)
     SetupCollisionMatrix(scene);
     SetupGroundCollisionLayer(scene);
 
-    // This example demonstrates CollisionLayer feature, two players colliding with each other and not colliding with the enemy entity (red cube)
     // Create player entities
     CreateEntityWithLayer("Player1", Color.MediumSeaGreen, new Vector3(0, 0.5f, 0), scene, playerLayer);
     CreateEntityWithLayer("Player2", Color.MediumPurple, new Vector3(0.5f, 4, 0.7f), scene, playerLayer);

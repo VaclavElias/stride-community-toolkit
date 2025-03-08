@@ -7,9 +7,12 @@ using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
-// This example demonstrates how to create a simple scene with two players and an enemy entity and set up collision groups to control which objects can collide with each other.
+// This example demonstrates how to create a simple scene with two players and an enemy entity
+// and set up collision groups to control which objects can collide with each other.
+
 // Define collision groups to control which objects can collide with each other
 // Objects within the same group can't collide with each other, however, if IndexA is used, the objects collide with each other if the difference is more than 2
+
 // In this example, the players will collide with each other because the difference between their IndexA values is 2
 // The enemy entity (red box) won't collide with the players because the difference between their IndexA values is 1
 var playerCollisionGroup1 = new CollisionGroup { Id = 1, IndexA = 0 };
