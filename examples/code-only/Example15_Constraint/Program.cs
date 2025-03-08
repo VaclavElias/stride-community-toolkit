@@ -1,5 +1,6 @@
 using Stride.BepuPhysics;
 using Stride.BepuPhysics.Constraints;
+using Stride.BepuPhysics.Definitions;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
@@ -12,15 +13,13 @@ using Stride.Input;
 
 // Constant vertical speed (units per second) for smooth vertical adjustments.
 const float VerticalSpeed = 4.0f;
+const string DraggableEntityName = "Draggable Sphere";
+
 DebugTextPrinter? instructions = null;
 
 // Game entities and components
 CameraComponent? mainCamera = null;
-Entity? draggableSphere = null;
-Entity? connectedSphere = null;
-Entity? referenceCapsule = null;
 BodyComponent? draggableBody = null;
-BodyComponent? connectedBody = null;
 
 Entity? foundationBlock = null;
 Entity? platform = null;
@@ -30,6 +29,18 @@ BodyComponent? platformBody = null;
 
 List<Entity?> entities = [];
 List<BodyComponent?> bodies = [];
+
+var lineLayer = CollisionLayer.Layer1;
+var cubeLayer = CollisionLayer.Layer2;
+var groundLayer = CollisionLayer.Layer3;
+var otherLayer = CollisionLayer.Layer5;
+
+var collisionMatrix = new CollisionMatrix();
+collisionMatrix.Set(lineLayer, cubeLayer, shouldCollide: false);
+collisionMatrix.Set(lineLayer, groundLayer, shouldCollide: true);
+collisionMatrix.Set(lineLayer, otherLayer, shouldCollide: true);
+collisionMatrix.Set(groundLayer, otherLayer, shouldCollide: true);
+collisionMatrix.Set(otherLayer, otherLayer, shouldCollide: true);
 
 // The fixed Y level for horizontal dragging (captured at drag start)
 float initialDragY = 0;
@@ -60,6 +71,9 @@ void Start(Scene scene)
     game.AddProfiler();
     game.AddGroundGizmo(new(-5, 0, -5), showAxisName: true);
 
+    SetupCollisionMatrix(scene);
+    SetupGroundCollisionLayer(scene);
+
     InitializeDebugTextPrinter();
     InitializeEntities(scene);
 
@@ -69,7 +83,7 @@ void Start(Scene scene)
 
 void Update(Scene scene, GameTime time)
 {
-    if (mainCamera == null || draggableBody is null) return;
+    if (mainCamera == null) return;
 
     if (game.Input.IsKeyPressed(Keys.R))
     {
@@ -88,6 +102,8 @@ void Update(Scene scene, GameTime time)
     // While the mouse button is held down, update the sphere's position
     if (isDraggingSphere && game.Input.IsMouseButtonDown(MouseButton.Left))
     {
+        if (draggableBody == null) return;
+
         // Get the horizontal (XZ) intersection point using the fixed initialDragY
         var horizontalPos = GetNewPosition(game.Input.MousePosition);
 
@@ -119,60 +135,96 @@ void Update(Scene scene, GameTime time)
     {
         isDraggingSphere = false;
 
+        if (draggableBody == null) return;
+
         // Set the sphere back to non-kinematic so physics can resume
         draggableBody.Kinematic = false;
 
         // Wake the body to ensure physics updates
         draggableBody.Awake = true;
+
+        draggableBody = null;
     }
+}
+
+void SetupCollisionMatrix(Scene scene)
+{
+    var camera = scene.GetCamera();
+
+    var simulation = camera?.Entity.GetSimulation();
+
+    if (simulation == null) return;
+
+    simulation.CollisionMatrix = collisionMatrix;
+}
+
+void SetupGroundCollisionLayer(Scene scene)
+{
+    var groundEntity = scene.Entities.FirstOrDefault(e => e.Name == "Ground");
+
+    if (groundEntity == null) return;
+
+    var groundBody = groundEntity.GetComponent<StaticComponent>();
+
+    groundBody!.CollisionLayer = groundLayer;
 }
 
 void InitializeEntities(Scene scene)
 {
-    InitializeDistanceLimintConstraintExamples(scene);
-    InitializeBallSocketConstraintExample(scene);
+    // Create reference entities for visual reference
+    CreateReferenceCube(scene);
+    CreateReferenceCapsule(scene);
+
+    CreateDistanceLimintConstraintExamples(scene);
+    CreateDistanceServoConstraintExamples(scene);
+    CreateBallSocketConstraintExample(scene);
     //InitializePointOnLineServoConstraintExample(scene);
-    InitializePointOnLineServoConstraintExample2(scene);
+    CreatePointOnLineServoConstraintExample2(scene);
 }
 
-void InitializeDistanceLimintConstraintExamples(Scene scene)
+void CreateReferenceCube(Scene scene)
 {
-    var testCube = game.Create3DPrimitive(PrimitiveModelType.Cube, new() { EntityName = "Test Cube" });
-    testCube.Transform.Position = new Vector3(3, 3, 3);
-    var testCubeBody = testCube.Get<BodyComponent>();
-    testCubeBody.FrictionCoefficient = 0.1f;
+    var referenceCube = CreateEntity(PrimitiveModelType.Cube, "Reference Cube", Color.Purple, new Vector3(3, 3, 3));
+
+    var referenceCubeBody = referenceCube.Get<BodyComponent>();
+    referenceCubeBody.FrictionCoefficient = 0.1f;
+    referenceCubeBody.CollisionLayer = CollisionLayer.Layer5;
 
     var angularServoSetB = new OneBodyAngularServoConstraintComponent
     {
         TargetOrientation = Quaternion.Identity,
-        A = testCubeBody,
+        A = referenceCubeBody,
         ServoMaximumForce = 1000,
         SpringDampingRatio = 10,
         SpringFrequency = 300,
     };
 
-    testCube.Add(angularServoSetB);
-    testCube.Scene = scene;
+    referenceCube.Add(angularServoSetB);
+    referenceCube.Scene = scene;
+}
 
-    // Create an additional capsule for visual reference
-    referenceCapsule = game.Create3DPrimitive(PrimitiveModelType.Capsule, new() { EntityName = "Capsule", Material = game.CreateMaterial(Color.Orange) });
-    referenceCapsule.Transform.Position = new Vector3(0, 3, 0);
+void CreateReferenceCapsule(Scene scene)
+{
+    var referenceCapsule = CreateEntity(PrimitiveModelType.Capsule, "Reference Capsule", Color.Orange, new Vector3(0, 3, 0));
+
+    var referenceCapsuleBody = referenceCapsule.Get<BodyComponent>();
+    referenceCapsuleBody.CollisionLayer = CollisionLayer.Layer5;
+
     referenceCapsule.Scene = scene;
+}
 
+void CreateDistanceLimintConstraintExamples(Scene scene)
+{
     // Create the draggable sphere with a golden material
     // Initially, the sphere is not kinematic. It will become kinematic while dragging
-    draggableSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new()
-    {
-        EntityName = "Draggable Sphere",
-        Material = game.CreateMaterial(Color.Gold)
-    });
-    draggableSphere.Transform.Position = new Vector3(-2, 4, -2);
-    draggableBody = draggableSphere.Get<BodyComponent>();
+    var draggableSphere = CreateEntity(PrimitiveModelType.Sphere, DraggableEntityName, Color.Gold, new Vector3(-2, 3, -2));
+    var draggableBody = draggableSphere.Get<BodyComponent>();
+    draggableBody.CollisionLayer = CollisionLayer.Layer5;
 
     // Create a second sphere to demonstrate a connected constraint
-    connectedSphere = game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { EntityName = "Connected Sphere" });
-    connectedSphere.Transform.Position = new Vector3(-2.1f, 3, -2.9f);
-    connectedBody = connectedSphere.Get<BodyComponent>();
+    var connectedSphere = CreateEntity(PrimitiveModelType.Sphere, "Connected Sphere", Color.Blue, new Vector3(-2.1f, 3, -2.9f));
+    var connectedBody = connectedSphere.Get<BodyComponent>();
+    connectedBody.CollisionLayer = CollisionLayer.Layer5;
 
     // Set up a distance limit constraint between the draggable and connected spheres
     var distanceLimit = new DistanceLimitConstraintComponent
@@ -183,6 +235,29 @@ void InitializeDistanceLimintConstraintExamples(Scene scene)
         MaximumDistance = 3.0f
     };
 
+    draggableSphere.Add(distanceLimit);
+
+    // Add both entities to the scene
+    draggableSphere.Scene = scene;
+    connectedSphere.Scene = scene;
+
+    entities.AddRange([draggableSphere, connectedSphere]);
+    bodies.AddRange([draggableBody, connectedBody]);
+}
+
+void CreateDistanceServoConstraintExamples(Scene scene)
+{
+    // Create the draggable sphere with a golden material
+    // Initially, the sphere is not kinematic. It will become kinematic while dragging
+    var draggableSphere = CreateEntity(PrimitiveModelType.Sphere, DraggableEntityName, Color.Gold, new Vector3(-2, 6, -2));
+    var draggableBody = draggableSphere.Get<BodyComponent>();
+    draggableBody.CollisionLayer = CollisionLayer.Layer5;
+
+    var connectedSphere = CreateEntity(PrimitiveModelType.Sphere, "Connected Sphere", Color.LightBlue, new Vector3(-2.1f, 6, -2.9f));
+    var connectedBody = connectedSphere.Get<BodyComponent>();
+    connectedBody.CollisionLayer = CollisionLayer.Layer5;
+
+    // Set up a distance servo constraint between the draggable and connected spheres
     var distanceServo = new DistanceServoConstraintComponent
     {
         A = draggableBody,
@@ -198,11 +273,11 @@ void InitializeDistanceLimintConstraintExamples(Scene scene)
     draggableSphere.Scene = scene;
     connectedSphere.Scene = scene;
 
-    entities.AddRange([referenceCapsule, draggableSphere, connectedSphere]);
+    entities.AddRange([draggableSphere, connectedSphere]);
     bodies.AddRange([draggableBody, connectedBody]);
 }
 
-void InitializeBallSocketConstraintExample(Scene scene)
+void CreateBallSocketConstraintExample(Scene scene)
 {
     const float FoundationHeight = 3;
     const float FoundationWidth = 0.3f;
@@ -257,7 +332,7 @@ void InitializeBallSocketConstraintExample(Scene scene)
     bodies.AddRange([foundationBody, platformBody]);
 }
 
-void InitializePointOnLineServoConstraintExample2(Scene scene)
+void CreatePointOnLineServoConstraintExample2(Scene scene)
 {
     // Create two separate line entities for better control of each stack
     var lineEntityA = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
@@ -471,23 +546,11 @@ void InitializePointOnLineServoConstraintExample(Scene scene)
     }
 }
 
-// Processes the initial mouse click and selects the draggable sphere
 void ProcessMouseClick()
 {
     TryRemoveCubeStack(game.Input.MousePosition);
 
-    if (draggableBody is null || !TrySelectSphere(game.Input.MousePosition)) return;
-
-    // Set the sphere to be kinematic while dragging
-    draggableBody.Kinematic = true;
-
-    isDraggingSphere = true;
-
-    // Capture the current Y level to use for horizontal dragging
-    initialDragY = draggableBody.Position.Y;
-
-    // Reset the vertical offset
-    verticalOffset = 0;
+    TrySelectSphere(game.Input.MousePosition);
 }
 
 void TryRemoveCubeStack(Vector2 mousePosition)
@@ -539,12 +602,27 @@ bool TrySelectSphere(Vector2 mousePosition)
     // Perform a raycast from the camera into the scene
     var hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
 
-    if (hit && hitInfo.Collidable.Entity == draggableSphere)
+    if (hit && hitInfo.Collidable.Entity.Name == DraggableEntityName)
     {
         Console.WriteLine($"Sphere selected for dragging: {hitInfo.Collidable.Entity.Transform.Position}");
 
+        draggableBody = hitInfo.Collidable.Entity.Get<BodyComponent>();
+
+        //if (draggableBody == null) return false;
+
         // Calculate the offset between the sphere's center and the hit point
         dragOffset = draggableBody!.Position - hitInfo.Point;
+
+        // Set the sphere to be kinematic while dragging
+        draggableBody.Kinematic = true;
+
+        isDraggingSphere = true;
+
+        // Capture the current Y level to use for horizontal dragging
+        initialDragY = draggableBody.Position.Y;
+
+        // Reset the vertical offset
+        verticalOffset = 0;
 
         return true;
     }
@@ -591,10 +669,7 @@ void ResetTheScene(Scene scene)
     InitializeEntities(scene);
 }
 
-void DisplayInstructions()
-{
-    instructions?.Print();
-}
+void DisplayInstructions() => instructions?.Print();
 
 void InitializeDebugTextPrinter()
 {
@@ -614,4 +689,17 @@ void InitializeDebugTextPrinter()
     };
 
     instructions.Initialize(DisplayPosition.BottomLeft);
+}
+
+Entity CreateEntity(PrimitiveModelType type, string name, Color color, Vector3 position)
+{
+    var entity = game.Create3DPrimitive(type, new()
+    {
+        EntityName = name,
+        Material = game.CreateMaterial(color),
+    });
+
+    entity.Transform.Position = position;
+
+    return entity;
 }
