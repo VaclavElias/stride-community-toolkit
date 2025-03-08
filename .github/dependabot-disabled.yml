@@ -1,0 +1,38 @@
+version: 2
+# Selected directories
+# It creates multiple PRs. Activate if we can fix that, in the meantime there is workflows/bump-stride-nuget-packages.yml
+updates:
+  - package-ecosystem: nuget
+    directory: "/src/Stride.CommunityToolkit.Bepu"
+    schedule:
+      interval: daily
+    allow:
+      - dependency-name: "Stride.*"      
+    groups:
+      stride:
+        patterns:
+          - "Stride.*"
+#  - package-ecosystem: nuget
+#    directory: "/src/Stride.CommunityToolkit.DebugShapes"
+#    schedule:
+#      interval: daily
+#    allow:
+#      - dependency-name: "Stride.*"      
+#  - package-ecosystem: nuget
+#    directory: "/src/Stride.CommunityToolkit.ImGui"
+#    schedule:
+#      interval: daily
+#    allow:
+#      - dependency-name: "Stride.*"      
+#  - package-ecosystem: nuget
+#    directory: "/src/Stride.CommunityToolkit.Skyboxes"
+#    schedule:
+#      interval: daily
+#    allow:
+#      - dependency-name: "Stride.*"      
+  - package-ecosystem: nuget
+    directory: "/src/Stride.CommunityToolkit.Windows"
+    schedule:
+      interval: daily
+    allow:
+      - dependency-name: "Stride.*"
