@@ -23,23 +23,15 @@ namespace Stride.CommunityToolkit.Bepu;
 public class DebugRenderComponentScript : SyncScript
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="DebugRenderComponentScript"/> class.
+    /// Gets or sets a value indicating whether the debug mesh is initially <see langword="true"/> when added.
     /// </summary>
-    public DebugRenderComponentScript() { }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DebugRenderComponentScript"/> class with the specified visibility
-    /// state.
-    /// </summary>
-    /// <param name="visible">A value indicating whether the debug render component should be initially visible. The default is <see langword="false"/>.</param>
-    public DebugRenderComponentScript(bool visible = false) => _visible = visible;
+    public bool Visible { get; set; }
 
     /// <summary>
     /// True when a <see cref="DebugRenderComponent"/> has already been added to the entity.
     /// This prevents adding multiple debug components on subsequent frames.
     /// </summary>
     private bool _debugAdded;
-    private readonly bool _visible;
 
     /// <summary>
     /// Called once per frame by the engine. When the scene contains one or more visibility groups
@@ -62,7 +54,7 @@ public class DebugRenderComponentScript : SyncScript
 
         if (visibilityGroups > 0 && !_debugAdded)
         {
-            Entity.Add(new DebugRenderComponent() { Visible = _visible });
+            Entity.Add(new DebugRenderComponent() { Visible = Visible });
 
             _debugAdded = true;
         }
