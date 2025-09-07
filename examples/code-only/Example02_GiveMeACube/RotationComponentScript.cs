@@ -9,7 +9,7 @@ public class RotationComponentScript : SyncScript
     private Vector3 _initialPosition = Vector3.Zero;
     private float _rotateSpeed = 1f;
     private float _radius = 3f;
-    private float _angle = 0;
+    private float _angle;
 
     public override void Start()
     {
