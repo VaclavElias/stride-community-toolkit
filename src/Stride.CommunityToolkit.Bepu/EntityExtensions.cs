@@ -4,6 +4,7 @@ using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics.GeometricPrimitives;
+using Stride.Rendering.ProceduralModels;
 using static Stride.BepuPhysics.Definitions.DecomposedHulls;
 
 namespace Stride.CommunityToolkit.Bepu;
@@ -68,29 +69,33 @@ public static class EntityExtensions
 
             entity.Add(options.Component);
         }
-        if (type == PrimitiveModelType.Teapot)
+        if (type == PrimitiveModelType.Cone)
         {
-            var meshData = GeometricPrimitive.Cone.New(radius: (options?.Size?.X ?? 1) / 2, height: options?.Size?.Y ?? 1, 16);
+            var size = Vector3.One;
+
+            if (options?.Size is null)
+            {
+                var coneModel = new ConeProceduralModel();
+
+                size = new(coneModel.Radius, coneModel.Height, 1);
+            }
+            else
+            {
+                size = options.Size.Value;
+            }
+
+            var meshData = GeometricPrimitive.Cone.New(radius: size.X, height: size.Y, 16);
             var points = meshData.Vertices.Select(w => w.Position).ToArray();
             var uintIndices = meshData.Indices.Select(w => (uint)w).ToArray();
-            //var collider = new ConvexHullColliderShapeDesc()
-            //{
-            //    Model = model, // seems doing nothing
-            //    ConvexHulls = [],
-            //    ConvexHullsIndices = []
-            //};
-            //collider.ConvexHulls.Add([points]);
-            //collider.ConvexHullsIndices.Add([uintIndices]);
 
-            var compoundCollier = options.Component.Collider as CompoundCollider;
+            var compoundCollier = options!.Component.Collider as CompoundCollider;
 
-            //List<IAssetColliderShapeDesc> descriptions = [];
+            var convexHullCollider = new ConvexHullCollider()
+            {
+                Hull = new DecomposedHulls([new DecomposedMesh([new Hull(points, uintIndices)])])
+            };
 
-            //descriptions.Add(collider);
-
-            var collider2 = new ConvexHullCollider() { Hull = new DecomposedHulls([new DecomposedMesh([new Hull(points, uintIndices)])]) };
-
-            compoundCollier?.Colliders.Add(collider2);
+            compoundCollier?.Colliders.Add(convexHullCollider);
 
             entity.Add(options.Component);
         }
