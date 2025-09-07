@@ -9,27 +9,38 @@ using Stride.Rendering.Materials;
 namespace Stride.CommunityToolkit.Bepu;
 
 /// <summary>
-/// Script that toggles collidable gizmos for all <see cref="CollidableComponent"/> in the scene when a specified key is pressed.
+/// Toggles visualization gizmos for all <see cref="CollidableComponent"/> instances in the current scene
+/// when a specified key is pressed.
 /// </summary>
 public class CollidableGizmoScript : SyncScript
 {
     private const string GizmoEntityName = "CollidableGizmo";
 
     /// <summary>
-    /// The key to toggle the collidable gizmos on and off.
+    /// Gets or sets the key used to toggle collidable gizmos on and off. Default: <see cref="Keys.P"/>.
     /// </summary>
     public Keys Key { get; set; } = Keys.P;
 
     /// <summary>
-    /// Optional color to apply to the gizmos. If <see langword="null"/>, the default color is used.
+    /// Gets or sets an optional emissive color applied to created gizmos. When <see langword="null"/>, the default material color is used.
     /// </summary>
     public Color4? Color { get; set; }
+
+    /// <summary>
+    /// Gets or sets the size multiplier applied to created gizmos. Defaults to <c>1.0</c>.
+    /// </summary>
+    public float SizeFactor { get; set; } = 1f;
+
+    /// <summary>
+    /// Gets a value indicating whether gizmos are currently active in the scene.
+    /// </summary>
+    public bool IsActive => _gizmosActive;
 
     private bool _gizmosActive;
     private readonly List<CollidableGizmo> _gizmos = [];
 
     /// <summary>
-    /// Called once per frame by the engine. This method checks if the specified key is pressed to toggle the collidable gizmos.
+    /// Called once per frame by the engine. Checks for <see cref="Key"/> presses to toggle gizmos and updates them when active.
     /// </summary>
     public override void Update()
     {
@@ -38,7 +49,6 @@ public class CollidableGizmoScript : SyncScript
             if (!_gizmosActive)
             {
                 CreateGizmos();
-
                 ApplyGizmoEmissiveColor();
             }
             else
@@ -65,7 +75,14 @@ public class CollidableGizmoScript : SyncScript
 
         foreach (var gizmoEntity in gizmoEntities)
         {
-            gizmoEntity.Get<ModelComponent>().SetMaterialParameter(MaterialKeys.EmissiveValue, Color.Value);
+            if (!gizmoEntity.Name.Contains(GizmoEntityName))
+                continue;
+
+            var modelComponent = gizmoEntity.Get<ModelComponent>();
+
+            if (modelComponent is null) continue;
+
+            modelComponent.SetMaterialParameter(MaterialKeys.EmissiveValue, Color.Value);
         }
     }
 
@@ -73,13 +90,19 @@ public class CollidableGizmoScript : SyncScript
     {
         _gizmos.Clear();
 
-        foreach (var component in GetAllComponents<CollidableComponent>(SceneSystem.SceneInstance.RootScene))
+        var scene = Entity?.Scene ?? SceneSystem?.SceneInstance?.RootScene;
+        if (scene is null)
+            return;
+
+        foreach (var component in GetAllComponents<CollidableComponent>(scene))
         {
-            var gizmo = new CollidableGizmo(component);
-            gizmo.SizeFactor = 1f;
+            var gizmo = new CollidableGizmo(component)
+            {
+                SizeFactor = SizeFactor
+            };
 
             // This needs to be before IsEnabled and IsSelected
-            gizmo.Initialize(Game.Services, SceneSystem.SceneInstance.RootScene);
+            gizmo.Initialize(Game.Services, scene);
             gizmo.IsEnabled = true;
             gizmo.IsSelected = true;
 
@@ -101,9 +124,12 @@ public class CollidableGizmoScript : SyncScript
         where T : EntityComponent
     {
         foreach (var entity in GetAllEntities(scene.Entities))
+        {
             foreach (var component in entity.Components)
-                if (component is T typed)
-                    yield return typed;
+            {
+                if (component is T typed) yield return typed;
+            }
+        }
     }
 
     private static IEnumerable<Entity> GetAllEntities(IEnumerable<Entity> entities)
@@ -113,7 +139,9 @@ public class CollidableGizmoScript : SyncScript
             yield return entity;
 
             foreach (var child in GetAllEntities(entity.GetChildren()))
+            {
                 yield return child;
+            }
         }
     }
 }
