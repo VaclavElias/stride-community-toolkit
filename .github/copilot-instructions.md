@@ -2,7 +2,7 @@
 
 These repository instructions guide GitHub Copilot (and similar AI assistants) to assist development in the Stride Community Toolkit solution.
 
-## Status & Stability (Preview)
+## Status & Stability
 - The Stride Community Toolkit is currently in **Preview**.
 - Public APIs, namespaces, behaviors, and package layout may change without backward compatibility guarantees until the first stable release.
 - Many extensions and helpers originated from multiple community sources (forum posts, samples, gists, experimental repos). Some code paths have not yet been fully reviewed, optimized, or documented.
@@ -74,7 +74,7 @@ game.Run(start: (Scene rootScene) =>
 ## Coding & Contribution Guidelines
 - Use latest C# features (file-scoped namespaces, target-typed `new`, pattern matching, spans where beneficial).
 - Keep nullable reference warnings at zero.
-- Public APIs: complete XML docs (`<summary>`, `<param>`, `<returns>`, `<example>` when useful). Mark experimental with a note: “STATUS: Preview – subject to change”.
+- Public APIs: complete XML docs (`<summary>`, `<param>`, `<returns>`, `<example>` when useful).
 - Naming: `Stride.CommunityToolkit.<LibraryName>` for new libs; PascalCase for types/methods; camelCase for parameters.
 - Terminology / capitalization: Use “Bepu” (capital B only) in identifiers and XML docs; never “BEPU” or “bepu”. Use “Bullet” (capital B) for Bullet physics.
 - One public type per file; avoid unrelated multi-class files.
@@ -129,7 +129,7 @@ game.Run(start: (Scene rootScene) =>
 ## AI Assistance Guidance
 - Improve or extend existing helpers instead of duplicating similar logic.
 - Do NOT introduce unrelated frameworks/patterns (e.g., Unity managers, large DI containers, Rx) unless explicitly requested.
-- Highlight potential breaking changes when modifying public APIs (Preview status).
+- Highlight potential breaking changes when modifying public APIs.
 - Prefer Bepu examples over Bullet unless addressing migration or legacy parity.
 - Remind about shader code regeneration if shaders are touched.
 - For Blazor content: keep solutions Blazor-appropriate; avoid server-only MVC/Razor patterns unless necessary.
@@ -151,7 +151,6 @@ game.Run(start: (Scene rootScene) =>
 - [ ] Fluent extensions return `this` where appropriate
 - [ ] Examples updated (if API changes)
 - [ ] Conceptual + API docs updated
-- [ ] Preview / experimental status noted (if relevant)
 - [ ] Shader regeneration reminder (if shaders changed)
 - [ ] Provenance clarified for imported code
 
