@@ -19,7 +19,7 @@ void Start(Scene rootScene)
 
     var entity = game.Create3DPrimitive(PrimitiveModelType.Cube);
     entity.Transform.Position = new Vector3(1f, 0.5f, 3f);
-    entity.Add(new DebugRenderComponentScript(visible: true));
+    entity.Add(new DebugRenderComponentScript() { Visible = true });
     entity.Scene = rootScene;
 
     CreateSpheres(rootScene, 6);
