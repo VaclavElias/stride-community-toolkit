@@ -34,19 +34,27 @@ public class CollidableGizmoScript : SyncScript
     /// <summary>
     /// Gets a value indicating whether gizmos are currently active in the scene.
     /// </summary>
-    public bool IsActive => _gizmosActive;
+    public bool Visible { get; set; }
 
-    private bool _gizmosActive;
     private readonly List<CollidableGizmo> _gizmos = [];
 
-    /// <summary>
-    /// Called once per frame by the engine. Checks for <see cref="Key"/> presses to toggle gizmos and updates them when active.
-    /// </summary>
+    ///<inheritdoc />
+    public override void Start()
+    {
+        if (Visible)
+        {
+            CreateGizmos();
+
+            ApplyGizmoEmissiveColor();
+        }
+    }
+
+    ///<inheritdoc />
     public override void Update()
     {
         if (Input.IsKeyPressed(Key))
         {
-            if (!_gizmosActive)
+            if (!Visible)
             {
                 CreateGizmos();
                 ApplyGizmoEmissiveColor();
@@ -56,10 +64,10 @@ public class CollidableGizmoScript : SyncScript
                 RemoveGizmos();
             }
 
-            _gizmosActive = !_gizmosActive;
+            Visible = !Visible;
         }
 
-        if (!_gizmosActive) return;
+        if (!Visible) return;
 
         foreach (var gizmo in _gizmos)
         {

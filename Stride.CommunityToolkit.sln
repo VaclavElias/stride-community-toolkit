@@ -130,6 +130,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example01_Basic3DScene_Sync
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example08_DebugRenderComponent", "examples\code-only\Example08_DebugRenderComponent\Example08_DebugRenderComponent.csproj", "{BE5E6767-0600-48F7-8EB5-30FF8E63A754}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example08_CollidableGizmo", "examples\code-only\Example08_CollidableGizmo\Example08_CollidableGizmo.csproj", "{F2611018-55CB-4DBF-B231-3B0E3F1F6DEB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -355,6 +357,10 @@ Global
 		{BE5E6767-0600-48F7-8EB5-30FF8E63A754}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BE5E6767-0600-48F7-8EB5-30FF8E63A754}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BE5E6767-0600-48F7-8EB5-30FF8E63A754}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2611018-55CB-4DBF-B231-3B0E3F1F6DEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2611018-55CB-4DBF-B231-3B0E3F1F6DEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2611018-55CB-4DBF-B231-3B0E3F1F6DEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2611018-55CB-4DBF-B231-3B0E3F1F6DEB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -405,6 +411,7 @@ Global
 		{777B81CA-7C38-40DB-AD02-66FB1E5B5738} = {30457B66-9E10-4290-9744-D0079DE0448B}
 		{00867C31-5B72-47FE-BBEA-9A37F340047E} = {30457B66-9E10-4290-9744-D0079DE0448B}
 		{BE5E6767-0600-48F7-8EB5-30FF8E63A754} = {30457B66-9E10-4290-9744-D0079DE0448B}
+		{F2611018-55CB-4DBF-B231-3B0E3F1F6DEB} = {30457B66-9E10-4290-9744-D0079DE0448B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C7A8C18E-C1F5-492F-8173-51EC9495B78C}
