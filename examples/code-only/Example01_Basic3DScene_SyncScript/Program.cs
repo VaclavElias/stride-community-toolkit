@@ -19,7 +19,7 @@ game.Run(start: (Scene rootScene) =>
     entity.Add(new RotationComponentScript());
     entity.Scene = rootScene;
 
-    var entity5 = game.Create3DPrimitive(PrimitiveModelType.Cone, new() { Size = new(0.5f, 5, 0) });
-    entity5.Transform.Position = new Vector3(0, 6, 0);
-    entity5.Scene = rootScene;
+    var entityCone = game.Create3DPrimitive(PrimitiveModelType.Cone, new() { Size = new(0.5f, 5, 0) });
+    entityCone.Transform.Position = new Vector3(0, 6, 0);
+    entityCone.Scene = rootScene;
 });
