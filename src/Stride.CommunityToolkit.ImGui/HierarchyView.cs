@@ -8,6 +8,9 @@ using Guid = System.Guid;
 
 namespace Stride.CommunityToolkit.ImGui;
 
+/// <summary>
+/// A window that shows the hierarchy of scenes and entities in the current scene.
+/// </summary>
 public class HierarchyView : BaseWindow
 {
     /// <summary>
