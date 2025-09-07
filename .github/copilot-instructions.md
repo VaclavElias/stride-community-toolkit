@@ -156,4 +156,4 @@ game.Run(start: (Scene rootScene) =>
 - [ ] Provenance clarified for imported code
 
 ---
-If something here becomes outdated or ambiguous, update it promptly—concise, accurate guidance improves AI output quality and reduces maintenance overhead.
+If something here becomes outdated or ambiguous, update it promptly, concise, accurate guidance improves AI output quality and reduces maintenance overhead.
