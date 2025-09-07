@@ -25,6 +25,7 @@ public class HierarchyView : BaseWindow
 
     public HierarchyView(IServiceRegistry service) : base(service) { }
 
+    ///<inheritdoc />
     protected override void OnDraw(bool collapsed)
     {
         if (collapsed)
@@ -77,6 +78,7 @@ public class HierarchyView : BaseWindow
             result.Add(source);
     }
 
+    ///<inheritdoc />
     protected override void OnDestroy() { }
 
     void RecursiveDrawing(IIdentifiable source)
