@@ -1,7 +1,10 @@
+using Stride.BepuPhysics.Definitions;
 using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Graphics.GeometricPrimitives;
+using static Stride.BepuPhysics.Definitions.DecomposedHulls;
 
 namespace Stride.CommunityToolkit.Bepu;
 
@@ -62,6 +65,32 @@ public static class EntityExtensions
 
             // Or you can use just his
             options.Component.Collider = new MeshCollider() { Model = model, Closed = true };
+
+            entity.Add(options.Component);
+        }
+        if (type == PrimitiveModelType.Teapot)
+        {
+            var meshData = GeometricPrimitive.Cone.New(radius: (options?.Size?.X ?? 1) / 2, height: options?.Size?.Y ?? 1, 16);
+            var points = meshData.Vertices.Select(w => w.Position).ToArray();
+            var uintIndices = meshData.Indices.Select(w => (uint)w).ToArray();
+            //var collider = new ConvexHullColliderShapeDesc()
+            //{
+            //    Model = model, // seems doing nothing
+            //    ConvexHulls = [],
+            //    ConvexHullsIndices = []
+            //};
+            //collider.ConvexHulls.Add([points]);
+            //collider.ConvexHullsIndices.Add([uintIndices]);
+
+            var compoundCollier = options.Component.Collider as CompoundCollider;
+
+            //List<IAssetColliderShapeDesc> descriptions = [];
+
+            //descriptions.Add(collider);
+
+            var collider2 = new ConvexHullCollider() { Hull = new DecomposedHulls([new DecomposedMesh([new Hull(points, uintIndices)])]) };
+
+            compoundCollier?.Colliders.Add(collider2);
 
             entity.Add(options.Component);
         }
@@ -190,17 +219,18 @@ public static class EntityExtensions
     private static ColliderBase? Get3DColliderShape(PrimitiveModelType type, Vector3? size = null)
         => type switch
         {
-            PrimitiveModelType.Plane => size is null ? new BoxCollider() : new() { Size = new Vector3(size.Value.X, 0, size.Value.Y) },
-            PrimitiveModelType.Sphere => size is null ? new SphereCollider() : new() { Radius = size.Value.X },
+            PrimitiveModelType.Capsule => size is null ? new CapsuleCollider() { Radius = 0.35f } : new() { Radius = size.Value.X, Length = size.Value.Y },
             PrimitiveModelType.Cube => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
-            PrimitiveModelType.RectangularPrism => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
+            PrimitiveModelType.Cone => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
             PrimitiveModelType.Cylinder => size is null ? new CylinderCollider() : new()
             {
                 Radius = size.Value.X,
                 Length = size.Value.Z,
                 //RotationLocal = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90))
             },
-            PrimitiveModelType.Capsule => size is null ? new CapsuleCollider() { Radius = 0.35f } : new() { Radius = size.Value.X, Length = size.Value.Y },
+            PrimitiveModelType.Plane => size is null ? new BoxCollider() : new() { Size = new Vector3(size.Value.X, 0, size.Value.Y) },
+            PrimitiveModelType.RectangularPrism => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
+            PrimitiveModelType.Sphere => size is null ? new SphereCollider() : new() { Radius = size.Value.X },
             _ => throw new InvalidOperationException(),
         };
 }
