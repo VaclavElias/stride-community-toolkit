@@ -29,7 +29,9 @@ public class RobotBuilder(IGame game)
         {
             Type = entityType,
         });
-        entity.Add(removeScript);
+
+        // temporary disabled, checking for better solution
+        //entity.Add(removeScript);
 
         entity.Transform.Position = VectorHelper.RandomVector3([-5, 5], [5, 10], [-5, 5]);
 

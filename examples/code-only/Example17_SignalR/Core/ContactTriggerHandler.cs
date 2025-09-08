@@ -39,7 +39,7 @@ public class ContactTriggerHandler : IContactEventHandler
     {
         if (robotComponent is null) return;
 
-        // ToDo: Not working
+        // ToDo: Can we use rather this?
         //robotComponent.Entity.Scene = null;
 
         robotComponent.IsDeleted = true;
