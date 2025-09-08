@@ -27,7 +27,7 @@ public class ScreenService
 
             var encodedMsg = $"From Hub: {dto.Type}: {dto.Text}";
 
-            Console.WriteLine(encodedMsg);
+            //Console.WriteLine(encodedMsg);
         });
 
         Connection.On<CountDto>(nameof(IScreenClient.ReceiveCountAsync), (dto) =>
@@ -36,7 +36,7 @@ public class ScreenService
 
             var encodedMsg = $"From Hub: {dto.Type}: {dto.Count}";
 
-            Console.WriteLine(encodedMsg);
+            //Console.WriteLine(encodedMsg);
         });
     }
 }

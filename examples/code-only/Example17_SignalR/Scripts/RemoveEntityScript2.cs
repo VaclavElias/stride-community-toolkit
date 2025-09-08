@@ -26,7 +26,7 @@ public class RemoveEntityScript2 : AsyncScript
             {
                 _isBeingRemoved = true;
 
-                Console.WriteLine($"Removing entity: {Entity.Name}");
+                //Console.WriteLine($"Removing entity: {Entity.Name}");
 
                 var message = new CountDto(robotComponent.Type, 1);
 

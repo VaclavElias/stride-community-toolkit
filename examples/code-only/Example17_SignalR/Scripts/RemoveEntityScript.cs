@@ -15,13 +15,15 @@ public class RemoveEntityScript : AsyncScript
 
         if (robotComponent is null) return;
 
+        // This is causing slowness
+
         while (Game.IsRunning)
         {
             if (robotComponent.IsDeleted && !_isBeingRemoved)
             {
                 _isBeingRemoved = true;
 
-                Console.WriteLine($"Removing entity: {Entity.Name}");
+                //Console.WriteLine($"Removing entity: {Entity.Name}");
 
                 if (robotComponent.Type != EntityType.Destroyer)
                 {
