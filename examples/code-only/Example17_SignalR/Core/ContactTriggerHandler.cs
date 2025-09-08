@@ -37,7 +37,7 @@ public class ContactTriggerHandler : IContactEventHandler
 
     public static void MarkForRemoval(RobotComponent? robotComponent)
     {
-        if (robotComponent == null) return;
+        if (robotComponent is null) return;
 
         // ToDo: Not working
         //robotComponent.Entity.Scene = null;

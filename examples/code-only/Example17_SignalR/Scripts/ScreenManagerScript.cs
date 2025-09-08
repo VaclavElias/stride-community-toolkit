@@ -26,7 +26,7 @@ public class ScreenManagerScript : AsyncScript
     {
         _screenService = Services.GetService<ScreenService>();
 
-        if (_screenService == null) return;
+        if (_screenService is null) return;
 
         try
         {
