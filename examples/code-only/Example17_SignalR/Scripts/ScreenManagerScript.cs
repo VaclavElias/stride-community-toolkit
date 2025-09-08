@@ -20,7 +20,15 @@ public class ScreenManagerScript : AsyncScript
     private MaterialManager? _materialManager;
     private MessagePrinter? _messagePrinter;
     private ScreenService? _screenService;
-    private bool _isCreatingPrimitives;
+
+    // Creation throttling state
+    private CountDto? _currentCreationBatch;
+    private int _currentCreationIndex;
+    private const int MaxCreatesPerFrame = 25; // tune per hardware
+
+    // Remove sender background loop
+    private CancellationTokenSource? _removeSenderCancellationTokenSource;
+    private Task? _removeSenderTask;
 
     public override async Task Execute()
     {
@@ -47,52 +55,72 @@ public class ScreenManagerScript : AsyncScript
         var messageReceiver = new EventReceiver<MessageDto>(GlobalEvents.MessageReceivedEventKey);
         var removeRequestReceiver = new EventReceiver<CountDto>(GlobalEvents.RemoveRequestEventKey);
 
-        while (Game.IsRunning)
+        // Start a single background loop that drains remove requests sequentially
+        _removeSenderCancellationTokenSource = new CancellationTokenSource();
+        _removeSenderTask = Task.Run(() => RemoveSenderLoopAsync(_removeSenderCancellationTokenSource.Token));
+
+        try
         {
-            // This example will be waiting for the event to be received
-            // the rest of the code will be executed when the event is received
-            //var result = await countReceiver.ReceiveAsync();
-            //var formattedMessage = $"From Script: {result.Type}: {result.Count}";
-            //Console.WriteLine(formattedMessage);
-
-            // This example will be checking if the event is received
-            // the rest of the code will be executed every frame
-            if (countReceiver.TryReceive(out var countDto))
+            while (Game.IsRunning)
             {
-                QueuePrimitiveCreation(countDto);
-            }
+                // This example will be waiting for the event to be received
+                // the rest of the code will be executed when the event is received
+                //var result = await countReceiver.ReceiveAsync();
+                //var formattedMessage = $"From Script: {result.Type}: {result.Count}";
+                //Console.WriteLine(formattedMessage);
 
-            if (removeRequestReceiver.TryReceive(out var countDto2))
-            {
-                Console.WriteLine($"Broadcast received");
-
-                QueueRemoveRequest(countDto2);
-            }
-
-            if (messageReceiver.TryReceive(out var messageDto))
-            {
-                _messagePrinter.Enqueue(messageDto);
-            }
-
-            _messagePrinter.PrintMessage();
-
-            if (Input.IsMouseButtonPressed(MouseButton.Left))
-            {
-                Console.WriteLine($"---------------------------------------------------------");
-
-                QueuePrimitiveCreation(new CountDto
+                // This example will be checking if the event is received
+                // the rest of the code will be executed every frame
+                if (countReceiver.TryReceive(out var countDto))
                 {
-                    Type = EntityType.Destroyer,
-                    Count = 10,
-                });
+                    QueuePrimitiveCreation(countDto);
+                }
+
+                if (removeRequestReceiver.TryReceive(out var countDto2))
+                {
+                    QueueRemoveRequest(countDto2);
+                }
+
+                if (messageReceiver.TryReceive(out var messageDto))
+                {
+                    _messagePrinter.Enqueue(messageDto);
+                }
+
+                _messagePrinter.PrintMessage();
+
+                if (Input.IsMouseButtonPressed(MouseButton.Left))
+                {
+                    //Console.WriteLine($"---------------------------------------------------------");
+
+                    QueuePrimitiveCreation(new CountDto
+                    {
+                        Type = EntityType.Destroyer,
+                        Count = 10,
+                    });
+                }
+
+                // Throttled primitive creation; spreads work across frames
+                ProcessPrimitiveQueue();
+
+                await Script.NextFrame();
             }
+        }
+        finally
+        {
+            // Stop background sender gracefully
+            try
+            {
+                _removeSenderCancellationTokenSource?.Cancel();
 
-            ProcessPrimitiveQueue();
-
-            // Fire and forget - don't wait for SignalR operation to complete
-            _ = ProcessRemoveQueue();
-
-            await Script.NextFrame();
+                if (_removeSenderTask is not null)
+                {
+                    await _removeSenderTask.ConfigureAwait(false);
+                }
+            }
+            catch
+            {
+                // ignore cancellation exceptions
+            }
         }
     }
 
@@ -104,30 +132,81 @@ public class ScreenManagerScript : AsyncScript
 
     private void ProcessPrimitiveQueue()
     {
-        if (_isCreatingPrimitives) return;
-
-        if (_primitiveCreationQueue.TryDequeue(out CountDto? nextBatch))
+        // If no active batch, try to fetch one
+        if (_currentCreationBatch is null)
         {
-            if (nextBatch == null) return;
-
-            _isCreatingPrimitives = true;
-
-            for (int i = 0; i < nextBatch.Count; i++)
+            if (!_primitiveCreationQueue.TryDequeue(out var nextBatch) || nextBatch is null)
             {
-                _primitiveBuilder!.CreatePrimitive(i, nextBatch.Type, Entity.Scene, _materialManager!.GetMaterial(nextBatch.Type), new RemoveEntityScript());
+                return;
             }
 
-            _isCreatingPrimitives = false;
+            _currentCreationBatch = nextBatch;
+            _currentCreationIndex = 0;
+        }
+
+        // Process a limited number per frame
+        var remaining = _currentCreationBatch.Count - _currentCreationIndex;
+        var toCreate = Math.Min(MaxCreatesPerFrame, remaining);
+
+        for (int i = 0; i < toCreate; i++)
+        {
+            var id = _currentCreationIndex + i;
+            _primitiveBuilder!.CreatePrimitive(
+                id,
+                _currentCreationBatch.Type,
+                Entity.Scene,
+                _materialManager!.GetMaterial(_currentCreationBatch.Type),
+                new RemoveEntityScript()
+                );
+        }
+
+        _currentCreationIndex += toCreate;
+
+        // If finished, clear current batch so next one can be dequeued next frame
+        if (_currentCreationIndex >= _currentCreationBatch.Count)
+        {
+            _currentCreationBatch = null;
+            _currentCreationIndex = 0;
         }
     }
 
-    private async Task ProcessRemoveQueue()
+    // Runs on a background thread; only handles SignalR I/O, no scene graph access
+    private async Task RemoveSenderLoopAsync(CancellationToken token)
     {
-        if (_removeRequestQueue.TryDequeue(out CountDto? nextRemoveRequest))
+        try
         {
-            if (nextRemoveRequest == null) return;
+            while (!token.IsCancellationRequested)
+            {
+                if (_removeRequestQueue.TryDequeue(out var nextRemoveRequest) && nextRemoveRequest is not null)
+                {
+                    try
+                    {
+                        // Sequential send to avoid piling up many concurrent SendAsync tasks
+                        await _screenService!.Connection.SendAsync("SendUnitsRemoved", nextRemoveRequest, token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // shutting down
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        // Swallow and continue; consider backoff/retry or enqueue back if needed
+                    }
 
-            await _screenService!.Connection.SendAsync("SendUnitsRemoved", nextRemoveRequest);
+                    // Optional tiny yield to avoid tight loop starving thread pool
+                    await Task.Yield();
+                }
+                else
+                {
+                    // Nothing to send; wait briefly to avoid busy spin
+                    await Task.Delay(1, token);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // normal during shutdown
         }
     }
 }
