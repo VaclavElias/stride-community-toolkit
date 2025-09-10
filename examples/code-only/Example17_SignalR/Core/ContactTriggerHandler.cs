@@ -39,6 +39,9 @@ public class ContactTriggerHandler : IContactEventHandler
     {
         if (robotComponent is null) return;
 
+        //robotComponent.Entity.Remove<BodyComponent>();
+
+        // Can we broadcast removal process, which should queue the removal request?
         // ToDo: Can we use rather this?
         //robotComponent.Entity.Scene = null;
 

@@ -38,8 +38,8 @@ public class ScreenManagerScript : AsyncScript
 
         try
         {
-            await _screenService.Connection.StartAsync();
-
+            // Do NOT use ConfigureAwait(false) in AsyncScript to preserve micro-thread context
+            await _screenService.EnsureStartedAsync(CancellationToken);
             Console.WriteLine("Connection started");
         }
         catch (Exception ex)
@@ -63,14 +63,9 @@ public class ScreenManagerScript : AsyncScript
         {
             while (Game.IsRunning)
             {
-                // This example will be waiting for the event to be received
-                // the rest of the code will be executed when the event is received
-                //var result = await countReceiver.ReceiveAsync();
-                //var formattedMessage = $"From Script: {result.Type}: {result.Count}";
-                //Console.WriteLine(formattedMessage);
+                // Drain hub events (broadcasts) on main thread to keep ordering predictable
+                _screenService.DrainEvents();
 
-                // This example will be checking if the event is received
-                // the rest of the code will be executed every frame
                 if (countReceiver.TryReceive(out var countDto))
                 {
                     QueuePrimitiveCreation(countDto);
@@ -90,8 +85,6 @@ public class ScreenManagerScript : AsyncScript
 
                 if (Input.IsMouseButtonPressed(MouseButton.Left))
                 {
-                    //Console.WriteLine($"---------------------------------------------------------");
-
                     QueuePrimitiveCreation(new CountDto
                     {
                         Type = EntityType.Destroyer,
@@ -114,7 +107,13 @@ public class ScreenManagerScript : AsyncScript
 
                 if (_removeSenderTask is not null)
                 {
-                    await _removeSenderTask.ConfigureAwait(false);
+                    // No ConfigureAwait(false) needed; end of script
+                    await _removeSenderTask;
+                }
+
+                if (_screenService is not null)
+                {
+                    try { await _screenService.StopAsync(); } catch { }
                 }
             }
             catch
