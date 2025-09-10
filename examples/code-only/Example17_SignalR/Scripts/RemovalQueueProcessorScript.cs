@@ -11,25 +11,24 @@ public class RemovalQueueProcessorScript : AsyncScript
     {
         while (Game.IsRunning)
         {
-            // Drain the queue on the main thread
-            while (ContactTriggerHandler.RemovalQueue.TryDequeue(out var entity))
-            {
-                if (entity == null) continue;
-
-                // Do any main-thread-only work here:
-                // - broadcast counts / SignalR messages
-                // - remove physics-related components if needed
-                // - finally remove entity from scene
-
-                BroadcastEntityRemovalRequest(entity);
-
-                if (entity.Scene != null)
-                {
-                    entity.Scene = null;
-                }
-            }
+            DrainRemovalQueue();
 
             await Script.NextFrame();
+        }
+    }
+
+    private void DrainRemovalQueue()
+    {
+        while (ContactTriggerHandler.RemovalQueue.TryDequeue(out var entity))
+        {
+            if (entity == null) continue;
+
+            BroadcastEntityRemovalRequest(entity);
+
+            if (entity.Scene != null)
+            {
+                entity.Scene = null;
+            }
         }
     }
 
