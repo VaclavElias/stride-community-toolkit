@@ -15,7 +15,7 @@ public class RobotBuilder(IGame game)
     private readonly IGame _game = game;
     private readonly ContactTriggerHandler _triggerScript = new();
 
-    public void CreatePrimitive(int id, EntityType entityType, Scene scene, Material material, AsyncScript removeScript)
+    public void CreatePrimitive(int id, EntityType entityType, Scene scene, Material material)
     {
         var entity = _game.Create3DPrimitive(PrimitiveModelType.Cube,
             new()
@@ -30,9 +30,6 @@ public class RobotBuilder(IGame game)
             Type = entityType,
         });
 
-        // temporary disabled, checking for better solution
-        //entity.Add(removeScript);
-
         entity.Transform.Position = VectorHelper.RandomVector3([-5, 5], [5, 10], [-5, 5]);
 
         var collider = entity.Get<BodyComponent>();
@@ -43,6 +40,5 @@ public class RobotBuilder(IGame game)
         }
 
         entity.Scene = scene;
-
     }
 }

@@ -154,8 +154,7 @@ public class ScreenManagerScript : AsyncScript
                 id,
                 _currentCreationBatch.Type,
                 Entity.Scene,
-                _materialManager!.GetMaterial(_currentCreationBatch.Type),
-                new RemoveEntityScript()
+                _materialManager!.GetMaterial(_currentCreationBatch.Type)
                 );
         }
 

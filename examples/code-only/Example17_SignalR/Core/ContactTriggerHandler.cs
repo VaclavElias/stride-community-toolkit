@@ -1,11 +1,16 @@
 using Example17_SignalR_Shared.Core;
 using Stride.BepuPhysics;
 using Stride.BepuPhysics.Definitions.Contacts;
+using Stride.Engine;
+using System.Collections.Concurrent;
 
 namespace Example17_SignalR.Core;
 
 public class ContactTriggerHandler : IContactEventHandler
 {
+    // Thread-safe removal queue. Enqueued from physics threads, processed on main thread.
+    public static readonly ConcurrentQueue<Entity> RemovalQueue = new();
+
     public bool NoContactResponse => false;
 
     void IContactEventHandler.OnStartedTouching<TManifold>(CollidableComponent eventSource, CollidableComponent other,
@@ -39,12 +44,20 @@ public class ContactTriggerHandler : IContactEventHandler
     {
         if (robotComponent is null) return;
 
+        robotComponent.IsDeleted = true;
+
+        var entity = robotComponent.Entity;
+
+        if (entity != null)
+        {
+            RemovalQueue.Enqueue(entity);
+        }
+
         //robotComponent.Entity.Remove<BodyComponent>();
 
         // Can we broadcast removal process, which should queue the removal request?
         // ToDo: Can we use rather this?
         //robotComponent.Entity.Scene = null;
 
-        robotComponent.IsDeleted = true;
     }
 }

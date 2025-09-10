@@ -23,6 +23,12 @@ game.Run(start: (Scene rootScene) =>
     };
     screenManager.Scene = rootScene;
 
+    var removeProcessor = new Entity("RemoveProcessor")
+    {
+        new RemovalQueueProcessorScript()
+    };
+    removeProcessor.Scene = rootScene;
+
     var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule);
     entity.Transform.Position = new Vector3(0, 8, 0);
     entity.Scene = rootScene;
