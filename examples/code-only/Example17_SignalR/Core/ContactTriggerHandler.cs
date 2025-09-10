@@ -8,7 +8,6 @@ namespace Example17_SignalR.Core;
 
 public class ContactTriggerHandler : IContactEventHandler
 {
-    // Thread-safe removal queue. Enqueued from physics threads, processed on main thread.
     public static readonly ConcurrentQueue<Entity> RemovalQueue = new();
 
     public bool NoContactResponse => false;
@@ -33,14 +32,12 @@ public class ContactTriggerHandler : IContactEventHandler
 
         if (sourceRobot.Type == EntityType.Destroyer || otherRobot.Type == EntityType.Destroyer)
         {
-            MarkForRemoval(sourceRobot);
-            MarkForRemoval(otherRobot);
+            QueueForRemoval(sourceRobot);
+            QueueForRemoval(otherRobot);
         }
-
-        //Console.WriteLine($"Started touching: {eventSource.Entity.Name} - {other.Entity.Name}");
     }
 
-    public static void MarkForRemoval(RobotComponent? robotComponent)
+    public static void QueueForRemoval(RobotComponent? robotComponent)
     {
         if (robotComponent is null) return;
 
@@ -52,12 +49,5 @@ public class ContactTriggerHandler : IContactEventHandler
         {
             RemovalQueue.Enqueue(entity);
         }
-
-        //robotComponent.Entity.Remove<BodyComponent>();
-
-        // Can we broadcast removal process, which should queue the removal request?
-        // ToDo: Can we use rather this?
-        //robotComponent.Entity.Scene = null;
-
     }
 }
