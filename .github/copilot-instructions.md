@@ -80,6 +80,7 @@ game.Run(start: (Scene rootScene) =>
 - One public type per file; avoid unrelated multi-class files.
 - No `#region` blocks; rely on clear structure.
 - Avoid partial classes unless auto-generated code is involved.
+- If you make updates, don't add an empty line at the end of the file.
 - Validation: `ArgumentNullException.ThrowIfNull()`; meaningful exception messages for invalid states.
 - Suggestion preference order:
   1. Existing reviewed toolkit extension/helper
