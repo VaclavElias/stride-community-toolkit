@@ -3,7 +3,6 @@ using Example17_SignalR_Shared.Dtos;
 using Example17_SignalR_Shared.Interfaces;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
-using System.Threading;
 
 namespace Example17_SignalR.Services;
 
