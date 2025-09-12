@@ -7,6 +7,9 @@ using System.Threading;
 
 namespace Example17_SignalR.Services;
 
+/// <summary>
+/// Encapsulates SignalR connection, event buffering and main-thread dispatch via <see cref="GlobalEvents"/>.
+/// </summary>
 public class ScreenService
 {
     private readonly ConcurrentQueue<MessageDto> _pendingMessages = new();
@@ -15,7 +18,10 @@ public class ScreenService
     private readonly Random _random = new();
     private volatile bool _reconnecting;
 
-    public HubConnection Connection { get; set; }
+    /// <summary>
+    /// Active SignalR hub connection.
+    /// </summary>
+    public HubConnection Connection { get; }
 
     public ScreenService()
     {
@@ -101,6 +107,9 @@ public class ScreenService
         }
     }
 
+    /// <summary>
+    /// Stops the SignalR connection.
+    /// </summary>
     public async Task StopAsync(CancellationToken ct = default)
     {
         await _connectionLock.WaitAsync(ct).ConfigureAwait(false);

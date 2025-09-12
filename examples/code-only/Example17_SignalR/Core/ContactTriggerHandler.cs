@@ -6,10 +6,17 @@ using System.Collections.Concurrent;
 
 namespace Example17_SignalR.Core;
 
+/// <summary>
+/// Handles contact events between entities and enqueues them for removal when colliding with a Destroyer.
+/// </summary>
 public class ContactTriggerHandler : IContactEventHandler
 {
+    /// <summary>
+    /// Entities pending removal from the scene; drained by <see cref="Scripts.RemovalQueueProcessorScript"/>.
+    /// </summary>
     public static readonly ConcurrentQueue<Entity> RemovalQueue = new();
 
+    /// <inheritdoc />
     public bool NoContactResponse => false;
 
     void IContactEventHandler.OnStartedTouching<TManifold>(CollidableComponent eventSource, CollidableComponent other,
@@ -37,6 +44,9 @@ public class ContactTriggerHandler : IContactEventHandler
         }
     }
 
+    /// <summary>
+    /// Schedules the entity that owns the given <paramref name="robotComponent"/> for removal.
+    /// </summary>
     public static void QueueForRemoval(RobotComponent? robotComponent)
     {
         if (robotComponent is null) return;

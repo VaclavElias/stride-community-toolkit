@@ -5,8 +5,15 @@ using Stride.Engine;
 
 namespace Example17_SignalR.Scripts;
 
+/// <summary>
+/// Drains entities enqueued for removal by <see cref="ContactTriggerHandler"/>,
+/// broadcasts a removal request to the SignalR layer, and detaches entities from the scene.
+/// </summary>
 public class RemovalQueueProcessorScript : AsyncScript
 {
+    /// <summary>
+    /// Micro-thread entry point. Polls the shared removal queue each frame and processes items.
+    /// </summary>
     public override async Task Execute()
     {
         while (Game.IsRunning)
@@ -17,6 +24,9 @@ public class RemovalQueueProcessorScript : AsyncScript
         }
     }
 
+    /// <summary>
+    /// Dequeues pending entities and removes them from the scene after broadcasting a removal request.
+    /// </summary>
     private void DrainRemovalQueue()
     {
         while (ContactTriggerHandler.RemovalQueue.TryDequeue(out var entity))
@@ -32,6 +42,10 @@ public class RemovalQueueProcessorScript : AsyncScript
         }
     }
 
+    /// <summary>
+    /// Broadcasts a <see cref="CountDto"/> to notify the hub about a unit removal.
+    /// Destroyer entities are ignored.
+    /// </summary>
     private void BroadcastEntityRemovalRequest(Entity entity)
     {
         var robotComponent = entity.Get<RobotComponent>();

@@ -12,11 +12,14 @@ using System.Collections.Concurrent;
 
 namespace Example17_SignalR.Scripts;
 
+/// <summary>
+/// Orchestrates SignalR event draining, message display, robot creation throttling and removal requests.
+/// </summary>
 public class ScreenManagerScript : AsyncScript
 {
     private readonly ConcurrentQueue<CountDto> _primitiveCreationQueue = new();
     private readonly ConcurrentQueue<CountDto> _removeRequestQueue = new();
-    private RobotBuilder? _primitiveBuilder;
+    private RobotBuilder? _robotBuilder;
     private MaterialManager? _materialManager;
     private MessagePrinter? _messagePrinter;
     private ScreenService? _screenService;
@@ -48,7 +51,7 @@ public class ScreenManagerScript : AsyncScript
         }
 
         _materialManager = new MaterialManager(new MaterialBuilder(Game.GraphicsDevice));
-        _primitiveBuilder = new RobotBuilder(Game);
+        _robotBuilder = new RobotBuilder(Game);
         _messagePrinter = new MessagePrinter(DebugText);
 
         var countReceiver = new EventReceiver<CountDto>(GlobalEvents.CountReceivedEventKey);
@@ -150,7 +153,7 @@ public class ScreenManagerScript : AsyncScript
         for (int i = 0; i < toCreate; i++)
         {
             var id = _currentCreationIndex + i;
-            _primitiveBuilder!.CreatePrimitive(
+            _robotBuilder!.CreateRobot(
                 id,
                 _currentCreationBatch.Type,
                 Entity.Scene,
