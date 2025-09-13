@@ -23,14 +23,14 @@ public class ScreenService
     /// </summary>
     public HubConnection Connection => _client.Connection;
 
-    public ScreenService(string hubUrl)
+    public ScreenService(string hubUrl, Microsoft.Extensions.Logging.ILogger<SignalRHubClient>? logger = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(hubUrl);
 
         _client = new SignalRHubClient(new SignalRClientOptions()
         {
             HubUrl = hubUrl
-        });
+        }, logger);
 
         // Only enqueue inside callback (keep it very small, no engine interaction / no broadcasts here)
         _messages = _client.RegisterBuffered<MessageDto>(nameof(IScreenClient.ReceiveMessageAsync));
