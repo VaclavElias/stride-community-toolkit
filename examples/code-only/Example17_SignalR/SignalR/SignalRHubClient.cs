@@ -221,7 +221,7 @@ public sealed class SignalRHubClient : IAsyncDisposable
         _subscriptions.Add(sub);
         _logger?.LogDebug("Registered buffered handler for method {Method}", methodName);
 
-        return new BufferedSubscription<T>(queue, sub);
+        return new BufferedSubscription<T>(queue);
     }
 
     /// <summary>
