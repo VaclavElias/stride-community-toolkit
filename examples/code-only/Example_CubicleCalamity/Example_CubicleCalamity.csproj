@@ -9,7 +9,7 @@
         <ExampleTitle>Game - Cubicle Calamity [WIP]</ExampleTitle>
         <ExampleOrder>32000</ExampleOrder>
         <ExampleEnabled>true</ExampleEnabled>
-        <ExampleCategory>3 - Other</ExampleCategory>
+        <ExampleCategory>3 - Other Example</ExampleCategory>
     </PropertyGroup>
 
     <ItemGroup>
