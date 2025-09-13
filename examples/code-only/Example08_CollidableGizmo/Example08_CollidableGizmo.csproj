@@ -6,10 +6,10 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
-        <ExampleTitle>Other - Collidable Gizmo</ExampleTitle>
+        <ExampleTitle>Collidable Gizmo</ExampleTitle>
         <ExampleOrder>19040</ExampleOrder>
         <ExampleEnabled>true</ExampleEnabled>
-        <ExampleCategory>3 - Other</ExampleCategory>
+        <ExampleCategory>3 - Other Examples</ExampleCategory>
     </PropertyGroup>
 
     <ItemGroup>

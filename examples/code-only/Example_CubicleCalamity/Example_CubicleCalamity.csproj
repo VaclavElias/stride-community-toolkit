@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
-        <ExampleTitle>Other - Game - Cubicle Calamity [WIP]</ExampleTitle>
+        <ExampleTitle>Game - Cubicle Calamity [WIP]</ExampleTitle>
         <ExampleOrder>32000</ExampleOrder>
         <ExampleEnabled>true</ExampleEnabled>
         <ExampleCategory>3 - Other</ExampleCategory>

@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
-        <ExampleTitle>Basic Example - Basic 2D Scene [WIP]</ExampleTitle>
+        <ExampleTitle>Basic 2D Scene [WIP]</ExampleTitle>
         <ExampleOrder>35000</ExampleOrder>
         <ExampleEnabled>true</ExampleEnabled>
         <ExampleCategory>3 - Other</ExampleCategory>
