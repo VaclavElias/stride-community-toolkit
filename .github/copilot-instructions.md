@@ -127,6 +127,8 @@ game.Run(start: (Scene rootScene) =>
 ```
 
 ## AI assistance guidance
+- When asked to reword or fix grammar for a highlighted or selected paragraph/section, modify only that selection; do not change other parts of the document.
+- When showing the updated result for a single paragraph or section, display only the updated selection. Do not render unchanged surrounding content in long documents to reduce scrolling and make changes easier to review.
 - Improve or extend existing helpers instead of duplicating similar logic.
 - Do NOT introduce unrelated frameworks or patterns (for example, Unity managers, large DI containers, Rx) unless explicitly requested.
 - Highlight potential breaking changes when modifying public APIs.
