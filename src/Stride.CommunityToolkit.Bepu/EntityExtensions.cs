@@ -1,11 +1,7 @@
-using Stride.BepuPhysics.Definitions;
 using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Graphics.GeometricPrimitives;
-using Stride.Rendering.ProceduralModels;
-using static Stride.BepuPhysics.Definitions.DecomposedHulls;
 
 namespace Stride.CommunityToolkit.Bepu;
 
@@ -69,45 +65,15 @@ public static class EntityExtensions
 
             entity.Add(options.Component);
         }
-        if (type == PrimitiveModelType.Cone)
-        {
-            var size = Vector3.One;
-
-            if (options?.Size is null)
-            {
-                var coneModel = new ConeProceduralModel();
-
-                size = new(coneModel.Radius, coneModel.Height, 1);
-            }
-            else
-            {
-                size = options.Size.Value;
-            }
-
-            var meshData = GeometricPrimitive.Cone.New(radius: size.X, height: size.Y, 16);
-            var points = meshData.Vertices.Select(w => w.Position).ToArray();
-            var uintIndices = meshData.Indices.Select(w => (uint)w).ToArray();
-
-            var compoundCollier = options!.Component.Collider as CompoundCollider;
-
-            var convexHullCollider = new ConvexHullCollider()
-            {
-                Hull = new DecomposedHulls([new DecomposedMesh([new Hull(points, uintIndices)])])
-            };
-
-            compoundCollier?.Colliders.Add(convexHullCollider);
-
-            entity.Add(options.Component);
-        }
         else
         {
             var colliderShape = Get3DColliderShape(type, options.Size);
 
             if (colliderShape is null) return entity;
 
-            var compoundCollier = options.Component.Collider as CompoundCollider;
+            var compoundCollider = options.Component.Collider as CompoundCollider;
 
-            compoundCollier?.Colliders.Add(colliderShape);
+            compoundCollider?.Colliders.Add(colliderShape);
 
             entity.Add(options.Component);
         }
@@ -225,8 +191,9 @@ public static class EntityExtensions
         => type switch
         {
             PrimitiveModelType.Capsule => size is null ? new CapsuleCollider() { Radius = 0.35f } : new() { Radius = size.Value.X, Length = size.Value.Y },
+            PrimitiveModelType.Cone => ConverHullCollider.Create(size),
+            PrimitiveModelType.Teapot => ConverHullCollider.Create(size),
             PrimitiveModelType.Cube => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
-            PrimitiveModelType.Cone => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
             PrimitiveModelType.Cylinder => size is null ? new CylinderCollider() : new()
             {
                 Radius = size.Value.X,

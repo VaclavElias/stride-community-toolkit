@@ -50,8 +50,9 @@ void Start(Scene rootScene)
     cylinder.Transform.Position = new Vector3(0.5f, 10, 0);
     cylinder.Scene = rootScene;
 
-    //var entity5 = game.Create3DPrimitive(PrimitiveModelType.Teapot);
-    //entity5.Scene = rootScene;
+    var teapot = game.Create3DPrimitive(PrimitiveModelType.Teapot);
+    teapot.Transform.Position = new Vector3(4, 4f, 0);
+    teapot.Scene = rootScene;
 
     //var entity4 = game.Create3DPrimitive(PrimitiveModelType.Torus);
     //entity4.Transform.Position = new Vector3(0, 4, 0);
