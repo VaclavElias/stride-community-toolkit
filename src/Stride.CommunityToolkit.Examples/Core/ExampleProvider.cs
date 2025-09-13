@@ -42,7 +42,7 @@ public partial class ExampleProvider
 
         var ordered = exampleProjects
             .OrderBy(m => m.Category)
-            .OrderBy(m => m.Order.HasValue ? 0 : 1)
+            .ThenBy(m => m.Order.HasValue ? 0 : 1)
             .ThenBy(m => m.Order)
             .ThenBy(m => m.Title, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -50,9 +50,9 @@ public partial class ExampleProvider
         var list = new List<Example>(ordered.Count + 1);
 
         foreach (var meta in ordered)
-            list.Add(new Example(GetIndex(), meta.Title, () => LaunchWithDotNet(meta.ProjectFile)));
+            list.Add(new Example(GetIndex(), meta.Title, meta.Id, () => LaunchWithDotNet(meta.ProjectFile)));
 
-        list.Add(new Example("Q", "Quit", () => Environment.Exit(0)));
+        list.Add(new Example("Q", "Quit", "", () => Environment.Exit(0)));
 
         return list;
     }
@@ -60,9 +60,11 @@ public partial class ExampleProvider
     private IEnumerable<ExampleProjectMeta> DiscoverExamples()
     {
         var root = Path.GetFullPath(Path.Combine(_baseDirectory, ExamplesRootRelative));
+
         if (!Directory.Exists(root)) yield break;
 
         foreach (var pattern in _projectPatterns)
+        {
             foreach (var project in Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories))
             {
                 ExampleProjectMeta? meta = null;
@@ -70,9 +72,11 @@ public partial class ExampleProvider
                 try { meta = CreateMetaFromProject(project); }
                 catch { /* ignore */ }
 
-                if (meta is not null)
-                    yield return meta;
+                if (meta is null) continue;
+
+                yield return meta;
             }
+        }
     }
 
     private ExampleProjectMeta? CreateMetaFromProject(string projectFile)
