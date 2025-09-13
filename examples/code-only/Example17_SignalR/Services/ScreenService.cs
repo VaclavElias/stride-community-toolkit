@@ -1,4 +1,5 @@
 using Example17_SignalR.Core;
+using Example17_SignalR.SignalR;
 using Example17_SignalR_Shared.Dtos;
 using Example17_SignalR_Shared.Interfaces;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -13,9 +14,9 @@ public class ScreenService
 {
     private readonly SignalRHubClient _client;
 
-    private readonly SignalRHubClient.BufferedSubscription<MessageDto> _messages;
-    private readonly SignalRHubClient.BufferedSubscription<CountDto> _counts;
-    private readonly SignalRHubClient.OutgoingQueue<CountDto> _removals;
+    private readonly BufferedSubscription<MessageDto> _messages;
+    private readonly BufferedSubscription<CountDto> _counts;
+    private readonly OutgoingQueue<CountDto> _removals;
 
     /// <summary>
     /// Active SignalR hub connection.
