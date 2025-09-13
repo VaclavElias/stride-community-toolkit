@@ -27,7 +27,10 @@ public class ScreenService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(hubUrl);
 
-        _client = new SignalRHubClient(hubUrl);
+        _client = new SignalRHubClient(new SignalRClientOptions()
+        {
+            HubUrl = hubUrl
+        });
 
         // Only enqueue inside callback (keep it very small, no engine interaction / no broadcasts here)
         _messages = _client.RegisterBuffered<MessageDto>(nameof(IScreenClient.ReceiveMessageAsync));
