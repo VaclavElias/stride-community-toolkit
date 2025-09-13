@@ -191,8 +191,8 @@ public static class EntityExtensions
         => type switch
         {
             PrimitiveModelType.Capsule => size is null ? new CapsuleCollider() { Radius = 0.35f } : new() { Radius = size.Value.X, Length = size.Value.Y },
-            PrimitiveModelType.Cone => ConverHullCollider.Create(size),
-            PrimitiveModelType.Teapot => ConverHullCollider.Create(size),
+            PrimitiveModelType.Cone => ConeCollider.Create(size),
+            PrimitiveModelType.Teapot => ConeCollider.Create(size),
             PrimitiveModelType.Cube => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
             PrimitiveModelType.Cylinder => size is null ? new CylinderCollider() : new()
             {
