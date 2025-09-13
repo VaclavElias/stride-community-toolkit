@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Stride.Core.Diagnostics;
 
 namespace Example17_SignalR.SignalR;
@@ -8,7 +7,7 @@ namespace Example17_SignalR.SignalR;
 /// Messages are forwarded to the provided Stride <see cref="Logger"/>.
 /// </summary>
 /// <typeparam name="T">Category type for the logger.</typeparam>
-public sealed class StrideLoggerAdapter<T> : ILogger<T>
+public sealed class StrideLoggerAdapter<T> : Microsoft.Extensions.Logging.ILogger<T>
 {
     private readonly Logger _strideLogger;
 
@@ -17,11 +16,17 @@ public sealed class StrideLoggerAdapter<T> : ILogger<T>
         _strideLogger = strideLogger ?? throw new ArgumentNullException(nameof(strideLogger));
     }
 
-    public IDisposable BeginScope<TState>(TState state) => NullScope.Instance;
+    // Explicit interface implementations (fully qualified to avoid ambiguity with Stride.Core.Diagnostics.ILogger)
+    IDisposable Microsoft.Extensions.Logging.ILogger.BeginScope<TState>(TState state) => NullScope.Instance;
 
-    public bool IsEnabled(LogLevel logLevel) => true; // Stride filtering can be done via listeners
+    bool Microsoft.Extensions.Logging.ILogger.IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true; // Stride filtering can be done via listeners
 
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    void Microsoft.Extensions.Logging.ILogger.Log<TState>(
+        Microsoft.Extensions.Logging.LogLevel logLevel,
+        Microsoft.Extensions.Logging.EventId eventId,
+        TState state,
+        Exception? exception,
+        Func<TState, Exception?, string> formatter)
     {
         if (formatter is null) return;
 
@@ -30,28 +35,28 @@ public sealed class StrideLoggerAdapter<T> : ILogger<T>
 
         switch (logLevel)
         {
-            case LogLevel.Trace:
-            case LogLevel.Debug:
+            case Microsoft.Extensions.Logging.LogLevel.Trace:
+            case Microsoft.Extensions.Logging.LogLevel.Debug:
                 if (exception is null) _strideLogger.Debug(message);
                 else _strideLogger.Debug($"{message}\n{exception}");
                 break;
-            case LogLevel.Information:
+            case Microsoft.Extensions.Logging.LogLevel.Information:
                 if (exception is null) _strideLogger.Info(message);
                 else _strideLogger.Info($"{message}\n{exception}");
                 break;
-            case LogLevel.Warning:
+            case Microsoft.Extensions.Logging.LogLevel.Warning:
                 if (exception is null) _strideLogger.Warning(message);
                 else _strideLogger.Warning($"{message}\n{exception}");
                 break;
-            case LogLevel.Error:
+            case Microsoft.Extensions.Logging.LogLevel.Error:
                 if (exception is null) _strideLogger.Error(message);
                 else _strideLogger.Error($"{message}\n{exception}");
                 break;
-            case LogLevel.Critical:
+            case Microsoft.Extensions.Logging.LogLevel.Critical:
                 if (exception is null) _strideLogger.Fatal(message);
                 else _strideLogger.Fatal($"{message}\n{exception}");
                 break;
-            case LogLevel.None:
+            case Microsoft.Extensions.Logging.LogLevel.None:
             default:
                 break;
         }
