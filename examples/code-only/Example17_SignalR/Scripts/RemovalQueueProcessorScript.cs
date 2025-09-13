@@ -31,7 +31,7 @@ public class RemovalQueueProcessorScript : AsyncScript
     {
         while (ContactTriggerHandler.RemovalQueue.TryDequeue(out var entity))
         {
-            if (entity == null) continue;
+            if (entity is null) continue;
 
             BroadcastEntityRemovalRequest(entity);
 

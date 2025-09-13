@@ -8,14 +8,19 @@ namespace Example17_SignalR.Services;
 
 /// <summary>
 /// Encapsulates SignalR connection, event buffering and main-thread dispatch via <see cref="GlobalEvents"/>.
+/// Also owns a background loop that sequentially forwards removal requests to the hub.
 /// </summary>
 public class ScreenService
 {
     private readonly ConcurrentQueue<MessageDto> _pendingMessages = new();
     private readonly ConcurrentQueue<CountDto> _pendingCounts = new();
+    private readonly ConcurrentQueue<CountDto> _pendingRemovals = new();
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly Random _random = new();
     private volatile bool _reconnecting;
+
+    private CancellationTokenSource? _removeSenderCancellationTokenSource;
+    private Task? _removeSenderTask;
 
     /// <summary>
     /// Active SignalR hub connection.
@@ -31,25 +36,25 @@ public class ScreenService
         // Only enqueue inside callback (keep it very small, no engine interaction / no broadcasts here)
         Connection.On<MessageDto>(nameof(IScreenClient.ReceiveMessageAsync), (dto) =>
         {
-            if (dto != null)
-            {
-                _pendingMessages.Enqueue(dto);
-            }
+            if (dto is null) return;
+
+            _pendingMessages.Enqueue(dto);
         });
 
         Connection.On<CountDto>(nameof(IScreenClient.ReceiveCountAsync), (dto) =>
         {
-            if (dto != null)
-            {
-                _pendingCounts.Enqueue(dto);
-            }
+            if (dto is null) return;
+
+            _pendingCounts.Enqueue(dto);
         });
 
         Connection.Closed += async (error) =>
         {
             // Prevent overlapping reconnect attempts
             if (_reconnecting) return;
+
             _reconnecting = true;
+
             try
             {
                 // Jittered backoff
@@ -85,20 +90,35 @@ public class ScreenService
     }
 
     /// <summary>
+    /// Enqueue a units-removed message to be sent by the background sender.
+    /// </summary>
+    public void EnqueueUnitsRemoved(CountDto dto)
+        => _pendingRemovals.Enqueue(dto);
+
+    /// <summary>
     /// Starts the connection if not already started. Guarded to avoid re-entrancy deadlocks.
+    /// Also ensures the background remove-sender loop is running.
     /// </summary>
     public async Task EnsureStartedAsync(CancellationToken ct = default)
     {
         // Quick exit without lock if already running
-        if (Connection.State == HubConnectionState.Connected) return;
+        if (Connection.State == HubConnectionState.Connected)
+        {
+            EnsureRemoveSenderLoop();
+
+            return;
+        }
 
         await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
+
         try
         {
             if (Connection.State == HubConnectionState.Disconnected)
             {
                 await Connection.StartAsync(ct).ConfigureAwait(false);
             }
+
+            EnsureRemoveSenderLoop();
         }
         finally
         {
@@ -107,13 +127,15 @@ public class ScreenService
     }
 
     /// <summary>
-    /// Stops the SignalR connection.
+    /// Stops the SignalR connection and background sender.
     /// </summary>
     public async Task StopAsync(CancellationToken ct = default)
     {
         await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
+            StopRemoveSenderLoop();
+
             if (Connection.State != HubConnectionState.Disconnected)
             {
                 await Connection.StopAsync().ConfigureAwait(false);
@@ -122,6 +144,79 @@ public class ScreenService
         finally
         {
             _connectionLock.Release();
+        }
+    }
+
+    private void EnsureRemoveSenderLoop()
+    {
+        if (_removeSenderTask is { IsCompleted: false })
+        {
+            return;
+        }
+
+        _removeSenderCancellationTokenSource?.Cancel();
+        _removeSenderCancellationTokenSource?.Dispose();
+
+        _removeSenderCancellationTokenSource = new CancellationTokenSource();
+        _removeSenderTask = Task.Run(() => RemoveSenderLoopAsync(_removeSenderCancellationTokenSource.Token));
+    }
+
+    private void StopRemoveSenderLoop()
+    {
+        try
+        {
+            _removeSenderCancellationTokenSource?.Cancel();
+            _removeSenderTask?.Wait(250);
+        }
+        catch
+        {
+            // ignore
+        }
+        finally
+        {
+            _removeSenderCancellationTokenSource?.Dispose();
+            _removeSenderCancellationTokenSource = null;
+            _removeSenderTask = null;
+        }
+    }
+
+    // Runs on a background thread; only handles SignalR I/O, no scene graph access
+    private async Task RemoveSenderLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                if (_pendingRemovals.TryDequeue(out var nextRemoveRequest) && nextRemoveRequest is not null)
+                {
+                    try
+                    {
+                        // Sequential send to avoid piling up many concurrent SendAsync tasks
+                        await Connection.SendAsync("SendUnitsRemoved", nextRemoveRequest, token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // shutting down
+                        break;
+                    }
+                    catch
+                    {
+                        // Swallow and continue; consider backoff/retry or enqueue back if needed
+                    }
+
+                    // Optional tiny yield to avoid tight loop starving thread pool
+                    await Task.Yield();
+                }
+                else
+                {
+                    // Nothing to send; wait briefly to avoid busy spin
+                    await Task.Delay(1, token).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // normal during shutdown
         }
     }
 }
