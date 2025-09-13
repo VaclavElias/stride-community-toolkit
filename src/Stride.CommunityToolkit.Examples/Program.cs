@@ -43,9 +43,18 @@ void HandleUserInput()
     else
     {
         example.Action();
+
+        if (example.Title == Constants.Clear)
+        {
+            DisplayMenu();
+        }
+
+        if (example.Title != Constants.Quit && example.Title != Constants.Clear)
+        {
+            Console.WriteLine("It might take a few moments to start the example...");
+        }
     }
 
-    Console.WriteLine("It might take a few moments to start the example...");
     Console.WriteLine();
 
 }

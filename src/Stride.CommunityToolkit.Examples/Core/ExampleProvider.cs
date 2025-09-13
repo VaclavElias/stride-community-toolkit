@@ -4,7 +4,7 @@ using System.Xml.Linq;
 
 namespace Stride.CommunityToolkit.Examples.Core;
 
-public partial class ExampleProvider
+public class ExampleProvider
 {
     private int _index;
     private readonly string _baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -52,7 +52,8 @@ public partial class ExampleProvider
         foreach (var meta in ordered)
             list.Add(new Example(GetIndex(), meta.Title, meta.Id, () => LaunchWithDotNet(meta.ProjectFile)));
 
-        list.Add(new Example("Q", "Quit", "", () => Environment.Exit(0)));
+        list.Add(new Example("Q", Constants.Quit, "", () => Environment.Exit(0)));
+        list.Add(new Example("C", Constants.Clear, "", Console.Clear));
 
         return list;
     }
