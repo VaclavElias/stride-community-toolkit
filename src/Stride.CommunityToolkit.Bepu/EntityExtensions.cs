@@ -12,77 +12,6 @@ namespace Stride.CommunityToolkit.Bepu;
 public static class EntityExtensions
 {
     /// <summary>
-    /// Adds Bepu 3D physics components to the entity.
-    /// </summary>
-    public static Entity AddBepuPhysics(this Entity entity, PrimitiveModelType type, Bepu3DPhysicsOptions? options = null)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-
-        var model = entity.Get<ModelComponent>()?.Model;
-
-        if (model is null)
-        {
-            throw new InvalidOperationException("Entity must have a ModelComponent with a valid model to add Bepu physics.");
-        }
-
-        options ??= new();
-
-        if (!options.IncludeCollider)
-        {
-            entity.Add(options.Component);
-
-            return entity;
-        }
-
-        if (type == PrimitiveModelType.TriangularPrism)
-        {
-            // This is needed when using ConvexHullCollider
-            //var meshData = TriangularPrismProceduralModel.New(options.Size is null ? new(1, 1, options.Depth) : new(options.Size.Value.X, options.Size.Value.Y, options.Depth));
-
-            //var points = meshData.Vertices.Select(w => w.Position).ToList();
-            //var uintIndices = meshData.Indices.Select(w => (uint)w).ToList();
-            //var collider = new ConvexHullColliderShapeDesc()
-            //{
-            //    Model = model, // seems doing nothing
-            //    ConvexHulls = [],
-            //    ConvexHullsIndices = []
-            //};
-
-            //collider.ConvexHulls.Add([points]);
-            //collider.ConvexHullsIndices.Add([uintIndices]);
-
-            //List<IAssetColliderShapeDesc> descriptions = [];
-
-            //descriptions.Add(collider);
-
-            //var collider2 = new ConvexHullCollider() { Hull = new PhysicsColliderShape(descriptions) };
-
-            //var compoundCollier = options.Component.Collider as CompoundCollider;
-
-            //compoundCollier.Colliders.Add(collider2);
-
-            // Or you can use just his
-            options.Component.Collider = new MeshCollider() { Model = model, Closed = true };
-
-            entity.Add(options.Component);
-        }
-        else
-        {
-            var colliderShape = Get3DColliderShape(type, options.Size);
-
-            if (colliderShape is null) return entity;
-
-            var compoundCollider = options.Component.Collider as CompoundCollider;
-
-            compoundCollider?.Colliders.Add(colliderShape);
-
-            entity.Add(options.Component);
-        }
-
-        return entity;
-    }
-
-    /// <summary>
     /// Adds Bepu 2D physics components to the entity.
     /// </summary>
     public static Entity AddBepu2DPhysics(this Entity entity, Primitive2DModelType type, Bepu2DPhysicsOptions? options = null)
@@ -171,6 +100,42 @@ public static class EntityExtensions
         return entity;
     }
 
+    /// <summary>
+    /// Adds Bepu 3D physics components to the entity.
+    /// </summary>
+    public static Entity AddBepuPhysics(this Entity entity, PrimitiveModelType type, Bepu3DPhysicsOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        var model = entity.Get<ModelComponent>()?.Model;
+
+        if (model is null)
+        {
+            throw new InvalidOperationException("Entity must have a ModelComponent with a valid model to add Bepu physics.");
+        }
+
+        options ??= new();
+
+        if (!options.IncludeCollider)
+        {
+            entity.Add(options.Component);
+
+            return entity;
+        }
+
+        var colliderShape = Get3DColliderShape(type, options.Size);
+
+        if (colliderShape is null) return entity;
+
+        var compoundCollider = options.Component.Collider as CompoundCollider;
+
+        compoundCollider?.Colliders.Add(colliderShape);
+
+        entity.Add(options.Component);
+
+        return entity;
+    }
+
     private static ColliderBase? Get2DColliderShape(Primitive2DModelType type, Vector2? size = null, float depth = 0)
     {
         return type switch
@@ -193,8 +158,6 @@ public static class EntityExtensions
         {
             PrimitiveModelType.Capsule => size is null ? new CapsuleCollider() { Radius = 0.35f } : new() { Radius = size.Value.X, Length = size.Value.Y },
             PrimitiveModelType.Cone => ConeCollider.Create(size),
-            PrimitiveModelType.Torus => TorusCollider.Create(majorRadius: size?.X, minorRadius: size?.Y),
-            PrimitiveModelType.Teapot => TeapotCollider.Create(size?.X),
             PrimitiveModelType.Cube => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
             PrimitiveModelType.Cylinder => size is null ? new CylinderCollider() : new()
             {
@@ -205,6 +168,9 @@ public static class EntityExtensions
             PrimitiveModelType.Plane => size is null ? new BoxCollider() : new() { Size = new Vector3(size.Value.X, 0, size.Value.Y) },
             PrimitiveModelType.RectangularPrism => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
             PrimitiveModelType.Sphere => size is null ? new SphereCollider() : new() { Radius = size.Value.X },
+            PrimitiveModelType.Teapot => TeapotCollider.Create(size?.X),
+            PrimitiveModelType.TriangularPrism => TriangularPrismCollider.Create(size),
+            PrimitiveModelType.Torus => TorusCollider.Create(majorRadius: size?.X, minorRadius: size?.Y),
             _ => throw new InvalidOperationException(),
         };
 }
