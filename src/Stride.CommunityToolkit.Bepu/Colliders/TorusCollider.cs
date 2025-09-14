@@ -2,7 +2,7 @@ using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.Graphics.GeometricPrimitives;
 using Stride.Rendering.ProceduralModels;
 
-namespace Stride.CommunityToolkit.Bepu;
+namespace Stride.CommunityToolkit.Bepu.Colliders;
 
 public static class TorusCollider
 {

@@ -36,7 +36,6 @@ void Start(Scene rootScene)
 
     var cone = game.Create3DPrimitive(PrimitiveModelType.Cone,
         new() { Size = new(0.5f, 3, 0) });
-    //entity2.Add(new CollidableGizmoScript() { Color = new Color4(0.25f, 0, 0, 0.5f) });
     cone.Transform.Position = new Vector3(0, 2, 0);
     cone.Scene = rootScene;
 
@@ -62,8 +61,4 @@ void Start(Scene rootScene)
     var torus = game.Create3DPrimitive(PrimitiveModelType.Torus);
     torus.Transform.Position = new Vector3(0, 12, 0);
     torus.Scene = rootScene;
-
-    //var entity4 = game.Create3DPrimitive(PrimitiveModelType.Torus);
-    //entity4.Transform.Position = new Vector3(0, 4, 0);
-    //entity4.Scene = rootScene;
 }

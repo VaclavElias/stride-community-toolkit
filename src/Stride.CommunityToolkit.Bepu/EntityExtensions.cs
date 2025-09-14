@@ -1,4 +1,5 @@
 using Stride.BepuPhysics.Definitions.Colliders;
+using Stride.CommunityToolkit.Bepu.Colliders;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
 using Stride.Engine;
