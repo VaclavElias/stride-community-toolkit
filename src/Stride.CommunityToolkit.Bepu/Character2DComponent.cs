@@ -1,8 +1,8 @@
 using BepuPhysics;
 using BepuPhysics.Collidables;
-using BepuPhysics.CollisionDetection;
 using Stride.BepuPhysics;
 using Stride.BepuPhysics.Components;
+using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -29,7 +29,17 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
     /// <summary>
     /// Target Z plane to constrain this body to (2D).
     /// </summary>
-    public float PlaneZ { get; set; } = 0f;
+    public float PlaneZ { get; set; } = 0.1f;
+
+    /// <summary>
+    /// Speculative margin used for this 2D body to reduce ghost contacts/instability with thin convex hulls.
+    /// </summary>
+    public float SpeculativeMargin2D { get; set; } = 0.02f;
+
+    /// <summary>
+    /// If true, enables passive CCD for convex hulls to reduce tunneling/instability when many contacts occur.
+    /// </summary>
+    public bool EnablePassiveCcdForConvexHulls { get; set; } = true;
 
     public Character2DComponent()
     {
@@ -39,8 +49,37 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
     /// <inheritdoc cref="BodyComponent.AttachInner"/>
     protected override void AttachInner(NRigidPose pose, BodyInertia shapeInertia, TypedIndex shapeIndex)
     {
-        // IMPORTANT: keep the shape-derived inertia so rotation (including around Z) works.
+        // Keep the shape-derived inertia so rotation (including around Z) works.
         base.AttachInner(pose, shapeInertia, shapeIndex);
+
+        // Constrain rotation to Z by locking X/Y inverse inertia.
+        var inertia = BodyInertia;
+        var inv = inertia.InverseInertiaTensor;
+        inv.XX = 0f; inv.YY = 0f;
+        inv.YX = 0f; inv.ZX = 0f; inv.ZY = 0f; // clear cross terms that could coupling axes
+        inertia.InverseInertiaTensor = inv;
+        BodyInertia = inertia;
+
+        // Reduce speculative margin to avoid explosive corrections with thin hulls in 2D.
+        SpeculativeMargin = SpeculativeMargin2D;
+
+        // Optionally enable CCD for convex hulls only.
+        if (EnablePassiveCcdForConvexHulls && HasConvexHull(Collider))
+            ContinuousDetectionMode = ContinuousDetectionMode.Passive;
+    }
+
+    private static bool HasConvexHull(ICollider? collider)
+    {
+        if (collider is null) return false;
+        if (collider is ConvexHullCollider) return true;
+        if (collider is CompoundCollider compound && compound.Colliders is { } list)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] is ConvexHullCollider) return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -75,7 +114,7 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
     /// </summary>
     public virtual void AfterSimulationUpdate(BepuSimulation sim, float simTimeStep)
     {
-        // Constrain this body to the XY plane and orientation around Z only.
+        // Constrain this body to the XY plane.
         if (Position.Z != PlaneZ)
         {
             var p = Position;
@@ -89,12 +128,6 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
             lv.Z = 0f;
             LinearVelocity = lv;
         }
-
-        // Keep yaw/pitch at 0 (roll-only). If they are already 0, this block is skipped.
-        var bodyRot = Orientation;
-        Quaternion.RotationYawPitchRoll(ref bodyRot, out var yaw, out var pitch, out var roll);
-        if (yaw != 0 || pitch != 0)
-            Orientation = Quaternion.RotationYawPitchRoll(0, 0, roll);
 
         // For 2D, kill X/Y angular velocity so only Z rotation remains (allows rolling).
         if (AngularVelocity.X != 0 || AngularVelocity.Y != 0)
