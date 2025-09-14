@@ -8,6 +8,9 @@ using NRigidPose = BepuPhysics.RigidPose;
 
 namespace Stride.CommunityToolkit.Bepu;
 
+/// <summary>
+/// 
+/// </summary>
 [ComponentCategory("Physics - Bepu 2D")]
 public class Character2DComponent : BodyComponent, ISimulationUpdate
 {
@@ -74,11 +77,6 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
         LinearVelocity = current;
     }
 
-    /// <summary>
-    /// Called after the physics tick.
-    /// </summary>
-    public virtual void AfterSimulationUpdate(BepuSimulation sim, float simTimeStep)
-    {
-        // No hard teleports; the pre-step velocity correction handles the plane.
-    }
+    /// <inheritdoc/>
+    public virtual void AfterSimulationUpdate(BepuSimulation sim, float simTimeStep) { }
 }
