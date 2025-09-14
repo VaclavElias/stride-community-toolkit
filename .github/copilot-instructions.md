@@ -136,6 +136,8 @@ game.Run(start: (Scene rootScene) =>
 - Remind contributors to regenerate shader code when shaders are changed.
 - For Blazor content: keep solutions Blazor-appropriate; avoid server-only MVC/Razor patterns unless necessary.
 - Avoid speculative APIs; ground suggestions in existing patterns.
+- Use descriptive, real-word identifier names. Avoid cryptic abbreviations for variables, parameters, or fields (e.g., prefer `textureCoordinates`, `firstEdge`, `secondEdge`, `faceNormal` over `tex`, `e1`, `e2`, `n`). Single-letter names are acceptable only for short-lived loop indices (`i`, `j`, `k`).
+- Follow C# naming conventions consistently: PascalCase for types, methods, and properties; camelCase for parameters and local variables. Prefer meaningful names that communicate intent.
 
 ## Formatting rules for edits
 - Do not add an empty line at the end of a file.
