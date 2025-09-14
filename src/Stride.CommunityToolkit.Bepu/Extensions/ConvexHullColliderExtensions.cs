@@ -6,8 +6,17 @@ using static Stride.BepuPhysics.Definitions.DecomposedHulls;
 
 namespace Stride.CommunityToolkit.Bepu;
 
+/// <summary>
+/// Helpers to build Bepu <see cref="ConvexHullCollider"/> instances from Stride procedural meshes.
+/// </summary>
 public static class ConvexHullColliderExtensions
 {
+    /// <summary>
+    /// Builds a <see cref="ConvexHullCollider"/> from the raw mesh data.
+    /// </summary>
+    /// <remarks>
+    /// Uses the mesh vertices and indices without welding. Prefer <see cref="ToConvexHullColliderWithWelding"/> for stability when the source mesh contains duplicated vertices.
+    /// </remarks>
     public static ConvexHullCollider ToConvexHullCollider(this GeometricMeshData<VertexPositionNormalTexture> meshData)
     {
         ArgumentNullException.ThrowIfNull(meshData);
@@ -35,14 +44,21 @@ public static class ConvexHullColliderExtensions
         };
     }
 
+    /// <summary>
+    /// Builds a <see cref="ConvexHullCollider"/> from the mesh after welding near-duplicate vertices.
+    /// </summary>
+    /// <param name="meshData">Source mesh data.</param>
+    /// <returns>Convex hull collider with welded vertex data.</returns>
+    /// <remarks>
+    /// Welding reduces degenerate faces/edges from duplicated vertices (common in authored meshes), improving stability in dense contact scenarios.
+    /// </remarks>
     public static ConvexHullCollider ToConvexHullColliderWithWelding(this GeometricMeshData<VertexPositionNormalTexture> meshData)
     {
         ArgumentNullException.ThrowIfNull(meshData);
         ArgumentNullException.ThrowIfNull(meshData.Vertices);
         ArgumentNullException.ThrowIfNull(meshData.Indices);
 
-        // 1) Weld duplicate/near-duplicate vertices to avoid tiny edges and degenerate faces.
-        //    Tune epsilon to your content scale; 1e-4 is a good start for unit-scale meshes.
+        // Weld duplicate/near-duplicate vertices to avoid tiny edges/degenerate faces.
         WeldVertices(meshData.Vertices, meshData.Indices, weldEpsilon: 1e-4f, out var points, out var indices);
 
         return new ConvexHullCollider
@@ -54,6 +70,14 @@ public static class ConvexHullColliderExtensions
     // Quantize a float to an integer grid for welding (avoids rounding issues).
     private static int Quantize(float v, float scale) => (int)System.MathF.Round(v * scale);
 
+    /// <summary>
+    /// Welds vertices that are within <paramref name="weldEpsilon"/> of each other and remaps the index buffer accordingly.
+    /// </summary>
+    /// <param name="vertices">Input vertex array.</param>
+    /// <param name="indices">Input index array.</param>
+    /// <param name="weldEpsilon">Distance threshold for welding in world units.</param>
+    /// <param name="outPositions">Unique welded positions.</param>
+    /// <param name="outIndices">Remapped indices targeting <paramref name="outPositions"/>.</param>
     private static void WeldVertices(
         IReadOnlyList<VertexPositionNormalTexture> vertices,
         IReadOnlyList<int> indices,
