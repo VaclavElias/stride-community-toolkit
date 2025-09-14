@@ -10,7 +10,7 @@ using NRigidPose = BepuPhysics.RigidPose;
 
 namespace Stride.CommunityToolkit.Bepu;
 
-[ComponentCategory("Physics - Bepu")]
+[ComponentCategory("Physics - Bepu 2D")]
 public class Character2DComponent : BodyComponent, ISimulationUpdate
 {
     [DataMemberIgnore]
@@ -27,16 +27,6 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
     public bool UseInputVerticalVelocity { get; set; } = false;
 
     /// <summary>
-    /// Target Z plane to constrain this body to (2D).
-    /// </summary>
-    public float PlaneZ { get; set; } = 0f;
-
-    /// <summary>
-    /// Speculative margin used for this 2D body to reduce ghost contacts/instability with thin convex hulls.
-    /// </summary>
-    public float SpeculativeMargin2D { get; set; } = 0.02f;
-
-    /// <summary>
     /// If true, enables passive CCD for convex hulls to reduce tunneling/instability when many contacts occur.
     /// </summary>
     public bool EnablePassiveCcdForConvexHulls { get; set; } = true;
@@ -45,12 +35,6 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
     /// Strength (1/sec) of velocity-based correction that keeps the body on the Z plane. Avoids post-solve teleports.
     /// </summary>
     public float PlaneCorrectionStrength { get; set; } = 20f;
-
-    /// <summary>
-    /// If true, use a near-lock on X/Y rotation (very large inertia) instead of an exact lock (zero inverse inertia).
-    /// This avoids singularities that can amplify impulses for sharp convex hulls.
-    /// </summary>
-    public bool UseSoftAngularLock { get; set; } = true;
 
     public Character2DComponent()
     {
@@ -65,26 +49,16 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
 
         // Constrain rotation to Z by heavily increasing inertia around X/Y (soft lock) or zeroing inverse inertia (hard lock).
         var inertia = BodyInertia;
-        var inv = inertia.InverseInertiaTensor;
-        if (UseSoftAngularLock)
-        {
-            // Set extremely small inverse inertia on X/Y (~infinite inertia) but nonzero to avoid ill-conditioned matrices.
-            const float epsilon = 1e-6f;
-            inv.XX = epsilon;
-            inv.YY = epsilon;
-        }
-        else
-        {
-            inv.XX = 0f;
-            inv.YY = 0f;
-        }
-        // Clear cross terms that could couple axes (leave ZZ untouched for roll).
-        inv.YX = 0f; inv.ZX = 0f; inv.ZY = 0f;
-        inertia.InverseInertiaTensor = inv;
-        BodyInertia = inertia;
+        var inverseInertia = inertia.InverseInertiaTensor;
 
-        // Reduce speculative margin to avoid explosive corrections with thin hulls in 2D.
-        SpeculativeMargin = SpeculativeMargin2D;
+        inverseInertia.XX = 0f;
+        inverseInertia.YY = 0f;
+
+        // Clear cross terms that could couple axes (leave ZZ untouched for roll).
+        inverseInertia.YX = 0f; inverseInertia.ZX = 0f; inverseInertia.ZY = 0f;
+        inertia.InverseInertiaTensor = inverseInertia;
+
+        BodyInertia = inertia;
 
         // Optionally enable CCD for convex hulls only, and damp recovery velocity for hulls (helps piles).
         if (HasConvexHull(Collider))
@@ -133,12 +107,15 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
         var input = Velocity;
 
         if (UseInputHorizontalVelocity)
+        {
             current.X = input.X;
+        }
         if (UseInputVerticalVelocity)
+        {
             current.Y = input.Y;
+        }
 
-        // Velocity-based plane correction instead of post-solve teleport to avoid energy injection.
-        var zError = Position.Z - PlaneZ;
+        var zError = Position.Z;
         current.Z = -zError * PlaneCorrectionStrength;
 
         LinearVelocity = current;

@@ -45,57 +45,15 @@ public static class EntityExtensions
             entity.AddChild(childEntity);
         }
 
-        if (type == Primitive2DModelType.Triangle)
-        {
-            var model = entity.Get<ModelComponent>()?.Model;
+        var colliderShape = Get2DColliderShape(type, options.Size, options.Depth);
 
-            if (model is null)
-            {
-                throw new InvalidOperationException("Entity must have a ModelComponent with a valid model to add Bepu physics.");
-            }
+        if (colliderShape is null) return entity;
 
-            // This is needed when using ConvexHullCollider
-            //var meshData = TriangularPrismProceduralModel.New(options.Size is null ? new(1, 1, options.Depth) : new(options.Size.Value.X, options.Size.Value.Y, options.Depth));
+        var compoundCollider = options.Component.Collider as CompoundCollider;
 
-            //var points = meshData.Vertices.Select(w => w.Position).ToList();
-            //var uintIndices = meshData.Indices.Select(w => (uint)w).ToList();
-            //var collider = new ConvexHullColliderShapeDesc()
-            //{
-            //    Model = model, // seems doing nothing
-            //    ConvexHulls = [],
-            //    ConvexHullsIndices = []
-            //};
+        compoundCollider?.Colliders.Add(colliderShape);
 
-            //collider.ConvexHulls.Add([points]);
-            //collider.ConvexHullsIndices.Add([uintIndices]);
-
-            //List<IAssetColliderShapeDesc> descriptions = [];
-
-            //descriptions.Add(collider);
-
-            //var collider2 = new ConvexHullCollider() { Hull = new PhysicsColliderShape(descriptions) };
-
-            //var compoundCollier = options.Component.Collider as CompoundCollider;
-
-            //compoundCollier.Colliders.Add(collider2);
-
-            // Or you can use just his
-            options.Component.Collider = new MeshCollider() { Model = model, Closed = true };
-
-            entity.Add(options.Component);
-        }
-        else
-        {
-            var colliderShape = Get2DColliderShape(type, options.Size, options.Depth);
-
-            if (colliderShape is null) return entity;
-
-            var compoundCollier = options.Component.Collider as CompoundCollider;
-
-            compoundCollier?.Colliders.Add(colliderShape);
-
-            entity.Add(options.Component);
-        }
+        entity.Add(options.Component);
 
         return entity;
     }
@@ -140,6 +98,7 @@ public static class EntityExtensions
     {
         return type switch
         {
+            Primitive2DModelType.Triangle => TriangularPrismCollider.Create(size is null ? null : new(size.Value.X, size.Value.Y, depth)),
             Primitive2DModelType.Rectangle => size is null ? new BoxCollider() : new() { Size = new(size.Value.X, size.Value.Y, depth) },
             Primitive2DModelType.Square => size is null ? new BoxCollider() : new() { Size = new(size.Value.X, size.Value.Y, depth) },
             Primitive2DModelType.Circle => size is null ? new CylinderCollider() : new()
