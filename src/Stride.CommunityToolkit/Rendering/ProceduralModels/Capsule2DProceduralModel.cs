@@ -7,7 +7,7 @@ namespace Stride.CommunityToolkit.Rendering.ProceduralModels;
 /// Procedurally generates a 2D capsule (stadium) mesh composed of two semicircles and a central rectangle.
 /// Mesh instances are cached per dimension/tessellation/UV combination for reuse.
 /// </summary>
-public class CapsuleProceduralModel : PrimitiveProceduralModelBase
+public class Capsule2DProceduralModel : PrimitiveProceduralModelBase
 {
     /// <summary>
     /// Gets or sets the total height of the capsule (including the two semicircles).
