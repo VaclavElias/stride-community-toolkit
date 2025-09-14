@@ -4,7 +4,7 @@ using Stride.Core.Mathematics;
 using Stride.Graphics;
 using static Stride.BepuPhysics.Definitions.DecomposedHulls;
 
-namespace Stride.CommunityToolkit.Bepu;
+namespace Stride.CommunityToolkit.Bepu.Extensions;
 
 /// <summary>
 /// Helpers to build Bepu <see cref="ConvexHullCollider"/> instances from Stride procedural meshes.
@@ -80,7 +80,7 @@ public static class ConvexHullColliderExtensions
     /// <param name="outIndices">Remapped indices targeting <paramref name="outPositions"/>.</param>
     private static void WeldVertices(
         IReadOnlyList<VertexPositionNormalTexture> vertices,
-        IReadOnlyList<int> indices,
+        int[] indices,
         float weldEpsilon,
         out Vector3[] outPositions,
         out uint[] outIndices)
@@ -107,8 +107,8 @@ public static class ConvexHullColliderExtensions
         }
 
         // Remap indices to the welded vertex set.
-        var newIndices = new uint[indices.Count];
-        for (int i = 0; i < indices.Count; i++)
+        var newIndices = new uint[indices.Length];
+        for (int i = 0; i < indices.Length; i++)
         {
             newIndices[i] = (uint)remap[indices[i]];
         }

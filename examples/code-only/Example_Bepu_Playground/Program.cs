@@ -54,6 +54,7 @@ game.Run(start: (Action<Scene>?)((Scene rootScene) =>
 
     game.SetupBase3DScene();
     game.AddSkybox();
+    game.AddAllDirectionLighting(intensity: 2f);
     //game.SetupBase2DSceneWithBepu();
 
     game.AddProfiler();

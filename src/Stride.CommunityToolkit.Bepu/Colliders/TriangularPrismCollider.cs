@@ -1,4 +1,5 @@
 using Stride.BepuPhysics.Definitions.Colliders;
+using Stride.CommunityToolkit.Bepu.Extensions;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
 
@@ -37,7 +38,7 @@ public static class TriangularPrismCollider
     /// </returns>
     public static ConvexHullCollider Create(Vector3? size)
     {
-        var validatedSize = Vector3.One;
+        Vector3 validatedSize;
 
         if (size is null)
         {
@@ -52,6 +53,6 @@ public static class TriangularPrismCollider
 
         var meshData = TriangularPrismProceduralModel.New(validatedSize);
 
-        return meshData.ToConvexHullCollider();
+        return meshData.ToConvexHullColliderWithWelding();
     }
 }

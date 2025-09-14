@@ -1,4 +1,5 @@
 using Stride.BepuPhysics.Definitions.Colliders;
+using Stride.CommunityToolkit.Bepu.Extensions;
 using Stride.Graphics.GeometricPrimitives;
 using Stride.Rendering.ProceduralModels;
 using System.Numerics;
@@ -38,7 +39,7 @@ public static class ConeCollider
     /// </returns>
     public static ConvexHullCollider Create(Vector3? size)
     {
-        var validatedSize = Vector3.One;
+        Vector3 validatedSize;
 
         if (size is null)
         {

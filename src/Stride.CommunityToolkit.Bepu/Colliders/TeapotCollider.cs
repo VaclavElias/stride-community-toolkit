@@ -1,4 +1,5 @@
 using Stride.BepuPhysics.Definitions.Colliders;
+using Stride.CommunityToolkit.Bepu.Extensions;
 using Stride.Graphics.GeometricPrimitives;
 using Stride.Rendering.ProceduralModels;
 
@@ -36,7 +37,7 @@ public static class TeapotCollider
     /// </returns>
     public static ConvexHullCollider Create(float? size)
     {
-        var validatedSize = 1f;
+        float validatedSize;
 
         if (size is null)
         {

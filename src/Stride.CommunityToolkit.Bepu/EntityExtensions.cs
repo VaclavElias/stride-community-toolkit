@@ -107,7 +107,6 @@ public static class EntityExtensions
                 Length = depth,
                 RotationLocal = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90))
             },
-            //Primitive2DModelType.Triangle => triangleCollider ?? new TriangleCollider(),
             _ => throw new InvalidOperationException(),
         };
     }
