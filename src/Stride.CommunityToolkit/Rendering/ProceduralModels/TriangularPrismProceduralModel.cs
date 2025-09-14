@@ -13,7 +13,7 @@ public class TriangularPrismProceduralModel : PrimitiveProceduralModelBase
     /// </summary>
     public Vector3 Size { get; set; } = Vector3.One;
 
-    private static readonly Vector2[] TextureCoordinates = [new(1, 0), new(1, 1), new(0, 1), new(0, 0)];
+    private static readonly Vector2[] _textureCoordinates = [new(1, 0), new(1, 1), new(0, 1), new(0, 0)];
 
     /// <summary>
     /// Builds the mesh data for the current <see cref="Size"/> and UV scale settings.
@@ -41,7 +41,7 @@ public class TriangularPrismProceduralModel : PrimitiveProceduralModelBase
 
         for (var i = 0; i < 4; i++)
         {
-            textureCoordinates[i] = TextureCoordinates[i] * new Vector2(uScale, vScale);
+            textureCoordinates[i] = _textureCoordinates[i] * new Vector2(uScale, vScale);
         }
 
         var equilateralHeight = (float)Math.Sqrt(size.X * size.X - Math.Pow(size.X / 2, 2)) / 2;
