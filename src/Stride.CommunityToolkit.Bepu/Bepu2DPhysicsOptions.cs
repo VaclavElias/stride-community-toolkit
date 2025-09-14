@@ -23,7 +23,8 @@ public class Bepu2DPhysicsOptions : Primitive2DEntityOptions
     /// Substitute with a <see cref="Static2DComponent"/> (if available) or preconfigure collider data before
     /// creation to tailor behavior.
     /// </remarks>
-    public CollidableComponent Component { get; set; } = new Body2DComponent() { Collider = new CompoundCollider() };
+    //public CollidableComponent Component { get; set; } = new Body2DComponent() { Collider = new CompoundCollider() };
+    public CollidableComponent Component { get; set; } = new Character2DComponent() { Collider = new CompoundCollider() };
 
     /// <summary>
     /// When true (default), a collider shape matching the primitive type is auto-created and added.
