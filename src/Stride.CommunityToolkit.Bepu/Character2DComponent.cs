@@ -29,7 +29,7 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
     /// <summary>
     /// Target Z plane to constrain this body to (2D).
     /// </summary>
-    public float PlaneZ { get; set; } = 0.1f;
+    public float PlaneZ { get; set; } = 0f;
 
     /// <summary>
     /// Speculative margin used for this 2D body to reduce ghost contacts/instability with thin convex hulls.
@@ -40,6 +40,17 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
     /// If true, enables passive CCD for convex hulls to reduce tunneling/instability when many contacts occur.
     /// </summary>
     public bool EnablePassiveCcdForConvexHulls { get; set; } = true;
+
+    /// <summary>
+    /// Strength (1/sec) of velocity-based correction that keeps the body on the Z plane. Avoids post-solve teleports.
+    /// </summary>
+    public float PlaneCorrectionStrength { get; set; } = 20f;
+
+    /// <summary>
+    /// If true, use a near-lock on X/Y rotation (very large inertia) instead of an exact lock (zero inverse inertia).
+    /// This avoids singularities that can amplify impulses for sharp convex hulls.
+    /// </summary>
+    public bool UseSoftAngularLock { get; set; } = true;
 
     public Character2DComponent()
     {
@@ -52,20 +63,41 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
         // Keep the shape-derived inertia so rotation (including around Z) works.
         base.AttachInner(pose, shapeInertia, shapeIndex);
 
-        // Constrain rotation to Z by locking X/Y inverse inertia.
+        // Constrain rotation to Z by heavily increasing inertia around X/Y (soft lock) or zeroing inverse inertia (hard lock).
         var inertia = BodyInertia;
         var inv = inertia.InverseInertiaTensor;
-        inv.XX = 0f; inv.YY = 0f;
-        inv.YX = 0f; inv.ZX = 0f; inv.ZY = 0f; // clear cross terms that could coupling axes
+        if (UseSoftAngularLock)
+        {
+            // Set extremely small inverse inertia on X/Y (~infinite inertia) but nonzero to avoid ill-conditioned matrices.
+            const float epsilon = 1e-6f;
+            inv.XX = epsilon;
+            inv.YY = epsilon;
+        }
+        else
+        {
+            inv.XX = 0f;
+            inv.YY = 0f;
+        }
+        // Clear cross terms that could couple axes (leave ZZ untouched for roll).
+        inv.YX = 0f; inv.ZX = 0f; inv.ZY = 0f;
         inertia.InverseInertiaTensor = inv;
         BodyInertia = inertia;
 
         // Reduce speculative margin to avoid explosive corrections with thin hulls in 2D.
         SpeculativeMargin = SpeculativeMargin2D;
 
-        // Optionally enable CCD for convex hulls only.
-        if (EnablePassiveCcdForConvexHulls && HasConvexHull(Collider))
-            ContinuousDetectionMode = ContinuousDetectionMode.Passive;
+        // Optionally enable CCD for convex hulls only, and damp recovery velocity for hulls (helps piles).
+        if (HasConvexHull(Collider))
+        {
+            if (EnablePassiveCcdForConvexHulls)
+                ContinuousDetectionMode = ContinuousDetectionMode.Passive;
+
+            // Cap recovery velocity to keep depenetration impulses from spiking.
+            MaximumRecoveryVelocity = MathF.Min(MaximumRecoveryVelocity, 1.5f);
+            // Add some damping to help settling.
+            SpringDampingRatio = MathF.Max(SpringDampingRatio, 1f);
+            SpringFrequency = MathF.Min(SpringFrequency, 30f);
+        }
     }
 
     private static bool HasConvexHull(ICollider? collider)
@@ -104,7 +136,10 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
             current.X = input.X;
         if (UseInputVerticalVelocity)
             current.Y = input.Y;
-        current.Z = 0f; // keep in XY plane
+
+        // Velocity-based plane correction instead of post-solve teleport to avoid energy injection.
+        var zError = Position.Z - PlaneZ;
+        current.Z = -zError * PlaneCorrectionStrength;
 
         LinearVelocity = current;
     }
@@ -114,23 +149,6 @@ public class Character2DComponent : BodyComponent, ISimulationUpdate
     /// </summary>
     public virtual void AfterSimulationUpdate(BepuSimulation sim, float simTimeStep)
     {
-        // Constrain this body to the XY plane.
-        if (Position.Z != PlaneZ)
-        {
-            var p = Position;
-            p.Z = PlaneZ;
-            Position = p;
-        }
-
-        if (LinearVelocity.Z != 0)
-        {
-            var lv = LinearVelocity;
-            lv.Z = 0f;
-            LinearVelocity = lv;
-        }
-
-        // For 2D, kill X/Y angular velocity so only Z rotation remains (allows rolling).
-        if (AngularVelocity.X != 0 || AngularVelocity.Y != 0)
-            AngularVelocity = new Vector3(0, 0, AngularVelocity.Z);
+        // No hard teleports; the pre-step velocity correction handles the plane.
     }
 }
