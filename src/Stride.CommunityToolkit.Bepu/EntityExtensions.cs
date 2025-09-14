@@ -192,6 +192,7 @@ public static class EntityExtensions
         {
             PrimitiveModelType.Capsule => size is null ? new CapsuleCollider() { Radius = 0.35f } : new() { Radius = size.Value.X, Length = size.Value.Y },
             PrimitiveModelType.Cone => ConeCollider.Create(size),
+            PrimitiveModelType.Torus => TorusCollider.Create(majorRadius: size?.X, minorRadius: size?.Y),
             PrimitiveModelType.Teapot => TeapotCollider.Create(size?.X),
             PrimitiveModelType.Cube => size is null ? new BoxCollider() : new() { Size = size ?? Vector3.One },
             PrimitiveModelType.Cylinder => size is null ? new CylinderCollider() : new()

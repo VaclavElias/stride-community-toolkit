@@ -58,14 +58,7 @@ public static class ConeCollider
         }
 
         var meshData = GeometricPrimitive.Cone.New(radius: validatedSize.X, height: validatedSize.Y, 16);
-        var points = meshData.Vertices.Select(w => w.Position).ToArray();
-        var uintIndices = meshData.Indices.Select(w => (uint)w).ToArray();
 
-        var convexHullCollider = new ConvexHullCollider()
-        {
-            Hull = new DecomposedHulls([new DecomposedMesh([new Hull(points, uintIndices)])])
-        };
-
-        return convexHullCollider;
+        return meshData.ToConvexHullCollider();
     }
 }

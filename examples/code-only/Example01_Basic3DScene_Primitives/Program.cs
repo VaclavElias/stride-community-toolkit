@@ -21,7 +21,12 @@ void Start(Scene rootScene)
     var cube = game.Create3DPrimitive(PrimitiveModelType.Cube,
         new() { Size = size1 });
     cube.Transform.Position = new Vector3(-4f, 0.5f, 0);
-    //entity.Add(new DebugRenderComponentScript());
+    cube.Add(new DebugRenderComponentScript());
+    cube.Add(new CollidableGizmoScript()
+    {
+        Color = new Color4(0.4f, 0.843f, 0, 0.9f),
+        Visible = true
+    });
     cube.Scene = rootScene;
 
     var cuboid = game.Create3DPrimitive(PrimitiveModelType.Cube,
@@ -35,8 +40,7 @@ void Start(Scene rootScene)
     cone.Transform.Position = new Vector3(0, 2, 0);
     cone.Scene = rootScene;
 
-    var capsule = game.Create3DPrimitive(PrimitiveModelType.Capsule,
-        new() { Size = size2 });
+    var capsule = game.Create3DPrimitive(PrimitiveModelType.Torus);
     capsule.Transform.Position = new Vector3(0.01f, 6, 0);
     capsule.Scene = rootScene;
 
@@ -53,6 +57,10 @@ void Start(Scene rootScene)
     var teapot = game.Create3DPrimitive(PrimitiveModelType.Teapot);
     teapot.Transform.Position = new Vector3(4, 4f, 0);
     teapot.Scene = rootScene;
+
+    var torus = game.Create3DPrimitive(PrimitiveModelType.Torus);
+    torus.Transform.Position = new Vector3(0, 12, 0);
+    torus.Scene = rootScene;
 
     //var entity4 = game.Create3DPrimitive(PrimitiveModelType.Torus);
     //entity4.Transform.Position = new Vector3(0, 4, 0);
