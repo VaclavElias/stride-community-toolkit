@@ -49,9 +49,11 @@ public class TriangularPrismProceduralModel : PrimitiveProceduralModelBase
         // 3 indices for each triangle face (6 total), and 6 indices (2 triangles) for each rectangle face (18 total).
         var indices = new int[24];
 
-        var tex = new Vector2[4];
+        var textureCoordinate = new Vector2[4];
         for (var i = 0; i < 4; i++)
-            tex[i] = _textureCoordinates[i] * new Vector2(uScale, vScale);
+        {
+            textureCoordinate[i] = _textureCoordinates[i] * new Vector2(uScale, vScale);
+        }
 
         // Half extents
         var halfBase = size.X * 0.5f;    // along X
@@ -59,49 +61,49 @@ public class TriangularPrismProceduralModel : PrimitiveProceduralModelBase
         var halfDepth = size.Z * 0.5f;   // along Z
 
         // Triangle XY points (projected at Z = +/-halfDepth)
-        var A = new Vector2(-halfBase, -halfHeight); // left base
-        var B = new Vector2(0, +halfHeight);         // apex
-        var C = new Vector2(+halfBase, -halfHeight); // right base
+        var baseLeft = new Vector2(-halfBase, -halfHeight);
+        var apex = new Vector2(0, +halfHeight);
+        var baseRight = new Vector2(+halfBase, -halfHeight);
 
         // Front triangle (Z = +halfDepth)
-        vertices[0] = new VertexPositionNormalTexture(new Vector3(A.X, A.Y, +halfDepth), Vector3.UnitZ, tex[0]);
-        vertices[1] = new VertexPositionNormalTexture(new Vector3(B.X, B.Y, +halfDepth), Vector3.UnitZ, tex[1]);
-        vertices[2] = new VertexPositionNormalTexture(new Vector3(C.X, C.Y, +halfDepth), Vector3.UnitZ, tex[2]);
+        vertices[0] = new(new Vector3(baseLeft.X, baseLeft.Y, +halfDepth), Vector3.UnitZ, textureCoordinate[0]);
+        vertices[1] = new(new Vector3(apex.X, apex.Y, +halfDepth), Vector3.UnitZ, textureCoordinate[1]);
+        vertices[2] = new(new Vector3(baseRight.X, baseRight.Y, +halfDepth), Vector3.UnitZ, textureCoordinate[2]);
 
         // Back triangle (Z = -halfDepth)
-        vertices[3] = new VertexPositionNormalTexture(new Vector3(A.X, A.Y, -halfDepth), -Vector3.UnitZ, tex[0]);
-        vertices[4] = new VertexPositionNormalTexture(new Vector3(B.X, B.Y, -halfDepth), -Vector3.UnitZ, tex[1]);
-        vertices[5] = new VertexPositionNormalTexture(new Vector3(C.X, C.Y, -halfDepth), -Vector3.UnitZ, tex[2]);
+        vertices[3] = new(new Vector3(baseLeft.X, baseLeft.Y, -halfDepth), -Vector3.UnitZ, textureCoordinate[0]);
+        vertices[4] = new(new Vector3(apex.X, apex.Y, -halfDepth), -Vector3.UnitZ, textureCoordinate[1]);
+        vertices[5] = new(new Vector3(baseRight.X, baseRight.Y, -halfDepth), -Vector3.UnitZ, textureCoordinate[2]);
 
         // Bottom rectangle (Y = -halfHeight), normal points down
-        vertices[6] = new VertexPositionNormalTexture(new Vector3(A.X, -halfHeight, +halfDepth), -Vector3.UnitY, tex[0]);
-        vertices[7] = new VertexPositionNormalTexture(new Vector3(A.X, -halfHeight, -halfDepth), -Vector3.UnitY, tex[1]);
-        vertices[8] = new VertexPositionNormalTexture(new Vector3(C.X, -halfHeight, -halfDepth), -Vector3.UnitY, tex[2]);
-        vertices[9] = new VertexPositionNormalTexture(new Vector3(C.X, -halfHeight, +halfDepth), -Vector3.UnitY, tex[3]);
+        vertices[6] = new(new Vector3(baseLeft.X, -halfHeight, +halfDepth), -Vector3.UnitY, textureCoordinate[0]);
+        vertices[7] = new(new Vector3(baseLeft.X, -halfHeight, -halfDepth), -Vector3.UnitY, textureCoordinate[1]);
+        vertices[8] = new(new Vector3(baseRight.X, -halfHeight, -halfDepth), -Vector3.UnitY, textureCoordinate[2]);
+        vertices[9] = new(new Vector3(baseRight.X, -halfHeight, +halfDepth), -Vector3.UnitY, textureCoordinate[3]);
 
         // Left rectangle: spans A<->B along Z; compute accurate face normal.
-        var leftV0 = new Vector3(A.X, A.Y, +halfDepth);
-        var leftV1 = new Vector3(A.X, A.Y, -halfDepth);
-        var leftV2 = new Vector3(B.X, B.Y, -halfDepth);
-        var leftV3 = new Vector3(B.X, B.Y, +halfDepth);
+        var leftV0 = new Vector3(baseLeft.X, baseLeft.Y, +halfDepth);
+        var leftV1 = new Vector3(baseLeft.X, baseLeft.Y, -halfDepth);
+        var leftV2 = new Vector3(apex.X, apex.Y, -halfDepth);
+        var leftV3 = new Vector3(apex.X, apex.Y, +halfDepth);
         var leftNormal = ComputeFaceNormal(leftV0, leftV1, leftV2);
 
-        vertices[10] = new VertexPositionNormalTexture(leftV0, leftNormal, tex[0]);
-        vertices[11] = new VertexPositionNormalTexture(leftV1, leftNormal, tex[1]);
-        vertices[12] = new VertexPositionNormalTexture(leftV2, leftNormal, tex[2]);
-        vertices[13] = new VertexPositionNormalTexture(leftV3, leftNormal, tex[3]);
+        vertices[10] = new(leftV0, leftNormal, textureCoordinate[0]);
+        vertices[11] = new(leftV1, leftNormal, textureCoordinate[1]);
+        vertices[12] = new(leftV2, leftNormal, textureCoordinate[2]);
+        vertices[13] = new(leftV3, leftNormal, textureCoordinate[3]);
 
         // Right rectangle: spans B<->C along Z; compute accurate face normal.
-        var rightV0 = new Vector3(C.X, C.Y, +halfDepth);
-        var rightV1 = new Vector3(B.X, B.Y, +halfDepth);
-        var rightV2 = new Vector3(B.X, B.Y, -halfDepth);
-        var rightV3 = new Vector3(C.X, C.Y, -halfDepth);
+        var rightV0 = new Vector3(baseRight.X, baseRight.Y, +halfDepth);
+        var rightV1 = new Vector3(apex.X, apex.Y, +halfDepth);
+        var rightV2 = new Vector3(apex.X, apex.Y, -halfDepth);
+        var rightV3 = new Vector3(baseRight.X, baseRight.Y, -halfDepth);
         var rightNormal = ComputeFaceNormal(rightV0, rightV1, rightV2);
 
-        vertices[14] = new VertexPositionNormalTexture(rightV0, rightNormal, tex[0]);
-        vertices[15] = new VertexPositionNormalTexture(rightV1, rightNormal, tex[1]);
-        vertices[16] = new VertexPositionNormalTexture(rightV2, rightNormal, tex[2]);
-        vertices[17] = new VertexPositionNormalTexture(rightV3, rightNormal, tex[3]);
+        vertices[14] = new(rightV0, rightNormal, textureCoordinate[0]);
+        vertices[15] = new(rightV1, rightNormal, textureCoordinate[1]);
+        vertices[16] = new(rightV2, rightNormal, textureCoordinate[2]);
+        vertices[17] = new(rightV3, rightNormal, textureCoordinate[3]);
 
         // Triangle face indices
         indices[0] = 0; indices[1] = 1; indices[2] = 2; // Front
@@ -124,11 +126,13 @@ public class TriangularPrismProceduralModel : PrimitiveProceduralModelBase
 
         static Vector3 ComputeFaceNormal(in Vector3 v0, in Vector3 v1, in Vector3 v2)
         {
-            var e1 = v1 - v0;
-            var e2 = v2 - v0;
-            var n = Vector3.Cross(e1, e2);
-            n.Normalize();
-            return n;
+            var edge1 = v1 - v0;
+            var edge2 = v2 - v0;
+            var normal = Vector3.Cross(edge1, edge2);
+
+            normal.Normalize();
+
+            return normal;
         }
     }
 }
