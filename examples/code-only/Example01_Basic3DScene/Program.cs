@@ -1,3 +1,4 @@
+using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
@@ -14,12 +15,43 @@ game.Run(start: (Scene rootScene) =>
 {
     game.SetupBase3DScene();
     game.AddSkybox();
+    game.AddProfiler();
 
     var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule);
 
     entity.Transform.Position = new Vector3(0, 8, 0);
+    entity.Add(new DebugRenderComponentScript());
+    entity.Add(new CollidableGizmoScript()
+    {
+        Color = new Color4(0.4f, 0.843f, 0, 0.9f),
+        Visible = false
+    });
 
     entity.Scene = rootScene;
+
+    var modelType = Primitive2DModelType.Triangle;
+    var modelBase = Procedural2DModelBuilder.Build(modelType, depth: 1);
+    var model3 = modelBase.Generate(game.Services);
+    var colliderShape = new BoxCollider()
+    {
+        Size = new Vector3(1, 1, 1)
+    };
+
+    for (int i = 0; i < 50; i++)
+    {
+        var entity2 = new Entity("Test") { new ModelComponent(model3) };
+        entity2.Transform.Position = new Vector3(-5 + i * 0.7f, i * 2 + 2, -2);
+        //entity2.Add(new Character2DComponent()
+        //{
+        //    //Velocity = new Vector3(0, 0, 0),
+        //    Collider = new CompoundCollider()
+        //    {
+        //        //Colliders = { colliderShape }
+        //    }
+        //});
+        entity2.AddBepu2DPhysics(modelType);
+        entity2.Scene = rootScene;
+    }
 
     // Move to Example01_Basic3DScene_MeshDraw
     var vertices = new VertexPositionTexture[4];
