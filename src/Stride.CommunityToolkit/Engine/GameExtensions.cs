@@ -1,5 +1,6 @@
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Scripts;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.Engine;
 using Stride.Engine.Processors;
 using Stride.Games;
@@ -20,6 +21,8 @@ namespace Stride.CommunityToolkit.Engine;
 /// </summary>
 public static class GameExtensions
 {
+    private const string NoCameraSlotMessage = "Cannot add camera: The GraphicsCompositor does not have any camera slots defined.";
+
     /// <summary>
     /// Initializes the game, starts the game loop, and handles game events.
     /// </summary>
@@ -98,7 +101,7 @@ public static class GameExtensions
     public static void SetupBase2D(this Game game, Color? clearColor = null)
     {
         game.Add2DGraphicsCompositor(clearColor);
-        game.Add2DCamera().Add2DCameraController();
+        game.Add2DCamera();
     }
 
     /// <summary>
@@ -255,12 +258,14 @@ public static class GameExtensions
     /// <exception cref="InvalidOperationException">Thrown if the GraphicsCompositor does not have any camera slots defined.</exception>
     public static Entity Add3DCamera(this Game game, string? cameraName = CameraDefaults.MainCameraName, Vector3? initialPosition = null, Vector3? initialRotation = null, CameraProjectionMode projectionMode = CameraProjectionMode.Perspective)
     {
-        if (game.SceneSystem.GraphicsCompositor.Cameras.Count == 0)
+        var cameras = game.SceneSystem.GraphicsCompositor.Cameras;
+
+        if (cameras.Count == 0)
         {
-            throw new InvalidOperationException("Cannot add camera: The GraphicsCompositor does not have any camera slots defined.");
+            throw new InvalidOperationException(NoCameraSlotMessage);
         }
 
-        var cameraSlot = game.SceneSystem.GraphicsCompositor.Cameras[0];
+        var cameraSlot = cameras[0];
 
         cameraSlot.Name = cameraName;
 
@@ -272,7 +277,7 @@ public static class GameExtensions
             new CameraComponent
             {
                 Projection = projectionMode,
-                Slot =  game.SceneSystem.GraphicsCompositor.Cameras[0].ToSlotId(),
+                Slot =  cameras[0].ToSlotId(),
             }
         };
 
@@ -286,6 +291,53 @@ public static class GameExtensions
         entity.Scene = game.SceneSystem.SceneInstance.RootScene;
 
         return entity;
+    }
+
+    /// <summary>
+    /// Adds a 2D camera controller to the specified camera entity in the game's current scene.
+    /// </summary>
+    /// <remarks>This method extends the game to simplify attaching a 2D camera controller to a camera entity.
+    /// The camera entity must exist in the root scene; otherwise, an exception is thrown.</remarks>
+    /// <param name="game">The game instance containing the scene and camera entities to which the controller will be added.</param>
+    /// <param name="cameraName">The name of the camera entity to attach the 2D camera controller to. If not specified, the main camera name is
+    /// used.</param>
+    /// <returns>The camera entity to which the 2D camera controller was added.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if no camera entity with the specified name exists in the current scene.</exception>
+    public static Entity Add2DCameraController(this Game game, string? cameraName = CameraDefaults.MainCameraName)
+    {
+        var cameraEntity = game.SceneSystem.SceneInstance.RootScene.Entities.FirstOrDefault(w => w.Name == cameraName);
+
+        if (cameraEntity is null)
+        {
+            throw new InvalidOperationException($"Cannot add 2D camera controller: No camera entity found with the name '{cameraName}'.");
+        }
+
+        cameraEntity.Add2DCameraController();
+
+        return cameraEntity;
+    }
+
+    /// <summary>
+    /// Adds a 3D camera controller to the specified camera entity in the game's current scene.
+    /// </summary>
+    /// <param name="game">The game instance containing the scene and camera entities to which the controller will be added.</param>
+    /// <param name="displayPosition"></param>
+    /// <param name="cameraName">The name of the camera entity to attach the 2D camera controller to. If not specified, the main camera name is
+    /// used.</param>
+    /// <returns>The camera entity to which the 3D camera controller was added.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if no camera entity with the specified name exists in the current scene.</exception>
+    public static Entity Add3DCameraController(this Game game, DisplayPosition displayPosition = DisplayPosition.TopRight, string? cameraName = CameraDefaults.MainCameraName)
+    {
+        var cameraEntity = game.SceneSystem.SceneInstance.RootScene.Entities.FirstOrDefault(w => w.Name == cameraName);
+
+        if (cameraEntity is null)
+        {
+            throw new InvalidOperationException($"Cannot add 3D camera controller: No camera entity found with the name '{cameraName}'.");
+        }
+
+        cameraEntity.Add3DCameraController(displayPosition);
+
+        return cameraEntity;
     }
 
     /// <summary>
