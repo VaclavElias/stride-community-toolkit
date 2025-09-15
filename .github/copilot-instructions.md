@@ -3,7 +3,7 @@
 These repository instructions guide GitHub Copilot (and similar AI assistants) to help develop the Stride Community Toolkit solution.
 
 ## Quick editing & display guidance (short)
-- When showing an updated result for a single paragraph or section, display only the updated selection rather than the entire file. If additional context is required, include a small context window (recommended: up to 10 lines before and after the changed section) or ask for the exact lines the reviewer wants shown. Include file path and line-range metadata when possible to make applying patches easier.
+- When returning an edit to a single paragraph or section, output only that updated selection (do not include the rest of the file). If context is helpful, add a small window (up to ~10 lines before and after). Include the file path and exact line range for the change when known; if not known, ask the reviewer for the specific lines.
 
 ## Status & stability
 - The Stride Community Toolkit is currently in **Preview**.
