@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.32112.339
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11010.61 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stride.CommunityToolkit", "src\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj", "{BE6D2173-AC41-40BB-9F3C-D0AF85B7FE86}"
 EndProject
@@ -133,6 +133,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example08_CollidableGizmo", "examples\code-only\Example08_CollidableGizmo\Example08_CollidableGizmo.csproj", "{F2611018-55CB-4DBF-B231-3B0E3F1F6DEB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example01_Basic3DScene_Primitives", "examples\code-only\Example01_Basic3DScene_Primitives\Example01_Basic3DScene_Primitives.csproj", "{D9C661AD-A04D-4099-87EB-EEC4ABBCDC03}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example01_Basic2DScene_BulletPhysics", "examples\code-only\Example01_Basic2DScene_BulletPhysics\Example01_Basic2DScene_BulletPhysics.csproj", "{85FECD45-AC36-472B-BDA4-B50692A3973C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -367,6 +369,10 @@ Global
 		{D9C661AD-A04D-4099-87EB-EEC4ABBCDC03}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D9C661AD-A04D-4099-87EB-EEC4ABBCDC03}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D9C661AD-A04D-4099-87EB-EEC4ABBCDC03}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85FECD45-AC36-472B-BDA4-B50692A3973C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85FECD45-AC36-472B-BDA4-B50692A3973C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85FECD45-AC36-472B-BDA4-B50692A3973C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85FECD45-AC36-472B-BDA4-B50692A3973C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -419,6 +425,7 @@ Global
 		{BE5E6767-0600-48F7-8EB5-30FF8E63A754} = {30457B66-9E10-4290-9744-D0079DE0448B}
 		{F2611018-55CB-4DBF-B231-3B0E3F1F6DEB} = {30457B66-9E10-4290-9744-D0079DE0448B}
 		{D9C661AD-A04D-4099-87EB-EEC4ABBCDC03} = {30457B66-9E10-4290-9744-D0079DE0448B}
+		{85FECD45-AC36-472B-BDA4-B50692A3973C} = {30457B66-9E10-4290-9744-D0079DE0448B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C7A8C18E-C1F5-492F-8173-51EC9495B78C}

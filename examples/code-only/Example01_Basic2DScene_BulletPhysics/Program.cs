@@ -1,4 +1,4 @@
-using Stride.CommunityToolkit.Bepu;
+using Stride.CommunityToolkit.Bullet;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
@@ -8,9 +8,6 @@ using var game = new Game();
 
 game.Run(start: (Scene rootScene) =>
 {
-    game.Window.AllowUserResizing = true;
-    game.Window.Title = "Bepu 2D Physics Example - Stride Community Toolkit";
-
     game.SetupBase2DScene();
     game.AddProfiler();
 

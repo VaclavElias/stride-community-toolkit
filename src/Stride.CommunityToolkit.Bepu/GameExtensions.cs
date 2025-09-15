@@ -20,9 +20,9 @@ public static class GameExtensions
     /// </summary>
     public static void SetupBase2DScene(this Game game)
     {
-        game.AddGraphicsCompositor().AddCleanUIStage();
+        game.Add2DGraphicsCompositor();
         game.Add2DCamera().Add2DCameraController();
-        game.Add3DGround();
+        game.Add2DGround();
     }
 
     // ToDo: Maybe this could be call SetupDemo3DScene and move to a demo namespace?
@@ -44,6 +44,9 @@ public static class GameExtensions
         game.AddDirectionalLight();
         game.Add3DGround();
     }
+
+    public static Entity Add2DGround(this Game game, string? entityName = GameDefaults.DefaultGroundName, Vector2? size = null, bool includeCollider = true)
+    => CreateGround(game, entityName, size ?? GameDefaults.Default2DGroundSize.XY(), includeCollider, PrimitiveModelType.Cube);
 
     /// <summary>
     /// Adds a 3D ground entity to the game.
