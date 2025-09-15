@@ -1,6 +1,6 @@
 using Example18_Box2DPhysics;
-using Example18_Box2DPhysics.Helpers;
 using Example18_Box2DPhysics.Box2DPhysics;
+using Example18_Box2DPhysics.Helpers;
 using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -26,6 +26,7 @@ void Start(Scene scene)
 
     // Setup 2D scene with camera and controls
     game.SetupBase2D(clearColor: new Color(0.2f));
+    game.Add2DCameraController();
     //game.AddGraphicsCompositor();
     //game.AddGraphicsCompositor2();
     //game.Add2DGraphicsCompositor(clearColor);
