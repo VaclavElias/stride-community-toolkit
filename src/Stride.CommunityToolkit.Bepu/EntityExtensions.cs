@@ -101,13 +101,19 @@ public static class EntityExtensions
             Primitive2DModelType.Triangle => TriangularPrismCollider.Create(size is null ? null : new(size.Value.X, size.Value.Y, depth)),
             Primitive2DModelType.Rectangle => size is null ? new BoxCollider() : new() { Size = new(size.Value.X, size.Value.Y, depth) },
             Primitive2DModelType.Square => size is null ? new BoxCollider() : new() { Size = new(size.Value.X, size.Value.Y, depth) },
-            Primitive2DModelType.Circle => size is null ? new CylinderCollider() : new()
-            {
-                Radius = size.Value.X,
-                Length = depth,
-                RotationLocal = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90))
-            },
+            Primitive2DModelType.Circle => CreateCircleCollider(depth, size),
             _ => throw new InvalidOperationException(),
+        };
+
+        // The RotationLocal needs to be initialized before the bounding shape is calculated.
+        static CylinderCollider CreateCircleCollider(float depth, Vector2? size) => size is null ? new CylinderCollider()
+        {
+            RotationLocal = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90))
+        } : new()
+        {
+            Radius = size.Value.X,
+            Length = depth,
+            RotationLocal = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90))
         };
     }
 
