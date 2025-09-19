@@ -31,6 +31,7 @@ public static class Procedural3DModelBuilder
             PrimitiveModelType.Cone => size is null ? new ConeProceduralModel() : new() { Radius = size.Value.X, Height = size.Value.Y },
             PrimitiveModelType.Cube => size is null ? new CubeProceduralModel() : new() { Size = size.Value },
             PrimitiveModelType.Cylinder => size is null ? new CylinderProceduralModel() : new() { Radius = size.Value.X, Height = size.Value.Z },
+
             PrimitiveModelType.InfinitePlane => size is null ? new PlaneProceduralModel() : new() { Size = size.Value.XY() },
             PrimitiveModelType.Plane => size is null ? new PlaneProceduralModel() : new() { Size = size.Value.XY() },
             PrimitiveModelType.RectangularPrism => size is null ? new CubeProceduralModel() : new() { Size = size.Value },

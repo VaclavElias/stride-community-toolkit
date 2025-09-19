@@ -27,23 +27,23 @@ public static class EntityExtensions
             return entity;
         }
 
-        if (type == Primitive2DModelType.Circle)
-        {
-            var model = entity.Get<ModelComponent>()?.Model;
+        //if (type == Primitive2DModelType.Circle)
+        //{
+        //    var model = entity.Get<ModelComponent>()?.Model;
 
-            if (model is null)
-            {
-                throw new InvalidOperationException("Entity must have a ModelComponent with a valid model to add Bepu physics.");
-            }
+        //    if (model is null)
+        //    {
+        //        throw new InvalidOperationException("Entity must have a ModelComponent with a valid model to add Bepu physics.");
+        //    }
 
-            entity.Remove<ModelComponent>();
+        //    entity.Remove<ModelComponent>();
 
-            var childEntity = new Entity("Child") { new ModelComponent(model) { RenderGroup = options.RenderGroup } };
+        //    var childEntity = new Entity("Child") { new ModelComponent(model) { RenderGroup = options.RenderGroup } };
 
-            childEntity.Transform.Rotation = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90));
+        //    childEntity.Transform.Rotation = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90));
 
-            entity.AddChild(childEntity);
-        }
+        //    entity.AddChild(childEntity);
+        //}
 
         var colliderShape = Get2DColliderShape(type, options.Size, options.Depth);
 
@@ -100,7 +100,8 @@ public static class EntityExtensions
         {
             Primitive2DModelType.Triangle => TriangularPrismCollider.Create(size is null ? null : new(size.Value.X, size.Value.Y, depth)),
             Primitive2DModelType.Rectangle => size is null ? new BoxCollider() : new() { Size = new(size.Value.X, size.Value.Y, depth) },
-            Primitive2DModelType.Square => size is null ? new BoxCollider() : new() { Size = new(size.Value.X, size.Value.Y, depth) },
+            Primitive2DModelType.Square => size is null ? new BoxCollider() : new() { Size = new(size.Value.X, size.Value.X, depth) },
+            Primitive2DModelType.Capsule => size is null ? new CapsuleCollider() : new() { Radius = size.Value.X / 2, Length = size.Value.Y - size.Value.X },
             Primitive2DModelType.Circle => CreateCircleCollider(depth, size),
             _ => throw new InvalidOperationException(),
         };
