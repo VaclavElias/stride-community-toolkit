@@ -11,7 +11,7 @@ using Stride.Rendering.ProceduralModels;
 
 using var game = new Game();
 
-game.Run(start: (Scene rootScene) =>
+game.Run(start: (Action<Scene>?)((Scene rootScene) =>
 {
     game.SetupBase3DScene();
     game.AddSkybox();
@@ -30,7 +30,7 @@ game.Run(start: (Scene rootScene) =>
     entity.Scene = rootScene;
 
     var modelType = Primitive2DModelType.Triangle;
-    var modelBase = Procedural2DModelBuilder.Build(modelType, depth: 1);
+    var modelBase = Procedural2DModelBuilder.Build((Primitive2DModelType)modelType, depth: 1);
     var model3 = modelBase.Generate(game.Services);
     var colliderShape = new BoxCollider()
     {
@@ -49,7 +49,7 @@ game.Run(start: (Scene rootScene) =>
         //        //Colliders = { colliderShape }
         //    }
         //});
-        entity2.AddBepu2DPhysics(modelType);
+        entity2.AddBepu2DPhysics((Primitive2DModelType)modelType);
         entity2.Scene = rootScene;
     }
 
@@ -96,7 +96,7 @@ game.Run(start: (Scene rootScene) =>
     var meshEntity2 = new Entity("a", new Vector3(1, 1, 1));
     meshEntity2.Components.Add(new ModelComponent(model2));
     meshEntity2.Scene = rootScene;
-});
+}));
 
 public class MyProceduralModel : PrimitiveProceduralModelBase
 {
