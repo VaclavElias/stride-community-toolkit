@@ -53,12 +53,12 @@ void Update(Scene scene, GameTime gameTime)
 
     // Draw text at world coordinates (following the moving cube)
     imguiSystem.DrawString(movingCube.Transform.Position + Vector3.UnitY,
-        "Moving Cube", new(255, 255, 0, 0)); // Yellow text
+        "Moving Cube", new(255, 255, 0, 255)); // Yellow text
 
     // Draw some colored text at fixed world positions
-    imguiSystem.DrawString(new Vector3(-2, 1, 0), "Red Text", new(255, 100, 100, 0));
-    imguiSystem.DrawString(new Vector3(2, 1, 0), "Green Text", new(100, 255, 100, 0));
-    imguiSystem.DrawString(new Vector3(0, 1, -2), "Blue Text", new(100, 100, 255, 0));
+    imguiSystem.DrawString(new Vector3(-2, 1, 0), "Red Text", new(255, 0, 0, 255));
+    imguiSystem.DrawString(new Vector3(2, 1, 0), "Green Text", new(0, 255, 0, 255));
+    imguiSystem.DrawString(new Vector3(0, 1, -2), "Blue Text", new(0, 0, 255, 255));
 
     // Performance info (bottom of screen)
     var windowHeight = game.Window.ClientBounds.Height;

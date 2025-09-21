@@ -6,6 +6,8 @@ using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
+using Stride.Rendering;
+using System.Runtime.CompilerServices;
 
 namespace Stride.CommunityToolkit.ImGuiNet;
 
@@ -25,6 +27,14 @@ public class ImGuiNetSystem : GameSystemBase
     private GraphicsDevice? _graphicsDevice;
     private CommandList? _commandList;
     private Texture? _fontTexture;
+    private GraphicsContext? _graphicsContext;
+
+    // Rendering infrastructure
+    private VertexBufferBinding _vertexBinding;
+    private IndexBufferBinding? _indexBinding;
+    private EffectInstance? _imguiShader;
+    private PipelineState? _pipelineState;
+    private VertexDeclaration? _vertexLayout;
 
     // ImGui.NET context
     private IntPtr _context;
@@ -102,8 +112,8 @@ public class ImGuiNetSystem : GameSystemBase
 
         _inputManager = Services.GetService<InputManager>();
         _graphicsDevice = Services.GetService<IGraphicsDeviceService>()?.GraphicsDevice;
-        var graphicsContext = Services.GetService<GraphicsContext>();
-        _commandList = graphicsContext?.CommandList;
+        _graphicsContext = Services.GetService<GraphicsContext>();
+        _commandList = _graphicsContext?.CommandList;
 
         if (_graphicsDevice == null)
         {
@@ -126,6 +136,9 @@ public class ImGuiNetSystem : GameSystemBase
             // Build the font atlas - this is crucial to fix the assertion error
             SetupFontAtlas();
 
+            // Create rendering resources
+            CreateRenderingResources();
+
             _initialized = true;
 
             Logger.Info("ImGuiNetSystem initialized successfully");
@@ -136,10 +149,71 @@ public class ImGuiNetSystem : GameSystemBase
         }
     }
 
+    private void CreateRenderingResources()
+    {
+        if (_graphicsDevice == null || _graphicsContext == null) return;
+
+        // Load or create ImGui shader (reuse existing one or create a fallback)
+        var effectSystem = Services.GetService<EffectSystem>();
+        if (effectSystem != null)
+        {
+            try
+            {
+                // Try to reuse the existing ImGui shader from the other ImGui implementation
+                var effect = effectSystem.LoadEffect("ImGuiNetShader").WaitForResult();
+                _imguiShader = new EffectInstance(effect);
+                _imguiShader.UpdateEffect(_graphicsDevice);
+                Logger.Info("Using ImGuiNetShader for rendering");
+            }
+            catch
+            {
+                Logger.Warning("Could not load any ImGui shader, text will not be visible");
+                return;
+            }
+        }
+
+        // Create vertex layout
+        _vertexLayout = new VertexDeclaration(
+            VertexElement.Position<Vector2>(),
+            VertexElement.TextureCoordinate<Vector2>(),
+            VertexElement.Color(PixelFormat.R8G8B8A8_UNorm)
+        );
+
+        // Create pipeline state
+        var pipelineDesc = new PipelineStateDescription()
+        {
+            BlendState = BlendStates.NonPremultiplied,
+            RasterizerState = new RasterizerStateDescription()
+            {
+                CullMode = CullMode.None,
+                DepthBias = 0,
+                FillMode = FillMode.Solid,
+                MultisampleAntiAliasLine = false,
+                ScissorTestEnable = true,
+                SlopeScaleDepthBias = 0,
+            },
+            PrimitiveType = PrimitiveType.TriangleList,
+            InputElements = _vertexLayout.CreateInputElements(),
+            DepthStencilState = DepthStencilStates.None,
+            EffectBytecode = _imguiShader?.Effect.Bytecode,
+            RootSignature = _imguiShader?.RootSignature,
+            Output = new RenderOutputDescription(PixelFormat.R8G8B8A8_UNorm)
+        };
+
+        _pipelineState = PipelineState.New(_graphicsDevice, ref pipelineDesc);
+
+        // Create initial buffers
+        var vertexBuffer = Stride.Graphics.Buffer.Vertex.New(_graphicsDevice, 1024 * _vertexLayout.CalculateSize(), GraphicsResourceUsage.Dynamic);
+        _vertexBinding = new VertexBufferBinding(vertexBuffer, _vertexLayout, 0);
+
+        var indexBuffer = Stride.Graphics.Buffer.Index.New(_graphicsDevice, 2048 * sizeof(ushort), GraphicsResourceUsage.Dynamic);
+        _indexBinding = new IndexBufferBinding(indexBuffer, false, 0);
+    }
+
     private unsafe void SetupFontAtlas()
     {
         var io = ImGui.GetIO();
-        
+
         // Clear existing fonts and add default font
         io.Fonts.Clear();
         io.Fonts.AddFontDefault();
@@ -153,7 +227,7 @@ public class ImGuiNetSystem : GameSystemBase
         {
             // Create Stride texture from ImGui font data
             _fontTexture = Texture.New2D(_graphicsDevice, width, height, PixelFormat.R8G8B8A8_UNorm, TextureFlags.ShaderResource);
-            
+
             if (_commandList != null)
             {
                 _fontTexture.SetData(_commandList, new DataPointer(pixels, width * height * bytesPerPixel));
@@ -203,12 +277,91 @@ public class ImGuiNetSystem : GameSystemBase
         try
         {
             ImGui.Render();
-            // Note: In a full implementation, you'd need to render the ImGui draw data
-            // For now, this demonstrates the API structure similar to Box2D.NET
+            RenderImGuiDrawData();
         }
         catch (Exception ex)
         {
             Logger.Warning($"Error in ImGui EndDraw: {ex.Message}");
+        }
+    }
+
+    private unsafe void RenderImGuiDrawData()
+    {
+        var drawData = ImGui.GetDrawData();
+        if (drawData.CmdListsCount == 0 || _commandList == null || _imguiShader == null || _pipelineState == null)
+            return;
+
+        // Set up projection matrix
+        var clientBounds = Game.Window.ClientBounds;
+        var projMatrix = Matrix.OrthoRH(clientBounds.Width, -clientBounds.Height, -1, 1);
+
+        // Set pipeline state
+        _commandList.SetPipelineState(_pipelineState);
+
+        // Set shader parameters using the existing ImGui shader keys
+        try
+        {
+            _imguiShader.Parameters.Set(ImGuiNetShaderKeys.proj, ref projMatrix);
+            _imguiShader.Parameters.Set(ImGuiNetShaderKeys.tex, _fontTexture);
+        }
+        catch
+        {
+            // Fallback to string-based parameter setting
+            Logger.Warning("Using fallback shader parameter setting");
+            return; // Skip rendering if we can't set parameters
+        }
+
+        _imguiShader.Apply(_graphicsContext);
+
+        // Render each command list
+        for (int n = 0; n < drawData.CmdListsCount; n++)
+        {
+            var cmdList = drawData.CmdLists[n];
+
+            // Update vertex buffer if needed
+            if (cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>() > _vertexBinding.Buffer.SizeInBytes)
+            {
+                var newVertexBuffer = Stride.Graphics.Buffer.Vertex.New(_graphicsDevice,
+                    cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>() * 2, GraphicsResourceUsage.Dynamic);
+                _vertexBinding = new VertexBufferBinding(newVertexBuffer, _vertexLayout, 0);
+            }
+
+            // Update index buffer if needed
+            if (cmdList.IdxBuffer.Size * sizeof(ushort) > _indexBinding!.Buffer.SizeInBytes)
+            {
+                var newIndexBuffer = Stride.Graphics.Buffer.Index.New(_graphicsDevice,
+                    cmdList.IdxBuffer.Size * sizeof(ushort) * 2, GraphicsResourceUsage.Dynamic);
+                _indexBinding = new IndexBufferBinding(newIndexBuffer, false, 0);
+            }
+
+            // Upload vertex and index data
+            _vertexBinding.Buffer.SetData(_commandList,
+                new DataPointer(cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>()));
+            _indexBinding.Buffer.SetData(_commandList,
+                new DataPointer(cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size * sizeof(ushort)));
+
+            // Set buffers
+            _commandList.SetVertexBuffer(0, _vertexBinding.Buffer, 0, Unsafe.SizeOf<ImDrawVert>());
+            _commandList.SetIndexBuffer(_indexBinding.Buffer, 0, false);
+
+            // Render draw commands
+            int idxOffset = 0;
+            for (int i = 0; i < cmdList.CmdBuffer.Size; i++)
+            {
+                var cmd = cmdList.CmdBuffer[i];
+
+                // Set scissor rectangle
+                _commandList.SetScissorRectangle(new Rectangle(
+                    (int)cmd.ClipRect.X,
+                    (int)cmd.ClipRect.Y,
+                    (int)(cmd.ClipRect.Z - cmd.ClipRect.X),
+                    (int)(cmd.ClipRect.W - cmd.ClipRect.Y)
+                ));
+
+                // Draw indexed
+                _commandList.DrawIndexed((int)cmd.ElemCount, idxOffset, 0);
+                idxOffset += (int)cmd.ElemCount;
+            }
         }
     }
 
@@ -260,7 +413,7 @@ public class ImGuiNetSystem : GameSystemBase
         // Create overlay window (similar to Box2D.NET approach)
         ImGui.Begin("Overlay",
             ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoInputs |
-            ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar);
+            ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
 
         foreach (var command in _drawCommands)
         {
@@ -307,7 +460,10 @@ public class ImGuiNetSystem : GameSystemBase
     {
         _fontTexture?.Dispose();
         _fontTexture = null;
-        
+        _vertexBinding.Buffer?.Dispose();
+        _indexBinding?.Buffer?.Dispose();
+        _imguiShader?.Dispose();
+
         if (_initialized && _context != IntPtr.Zero)
         {
             ImGui.DestroyContext(_context);

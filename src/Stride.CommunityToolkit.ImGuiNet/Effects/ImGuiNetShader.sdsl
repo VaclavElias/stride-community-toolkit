@@ -23,5 +23,6 @@ namespace Stride.CommunityToolkit.ImGuiNet
         override stage void PSMain() {
             streams.ColorTarget = streams.col * tex.Sample(TexSampler, streams.uv);
         }
+
     };
 }
