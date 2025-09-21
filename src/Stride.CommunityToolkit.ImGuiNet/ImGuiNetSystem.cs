@@ -113,9 +113,9 @@ public class ImGuiNetSystem : GameSystemBase
         base.Initialize();
 
         _inputManager = Services.GetService<InputManager>();
-        _graphicsDevice = Services.GetService<IGraphicsDeviceService>()?.GraphicsDevice;
-        _graphicsContext = Services.GetService<GraphicsContext>();
-        var sceneSystem = Services.GetService<SceneSystem>();
+        _graphicsDevice = Game.GraphicsDevice;
+        _graphicsContext = Game.GraphicsContext;
+        var sceneSystem = Game.Services.GetService<SceneSystem>();
         _commandList = _graphicsContext?.CommandList;
 
         if (_graphicsDevice == null)
