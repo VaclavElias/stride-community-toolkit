@@ -9,6 +9,7 @@ using Stride.Graphics;
 using Stride.Input;
 using Stride.Rendering;
 using System.Runtime.CompilerServices;
+using System.IO;
 
 namespace Stride.CommunityToolkit.ImGuiNet;
 
@@ -40,6 +41,17 @@ public class ImGuiNetSystem : GameSystemBase
 
     // ImGui.NET context
     private IntPtr _context;
+
+    /// <summary>
+    /// Optional path to a custom TTF font. If the file exists, it will be used instead of the default font.
+    /// Defaults to 'data/droid_sans.ttf' to match Example11_ImGuiNet.
+    /// </summary>
+    public string? FontPath { get; set; } = Path.Combine("data", "droid_sans.ttf");
+
+    /// <summary>
+    /// Font size in pixels for the custom TTF font. Ignored if <see cref="FontPath"/> doesn't exist.
+    /// </summary>
+    public float FontSize { get; set; } = 15f;
 
     /// <summary>
     /// Gets or sets whether UI elements should be displayed.
@@ -219,14 +231,37 @@ public class ImGuiNetSystem : GameSystemBase
     {
         var io = ImGui.GetIO();
 
-        // Clear existing fonts and add default font
+        // Clear existing fonts
         io.Fonts.Clear();
-        io.Fonts.AddFontDefault();
+
+        bool customFontLoaded = false;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(FontPath) && File.Exists(FontPath))
+            {
+                io.Fonts.AddFontFromFileTTF(FontPath, FontSize);
+                customFontLoaded = true;
+                Logger.Info($"Loaded custom ImGui font: '{FontPath}' at {FontSize}px");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning($"Failed to load custom font '{FontPath}': {ex.Message}. Falling back to default font.");
+            customFontLoaded = false;
+        }
+
+        if (!customFontLoaded)
+        {
+            io.Fonts.AddFontDefault();
+        }
 
         // Build the font atlas
         byte* pixels;
         int width, height, bytesPerPixel;
         io.Fonts.GetTexDataAsRGBA32(out pixels, out width, out height, out bytesPerPixel);
+
+        _fontTexture?.Dispose();
+        _fontTexture = null;
 
         if (_graphicsDevice != null && pixels != null)
         {
