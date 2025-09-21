@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -6,27 +6,17 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
-        <ExampleTitle>Capsule with rigid body</ExampleTitle>
-        <ExampleOrder>100</ExampleOrder>
+        <ExampleTitle>ImGui.NET Text Rendering</ExampleTitle>
+        <ExampleOrder>13600</ExampleOrder>
         <ExampleEnabled>true</ExampleEnabled>
-        <ExampleCategory>1 - Basic Example</ExampleCategory>
+        <ExampleCategory>2 - Advance Example</ExampleCategory>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Stride.BepuPhysics.Debug" Version="4.2.1.2442" />
-        <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.22.0"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Bepu\Stride.CommunityToolkit.Bepu.csproj" />
+        <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.ImGuiNet\Stride.CommunityToolkit.ImGuiNet.csproj" />
         <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Skyboxes\Stride.CommunityToolkit.Skyboxes.csproj" />
         <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Windows\Stride.CommunityToolkit.Windows.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Update="data\droid_sans.ttf">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
     </ItemGroup>
 
 </Project>
