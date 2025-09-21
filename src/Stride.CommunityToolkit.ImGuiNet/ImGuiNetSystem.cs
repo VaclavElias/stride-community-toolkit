@@ -1,4 +1,5 @@
 using ImGuiNET;
+using Stride.CommunityToolkit.Engine;
 using Stride.Core;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
@@ -28,6 +29,7 @@ public class ImGuiNetSystem : GameSystemBase
     private CommandList? _commandList;
     private Texture? _fontTexture;
     private GraphicsContext? _graphicsContext;
+    private CameraComponent? _camera;
 
     // Rendering infrastructure
     private VertexBufferBinding _vertexBinding;
@@ -113,6 +115,7 @@ public class ImGuiNetSystem : GameSystemBase
         _inputManager = Services.GetService<InputManager>();
         _graphicsDevice = Services.GetService<IGraphicsDeviceService>()?.GraphicsDevice;
         _graphicsContext = Services.GetService<GraphicsContext>();
+        var sceneSystem = Services.GetService<SceneSystem>();
         _commandList = _graphicsContext?.CommandList;
 
         if (_graphicsDevice == null)
@@ -138,6 +141,8 @@ public class ImGuiNetSystem : GameSystemBase
 
             // Create rendering resources
             CreateRenderingResources();
+
+            _camera = sceneSystem?.SceneInstance.RootScene.GetCamera();
 
             _initialized = true;
 
@@ -410,11 +415,7 @@ public class ImGuiNetSystem : GameSystemBase
     {
         if (!_showUI || _drawCommands.Count == 0) return;
 
-        // Create overlay window (similar to Box2D.NET approach)
-        ImGui.Begin("Overlay",
-            ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoInputs |
-            ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
-
+        // Process each draw command separately like Box2D.NET does
         foreach (var command in _drawCommands)
         {
             Vector2 screenPos;
@@ -428,11 +429,14 @@ public class ImGuiNetSystem : GameSystemBase
                 screenPos = WorldToScreen(command.WorldPosition);
             }
 
+            // Create individual overlay window for each text (Box2D.NET style)
+            ImGui.Begin("Overlay",
+                ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoInputs |
+                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
             ImGui.SetCursorPos(screenPos);
             ImGui.TextColored(command.Color, command.Message);
+            ImGui.End();
         }
-
-        ImGui.End();
 
         // Clear commands for next frame
         _drawCommands.Clear();
@@ -440,20 +444,11 @@ public class ImGuiNetSystem : GameSystemBase
 
     private Vector2 WorldToScreen(Vector3 worldPosition)
     {
-        // Get the main camera for world-to-screen conversion
-        var sceneSystem = Services.GetService<SceneSystem>();
-        var camera = sceneSystem?.SceneInstance?.RootScene?.Entities
-            .SelectMany(e => e.GetAll<CameraComponent>())
-            .FirstOrDefault();
+        if (_camera is null) return Vector2.Zero;
 
-        if (camera == null)
-            return Vector2.Zero;
+        var result = _camera.WorldToScreenPoint(ref worldPosition, GraphicsDevice);
 
-        // Simple approximation - in a full implementation, you'd use proper matrix transformations
-        var screenX = worldPosition.X * 100 + Game.Window.ClientBounds.Width / 2f;
-        var screenY = Game.Window.ClientBounds.Height / 2f - worldPosition.Y * 100;
-
-        return new Vector2(screenX, screenY);
+        return result;
     }
 
     protected override void Destroy()

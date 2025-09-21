@@ -98,4 +98,15 @@ public static class ImGuiNetExtensions
         system.DrawString(worldPosition, text);
         return system;
     }
+
+    /// <summary>
+    /// Gets the ImGuiNetSystem from a Game instance for convenient access.
+    /// </summary>
+    /// <param name="game">The game instance.</param>
+    /// <returns>The ImGuiNetSystem, or null if not found.</returns>
+    public static ImGuiNetSystem? GetImGuiNetSystem(this Game game)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        return game.Services.GetService<ImGuiNetSystem>();
+    }
 }

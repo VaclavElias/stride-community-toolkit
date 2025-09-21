@@ -20,6 +20,7 @@ void Start(Scene scene)
     // Setup the base 3D scene with default lighting, camera, etc.
     game.SetupBase3DScene();
     game.AddSkybox();
+    game.AddProfiler();
 
     // Initialize ImGui.NET system for text rendering (similar to Box2D.NET)
     imguiSystem = game.AddImGuiNet();
