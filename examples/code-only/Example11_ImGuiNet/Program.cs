@@ -62,10 +62,11 @@ void Update(Scene scene, GameTime gameTime)
 
     // Performance info (bottom of screen)
     var windowHeight = game.Window.ClientBounds.Height;
-    imguiSystem.DrawString(10, windowHeight - 60,
+
+    imguiSystem.DrawString(10, windowHeight - 160,
         $"Camera Position: {game.SceneSystem.SceneInstance.RootScene.Entities.First().Transform.Position}");
-    imguiSystem.DrawString(10, windowHeight - 40,
+    imguiSystem.DrawString(10, windowHeight - 140,
         $"Entities: {scene.Entities.Count}");
-    imguiSystem.DrawString(10, windowHeight - 20,
+    imguiSystem.DrawString(10, windowHeight - 120,
         $"Time: {time:F1}s");
 }
