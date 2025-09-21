@@ -19,4 +19,10 @@
         <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Windows\Stride.CommunityToolkit.Windows.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="data\droid_sans.ttf">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>
