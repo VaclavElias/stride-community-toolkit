@@ -29,9 +29,6 @@ void Start(Scene scene)
     movingCube.Transform.Position = new Vector3(0, 2, 0);
     movingCube.Scene = scene;
 
-    // Add physics for more interesting movement
-    //movingCube.AddRigidBody(RigidBodyTypes.Dynamic);
-
     Stride.CommunityToolkit.Games.GameExtensions.SetMaxFPS(game, 60);
 }
 

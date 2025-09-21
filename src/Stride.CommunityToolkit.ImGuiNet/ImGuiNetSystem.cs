@@ -24,6 +24,7 @@ public class ImGuiNetSystem : GameSystemBase
     private InputManager? _inputManager;
     private GraphicsDevice? _graphicsDevice;
     private CommandList? _commandList;
+    private Texture? _fontTexture;
 
     // ImGui.NET context
     private IntPtr _context;
@@ -51,6 +52,9 @@ public class ImGuiNetSystem : GameSystemBase
         Enabled = true;
         Visible = true;
         UpdateOrder = 1;
+
+        Services.AddService(this);
+        Game.GameSystems.Add(this);
     }
 
     /// <summary>
@@ -119,11 +123,10 @@ public class ImGuiNetSystem : GameSystemBase
             var clientBounds = Game.Window.ClientBounds;
             io.DisplaySize = new Vector2(clientBounds.Width, clientBounds.Height);
 
-            _initialized = true;
+            // Build the font atlas - this is crucial to fix the assertion error
+            SetupFontAtlas();
 
-            // Register this system
-            Services.AddService(this);
-            Game.GameSystems.Add(this);
+            _initialized = true;
 
             Logger.Info("ImGuiNetSystem initialized successfully");
         }
@@ -131,6 +134,41 @@ public class ImGuiNetSystem : GameSystemBase
         {
             Logger.Error($"Failed to initialize ImGuiNetSystem: {ex.Message}");
         }
+    }
+
+    private unsafe void SetupFontAtlas()
+    {
+        var io = ImGui.GetIO();
+        
+        // Clear existing fonts and add default font
+        io.Fonts.Clear();
+        io.Fonts.AddFontDefault();
+
+        // Build the font atlas
+        byte* pixels;
+        int width, height, bytesPerPixel;
+        io.Fonts.GetTexDataAsRGBA32(out pixels, out width, out height, out bytesPerPixel);
+
+        if (_graphicsDevice != null && pixels != null)
+        {
+            // Create Stride texture from ImGui font data
+            _fontTexture = Texture.New2D(_graphicsDevice, width, height, PixelFormat.R8G8B8A8_UNorm, TextureFlags.ShaderResource);
+            
+            if (_commandList != null)
+            {
+                _fontTexture.SetData(_commandList, new DataPointer(pixels, width * height * bytesPerPixel));
+            }
+
+            // Set a simple texture ID for ImGui (using texture hashcode as a simple identifier)
+            io.Fonts.SetTexID((IntPtr)_fontTexture.GetHashCode());
+        }
+        else
+        {
+            // Fallback: just mark as built without texture
+            io.Fonts.SetTexID(IntPtr.Zero);
+        }
+
+        Logger.Info($"Font atlas built successfully: {width}x{height}, {bytesPerPixel} bytes per pixel");
     }
 
     public override void Update(GameTime gameTime)
@@ -267,6 +305,9 @@ public class ImGuiNetSystem : GameSystemBase
 
     protected override void Destroy()
     {
+        _fontTexture?.Dispose();
+        _fontTexture = null;
+        
         if (_initialized && _context != IntPtr.Zero)
         {
             ImGui.DestroyContext(_context);
