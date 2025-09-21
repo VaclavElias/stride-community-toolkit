@@ -48,9 +48,9 @@ void Update(Scene scene, GameTime gameTime)
     );
 
     // Draw text at screen coordinates (similar to Box2D.NET's DrawString method)
-    imguiSystem.DrawString(10, 10, "ImGui.NET Text Rendering Example");
-    imguiSystem.DrawString(10, 30, $"Frame Time: {gameTime.Elapsed.TotalMilliseconds:F2}ms");
-    imguiSystem.DrawString(10, 50, "Press ESC to exit");
+    imguiSystem.DrawString(10, 20, "ImGui.NET Text Rendering Example");
+    imguiSystem.DrawString(10, 40, $"Frame Time: {gameTime.Elapsed.TotalMilliseconds:F2}ms");
+    imguiSystem.DrawString(10, 60, "Press ESC to exit");
 
     // Draw text at world coordinates (following the moving cube)
     imguiSystem.DrawString(movingCube.Transform.Position + Vector3.UnitY,
@@ -64,10 +64,10 @@ void Update(Scene scene, GameTime gameTime)
     // Performance info (bottom of screen)
     var windowHeight = game.Window.ClientBounds.Height;
 
-    imguiSystem.DrawString(10, windowHeight - 160,
+    imguiSystem.DrawString(10, windowHeight - 60,
         $"Camera Position: {game.SceneSystem.SceneInstance.RootScene.Entities.First().Transform.Position}");
-    imguiSystem.DrawString(10, windowHeight - 140,
+    imguiSystem.DrawString(10, windowHeight - 40,
         $"Entities: {scene.Entities.Count}");
-    imguiSystem.DrawString(10, windowHeight - 120,
+    imguiSystem.DrawString(10, windowHeight - 20,
         $"Time: {time:F1}s");
 }

@@ -260,6 +260,19 @@ public class ImGuiNetSystem : GameSystemBase
         // Update display size
         var clientBounds = Game.Window.ClientBounds;
         io.DisplaySize = new Vector2(clientBounds.Width, clientBounds.Height);
+
+        // HiDPI/backbuffer scaling (matches Box2D.NET pattern)
+        if (_graphicsDevice?.Presenter?.BackBuffer != null)
+        {
+            var back = _graphicsDevice.Presenter.BackBuffer;
+            if (clientBounds.Width > 0 && clientBounds.Height > 0)
+            {
+                io.DisplayFramebufferScale = new Vector2(
+                    back.Width / (float)clientBounds.Width,
+                    back.Height / (float)clientBounds.Height);
+            }
+        }
+
         io.DeltaTime = deltaTime > 0 ? deltaTime : 1f / 60f;
 
         // Handle input if available
@@ -415,28 +428,27 @@ public class ImGuiNetSystem : GameSystemBase
     {
         if (!_showUI || _drawCommands.Count == 0) return;
 
-        // Process each draw command separately like Box2D.NET does
+        // Create a single, fullscreen transparent overlay window and place all items into it
+        var io = ImGui.GetIO();
+        ImGui.SetNextWindowPos(Vector2.Zero);
+        ImGui.SetNextWindowSize(io.DisplaySize);
+        ImGui.SetNextWindowBgAlpha(0.0f); // no background without needing NoBackground flag
+
+        ImGui.Begin("Overlay",
+            ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoInputs |
+            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings);
+
         foreach (var command in _drawCommands)
         {
-            Vector2 screenPos;
+            Vector2 screenPos = command.Type == DrawCommandType.ScreenText
+                ? command.ScreenPosition
+                : WorldToScreen(command.WorldPosition);
 
-            if (command.Type == DrawCommandType.ScreenText)
-            {
-                screenPos = command.ScreenPosition;
-            }
-            else
-            {
-                screenPos = WorldToScreen(command.WorldPosition);
-            }
-
-            // Create individual overlay window for each text (Box2D.NET style)
-            ImGui.Begin("Overlay",
-                ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoInputs |
-                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
             ImGui.SetCursorPos(screenPos);
             ImGui.TextColored(command.Color, command.Message);
-            ImGui.End();
         }
+
+        ImGui.End();
 
         // Clear commands for next frame
         _drawCommands.Clear();
