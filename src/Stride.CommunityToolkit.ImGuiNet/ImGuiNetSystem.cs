@@ -1,5 +1,4 @@
 using ImGuiNET;
-using Silk.NET.GLFW;
 using Stride.CommunityToolkit.Engine;
 using Stride.Core;
 using Stride.Core.Diagnostics;
@@ -10,10 +9,6 @@ using Stride.Graphics;
 using Stride.Input;
 using Stride.Rendering;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using Keys = Stride.Input.Keys;
-using Monitor = Silk.NET.GLFW.Monitor;
-using MouseButton = Stride.Input.MouseButton;
 
 namespace Stride.CommunityToolkit.ImGuiNet;
 
@@ -35,7 +30,6 @@ public class ImGuiNetSystem : GameSystemBase
     private Texture? _fontTexture;
     private GraphicsContext? _graphicsContext;
     private CameraComponent? _camera;
-    private Glfw _glfw;
 
     // Rendering infrastructure
     private VertexBufferBinding _vertexBinding;
@@ -134,7 +128,6 @@ public class ImGuiNetSystem : GameSystemBase
         _graphicsContext = Game.GraphicsContext;
         var sceneSystem = Game.Services.GetService<SceneSystem>();
         _commandList = _graphicsContext?.CommandList;
-        _glfw = Glfw.GetApi();
 
         if (_graphicsDevice == null)
         {
@@ -171,31 +164,18 @@ public class ImGuiNetSystem : GameSystemBase
             Logger.Error($"Failed to initialize ImGuiNetSystem: {ex.Message}");
         }
 
-        if (!_glfw.Init())
-        {
-            Logger.Info("Failed to initialize GLFW");
+        //if (!_glfw.Init())
+        //{
+        //    Logger.Info("Failed to initialize GLFW");
+        //}
 
-        }
-
-        unsafe
+        var clientBounds2 = Game.Window.ClientBounds;
+        var back = _graphicsDevice.Presenter?.BackBuffer;
+        if (back != null && clientBounds2.Width > 0 && clientBounds2.Height > 0)
         {
-            Monitor* primaryMonitor = _glfw.GetPrimaryMonitor();
-            if (null != primaryMonitor)
-            {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    float s_framebufferScale = 1.0f;
-                    _glfw.GetMonitorContentScale(primaryMonitor, out s_framebufferScale, out s_framebufferScale);
-                    Logger.Info($"ImGuiNetSystem: Detected monitor framebuffer scale: {s_framebufferScale}");
-                }
-                else
-                {
-                    float uiScale = 1.0f;
-                    _glfw.GetMonitorContentScale(primaryMonitor, out uiScale, out uiScale);
-                    Logger.Info($"ImGuiNetSystem: Detected monitor UI scale: {uiScale}");
-                    //_settings.uiScale = uiScale;
-                }
-            }
+            var scaleX = back.Width / (float)clientBounds2.Width;
+            var scaleY = back.Height / (float)clientBounds2.Height;
+            Logger.Info($"ImGuiNetSystem: Detected framebuffer scale via Stride: {scaleX:F2} x {scaleY:F2}");
         }
     }
 

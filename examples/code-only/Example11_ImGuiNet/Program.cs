@@ -6,6 +6,9 @@ using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
+using System.Runtime.InteropServices;
+
+WindowsDpi.EnablePerMonitorV2();
 
 using var game = new Game();
 
@@ -73,4 +76,39 @@ void Update(Scene scene, GameTime gameTime)
         $"Entities: {scene.Entities.Count}");
     imguiSystem.DrawString(10, windowHeight - 20,
         $"Time: {time:F1}s");
+}
+
+internal static class WindowsDpi
+{
+#if WINDOWS
+    // Windows 10+ best option
+    private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = (IntPtr)(-4);
+
+    [DllImport("User32.dll", ExactSpelling = true, SetLastError = false)]
+    private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
+    [DllImport("Shcore.dll")]
+    private static extern int SetProcessDpiAwareness(int value); // 2 = PerMonitor
+
+    public static void EnablePerMonitorV2()
+    {
+        try
+        {
+            // Try Per-Monitor-V2 first (Win10+)
+            if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+                return;
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            // Fallback to Per-Monitor (older Windows 8.1+)
+            // 0=Unaware, 1=System, 2=PerMonitor
+            SetProcessDpiAwareness(2);
+        }
+        catch { /* ignore */ }
+    }
+#else
+    public static void EnablePerMonitorV2() { }
+#endif
 }
