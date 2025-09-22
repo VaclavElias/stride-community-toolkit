@@ -95,7 +95,7 @@ game.Run(start: (Scene rootScene) =>
   - Dispose GPU/graphics resources deterministically (`using` / `Dispose`).
 - Threading: Mutations to the scene graph, entities, components, or graphics resources must occur on the main thread.
 - Physics: Do not combine Bepu and Bullet physics components on the same entity.
-- Shaders: After adding, removing, or changing shader properties, manually regenerate the associated `*.cs` file (remind contributors when shaders are touched).
+- Shaders (*.sdsl): After adding, removing, or changing shader properties, manually regenerate the associated `*.cs` file (remind contributors when shaders are touched).
 - Experimental / provisional APIs: consider marking with an `[Experimental]` attribute (future) or note in the XML summary.
 - Tests: Keep deterministic; avoid relying on real-time frame counts.
 
