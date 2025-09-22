@@ -17,6 +17,9 @@ game.Run(start: Start, update: Update);
 
 void Start(Scene scene)
 {
+    game.Window.AllowUserResizing = true;
+    game.Window.Title = "ImgGuiNet example";
+
     // Setup the base 3D scene with default lighting, camera, etc.
     game.SetupBase3DScene();
     game.AddSkybox();
