@@ -80,7 +80,6 @@ void Update(Scene scene, GameTime gameTime)
 
 internal static class WindowsDpi
 {
-#if WINDOWS
     // Windows 10+ best option
     private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = (IntPtr)(-4);
 
@@ -92,13 +91,20 @@ internal static class WindowsDpi
 
     public static void EnablePerMonitorV2()
     {
+        // Only attempt to call Win32 APIs when running on Windows at runtime.
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         try
         {
             // Try Per-Monitor-V2 first (Win10+)
-            if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
-                return;
+            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+            return;
         }
-        catch { /* ignore */ }
+        catch
+        {
+            // ignore and fallback
+        }
 
         try
         {
@@ -106,9 +112,9 @@ internal static class WindowsDpi
             // 0=Unaware, 1=System, 2=PerMonitor
             SetProcessDpiAwareness(2);
         }
-        catch { /* ignore */ }
+        catch
+        {
+            // ignore
+        }
     }
-#else
-    public static void EnablePerMonitorV2() { }
-#endif
 }
