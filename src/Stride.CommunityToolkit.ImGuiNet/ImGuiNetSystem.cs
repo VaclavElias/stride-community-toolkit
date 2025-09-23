@@ -8,7 +8,10 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
 using Stride.Rendering;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Rectangle = Stride.Core.Mathematics.Rectangle;
 
 namespace Stride.CommunityToolkit.ImGuiNet;
 
@@ -143,9 +146,18 @@ public class ImGuiNetSystem : GameSystemBase
             var io = ImGui.GetIO();
             io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
 
-            // Set up display size
+            // Compute initial DPI / framebuffer scale using Stride backbuffer vs client bounds
             var clientBounds = Game.Window.ClientBounds;
-            io.DisplaySize = new Vector2(clientBounds.Width, clientBounds.Height);
+            var back = _graphicsDevice.Presenter?.BackBuffer;
+            float initialScale = 1.0f;
+            if (back != null && clientBounds.Width > 0 && clientBounds.Height > 0)
+            {
+                float scaleX = back.Width / (float)clientBounds.Width;
+                float scaleY = back.Height / (float)clientBounds.Height;
+                // Use average or X; you can prefer one axis if needed
+                initialScale = MathF.Max(1.0f, (scaleX + scaleY) * 0.5f);
+                Logger.Info($"ImGuiNetSystem: Initial detected framebuffer scale via Stride: {scaleX:F2} x {scaleY:F2} -> using {initialScale:F2}");
+            }
 
             // Build the font atlas - this is crucial to fix the assertion error
             SetupFontAtlas();
@@ -162,20 +174,6 @@ public class ImGuiNetSystem : GameSystemBase
         catch (Exception ex)
         {
             Logger.Error($"Failed to initialize ImGuiNetSystem: {ex.Message}");
-        }
-
-        //if (!_glfw.Init())
-        //{
-        //    Logger.Info("Failed to initialize GLFW");
-        //}
-
-        var clientBounds2 = Game.Window.ClientBounds;
-        var back = _graphicsDevice.Presenter?.BackBuffer;
-        if (back != null && clientBounds2.Width > 0 && clientBounds2.Height > 0)
-        {
-            var scaleX = back.Width / (float)clientBounds2.Width;
-            var scaleY = back.Height / (float)clientBounds2.Height;
-            Logger.Info($"ImGuiNetSystem: Detected framebuffer scale via Stride: {scaleX:F2} x {scaleY:F2}");
         }
     }
 
@@ -301,6 +299,19 @@ public class ImGuiNetSystem : GameSystemBase
     public override void Update(GameTime gameTime)
     {
         if (!_initialized) return;
+
+        var client = Game.Window.ClientBounds;
+        var back2 = _graphicsDevice?.Presenter?.BackBuffer;
+        if (back2 != null)
+        {
+            var scaleX = back2.Width / (float)Math.Max(1, client.Width);
+            var scaleY = back2.Height / (float)Math.Max(1, client.Height);
+            Logger.Info($"Backbuffer = {back2.Width}x{back2.Height}, ClientBounds = {client.Width}x{client.Height}, scale = {scaleX:F2} x {scaleY:F2}");
+        }
+        else
+        {
+            Logger.Info($"Backbuffer not ready yet; ClientBounds = {client.Width}x{client.Height}");
+        }
 
         var deltaTime = (float)gameTime.Elapsed.TotalSeconds;
         var io = ImGui.GetIO();
@@ -540,4 +551,99 @@ public class ImGuiNetSystem : GameSystemBase
         public string Message;
         public Vector4 Color;
     }
+
+    // Add inside the ImGuiNetSystem class (private methods region)
+
+    private static float GetWindowsDpiScale()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return 1.0f;
+
+        // Try GetDpiForWindow using a window handle (best if you can get an HWND)
+        try
+        {
+            IntPtr hwnd = Process.GetCurrentProcess().MainWindowHandle;
+            if (hwnd != IntPtr.Zero)
+            {
+                if (GetDpiForWindow(hwnd) is uint dpi && dpi != 0)
+                {
+                    return dpi / 96f;
+                }
+            }
+        }
+        catch
+        {
+            // ignore and fallback
+        }
+
+        // Fallback: query primary monitor DPI via MonitorFromPoint + GetDpiForMonitor
+        try
+        {
+            var pt = new POINT(0, 0);
+            IntPtr hmon = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+            if (hmon != IntPtr.Zero)
+            {
+                if (GetDpiForMonitor(hmon, MDT_EFFECTIVE_DPI, out uint dpiX, out uint dpiY) == 0)
+                {
+                    return dpiX / 96f;
+                }
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        // Final fallback: use GDI desktop DPI
+        var gdi = GraphicsDC.GetDesktopDpi();
+        return gdi.dpiX / 96f;
+    }
+
+    #region Win32 DPI interop
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    private const int MDT_EFFECTIVE_DPI = 0;
+    private const uint MONITOR_DEFAULTTOPRIMARY = 1;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X; public int Y; public POINT(int x, int y) { X = x; Y = y; }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hWnd); // Win10 1607+
+
+    private static class GraphicsDC
+    {
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDC(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+        [DllImport("gdi32.dll")]
+        private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+        private const int LOGPIXELSX = 88;
+        private const int LOGPIXELSY = 90;
+
+        public static (int dpiX, int dpiY) GetDesktopDpi()
+        {
+            IntPtr hdc = GetDC(IntPtr.Zero);
+            if (hdc == IntPtr.Zero) return (96, 96);
+            try
+            {
+                int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
+                int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
+                return (dpiX == 0 ? 96 : dpiX, dpiY == 0 ? 96 : dpiY);
+            }
+            finally
+            {
+                ReleaseDC(IntPtr.Zero, hdc);
+            }
+        }
+    }
+    #endregion
 }

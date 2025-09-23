@@ -10,6 +10,8 @@ using System.Runtime.InteropServices;
 
 WindowsDpi.EnablePerMonitorV2();
 
+DpiDiagnostics.LogDpiInfo("before Game: ");
+
 using var game = new Game();
 
 ImGuiNetSystem? imguiSystem = null;
@@ -42,6 +44,12 @@ void Start(Scene scene)
 void Update(Scene scene, GameTime gameTime)
 {
     if (imguiSystem == null || movingCube == null) return;
+
+    // first frame only if condition
+    if (gameTime.FrameCount == 1)
+    {
+        DpiDiagnostics.LogDpiInfo("after window: ");
+    }
 
     time += (float)gameTime.Elapsed.TotalSeconds;
 
