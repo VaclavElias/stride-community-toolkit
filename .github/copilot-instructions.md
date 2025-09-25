@@ -74,14 +74,14 @@ game.Run(start: (Scene rootScene) =>
 });
 ```
 
-## Coding & contribution guidelines
-- Use latest C# features (file-scoped namespaces, target-typed `new`, pattern matching, spans where beneficial).
+## Coding Style & Conventions
+- Use latest C# features (file-scoped namespaces, target-typed `new`, pattern matching, spans where beneficial, primary ctors where suitable).
 - Keep nullable-reference warnings at zero.
 - Public APIs: include complete XML docs (`<summary>`, `<param>`, `<returns>`, `<example>` when useful).
 - Naming: `Stride.CommunityToolkit.<LibraryName>` for new libs; PascalCase for types and methods; camelCase for parameters.
 - Terminology / capitalization: Use “Bepu” (capital B only) in identifiers and XML docs; never “BEPU” or “bepu”. Use “Bullet” (capital B) for Bullet physics.
 - One public type per file; avoid unrelated multi-class files.
-- Do not use `#region` blocks; rely on clear structure.
+- Avoid `#region`; write self-explanatory code.
 - Avoid partial classes unless auto-generated code is involved.
 - Validation: prefer `ArgumentNullException.ThrowIfNull()` and provide meaningful exception messages for invalid states.
 - Suggestion preference order:
