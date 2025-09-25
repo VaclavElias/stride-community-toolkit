@@ -63,8 +63,23 @@ public static class WindowsDpiManager
         public POINT(int x, int y) { X = x; Y = y; }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
 
     [DllImport("shcore.dll")]
     private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
@@ -84,7 +99,8 @@ public static class WindowsDpiManager
     /// process DPI awareness, and fallback GDI information.
     /// </summary>
     /// <param name="prefix">Optional prefix for log messages</param>
-    public static void LogDpiInfo(string prefix = "")
+    /// <param name="windowHandle">Optional window handle to get DPI for specific monitor</param>
+    public static void LogDpiInfo(string prefix = "", IntPtr windowHandle = default)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -94,17 +110,31 @@ public static class WindowsDpiManager
 
         try
         {
-            // Query primary monitor DPI (use point 0,0)
-            var hMon = MonitorFromPoint(new POINT(0, 0), 2 /*MONITOR_DEFAULTTOPRIMARY*/);
+            IntPtr hMon;
+            string monitorDescription;
+
+            if (windowHandle != IntPtr.Zero)
+            {
+                // Get monitor for specific window
+                hMon = MonitorFromWindow(windowHandle, 2 /*MONITOR_DEFAULTTONEAREST*/);
+                monitorDescription = "window's monitor";
+            }
+            else
+            {
+                // Query primary monitor DPI (use point 0,0)
+                hMon = MonitorFromPoint(new POINT(0, 0), 2 /*MONITOR_DEFAULTTOPRIMARY*/);
+                monitorDescription = "primary monitor";
+            }
+
             if (hMon == IntPtr.Zero)
             {
-                Console.WriteLine($"{prefix}DPI diagnostics: MonitorFromPoint returned null");
+                Console.WriteLine($"{prefix}DPI diagnostics: MonitorFromPoint/Window returned null");
             }
             else
             {
                 int hr = GetDpiForMonitor(hMon, MDT_EFFECTIVE_DPI, out uint dpiX, out uint dpiY);
                 if (hr == 0)
-                    Console.WriteLine($"{prefix}Monitor DPI (effective): {dpiX} x {dpiY} (scale {dpiX / 96.0:F2}x)");
+                    Console.WriteLine($"{prefix}{monitorDescription} DPI (effective): {dpiX} x {dpiY} (scale {dpiX / 96.0:F2}x)");
                 else
                     Console.WriteLine($"{prefix}GetDpiForMonitor failed (hr=0x{hr:X})");
             }
@@ -128,6 +158,40 @@ public static class WindowsDpiManager
         {
             Console.WriteLine($"{prefix}DPI diagnostics exception: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Gets the effective DPI for the monitor containing the specified window
+    /// </summary>
+    /// <param name="windowHandle">Handle to the window</param>
+    /// <returns>DPI values for X and Y axes, or (96, 96) if unable to determine</returns>
+    public static (uint dpiX, uint dpiY) GetWindowMonitorDpi(IntPtr windowHandle)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || windowHandle == IntPtr.Zero)
+        {
+            return (96, 96);
+        }
+
+        try
+        {
+            var hMon = MonitorFromWindow(windowHandle, 2 /*MONITOR_DEFAULTTONEAREST*/);
+            if (hMon != IntPtr.Zero)
+            {
+                int hr = GetDpiForMonitor(hMon, MDT_EFFECTIVE_DPI, out uint dpiX, out uint dpiY);
+                if (hr == 0)
+                {
+                    return (dpiX, dpiY);
+                }
+            }
+        }
+        catch
+        {
+            // Fall through to fallback
+        }
+
+        // Fallback to GDI
+        var gdi = GraphicsDC.GetDesktopDpi();
+        return ((uint)gdi.dpiX, (uint)gdi.dpiY);
     }
 
     /// <summary>
@@ -161,6 +225,17 @@ public static class WindowsDpiManager
         // Fallback to GDI
         var gdi = GraphicsDC.GetDesktopDpi();
         return ((uint)gdi.dpiX, (uint)gdi.dpiY);
+    }
+
+    /// <summary>
+    /// Gets the DPI scale factor for the monitor containing the specified window (1.0 = 96 DPI)
+    /// </summary>
+    /// <param name="windowHandle">Handle to the window</param>
+    /// <returns>Scale factor (e.g., 1.25 for 125% scaling)</returns>
+    public static float GetWindowDpiScaleFactor(IntPtr windowHandle)
+    {
+        var (dpiX, _) = GetWindowMonitorDpi(windowHandle);
+        return dpiX / 96.0f;
     }
 
     /// <summary>

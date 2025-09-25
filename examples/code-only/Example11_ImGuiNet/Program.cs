@@ -48,16 +48,27 @@ void Update(Scene scene, GameTime gameTime)
     // first frame only if condition
     if (gameTime.FrameCount == 1)
     {
-        WindowsDpiManager.LogDpiInfo("after window: ");
+        var currentWindowHandle = game.Window.NativeWindow.Handle;
+        WindowsDpiManager.LogDpiInfo("after window (current monitor): ", currentWindowHandle);
+        WindowsDpiManager.LogDpiInfo("after window (primary monitor): ");
         
-        // Display current DPI information
-        var (currentDpiX, currentDpiY) = WindowsDpiManager.GetPrimaryMonitorDpi();
-        var currentScaleFactor = WindowsDpiManager.GetDpiScaleFactor();
+        // Display current DPI information for both monitors
+        var (primaryDpiX, primaryDpiY) = WindowsDpiManager.GetPrimaryMonitorDpi();
+        var primaryScaleFactor = WindowsDpiManager.GetDpiScaleFactor();
+        
+        var (currentDpiX, currentDpiY) = WindowsDpiManager.GetWindowMonitorDpi(currentWindowHandle);
+        var currentScaleFactor = WindowsDpiManager.GetWindowDpiScaleFactor(currentWindowHandle);
+        
         var awareness = WindowsDpiManager.GetProcessDpiAwareness();
         
-        Console.WriteLine($"Current DPI: {currentDpiX} x {currentDpiY}");
-        Console.WriteLine($"Scale factor: {currentScaleFactor:F2}x");
+        Console.WriteLine($"Primary Monitor DPI: {primaryDpiX} x {primaryDpiY} (Scale: {primaryScaleFactor:F2}x)");
+        Console.WriteLine($"Current Monitor DPI: {currentDpiX} x {currentDpiY} (Scale: {currentScaleFactor:F2}x)");
         Console.WriteLine($"DPI Awareness: {awareness}");
+        
+        if (primaryDpiX != currentDpiX || primaryDpiY != currentDpiY)
+        {
+            Console.WriteLine("Window is on a different monitor than primary!");
+        }
     }
 
     time += (float)gameTime.Elapsed.TotalSeconds;
@@ -95,8 +106,9 @@ void Update(Scene scene, GameTime gameTime)
         $"Time: {time:F1}s");
         
     // Display DPI info on screen
-    var displayScaleFactor = WindowsDpiManager.GetDpiScaleFactor();
-    var (displayDpiX, displayDpiY) = WindowsDpiManager.GetPrimaryMonitorDpi();
+    var windowHandle = game.Window.NativeWindow.Handle;
+    var displayScaleFactor = WindowsDpiManager.GetWindowDpiScaleFactor(windowHandle);
+    var (displayDpiX, displayDpiY) = WindowsDpiManager.GetWindowMonitorDpi(windowHandle);
     imguiSystem.DrawString(10, windowHeight - 100,
-        $"DPI: {displayDpiX}x{displayDpiY} (Scale: {displayScaleFactor:F2}x)");
+        $"DPI: {displayDpiX}x{displayDpiY} (Scale: {displayScaleFactor:F2}x) - Current Monitor");
 }
