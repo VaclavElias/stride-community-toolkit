@@ -6,11 +6,11 @@ using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
-using System.Runtime.InteropServices;
+using Example11_ImGuiNet;
 
-WindowsDpi.EnablePerMonitorV2();
+WindowsDpiManager.EnablePerMonitorV2();
 
-DpiDiagnostics.LogDpiInfo("before Game: ");
+WindowsDpiManager.LogDpiInfo("before Game: ");
 
 using var game = new Game();
 
@@ -48,7 +48,16 @@ void Update(Scene scene, GameTime gameTime)
     // first frame only if condition
     if (gameTime.FrameCount == 1)
     {
-        DpiDiagnostics.LogDpiInfo("after window: ");
+        WindowsDpiManager.LogDpiInfo("after window: ");
+        
+        // Display current DPI information
+        var (currentDpiX, currentDpiY) = WindowsDpiManager.GetPrimaryMonitorDpi();
+        var currentScaleFactor = WindowsDpiManager.GetDpiScaleFactor();
+        var awareness = WindowsDpiManager.GetProcessDpiAwareness();
+        
+        Console.WriteLine($"Current DPI: {currentDpiX} x {currentDpiY}");
+        Console.WriteLine($"Scale factor: {currentScaleFactor:F2}x");
+        Console.WriteLine($"DPI Awareness: {awareness}");
     }
 
     time += (float)gameTime.Elapsed.TotalSeconds;
@@ -84,45 +93,10 @@ void Update(Scene scene, GameTime gameTime)
         $"Entities: {scene.Entities.Count}");
     imguiSystem.DrawString(10, windowHeight - 20,
         $"Time: {time:F1}s");
-}
-
-internal static class WindowsDpi
-{
-    // Windows 10+ best option
-    private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = (IntPtr)(-4);
-
-    [DllImport("User32.dll", ExactSpelling = true, SetLastError = false)]
-    private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
-
-    [DllImport("Shcore.dll")]
-    private static extern int SetProcessDpiAwareness(int value); // 2 = PerMonitor
-
-    public static void EnablePerMonitorV2()
-    {
-        // Only attempt to call Win32 APIs when running on Windows at runtime.
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return;
-
-        try
-        {
-            // Try Per-Monitor-V2 first (Win10+)
-            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-            return;
-        }
-        catch
-        {
-            // ignore and fallback
-        }
-
-        try
-        {
-            // Fallback to Per-Monitor (older Windows 8.1+)
-            // 0=Unaware, 1=System, 2=PerMonitor
-            SetProcessDpiAwareness(2);
-        }
-        catch
-        {
-            // ignore
-        }
-    }
+        
+    // Display DPI info on screen
+    var displayScaleFactor = WindowsDpiManager.GetDpiScaleFactor();
+    var (displayDpiX, displayDpiY) = WindowsDpiManager.GetPrimaryMonitorDpi();
+    imguiSystem.DrawString(10, windowHeight - 100,
+        $"DPI: {displayDpiX}x{displayDpiY} (Scale: {displayScaleFactor:F2}x)");
 }
