@@ -8,8 +8,6 @@ namespace Example11_ImGuiNet;
 /// </summary>
 public static class WindowsDpiManager
 {
-    #region DPI Awareness Configuration
-
     // Windows 10+ best option for DPI awareness
     private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4;
 
@@ -54,10 +52,6 @@ public static class WindowsDpiManager
             // ignore
         }
     }
-
-    #endregion
-
-    #region DPI Diagnostics
 
     private const int MDT_EFFECTIVE_DPI = 0;
 
@@ -136,10 +130,6 @@ public static class WindowsDpiManager
         }
     }
 
-    #endregion
-
-    #region DPI Query Methods
-
     /// <summary>
     /// Gets the effective DPI for the primary monitor
     /// </summary>
@@ -210,10 +200,6 @@ public static class WindowsDpiManager
         return null;
     }
 
-    #endregion
-
-    #region GDI Fallback Helper
-
     // Small helper to query desktop DPI via GetDeviceCaps (fallback when shcore not present)
     private static class GraphicsDC
     {
@@ -246,6 +232,4 @@ public static class WindowsDpiManager
             }
         }
     }
-
-    #endregion
 }
