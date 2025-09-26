@@ -3,10 +3,10 @@ using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.ImGuiNet;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Skyboxes;
+using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
-using Example11_ImGuiNet;
 
 WindowsDpiManager.EnablePerMonitorV2();
 
@@ -48,26 +48,19 @@ void Update(Scene scene, GameTime gameTime)
     // first frame only if condition
     if (gameTime.FrameCount == 1)
     {
-        var currentWindowHandle = game.Window.NativeWindow.Handle;
-        WindowsDpiManager.LogDpiInfo("after window (current monitor): ", currentWindowHandle);
-        WindowsDpiManager.LogDpiInfo("after window (primary monitor): ");
-        
         // Display current DPI information for both monitors
-        var (primaryDpiX, primaryDpiY) = WindowsDpiManager.GetPrimaryMonitorDpi();
-        var primaryScaleFactor = WindowsDpiManager.GetDpiScaleFactor();
-        
-        var (currentDpiX, currentDpiY) = WindowsDpiManager.GetWindowMonitorDpi(currentWindowHandle);
-        var currentScaleFactor = WindowsDpiManager.GetWindowDpiScaleFactor(currentWindowHandle);
-        
-        var awareness = WindowsDpiManager.GetProcessDpiAwareness();
-        
-        Console.WriteLine($"Primary Monitor DPI: {primaryDpiX} x {primaryDpiY} (Scale: {primaryScaleFactor:F2}x)");
-        Console.WriteLine($"Current Monitor DPI: {currentDpiX} x {currentDpiY} (Scale: {currentScaleFactor:F2}x)");
-        Console.WriteLine($"DPI Awareness: {awareness}");
-        
-        if (primaryDpiX != currentDpiX || primaryDpiY != currentDpiY)
+        var currentWindowHandle = game.Window.NativeWindow.Handle;
+        var primary = WindowsDpiManager.GetPrimaryDpi();
+        var current = WindowsDpiManager.GetWindowDpi(currentWindowHandle);
+        var procAware = WindowsDpiManager.GetProcessDpiAwareness();
+
+        Console.WriteLine($"Primary DPI: {(primary?.ToString() ?? "n/a")}");
+        Console.WriteLine($"Current  DPI: {(current?.ToString() ?? "n/a")}");
+        Console.WriteLine($"Process Awareness: {procAware?.ToString() ?? "Unknown"}");
+
+        if (primary is { } p && current is { } c && (p.DpiX != c.DpiX || p.DpiY != c.DpiY))
         {
-            Console.WriteLine("Window is on a different monitor than primary!");
+            Console.WriteLine("Window is on a different monitor than primary.");
         }
     }
 
@@ -104,11 +97,12 @@ void Update(Scene scene, GameTime gameTime)
         $"Entities: {scene.Entities.Count}");
     imguiSystem.DrawString(10, windowHeight - 20,
         $"Time: {time:F1}s");
-        
+
     // Display DPI info on screen
-    var windowHandle = game.Window.NativeWindow.Handle;
-    var displayScaleFactor = WindowsDpiManager.GetWindowDpiScaleFactor(windowHandle);
-    var (displayDpiX, displayDpiY) = WindowsDpiManager.GetWindowMonitorDpi(windowHandle);
-    imguiSystem.DrawString(10, windowHeight - 100,
-        $"DPI: {displayDpiX}x{displayDpiY} (Scale: {displayScaleFactor:F2}x) - Current Monitor");
+    var hwnd = game.Window.NativeWindow.Handle;
+    var wndDpi = WindowsDpiManager.GetWindowDpi(hwnd);
+    if (wndDpi is { } dpiInfo)
+    {
+        imguiSystem.DrawString(10, windowHeight - 100, $"DPI: {dpiInfo.DpiX}x{dpiInfo.DpiY} (Scale: {dpiInfo.Scale:F2}x){(dpiInfo.IsFallback ? " Fallback" : "")}");
+    }
 }

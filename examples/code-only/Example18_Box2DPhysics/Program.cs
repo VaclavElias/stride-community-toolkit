@@ -10,6 +10,8 @@ using Stride.Games;
 // This example demonstrates how to integrate Box2D.NET with Stride game engine
 // for 2D physics simulations with shapes, collisions, and interactive controls
 
+//WindowsDpiManager.EnablePerMonitorV2();
+
 // Global variables for the demo
 Box2DSimulation? simulation = null;
 SceneManager? sceneManager = null;
