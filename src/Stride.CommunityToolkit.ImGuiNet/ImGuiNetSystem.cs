@@ -42,6 +42,11 @@ public class ImGuiNetSystem : GameSystemBase
     // ImGui.NET context
     private IntPtr _context;
 
+    // DPI / scaling state
+    private float _dpiScale = 1.0f;
+    private Vector2 _lastFramebufferScale = Vector2.One;
+    private bool _pendingFontRebuild;
+
     /// <summary>
     /// Optional path to a custom TTF font. If the file exists, it will be used instead of the default font.
     /// Defaults to 'data/droid_sans.ttf' to match Example11_ImGuiNet.
@@ -52,6 +57,12 @@ public class ImGuiNetSystem : GameSystemBase
     /// Font size in pixels for the custom TTF font. Ignored if <see cref="FontPath"/> doesn't exist.
     /// </summary>
     public float FontSize { get; set; } = 15f;
+
+    /// <summary>
+    /// When true (default), the font atlas is rebuilt automatically if the framebuffer scale changes
+    /// due to window resize or monitor DPI change. This keeps text crisp instead of scaled/blurry.
+    /// </summary>
+    public bool AutoScaleFonts { get; set; } = true;
 
     /// <summary>
     /// Gets or sets whether UI elements should be displayed.
@@ -120,6 +131,35 @@ public class ImGuiNetSystem : GameSystemBase
         });
     }
 
+    /// <summary>
+    /// Allows external DPI providers (e.g. Windows DPI awareness helpers) to drive the font scaling.
+    /// Pass the scale relative to 96 DPI (1.0 == 96 DPI, 2.0 == 192 DPI, etc.).
+    /// When this value changes significantly, the font atlas will be rebuilt.
+    /// </summary>
+    public void SetDpiScale(float dpiScale)
+    {
+        if (dpiScale <= 0) return;
+        if (MathF.Abs(dpiScale - _dpiScale) < 0.01f) return;
+
+        var old = _dpiScale;
+        _dpiScale = dpiScale;
+        _pendingFontRebuild = true;
+
+        // Scale ImGui style sizes proportionally to maintain UI sizing
+        try
+        {
+            var style = ImGui.GetStyle();
+            if (old > 0)
+            {
+                var factor = _dpiScale / old;
+                style.ScaleAllSizes(factor);
+            }
+        }
+        catch { /* ignore if context not ready */ }
+
+        Logger.Info($"ImGuiNetSystem: DPI scale updated to {_dpiScale:F2} (pending font rebuild)");
+    }
+
     /// <inheritdoc/>
     public override void Initialize()
     {
@@ -153,13 +193,16 @@ public class ImGuiNetSystem : GameSystemBase
             {
                 float scaleX = back.Width / (float)clientBounds.Width;
                 float scaleY = back.Height / (float)clientBounds.Height;
-                // Use average or X; you can prefer one axis if needed
                 initialScale = MathF.Max(1.0f, (scaleX + scaleY) * 0.5f);
+                _lastFramebufferScale = new Vector2(scaleX, scaleY);
                 Logger.Info($"ImGuiNetSystem: Initial detected framebuffer scale via Stride: {scaleX:F2} x {scaleY:F2} -> using {initialScale:F2}");
             }
 
-            // Build the font atlas - this is crucial to fix the assertion error
-            SetupFontAtlas();
+            // Store and use initial DPI scale
+            _dpiScale = initialScale;
+
+            // Build the font atlas at the current DPI - this keeps fonts crisp
+            SetupFontAtlas(_dpiScale);
 
             // Create rendering resources
             CreateRenderingResources();
@@ -237,7 +280,7 @@ public class ImGuiNetSystem : GameSystemBase
         _indexBinding = new IndexBufferBinding(indexBuffer, false, 0);
     }
 
-    private unsafe void SetupFontAtlas()
+    private unsafe void SetupFontAtlas(float dpiScale)
     {
         var io = ImGui.GetIO();
 
@@ -249,9 +292,9 @@ public class ImGuiNetSystem : GameSystemBase
         {
             if (!string.IsNullOrWhiteSpace(FontPath) && File.Exists(FontPath))
             {
-                io.Fonts.AddFontFromFileTTF(FontPath, FontSize);
+                io.Fonts.AddFontFromFileTTF(FontPath, MathF.Max(1.0f, FontSize * dpiScale));
                 customFontLoaded = true;
-                Logger.Info($"Loaded custom ImGui font: '{FontPath}' at {FontSize}px");
+                Logger.Info($"Loaded custom ImGui font: '{FontPath}' at {FontSize * dpiScale:F1}px (scale {dpiScale:F2})");
             }
         }
         catch (Exception ex)
@@ -262,6 +305,7 @@ public class ImGuiNetSystem : GameSystemBase
 
         if (!customFontLoaded)
         {
+            // Bake default font (wrapper does not expose size for default font), will be scaled by style/font scaling
             io.Fonts.AddFontDefault();
         }
 
@@ -285,6 +329,9 @@ public class ImGuiNetSystem : GameSystemBase
 
             // Set a simple texture ID for ImGui (using texture hashcode as a simple identifier)
             io.Fonts.SetTexID((IntPtr)_fontTexture.GetHashCode());
+
+            // Optionally clear CPU-side temp data
+            io.Fonts.ClearTexData();
         }
         else
         {
@@ -292,26 +339,13 @@ public class ImGuiNetSystem : GameSystemBase
             io.Fonts.SetTexID(IntPtr.Zero);
         }
 
-        Logger.Info($"Font atlas built successfully: {width}x{height}, {bytesPerPixel} bytes per pixel");
+        Logger.Info($"Font atlas built successfully: {width}x{height}, {bytesPerPixel} bpp (dpiScale={dpiScale:F2})");
     }
 
     /// <inheritdoc/>
     public override void Update(GameTime gameTime)
     {
         if (!_initialized) return;
-
-        var client = Game.Window.ClientBounds;
-        var back2 = _graphicsDevice?.Presenter?.BackBuffer;
-        if (back2 != null)
-        {
-            var scaleX = back2.Width / (float)Math.Max(1, client.Width);
-            var scaleY = back2.Height / (float)Math.Max(1, client.Height);
-            Logger.Info($"Backbuffer = {back2.Width}x{back2.Height}, ClientBounds = {client.Width}x{client.Height}, scale = {scaleX:F2} x {scaleY:F2}");
-        }
-        else
-        {
-            Logger.Info($"Backbuffer not ready yet; ClientBounds = {client.Width}x{client.Height}");
-        }
 
         var deltaTime = (float)gameTime.Elapsed.TotalSeconds;
         var io = ImGui.GetIO();
@@ -326,10 +360,34 @@ public class ImGuiNetSystem : GameSystemBase
             var back = _graphicsDevice.Presenter.BackBuffer;
             if (clientBounds.Width > 0 && clientBounds.Height > 0)
             {
-                io.DisplayFramebufferScale = new Vector2(
+                var fbScale = new Vector2(
                     back.Width / (float)clientBounds.Width,
                     back.Height / (float)clientBounds.Height);
+
+                io.DisplayFramebufferScale = fbScale;
+
+                // Auto font scaling: rebuild atlas when the framebuffer scale changes significantly
+                if (AutoScaleFonts)
+                {
+                    // Use average scale to keep sizing intuitive
+                    float avgScale = MathF.Max(1.0f, (fbScale.X + fbScale.Y) * 0.5f);
+                    float oldAvg = MathF.Max(1.0f, (_lastFramebufferScale.X + _lastFramebufferScale.Y) * 0.5f);
+
+                    // Detect meaningful change (for example, window moved to a monitor with different DPI)
+                    if (MathF.Abs(avgScale - oldAvg) > 0.05f)
+                    {
+                        SetDpiScale(avgScale);
+                        _lastFramebufferScale = fbScale;
+                    }
+                }
             }
+        }
+
+        // Rebuild fonts if requested
+        if (_pendingFontRebuild)
+        {
+            SetupFontAtlas(_dpiScale);
+            _pendingFontRebuild = false;
         }
 
         io.DeltaTime = deltaTime > 0 ? deltaTime : 1f / 60f;
