@@ -4,7 +4,6 @@ using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Games;
 
 using var game = new Game();
 
@@ -18,8 +17,4 @@ game.Run(start: (Scene rootScene) =>
     entity.Transform.Position = new Vector3(0, 8, 0);
 
     entity.Scene = rootScene;
-}, update: Update);
-
-void Update(Scene scene, GameTime time)
-{
-}
+});
