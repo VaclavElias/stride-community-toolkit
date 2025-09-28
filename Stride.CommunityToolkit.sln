@@ -148,6 +148,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example11_ImGuiNet", "examp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stride.CommunityToolkit.ImGuiNet", "src\Stride.CommunityToolkit.ImGuiNet\Stride.CommunityToolkit.ImGuiNet.csproj", "{241F49F4-4C32-E270-D23C-3AEA8D5E0C0F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example01_Basic3DScene_DPI_Aware", "examples\code-only\Example01_Basic3DScene_DPI_Aware\Example01_Basic3DScene_DPI_Aware.csproj", "{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -409,6 +411,10 @@ Global
 		{241F49F4-4C32-E270-D23C-3AEA8D5E0C0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{241F49F4-4C32-E270-D23C-3AEA8D5E0C0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{241F49F4-4C32-E270-D23C-3AEA8D5E0C0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -464,6 +470,7 @@ Global
 		{85FECD45-AC36-472B-BDA4-B50692A3973C} = {30457B66-9E10-4290-9744-D0079DE0448B}
 		{A19D2482-CB51-44FD-B7F9-16E8A7459460} = {30457B66-9E10-4290-9744-D0079DE0448B}
 		{F4BCA562-0FB0-82A5-A982-8BD97716C7B5} = {30457B66-9E10-4290-9744-D0079DE0448B}
+		{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235} = {30457B66-9E10-4290-9744-D0079DE0448B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C7A8C18E-C1F5-492F-8173-51EC9495B78C}
