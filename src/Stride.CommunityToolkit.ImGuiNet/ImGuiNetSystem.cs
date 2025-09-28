@@ -8,9 +8,7 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
 using Stride.Rendering;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Rectangle = Stride.Core.Mathematics.Rectangle;
 
 namespace Stride.CommunityToolkit.ImGuiNet;
@@ -122,6 +120,7 @@ public class ImGuiNetSystem : GameSystemBase
         });
     }
 
+    /// <inheritdoc/>
     public override void Initialize()
     {
         base.Initialize();
@@ -296,6 +295,7 @@ public class ImGuiNetSystem : GameSystemBase
         Logger.Info($"Font atlas built successfully: {width}x{height}, {bytesPerPixel} bytes per pixel");
     }
 
+    /// <inheritdoc/>
     public override void Update(GameTime gameTime)
     {
         if (!_initialized) return;
@@ -347,6 +347,7 @@ public class ImGuiNetSystem : GameSystemBase
         ProcessDrawCommands();
     }
 
+    /// <inheritdoc/>
     public override void EndDraw()
     {
         if (!_initialized) return;
@@ -522,6 +523,7 @@ public class ImGuiNetSystem : GameSystemBase
         return result;
     }
 
+    /// <inheritdoc/>
     protected override void Destroy()
     {
         _fontTexture?.Dispose();
@@ -551,99 +553,4 @@ public class ImGuiNetSystem : GameSystemBase
         public string Message;
         public Vector4 Color;
     }
-
-    // Add inside the ImGuiNetSystem class (private methods region)
-
-    private static float GetWindowsDpiScale()
-    {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return 1.0f;
-
-        // Try GetDpiForWindow using a window handle (best if you can get an HWND)
-        try
-        {
-            IntPtr hwnd = Process.GetCurrentProcess().MainWindowHandle;
-            if (hwnd != IntPtr.Zero)
-            {
-                if (GetDpiForWindow(hwnd) is uint dpi && dpi != 0)
-                {
-                    return dpi / 96f;
-                }
-            }
-        }
-        catch
-        {
-            // ignore and fallback
-        }
-
-        // Fallback: query primary monitor DPI via MonitorFromPoint + GetDpiForMonitor
-        try
-        {
-            var pt = new POINT(0, 0);
-            IntPtr hmon = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
-            if (hmon != IntPtr.Zero)
-            {
-                if (GetDpiForMonitor(hmon, MDT_EFFECTIVE_DPI, out uint dpiX, out uint dpiY) == 0)
-                {
-                    return dpiX / 96f;
-                }
-            }
-        }
-        catch
-        {
-            // ignore
-        }
-
-        // Final fallback: use GDI desktop DPI
-        var gdi = GraphicsDC.GetDesktopDpi();
-        return gdi.dpiX / 96f;
-    }
-
-    #region Win32 DPI interop
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
-
-    [DllImport("shcore.dll")]
-    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
-
-    private const int MDT_EFFECTIVE_DPI = 0;
-    private const uint MONITOR_DEFAULTTOPRIMARY = 1;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT
-    {
-        public int X; public int Y; public POINT(int x, int y) { X = x; Y = y; }
-    }
-
-    [DllImport("user32.dll")]
-    private static extern uint GetDpiForWindow(IntPtr hWnd); // Win10 1607+
-
-    private static class GraphicsDC
-    {
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetDC(IntPtr hWnd);
-        [DllImport("user32.dll")]
-        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
-        [DllImport("gdi32.dll")]
-        private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
-        private const int LOGPIXELSX = 88;
-        private const int LOGPIXELSY = 90;
-
-        public static (int dpiX, int dpiY) GetDesktopDpi()
-        {
-            IntPtr hdc = GetDC(IntPtr.Zero);
-            if (hdc == IntPtr.Zero) return (96, 96);
-            try
-            {
-                int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
-                int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
-                return (dpiX == 0 ? 96 : dpiX, dpiY == 0 ? 96 : dpiY);
-            }
-            finally
-            {
-                ReleaseDC(IntPtr.Zero, hdc);
-            }
-        }
-    }
-    #endregion
 }
