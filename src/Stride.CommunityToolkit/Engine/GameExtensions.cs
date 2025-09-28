@@ -38,15 +38,16 @@ public static class GameExtensions
     /// <param name="update">Optional action to execute during each game loop iteration. Takes the root scene and game time as parameters.</param>
     public static void Run(this Game game, GameContext? context = null, Action<Scene>? start = null, Action<Scene, GameTime>? update = null)
     {
-        game.Script.Scheduler.Add(RootScript);
+        ArgumentNullException.ThrowIfNull(game);
 
+        game.Script.Scheduler.Add(RootScript);
         game.Run(context);
 
         async Task RootScript()
         {
             start?.Invoke(GetRootScene());
 
-            if (update == null) return;
+            if (update is null) return;
 
             while (true)
             {
@@ -74,15 +75,16 @@ public static class GameExtensions
     /// <param name="update">Optional action to execute during each game loop iteration. Takes the game as a parameter.</param>
     public static void Run(this Game game, GameContext? context = null, Action<Game>? start = null, Action<Game>? update = null)
     {
-        game.Script.Scheduler.Add(RootScript);
+        ArgumentNullException.ThrowIfNull(game);
 
+        game.Script.Scheduler.Add(RootScript);
         game.Run(context);
 
         async Task RootScript()
         {
             start?.Invoke(game);
 
-            if (update == null) return;
+            if (update is null) return;
 
             while (true)
             {
