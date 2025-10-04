@@ -150,6 +150,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stride.CommunityToolkit.ImG
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example01_Basic3DScene_DPI_Aware", "examples\code-only\Example01_Basic3DScene_DPI_Aware\Example01_Basic3DScene_DPI_Aware.csproj", "{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stride.CommunityToolkit.Linux", "src\Stride.CommunityToolkit.Linux\Stride.CommunityToolkit.Linux.csproj", "{AB244060-9A1F-40B1-9043-02FBED6E94E4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -415,6 +417,10 @@ Global
 		{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D35DDEAD-4AE7-4979-BFB4-99A2BCF4A235}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB244060-9A1F-40B1-9043-02FBED6E94E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB244060-9A1F-40B1-9043-02FBED6E94E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB244060-9A1F-40B1-9043-02FBED6E94E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB244060-9A1F-40B1-9043-02FBED6E94E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
