@@ -62,6 +62,8 @@ void Update(Scene scene, GameTime gameTime)
         {
             Console.WriteLine("Window is on a different monitor than primary.");
         }
+
+        imguiSystem.SetDpiScale(current?.Scale ?? 1f);
     }
 
     time += (float)gameTime.Elapsed.TotalSeconds;
