@@ -1,5 +1,6 @@
-﻿using Stride.BepuPhysics.Definitions;
+using Stride.BepuPhysics.Definitions;
 using Stride.BepuPhysics.Definitions.Colliders;
+using Stride.CommunityToolkit.Bepu.Extensions;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
 using static Stride.BepuPhysics.Definitions.DecomposedHulls;
@@ -12,19 +13,39 @@ namespace Stride.CommunityToolkit.Bepu.Colliders;
 /// </summary>
 public static class PolygonCollider
 {
+    public static ConvexHullCollider Create(Vector2[]? size)
+    {
+        Vector2[] validatedSize;
+
+        if (size is null)
+        {
+            var prismModel = new PolygonProceduralModel();
+
+            validatedSize = prismModel.Vertices;
+        }
+        else
+        {
+            validatedSize = size;
+        }
+
+        var meshData = PolygonProceduralModel.New(validatedSize);
+
+        return meshData.ToConvexHullCollider();
+    }
+
     public static ConvexHullCollider Create(float? radius = null, int? sides = null, float depth = 1f)
     {
         var defaultModel = new PolygonProceduralModel();
         var actualRadius = radius ?? defaultModel.Radius;
-        var actualSides  = sides  ?? defaultModel.Sides;
+        var actualSides = sides ?? defaultModel.Sides;
 
-        var verts2D  = PolygonProceduralModel.GenerateRegularPolygonVertices(actualRadius, actualSides);
+        var verts2D = PolygonProceduralModel.GenerateRegularPolygonVertices(actualRadius, actualSides);
         var halfDepth = depth / 2f;
 
         var points = new Vector3[actualSides * 2];
         for (int i = 0; i < actualSides; i++)
         {
-            points[i]               = new Vector3(verts2D[i].X, verts2D[i].Y, +halfDepth);
+            points[i] = new Vector3(verts2D[i].X, verts2D[i].Y, +halfDepth);
             points[i + actualSides] = new Vector3(verts2D[i].X, verts2D[i].Y, -halfDepth);
         }
 
