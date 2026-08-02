@@ -1,7 +1,7 @@
 # Plan: Build-time asset YAML generator for code-only projects
 
 **Repo:** `stride-community-toolkit`
-**Status:** Ready to implement. Manually validated (a hand-written `.sdsnd` + `RootAssets` entry compiles and loads at runtime).
+**Status:** **Audio shipped and verified.** See §5 for what exists, §9 for the roadmap.
 **Goal:** A beginner drops `wood-tap-5.mp3` into `Resources/`, builds, and calls
 `game.Content.Load<Sound>("wood-tap-5")`. No Game Studio, no hand-written YAML.
 
@@ -28,25 +28,22 @@ Game Studio compatibility instead of creating a parallel invisible pipeline.
 
 ## 2. Verified engine facts
 
-These were verified by reading the Stride source (`D:\Projects\GitHub\stride`, branch `master`,
-4.4.0-dev). **Do not re-derive; do not assume otherwise.** Line references are for context —
-re-check them if the engine has moved on.
+Verified by reading the Stride source (`D:\Projects\GitHub\stride`, branch `master`, 4.4.0-dev)
+**and confirmed by an end-to-end build** (§6). **Do not re-derive.**
 
 ### 2.1 `RootAssets` is mandatory — this is the non-obvious one
 
-`RootPackageAssetEnumerator` (`sources/assets/Stride.Core.Assets/Compiler/RootPackageAssetEnumerator.cs:56-89`)
+`RootPackageAssetEnumerator` (`sources/assets/Stride.Core.Assets/Compiler/RootPackageAssetEnumerator.cs`)
 compiles only:
 1. assets listed in `Package.RootAssets`,
 2. assets reachable as dependencies of those,
 3. asset types marked `AlwaysMarkAsRoot`.
 
-`SoundAsset` is **not** `AlwaysMarkAsRoot` — it declares a plain `[AssetDescription(FileExtension)]`
-(`sources/engine/Stride.Assets/Media/SoundAsset.cs:12-14`). Only effects, game settings and script
-source files carry that flag.
-
-In a code-only project nothing references the sound (no scene), so **without a `RootAssets` entry
-in the `.sdpkg` the asset is silently culled from the build.** The generator therefore has two
-outputs, not one: the `.sdsnd` *and* an updated `.sdpkg`.
+Exactly five types carry `AlwaysMarkAsRoot` (grep of the whole engine):
+`EffectCompositorAsset`, `EffectLogAsset`, `EffectShaderAsset`, `GameSettingsAsset`,
+`ScriptSourceFileAsset`. **No source-file-backed asset type is on that list** — not sound, not
+texture, not video, not font. So every asset this generator will ever produce needs a `RootAssets`
+entry, and the generator always has two outputs: the asset file *and* an updated `.sdpkg`.
 
 This also means the asset `Id` appears in two files and must match.
 
@@ -54,24 +51,27 @@ This also means the asset `Id` appears in two files and must match.
 
 - The package for a project is `$(StrideCurrentPackagePath)` if set and existing, otherwise
   `$(MSBuildProjectDirectory)\$(MSBuildProjectName).sdpkg`
-  (`sources/core/Stride.Core/build/Stride.AssetBuildManifest.targets:220-221`).
+  (`sources/core/Stride.Core/build/Stride.AssetBuildManifest.targets`).
   **The generated `.sdpkg` must be named after the project.**
 - If no `.sdpkg` exists, `Package.LoadProject` creates an implicit package with
   `AssetFolders = { "Assets" }` and `ResourceFolders = { "Resources" }`
-  (`sources/assets/Stride.Core.Assets/Package.cs:646-656`) — but an implicit package has empty
+  (`sources/assets/Stride.Core.Assets/Package.cs`) — but an implicit package has empty
   `RootAssets`, so per 2.1 the asset still won't compile. A real `.sdpkg` is required.
-- Asset files are discovered by recursively scanning each `AssetFolders` entry
-  (`sources/assets/Stride.Core.Assets/Package.cs:1231-1290`), so subfolders under `Assets/` work.
+- Asset files are discovered by recursively scanning each `AssetFolders` entry, so subfolders
+  under `Assets/` work.
 
 ### 2.3 Build ordering
 
-- `StrideWriteAssetBuildManifest` runs `AfterTargets="ResolveProjectReferences"`
-  (`Stride.AssetBuildManifest.targets:181-183`) and records the package path.
-- `StrideCompileAsset` runs `AfterTargets="CopyFilesToOutputDirectory"`
-  (`sources/assets/Stride.AssetCompiler/build/Stride.AssetCompiler.targets:191`).
+- `StrideWriteAssetBuildManifest` runs `AfterTargets="ResolveProjectReferences"`.
+- `StrideCompileAsset` runs `AfterTargets="CopyFilesToOutputDirectory"`.
 
-**The generator must run before `StrideWriteAssetBuildManifest`**, so the `.sdpkg` and `.sdsnd`
-exist by the time the manifest is written and the compiler scans folders.
+The generator runs `BeforeTargets="StrideWriteAssetBuildManifest;PrepareForBuild"`.
+`PrepareForBuild` is listed second so the target still fires in projects that do not import the
+Stride asset targets, and MSBuild runs a target only once regardless of how many hooks fire.
+
+**Confirmed:** generating the `.sdpkg` during the same build that consumes it works. A clean
+build of a project with no `.sdpkg` at all produces the package, the assets, and a fully compiled
+bundle in one pass — no second build needed.
 
 ### 2.4 `SoundAsset` schema
 
@@ -86,37 +86,55 @@ From `sources/engine/Stride.Assets/Media/SoundAsset.cs`:
 
 ### 2.5 Recognised audio extensions
 
-`RawSoundAssetImporter.FileExtensions` (`sources/engine/Stride.Assets/Media/RawSoundAssetImporter.cs:12`)
+`RawSoundAssetImporter.FileExtensions` (`sources/engine/Stride.Assets/Media/RawSoundAssetImporter.cs`)
 is `.wav,.mp3,.ogg,.aac,.aiff,.flac,.m4a,.wma,.mpc` **plus the video extensions** (a video file can
 carry an audio track).
 
-For v1, use only the unambiguous audio list — `.wav .mp3 .ogg .aac .aiff .flac .m4a .wma .mpc` —
-so `.mp4` isn't silently turned into a sound asset.
+v1 uses only the unambiguous audio list — `.wav .mp3 .ogg .aac .aiff .flac .m4a .wma .mpc` —
+so `.mp4` isn't silently turned into a sound asset. Adding video (§9.2) is what resolves that
+overlap properly.
 
-### 2.6 Can we reuse Stride's own serializer?
+### 2.6 Can we reuse Stride's own serializer? — re-examined, answer still no
 
-`AssetFileSerializer.Save(filePath, asset, yamlMetadata: null)` is public
-(`sources/assets/Stride.Core.Assets/AssetFileSerializer.cs:115-130`) and would produce exactly
-correct YAML. **But** using it requires:
+`AssetFileSerializer.Save(filePath, asset, yamlMetadata: null)` is public and would produce exactly
+correct YAML. Using it requires referencing `Stride.Core.Assets` (serializer) *and* `Stride.Assets`
+(`SoundAsset`). Measured cost of `Stride.Assets.csproj`:
 
-- referencing `Stride.Core.Assets` (for the serializer) *and* `Stride.Assets` (for `SoundAsset`);
-- both are editor-side packages targeting `$(StrideXplatEditorTargetFramework)` and drag in
-  `Microsoft.Build`, `Microsoft.CodeAnalysis.*Workspaces`, `FFmpeg.AutoGen`,
-  `Microsoft.TemplateEngine.*`, `SSH.NET` and `SixLabors.ImageSharp`;
-- bootstrapping `AssetRegistry` — `GetDefaultExtension` only works once the asset assemblies are
-  registered through `AssemblyRegistry` with the `Assets` category
-  (`sources/assets/Stride.Core.Assets/AssetRegistry.cs:896-916`).
+- packages: `Microsoft.Build` + `.Framework` + `.Utilities.Core` + `.Tasks.Core`,
+  `Microsoft.CodeAnalysis.CSharp.Workspaces`, `Microsoft.CodeAnalysis.Workspaces.MSBuild`,
+  `SixLabors.ImageSharp`, `SSH.NET`, `FFmpeg.AutoGen`, three `Microsoft.TemplateEngine.*`;
+- project references: Stride.Engine, Physics, BepuPhysics, UI, Video, Navigation, TextureConverter,
+  Core.Assets.Quantum;
+- plus bootstrapping `AssetRegistry` through `AssemblyRegistry` before serializer lookup works.
 
-Loading MSBuild-dependent assemblies *inside an MSBuild task* is a well-known source of version
-conflicts, and this weight is unjustifiable for emitting ~8 lines of YAML.
+To replace ~20 lines of string building. Loading MSBuild-dependent assemblies inside an MSBuild
+build is also a well-known source of version conflicts.
 
-**Decision: v1 writes YAML from templates.** Keep the writer behind an interface
-(`IAssetYamlWriter`) so an `AssetFileSerializer`-backed implementation can be swapped in later if
-the engine ships a lightweight serializer package (see §7).
+**Decision confirmed: write YAML from templates.** The writer sits behind `IAssetYamlWriter` so an
+`AssetFileSerializer`-backed implementation can be swapped in if the engine ever ships a
+lightweight serializer package (§8).
+
+Three related dead ends, checked so nobody re-checks them:
+
+- **`Stride.Audio.Sound` cannot supply the options.** It is the runtime content type. `SampleRate`,
+  `Spatialized`, `Channels`, `NumberOfPackets` (`SoundBase.cs`), `StreamFromDisk`,
+  `CompressedDataUrl`, `Samples` (`Sound.cs`) are all `internal`, and **`CompressionRatio` does not
+  exist on it at all** — it is authoring-only, consumed by the compiler to pick the Celt bitrate.
+  Referencing `Stride.Audio` would also drag the native audio layer into a build-time tool.
+  The type that matches is `SoundAsset`, in the wrong package.
+- **`Stride.Core.Serialization` has nothing to offer.** Its `Assets/` folder contains exactly one
+  file, `AssetId.cs`. Everything else is runtime *binary* serialization. No YAML.
+- **`Stride.Core.Yaml` does ship as a standalone package** and is light (its only project reference
+  is `Stride.Core.Reflection`) — this corrects an assumption in the original plan. But it is the raw
+  layer: Scanner, Parser, Emitter, Events, Tokens. The *asset* conventions (`!Sound` tag mapping,
+  `!file` for `UFile`, `SerializedVersion`, Game Studio's exact indentation) live in
+  `Stride.Core.Assets.Yaml` (a `.projitems` compiled into `Stride.Core.Assets`) and in
+  `AssetFileSerializer` itself. Going through `Stride.Core.Yaml` means re-declaring the asset types
+  and re-registering tag mappings — more code and more drift surface than the template.
 
 There is precedent in Stride itself for line-based handling of these files:
-`sources/tools/Stride.TemplateGenerator/TemplatePreprocessor.cs:947` (`CollectRootAssets`) parses
-the `RootAssets:` section of a `.sdpkg` line by line rather than with a YAML parser.
+`sources/tools/Stride.TemplateGenerator/TemplatePreprocessor.cs` (`CollectRootAssets`) parses the
+`RootAssets:` section of a `.sdpkg` line by line rather than with a YAML parser.
 
 ---
 
@@ -168,160 +186,295 @@ ResourceFolders:
 ```
 
 Note the two indentation styles: `AssetFolders` entries use `-   Path:` (dash + 3 spaces),
-`ResourceFolders` uses a plain `- !dir`. Match these exactly — they are what Game Studio emits.
+`ResourceFolders` uses a plain `- !dir`. Both files are CRLF; the `.sdsnd` ends with a trailing
+newline, this hand-written `.sdpkg` does not.
 
-Both `Example_CubicleCalamity` (audio) and `MyGame01.Game` (textures, materials, scenes) are the
-reference corpus. Keep a copy of the relevant files as test fixtures.
+Both are pinned as string constants in `tests/.../AssetGenerator/Fixtures.cs`. The corpus for
+future asset types is listed per type in §9.
 
 ---
 
 ## 4. Design rules
 
-1. **Deterministic IDs.** Derive the asset `Id` GUID from the project-relative resource path
-   (e.g. MD5 of `"sound:Resources/wood-tap-5.mp3"`, using the 16 bytes directly as a GUID).
-   Same input → identical bytes forever. Non-negotiable: a churning `Id` changes both the
-   `.sdsnd` and the `.sdpkg` on every build, producing noisy diffs and defeating the asset
-   compiler's incremental cache.
-2. **Never overwrite an existing asset file.** If `Assets/wood-tap-5.sdsnd` exists — hand-written,
-   or generated then tweaked in Game Studio — skip it entirely. File existence is the whole
-   ownership test; no marker comments, no tracking manifest. This gives the escalation path for
-   free: defaults for beginners, full control for anyone who edits the file.
-3. **Write only when content differs.** For both `.sdsnd` and `.sdpkg`, compare before writing.
-   Touching timestamps on every build defeats `StrideCompileAsset`'s up-to-date check.
-4. **Merge the `.sdpkg`, never regenerate it.** Users have hand-authored content — the
-   `Example_CubicleCalamity` package has an `Effects` asset folder that must survive. Add only
-   missing `AssetFolders` / `ResourceFolders` / `RootAssets` entries; leave everything else,
-   including key order and `Meta`, byte-identical. If no `.sdpkg` exists, create a minimal one
-   in the shape shown above.
-5. **Orphans produce a warning, never a deletion.** If a `.sdsnd` points at a missing `Source`,
-   emit an MSBuild warning naming the file and telling the user to delete it or restore the
-   source. The generator does not track what it created, so it must never delete.
-6. **Mirror subfolders.** `Resources/sfx/boom.mp3` → `Assets/sfx/boom.sdsnd`, asset location
+1. **Deterministic IDs.** The asset `Id` GUID is MD5 of `"<kind>:<project-relative resource path>"`,
+   the 16 bytes used directly as a GUID, with the path lowercased and forward-slashed first so the
+   result is identical on Windows and Linux. Same input → identical bytes forever. Non-negotiable:
+   a churning `Id` changes both the asset file and the `.sdpkg` on every build, producing noisy
+   diffs and defeating the asset compiler's incremental cache.
+2. **Never overwrite an existing asset file.** File existence is the whole ownership test; no marker
+   comments, no tracking manifest. This gives the escalation path for free: defaults for beginners,
+   full control for anyone who edits the file. An existing file is still *registered* in
+   `RootAssets` (using the id read out of it) so a hand-written asset compiles.
+3. **Never touch a resource another asset already claims.** If any asset anywhere in the asset
+   folder references the resource as a `!file` source, the resource is skipped entirely — no new
+   asset, no root entry. This is what makes the generator harmless in a project that has been
+   through Game Studio, where `Resources/` is full of files already imported under other names.
+   *(Added during implementation; rule 2 alone only catches same-name collisions.)*
+4. **Write only when content differs.** For both the asset file and the `.sdpkg`, compare before
+   writing. Touching timestamps on every build defeats `StrideCompileAsset`'s up-to-date check.
+5. **Merge the `.sdpkg`, never regenerate it.** Add only missing `AssetFolders` /
+   `ResourceFolders` / `RootAssets` entries; leave everything else, including key order and `Meta`,
+   byte-identical, and preserve the file's line endings and trailing-newline style. If the file
+   cannot be parsed with confidence, warn and skip rather than rewrite. If no `.sdpkg` exists,
+   create a minimal one with a `Meta` block.
+6. **Orphans produce a warning, never a deletion.** The generator does not track what it created,
+   so it must never delete.
+7. **Mirror subfolders.** `Resources/sfx/boom.mp3` → `Assets/sfx/boom.sdsnd`, asset location
    `sfx/boom`, `Source: !file ../../Resources/sfx/boom.mp3`. This avoids the name collisions that
    a flat naming scheme would produce.
-7. **Generated files are committed.** They are deterministic, and Game Studio needs them present
-   when opening the project (it does not run the MSBuild target). Document this.
+8. **Generated files are committed.** They are deterministic, and Game Studio needs them present
+   when opening the project (it does not run the MSBuild target).
 
 ---
 
-## 5. Implementation
+## 5. What was built
 
-### Phase 1 — Core library
+### 5.1 Core library + tool — `src/Stride.CommunityToolkit.AssetGenerator/`
 
-New project `src/Stride.CommunityToolkit.AssetGenerator/` (netstandard2.0 or net10.0; see
-Phase 2 for how it is hosted). No Stride package references.
+A dependency-free net10.0 console tool (~55 KB, no package references).
 
-- `ResourceScanner` — enumerates the resource folder, filters by known extensions, returns
-  project-relative paths.
-- `DeterministicId` — path → GUID.
-- `SoundAssetTemplate` (implements `IAssetYamlWriter`) — emits the `.sdsnd` text.
-- `PackageFileEditor` — line-based read/merge/write of `.sdpkg`, preserving unknown content.
-  Handles: file missing, section missing, section present but empty (`RootAssets: []`),
-  section present with entries.
-- `AssetGenerator` — orchestrates; returns a result object listing created files, skipped files
-  and warnings (do not log directly from the core library, so it stays testable).
+| File | Role |
+|---|---|
+| `Core/ResourceScanner.cs` | enumerates the resource folder, filters by extension, returns project-relative paths + asset locations |
+| `Core/DeterministicId.cs` | path → GUID, OS- and case-invariant |
+| `Core/IAssetYamlWriter.cs` | seam for a future `AssetFileSerializer`-backed writer |
+| `Core/SoundAssetTemplate.cs` | emits `.sdsnd`; `SoundAssetOptions` mirrors `SoundAsset`'s defaults |
+| `Core/PackageFileEditor.cs` | line-based `.sdpkg` read/merge/write, pure string in/out |
+| `Core/AssetFileIndex.cs` | reads `Id:` and every `!file` reference out of existing assets |
+| `Core/AssetGenerator.cs` | orchestrator; returns a result object, logs nothing |
+| `Core/AssetFormats.cs` | the hardcoded format constants, one place to change on a version bump |
+| `Program.cs` | argument parsing, MSBuild-canonical diagnostic output |
 
-Per-file option overrides (`SampleRate`, `CompressionRatio`, `StreamFromDisk`, `Spatialized`)
-should be plumbed through from the start, even if nothing sets them yet in v1 — they only affect
-newly created files.
+Per-file option overrides (`SampleRate`, `CompressionRatio`, `StreamFromDisk`, `Spatialized`) are
+plumbed through and only affect newly created files.
 
-### Phase 2 — MSBuild integration
+### 5.2 MSBuild integration
 
-Host the generator as a **console tool** invoked via `Exec`, packed under `tools/net10.0/`, rather
-than as an MSBuild `Task`. Rationale: MSBuild locks task assemblies (painful when the toolkit repo
-both builds and consumes the tool), and a task would need `netstandard2.0;net472` dual-targeting
-for VS. A tool process also matches the pattern the audience already runs (Stride's own
-`Stride.AssetCompiler` is invoked exactly this way — see `Stride.AssetCompiler.targets:191-209`).
+`src/Stride.CommunityToolkit/build/Stride.CommunityToolkit.targets`, packed to
+`buildTransitive/net10.0/`, invokes the tool via `Exec`. The tool is packed to `tools/net10.0/`
+(dll + runtimeconfig.json + deps.json) through `TargetsForTfmSpecificContentInPackage` in
+`Stride.CommunityToolkit.csproj`, which builds the generator project on demand — there is no
+`ProjectReference`, so a normal build of the library does not depend on it.
 
-Ship `build/Stride.CommunityToolkit.AssetGenerator.targets` in the **main `Stride.CommunityToolkit`
-package** so beginners need no extra reference.
+Properties: `StrideToolkitGenerateAssets`, `StrideToolkitAssetsFolder`,
+`StrideToolkitResourcesFolder`, `StrideToolkitAssetGeneratorPath`, `StrideToolkitSoundSampleRate`,
+`StrideToolkitSoundCompressionRatio`, `StrideToolkitSoundSpatialized`,
+`StrideToolkitSoundStreamFromDisk`.
 
-```xml
-<Target Name="StrideToolkitGenerateAssets"
-        BeforeTargets="StrideWriteAssetBuildManifest"
-        Condition="'$(StrideToolkitGenerateAssets)' != 'false'">
-  <!-- Exec the tool; pass project dir, project name, Assets/ and Resources/ folder names -->
-</Target>
-```
+Diagnostics: `STCT0001` orphan asset, `STCT0002` asset path taken, `STCT0003` package not
+understood, `STCT0004` resource already imported (info), `STCT0005` tool not found.
 
-- Default **on**, opt out with `<StrideToolkitGenerateAssets>false</StrideToolkitGenerateAssets>`.
-  Justified because the generator is non-destructive (only ever adds files) and the entire point
-  is zero-config for beginners. If this feels too intrusive during review, flip to opt-in and
-  revisit after real-world validation.
-- No-op quickly when the `Resources/` folder is absent — most projects.
-- Surface warnings as real MSBuild warnings with a stable code (e.g. `STCT0001`).
+### 5.3 Tests — `tests/Stride.CommunityToolkit.Tests/AssetGenerator/`
 
-### Phase 3 — Tests
+34 xunit tests: pinned deterministic ids, byte-match against the committed fixture, never-overwrite
+(including when contents differ), `.sdpkg` merge preserving `Effects` / `Meta` / multi-line entries,
+`RootAssets: []` conversion, idempotency, line-ending and trailing-newline preservation, subfolder
+mapping, orphan warnings, Game Studio guard, refusing to touch an unparseable package.
 
-`tests/` — the core library is pure file-in/file-out, so cover it directly:
+### 5.4 Docs
 
-- deterministic ID stability (golden values pinned in the test);
-- generated `.sdsnd` byte-matches the committed `Example_CubicleCalamity` fixture;
-- existing `.sdsnd` is not overwritten (including when its contents differ from what would be generated);
-- `.sdpkg` merge preserves the `Effects` asset folder and existing `Meta`;
-- merge is idempotent — running twice produces identical bytes and reports no writes on the second run;
-- subfolder mapping and relative `Source` path correctness;
-- orphan detection warns and deletes nothing.
-
-Plus one end-to-end check: delete the generated files from a scratch copy of
-`Example_CubicleCalamity`, build, and assert they are regenerated identically and the build
-succeeds.
-
-### Phase 4 — Docs
-
-Add a `docs/manual/` page: drop files in `Resources/`, build, load by name; explain that generated
-files are committed, that editing them (or opening the project in Game Studio) is supported and
-the generator will not clobber the edits, and how to opt out.
-
-### Phase 5 — Beyond audio (follow-up, not v1)
-
-The structure is per-type templates, so textures (`.sdtex`) come next — `MyGame01.Game`'s
-`Skybox texture.sdtex` is the reference. Note textures need a `Type:` block
-(`!ColorTextureType` etc.), so the template is slightly richer than audio's. Do not start this
-until audio is shipped and validated.
+`docs/manual/code-only/assets-from-resources.md`, linked from `docs/manual/toc.yml`.
 
 ---
 
-## 6. Risks
+## 6. Verification performed
 
-- **`.sdpkg` merge corrupting hand-authored packages.** Highest-impact risk. Mitigate with the
-  fixture-based round-trip tests in Phase 3, and by making the editor conservative: if the file
-  cannot be parsed with confidence, warn and skip rather than rewrite.
-- **Format drift.** `SerializedVersion` values (`{Stride: 2.0.0.0}` for sounds, `{Assets: 3.1.0.0}`
-  for packages) are hardcoded. They have been stable for years, and Stride has asset upgraders for
-  version bumps, but pin them in one constants file so a future bump is a one-line change.
-- **Windows-only path assumptions.** Use `/` in emitted YAML paths regardless of host OS — the
-  reference files use forward slashes.
+- **Packaged end to end.** `dotnet pack` → local feed → fresh consumer project referencing only
+  `Stride.CommunityToolkit` + `Stride.AssetCompiler`, with `Resources/wood-tap-5.mp3` and
+  `Resources/sfx/boom.mp3`. Clean build from zero (no `Assets/`, no `.sdpkg`) produced both assets
+  and the package, the asset compiler ran, and `bin/Debug/net10.0/data/db/aliases` contained
+  `wood-tap-5|/ConsumerGame/wood-tap-5` and `sfx/boom|/ConsumerGame/sfx/boom`. Rebuild is a no-op.
+  Stride's own source generator also picked the assets up into `StrideAssetConstants`.
+- **Against the real example.** Deleted the committed `.sdsnd` from `Example_CubicleCalamity`,
+  emptied `RootAssets`, regenerated, built — the sound compiled into the bundle. Restored afterwards.
+- 39 tests pass (34 new + 5 pre-existing).
+
+Two bugs the verification caught, both now covered by tests: the folder key extractor was applied to
+the raw value instead of the entry payload (so `AssetFolders: Assets` was reported missing when it
+existed), and the asset index was a pre-run snapshot, so two same-named resources both wrote to one
+path.
 
 ---
 
-## 7. Engine API asks (separate track, do not block this work)
+## 7. Decisions on the original open questions
 
-Worth raising as issues/PRs against `stride3d/stride` once the toolkit implementation proves the
-shape. Until then the toolkit duplicates a small amount of knowledge; note that in code comments
-pointing back at the engine source of truth.
+- **Opt-in, not opt-out.** `StrideToolkitGenerateAssets` defaults to `false`. The plan argued
+  opt-out, and that argument holds for code-only projects — but the same package is referenced by
+  regular Game Studio projects, where `Resources/` can hold files that were never imported. Those
+  would get silently imported and the user's `.sdpkg` edited by a build step nobody asked for.
+  Flipping the default is a one-word change once there is real-world validation.
+- **Shipped in the main `Stride.CommunityToolkit` package**, not a separate one. The tool is ~55 KB
+  and inert unless enabled, so the smaller-package argument does not pay for the extra install step.
 
-1. **A lightweight YAML/asset-serialization package.** Today `AssetFileSerializer` is only
-   reachable by taking `Stride.Core.Assets` with its `Microsoft.Build` + Roslyn dependency set.
-   Splitting `Stride.Core.Assets.Yaml` (currently a shared `.projitems` compiled into
-   `Stride.Core.Assets`) into its own package would let external tooling serialize assets properly
-   instead of templating them.
+---
+
+## 8. Engine API asks (separate track)
+
+Worth raising as issues/PRs against `stride3d/stride`. Until then the toolkit duplicates a small
+amount of knowledge; code comments point back at the engine source of truth.
+
+1. **A lightweight asset-serialization package.** Sharper than the original ask now that
+   `Stride.Core.Yaml` is known to ship standalone: the missing piece is not the YAML layer but
+   `AssetFileSerializer` + the asset tag registry + the `UFile`/`!file` serializers, which are
+   welded to `Stride.Core.Assets` and therefore to `Microsoft.Build` and Roslyn. A package with the
+   asset conventions and no build-system dependency would let external tooling serialize assets
+   properly instead of templating them.
 2. **Deterministic IDs in `RawAssetImporterBase.Import`.** It currently does `new TAsset()`
-   (`sources/assets/Stride.Core.Assets/RawAssetImporterBase.cs:20`), so the `Id` is random per
-   call. An overload accepting an `AssetId` would let any tool produce reproducible output.
+   (`sources/assets/Stride.Core.Assets/RawAssetImporterBase.cs`), so the `Id` is random per call.
+   An overload accepting an `AssetId` would let any tool produce reproducible output.
 3. **A public "create asset file for this source file" helper**, wrapping importer lookup +
    ID assignment + `RootAssets` registration — the operation Game Studio performs on drag-and-drop.
 4. **Longer term: engine-side auto-import.** A flag (e.g. `StrideAutoImportAssets`) that makes the
    compiler import raw files from `Resources/` in-memory via the existing
-   `AssetRegistry.FindImporterForFile` machinery (`sources/assets/Stride.Core.Assets/AssetRegistry.cs:371`).
-   That would make this toolkit feature redundant for users who don't need Game Studio round-trip —
-   but the file-generating approach stays valuable precisely because it *does* round-trip.
+   `AssetRegistry.FindImporterForFile` machinery. That would make this toolkit feature redundant for
+   users who don't need Game Studio round-trip — but the file-generating approach stays valuable
+   precisely because it *does* round-trip.
 
 ---
 
-## 8. Open questions for the maintainer
+## 9. Roadmap: which asset types come next
 
-- Opt-in vs opt-out default for `StrideToolkitGenerateAssets` (§5 Phase 2 argues opt-out; easy to flip).
-- Ship the generator in the main `Stride.CommunityToolkit` package (zero-config, chosen here) or
-  a separate `Stride.CommunityToolkit.AssetGenerator` package (smaller main package, one more step
-  for beginners)?
+Ordered by implementation convenience. Each entry lists what was verified in the engine source, so
+the next implementer starts where this one finished.
+
+The generator is structured for this: add an `IAssetYamlWriter`, add an extension list to
+`ResourceScanner`, and the id derivation, ownership rules, package merge, orphan detection and
+MSBuild plumbing are all reused unchanged. **Only the writer and the extension list are new work per
+type** — except where noted below.
+
+### 9.1 Texture (`.sdtex`) — do this first
+
+*Effort: small. Value: high — textures are the most-requested asset in code-only projects.*
+
+- `sources/engine/Stride.Assets/Textures/TextureAsset.cs`: `[DataContract("Texture")]`,
+  `CurrentVersion = "2.0.0.0"`, extension `.sdtex`, derives from **`AssetWithSource`** — the same
+  base as `SoundAsset`, so `Source: !file …` works identically.
+- Importer extensions (`Textures/TextureImporter.cs`):
+  `.dds .jpg .jpeg .png .gif .bmp .tga .psd .tif .tiff`. No overlap with any other importer.
+- Flat defaults that can be omitted: `Width = 100`, `Height = 100`, `IsSizeInPercentage = true`,
+  `IsCompressed = true`, `GenerateMipmaps = true`, `IsStreamable = true`.
+- **The one new thing:** `Type` is a polymorphic `ITextureType` and Game Studio always emits it.
+  Three implementations, all in `sources/engine/Stride.Assets/Textures/`:
+  `!ColorTextureType` (default; `UseSRgbSampling = true`, `ColorKeyEnabled = false`,
+  `ColorKeyColor = {R: 255, G: 0, B: 255, A: 255}`, `Alpha = Auto`, `PremultiplyAlpha = true`),
+  `!NormalMapTextureType`, `!GrayscaleTextureType`. So the template gains a nested block —
+  `SoundAssetTemplate` has no equivalent, but it is still just indented string building.
+- Golden reference (modern, Game Studio-authored):
+  `D:\Projects\GitHub\stride-example-projects\MyGame01\MyGame01.Game\Assets\Skybox texture.sdtex`:
+
+  ```yaml
+  !Texture
+  Id: 30AFB54E-D2C5-404A-A693-6667855FD5B1
+  SerializedVersion: {Stride: 2.0.0.0}
+  Tags: []
+  Source: !file ../Resources/skybox_texture_hdr.dds
+  Type: !ColorTextureType
+      UseSRgbSampling: false
+      ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
+  ```
+
+  Do **not** use `sources/engine/Stride.Assets.Tests*/**/*.sdtex` as fixtures — those are
+  pre-`SerializedVersion` format and would encode a stale shape.
+- Open design question: how a user picks a non-Color type. Suggested: default everything to
+  `!ColorTextureType`, and let the escalation path handle the rest (edit the generated `.sdtex`,
+  the generator will not clobber it). A filename-suffix heuristic (`_nm`, `_normal`) is tempting
+  but silently misclassifies; if it is added, make it opt-in.
+
+### 9.2 Video (`.sdvid`)
+
+*Effort: small. Value: moderate — and it closes the `.mp4` hole left by §2.5.*
+
+- `sources/engine/Stride.Assets/Media/VideoAsset.cs`: `[DataContract("Video")]`,
+  `CurrentVersion = "2.1.0.0"` (note: **not** 2.0.0.0 like sound and texture), extension `.sdvid`.
+- Importer extensions (`Media/RawVideoAssetImporter.cs`): `.avi .mkv .mov .mp4`.
+- Derives from `Asset` and implements `IAssetWithSource` with its own `Source` property rather than
+  inheriting `AssetWithSource`. Serialized shape is the same `Source: !file …`, but confirm against
+  a real file rather than assuming.
+- Flat defaults: `Width = 100`, `Height = 100`, `IsSizeInPercentage = true`,
+  `IsAudioChannelMono = false`.
+- **Wrinkle:** `VideoDuration` is a public *field* of struct type `VideoAssetDuration` whose
+  `EndTime` is set to `TimeSpan.MaxValue` in the constructor. Whether and how Game Studio emits it
+  needs checking against a real authored `.sdvid` before writing the template — there is no such
+  file in either reference repo, so one must be produced in Game Studio first.
+- Ships with a behaviour change worth calling out in the docs: once video is supported, `.mp4` and
+  friends stop being ignored and become video assets, not sound assets.
+
+### 9.3 Effects folder registration (`.sdsl`) — cheapest possible win
+
+*Effort: tiny. Value: small but real. Can ship alongside any other item.*
+
+Not a new asset type at all. `EffectShaderAsset` **is** `AlwaysMarkAsRoot` (§2.1), so a `.sdsl`
+needs no `RootAssets` entry — but the folder containing it still has to appear under `AssetFolders`,
+which is why `Example_CubicleCalamity.sdpkg` lists `Effects` by hand. A rule of "any folder under
+the project that contains `.sdsl` files gets an `AssetFolders` entry" reuses `PackageFileEditor`
+exactly as it stands and writes no new files.
+
+### 9.4 SpriteFont (`.sdfnt`)
+
+*Effort: medium. Value: high — custom text rendering is awkward in code-only projects today.*
+
+- `sources/engine/Stride.Assets/SpriteFont/SpriteFontAsset.cs`: `[DataContract("SpriteFont")]`,
+  `CurrentVersion = "2.1.0.0"`, extension `.sdfnt`.
+- **There is no font importer in the engine** — the grep for `FileExtensions` finds only sound,
+  video, texture and 3D. Game Studio creates a font asset and lets the user point at a file. So the
+  toolkit defines its own extension list (`.ttf`, `.otf`) rather than mirroring an importer.
+- Derives from `Asset`, **not** `AssetWithSource`. The source path is nested one level down:
+  `FontSource: !FileFontProvider` with a `Source: !file …` inside it (`FileFontProvider.cs`), versus
+  the default `!SystemFontProvider`. This is the first type where `AssetFileIndex`'s `!file`
+  scanning matters for a non-top-level key — it already handles that, since it scans every line.
+- `FontType` is polymorphic and the choice is consequential:
+  `!OfflineRasterizedSpriteFontType` (fixed size, precompiled, `Size = 20`, has `CharacterRegions`),
+  `!RuntimeRasterizedSpriteFontType` (scalable at runtime, `Size = 20`),
+  `!SignedDistanceFieldSpriteFontType`. Suggested default: `!RuntimeRasterizedSpriteFontType`,
+  which needs no character-region configuration and is the friendliest for a beginner. Expose the
+  size as an MSBuild property.
+- Golden reference: `sources/engine/Stride.Engine/AssetPackage/Assets/Shared/StrideDefaultFont.sdfnt`
+  (current format, shows both nested blocks). `sources/editor/Stride.GameStudio.Tests/Assets/*.sdfnt`
+  are the old flat format — do not copy those.
+
+### 9.5 GameSettings (`.sdgamesettings`) — adjacent, not source-driven
+
+*Effort: medium. Value: moderate. Different shape of feature.*
+
+Every code-only build currently logs
+`[AssetCompiler] Could not find game settings asset at location [GameSettings]. Use a Default One`.
+`GameSettingsAsset` is `AlwaysMarkAsRoot`, so it needs no `RootAssets` entry — just the file. It has
+no source file either, so this is a "scaffold once if absent" feature rather than a
+resource-to-asset mapping, and it does not fit `IAssetYamlWriter` cleanly. It would silence the
+warning and give code-only users a real place to set default scene, graphics profile and physics
+settings. Worth doing, but as its own small feature, not as part of the resource pipeline.
+
+### 9.6 Models (`.sdm3d` + `.sdmat` + `.sdskel`) — last, and probably not template-able
+
+*Effort: large. Value: high, but the approach does not extend here.*
+
+`ThreeDAssetImporter.FileExtensions` is
+`.dae .3ds .gltf .glb .obj .blend .x .md2 .md3 .dxf .ply .stl .stp .fbx`, and importing one file
+produces *several* assets: the model, one `.sdmat` per material, a `.sdskel`, and animation assets —
+all cross-referencing each other by `AssetId`. `ImportThreeDCommand` has to actually parse the mesh
+(via Assimp) to enumerate materials and bones. That is not something a template can do; it needs the
+engine's importer, which is exactly what engine ask §8.3 is about.
+
+Two possible fallbacks if this is attempted: emit a model asset with an empty `Materials` list and
+accept the default material at runtime (needs verification that the compiler tolerates it), or
+shell out to the asset compiler's import path. Do not start until §9.1–9.4 are shipped and the
+demand is proven.
+
+### 9.7 Explicitly not targets
+
+- **`.sdmat` materials, `.sdsky` skyboxes, `.sdsheet` sprite sheets, `.sdscene` scenes** — these are
+  authored, not derived from a raw file. A skybox references a *texture asset*, a sprite sheet needs
+  region definitions. Generating them would mean inventing content, not transcribing metadata, and
+  the toolkit already exposes code APIs for all of these.
+
+### 9.8 Cross-cutting work that unlocks the whole roadmap
+
+Two things are worth doing *before* the second asset type, while there is still only one:
+
+1. **Extract the per-type knowledge into a table** — extension list, kind string, asset extension,
+   tag, serialized version, writer — so `AssetGenerator` loops over registered types instead of
+   hardcoding `SoundAssetTemplate`. Cheap now, tedious after three types have grown their own paths.
+2. **Decide how per-type options reach the tool.** Today they are individual MSBuild properties
+   (`StrideToolkitSoundSampleRate`, …). Four types × five options is not tenable; a small
+   `.json`/`.props` options file next to the project, or an MSBuild item group with metadata, scales
+   better. Worth settling before texture adds its `Type` selection and font adds its `FontType`.
