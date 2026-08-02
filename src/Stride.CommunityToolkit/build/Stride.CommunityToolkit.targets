@@ -1,0 +1,52 @@
+<Project>
+
+    <!--
+        Generates Stride asset files (.sdsnd) for raw files dropped into Resources/ and registers them
+        in the project's .sdpkg, so a code-only project can load them with Content.Load<Sound>("name")
+        without Game Studio.
+
+        OPT-IN. Set <StrideToolkitGenerateAssets>true</StrideToolkitGenerateAssets> in your project.
+
+        It is off by default because this package is also referenced by regular Game Studio projects,
+        whose Resources/ folder is managed by the editor. The generator has guards against touching
+        already-imported files, but a project that Game Studio owns should not have its .sdpkg edited
+        by a build step nobody asked for.
+
+        The generator never overwrites an existing asset file and never deletes anything.
+    -->
+
+    <PropertyGroup>
+        <StrideToolkitGenerateAssets Condition="'$(StrideToolkitGenerateAssets)' == ''">false</StrideToolkitGenerateAssets>
+        <StrideToolkitAssetsFolder Condition="'$(StrideToolkitAssetsFolder)' == ''">Assets</StrideToolkitAssetsFolder>
+        <StrideToolkitResourcesFolder Condition="'$(StrideToolkitResourcesFolder)' == ''">Resources</StrideToolkitResourcesFolder>
+        <StrideToolkitAssetGeneratorPath Condition="'$(StrideToolkitAssetGeneratorPath)' == ''">$(MSBuildThisFileDirectory)..\..\tools\net10.0\Stride.CommunityToolkit.AssetGenerator.dll</StrideToolkitAssetGeneratorPath>
+    </PropertyGroup>
+
+    <!--
+        Runs before StrideWriteAssetBuildManifest so the .sdpkg and the generated assets exist by the
+        time the manifest is written and the asset compiler scans the asset folders. PrepareForBuild is
+        listed as well so the target still runs in projects that do not import the Stride asset targets.
+    -->
+    <Target Name="StrideToolkitGenerateAssetFiles"
+            BeforeTargets="StrideWriteAssetBuildManifest;PrepareForBuild"
+            Condition="'$(StrideToolkitGenerateAssets)' == 'true' AND Exists('$(MSBuildProjectDirectory)\$(StrideToolkitResourcesFolder)')">
+
+        <PropertyGroup>
+            <_StrideToolkitAssetGeneratorArgs>--project-dir "$(MSBuildProjectDirectory)" --project-name "$(MSBuildProjectName)" --assets-folder "$(StrideToolkitAssetsFolder)" --resources-folder "$(StrideToolkitResourcesFolder)"</_StrideToolkitAssetGeneratorArgs>
+            <_StrideToolkitAssetGeneratorArgs Condition="'$(StrideToolkitSoundSampleRate)' != ''">$(_StrideToolkitAssetGeneratorArgs) --sample-rate $(StrideToolkitSoundSampleRate)</_StrideToolkitAssetGeneratorArgs>
+            <_StrideToolkitAssetGeneratorArgs Condition="'$(StrideToolkitSoundCompressionRatio)' != ''">$(_StrideToolkitAssetGeneratorArgs) --compression-ratio $(StrideToolkitSoundCompressionRatio)</_StrideToolkitAssetGeneratorArgs>
+            <_StrideToolkitAssetGeneratorArgs Condition="'$(StrideToolkitSoundSpatialized)' == 'true'">$(_StrideToolkitAssetGeneratorArgs) --spatialized</_StrideToolkitAssetGeneratorArgs>
+            <_StrideToolkitAssetGeneratorArgs Condition="'$(StrideToolkitSoundStreamFromDisk)' == 'true'">$(_StrideToolkitAssetGeneratorArgs) --stream-from-disk</_StrideToolkitAssetGeneratorArgs>
+        </PropertyGroup>
+
+        <Warning Condition="!Exists('$(StrideToolkitAssetGeneratorPath)')"
+                 Code="STCT0005"
+                 Text="StrideToolkitGenerateAssets is enabled but the asset generator was not found at '$(StrideToolkitAssetGeneratorPath)'. Set StrideToolkitAssetGeneratorPath to the tool's location." />
+
+        <Exec Condition="Exists('$(StrideToolkitAssetGeneratorPath)')"
+              Command="dotnet &quot;$(StrideToolkitAssetGeneratorPath)&quot; $(_StrideToolkitAssetGeneratorArgs)"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              StandardOutputImportance="normal" />
+    </Target>
+
+</Project>

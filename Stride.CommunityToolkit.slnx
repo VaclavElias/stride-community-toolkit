@@ -82,6 +82,7 @@
   <Project Path="docs/Stride.CommunityToolkit.Docs.csproj">
     <Build Solution="Debug|*" Project="false" />
   </Project>
+  <Project Path="src/Stride.CommunityToolkit.AssetGenerator/Stride.CommunityToolkit.AssetGenerator.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Bepu/Stride.CommunityToolkit.Bepu.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Bullet/Stride.CommunityToolkit.Bullet.csproj" />
   <Project Path="src/Stride.CommunityToolkit.DebugShapes/Stride.CommunityToolkit.DebugShapes.csproj" />

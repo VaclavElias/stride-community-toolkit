@@ -9,6 +9,8 @@
   items:
   - name: Create Project
     href: code-only/create-project.md
+  - name: Assets from Resources
+    href: code-only/assets-from-resources.md
   - name: C# Basic Examples
     href: code-only/examples/basic-examples.md
     items:
