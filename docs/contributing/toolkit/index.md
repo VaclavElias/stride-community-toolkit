@@ -14,6 +14,11 @@ Before you start working on an issue:
 - Ensure no one else is actively working on the same item.
 - Outline your approach and gather feedback to ensure the design fits the project.
 
+## Building the toolkit
+
+See [Building the Toolkit](building.md) for how the solutions and solution filters are laid out, why
+the examples build is configured the way it is, and how to produce local NuGet packages for testing.
+
 ## Coding style
 
 Use Stride's `.editorconfig` when making changes.

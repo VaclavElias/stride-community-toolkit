@@ -16,6 +16,8 @@ items:
   expanded: false
   href: toolkit/index.md
   items:
+  - name: Building the toolkit
+    href: toolkit/building.md
   - name: New library project
     href: toolkit/library-project.md
 - name: 💡Contribute to the examples
