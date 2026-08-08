@@ -145,6 +145,56 @@ will not build it alongside the other projects. Run it from the command line ins
 dotnet run --file examples/code-only/Example01_Basic3DScene_FileBasedApp/Program.cs
 ```
 
+## Debugging an example
+
+Examples run until their window is closed, so a plain `dotnet run` cannot be waited on and read back.
+Build first, then launch the executable with redirected output, wait, terminate, and read the log:
+
+```powershell
+$out = "$env:TEMP\example-run.txt"
+dotnet build examples\code-only\Example02_GiveMeACube\Example02_GiveMeACube.csproj -v q --nologo
+$exe = "examples\code-only\Example02_GiveMeACube\bin\Debug\net10.0\Example02_GiveMeACube.exe"
+$process = Start-Process $exe -PassThru -RedirectStandardOutput $out -WorkingDirectory (Split-Path $exe)
+Start-Sleep -Seconds 12
+if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+Get-Content $out | Select-String "DIAG"
+```
+
+### Where diagnostics actually appear
+
+This catches people out, because the wrong choice produces no output at all rather than an error:
+
+| Location | Use |
+|---|---|
+| Top-level statements, `game.Run(start:/update:)` callbacks | `Console.WriteLine` reaches the redirected stream |
+| Inside a `SyncScript` / `AsyncScript` / `StartupScript` | `Console.WriteLine` does **not** reach it — use `Log.Info`, `Log.Warning` |
+| Inside a render feature or game system | `GlobalLogger.GetLogger("Name")` |
+
+Stride writes each line to both the console and the redirected stream, so captured output shows
+everything twice. Expect the duplicates, or pipe through `Select-Object -Unique`.
+
+### Keeping per-frame logging readable
+
+Gate on a frame counter, but always include the first few frames:
+
+```csharp
+_frames++;
+if (_frames > 3 && _frames % 120 != 0) return;
+
+Log.Warning($"DIAG position={Entity.Transform.Position}");
+```
+
+Gating on `% N` alone can produce no output at all when the run is short or the frame rate is low,
+which is easily misread as "the code never ran". Prefixing lines with a token such as `DIAG` makes
+them easy to separate from Stride's own logging.
+
+### Build warnings are a debugging tool
+
+Real defects hide in the warning list. A Stride 4.4 regression that silently broke the ImGui.NET
+integration was found only through a single `warning CS9193` among 66 warnings. Filter with
+`Select-String ": error|warning CS"`; filtering by project path also matches unrelated `NU1903`
+NuGet advisories.
+
 > [!TIP]
 > Reach out to maintainers anytime, process improvements, clarifications, or code reviews, we're
 > happy to help!

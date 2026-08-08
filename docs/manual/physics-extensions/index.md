@@ -1,5 +1,10 @@
 Physics extensions provide..  
 
+> [!TIP]
+> New to Bepu, or seeing a mesh that moves without colliding? Read
+> [Bepu: Who Owns the Transform?](bepu-transform-ownership.md) first. It covers the one-way
+> physics-to-transform sync and the silent failures that follow from it.
+
 **Bepu Extensions**
 
 - [`Add3DGround()`](xref:Stride.CommunityToolkit.Bepu.GameExtensions.Add3DGround(Stride.Engine.Game,System.String,System.Nullable{Stride.Core.Mathematics.Vector2},System.Boolean))
