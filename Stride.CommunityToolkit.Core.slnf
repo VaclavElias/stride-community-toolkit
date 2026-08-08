@@ -1,0 +1,20 @@
+{
+  "solution": {
+    "path": "Stride.CommunityToolkit.slnx",
+    "projects": [
+      "src/Stride.CommunityToolkit/Stride.CommunityToolkit.csproj",
+      "src/Stride.CommunityToolkit.Bepu/Stride.CommunityToolkit.Bepu.csproj",
+      "src/Stride.CommunityToolkit.Bullet/Stride.CommunityToolkit.Bullet.csproj",
+      "src/Stride.CommunityToolkit.DebugShapes/Stride.CommunityToolkit.DebugShapes.csproj",
+      "src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj",
+      "src/Stride.CommunityToolkit.ImGuiNet/Stride.CommunityToolkit.ImGuiNet.csproj",
+      "src/Stride.CommunityToolkit.Linux/Stride.CommunityToolkit.Linux.csproj",
+      "src/Stride.CommunityToolkit.Skyboxes/Stride.CommunityToolkit.Skyboxes.csproj",
+      "src/Stride.CommunityToolkit.Windows/Stride.CommunityToolkit.Windows.csproj",
+      "tests/Stride.CommunityToolkit.Tests/Stride.CommunityToolkit.Tests.csproj",
+      "tools/Stride.CommunityToolkit.Examples.MetadataGenerator/Stride.CommunityToolkit.Examples.MetadataGenerator.csproj",
+      "tools/Stride.CommunityToolkit.Examples/Stride.CommunityToolkit.Examples.csproj",
+      "tools/Stride.CommunityToolkit.Examples.Launcher/Stride.CommunityToolkit.Examples.Launcher.csproj"
+    ]
+  }
+}
