@@ -461,7 +461,7 @@
       "Creating and initializing Jitter2 constraints (PointOnPlane, HingeAngle)",
       "Locking translation and rotation axes with world.CreateConstraint",
       "Synchronizing physics bodies with visual entities",
-      "Manual physics update loop"
+      "Fixed-timestep physics update loop, decoupled from the render frame rate"
     ],
     "related": [
       "Example19_Jitter2Physics",
