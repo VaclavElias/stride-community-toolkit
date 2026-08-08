@@ -1,0 +1,42 @@
+<Project>
+  <!--
+    MSBuild imports only the NEAREST Directory.Build.props, so the repository-root one must be
+    imported explicitly or its settings (TargetFramework, StrideVersion, ...) would be lost here.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!--
+      Build examples for the host platform only.
+
+      Stride pulls in Silk.NET native runtimes for every RID it supports. In a default example build
+      that is ~355 MB of "runtimes/" per project, of which ~239 MB is Android and ~38 MB is iOS/tvOS -
+      none of it reachable from a desktop example. Multiplied across the example projects that is
+      tens of GB of pure copy cost on every clean build.
+
+      The RID is derived from the host OS and architecture rather than hard-coded to Windows, so
+      contributors and CI on Linux or macOS still get a working build. NETCoreSdkPortableRuntimeIdentifier
+      would be the obvious source, but the SDK sets it *after* Directory.Build.props is evaluated,
+      so it is still empty here - hence the explicit IsOSPlatform checks.
+
+      SelfContained is pinned to false so setting a RID does not turn these into self-contained
+      publishes; they stay framework-dependent, exactly as before.
+
+      AppendRuntimeIdentifierToOutputPath is disabled so output stays at bin/<Config>/net10.0/
+      instead of gaining a win-x64/ segment, keeping every documented path and launcher command valid.
+    -->
+    <_HostArchitecture>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</_HostArchitecture>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))">win-$(_HostArchitecture)</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))">linux-$(_HostArchitecture)</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX'))">osx-$(_HostArchitecture)</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+
+    <!--
+      Referenced packages ship ~54 MB of XML documentation per example project. IntelliSense reads
+      those from the package/ref path rather than from bin, so dropping them from the output costs
+      nothing. .pdb is deliberately kept so stepping into Stride still works.
+    -->
+    <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
+  </PropertyGroup>
+</Project>
