@@ -121,12 +121,35 @@ packages resolve.
 The examples reference the libraries by `ProjectReference`, which always wins over a package. To test
 an example against the local packages instead:
 
-1. Copy `bin/packages/NuGet.config` into that example's folder. NuGet discovers configuration by
-   walking up from the project directory, so it applies to that example only.
+1. **Copy `bin/packages/NuGet.config` into that example's folder first**, before touching the project
+   file. NuGet discovers configuration by walking up from the project directory, so it applies to
+   that example only. The order matters — see the warning below.
 2. **Replace** the toolkit `ProjectReference` entries with `PackageReference` entries. Keeping both
-   pulls the same assemblies in twice.
+   pulls the same assemblies in twice, and the `ProjectReference` wins, so the package is never
+   actually exercised.
 3. Revert both changes when finished. The copied file contains an absolute, machine-specific path and
    must not be committed.
+
+> [!WARNING]
+> **Add the `NuGet.config` before the package references, or restore explicitly afterwards.**
+>
+> A `PackageReference` to `1.0.0-dev` means *at least* `1.0.0-dev`. Prerelease labels are compared
+> alphabetically, and `dev` sorts before `preview`, so `1.0.0-preview.1` satisfies the constraint. If
+> the local feed is not configured yet, NuGet does not fail — it quietly resolves an **older
+> published preview** from nuget.org instead.
+>
+> Worse, adding the `NuGet.config` afterwards does not fix it on its own. The wrong resolution is
+> already recorded in `obj/project.assets.json`, and a plain `dotnet build` keeps using it, so the
+> build continues to fail against the wrong assemblies. Force a restore to recover:
+>
+> ```bash
+> dotnet restore examples/code-only/<Example>/<Example>.csproj
+> ```
+>
+> Deleting the example's `obj` folder has the same effect. This is also why the base package matters:
+> the mapping in the generated config includes both `Stride.CommunityToolkit` and
+> `Stride.CommunityToolkit.*`, because the `.*` pattern alone does not match the base package name and
+> would leave it resolving from nuget.org.
 
 ## Running the examples
 
