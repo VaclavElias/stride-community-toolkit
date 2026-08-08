@@ -18,7 +18,7 @@ These repository instructions guide GitHub Copilot (and similar AI assistants) t
 
 ## Project overview
 
-- A collection of C# helpers and extensions for the [Stride Game Engine](https://www.stride3d.net/), primarily targeting **.NET 10** (some projects may also multi-target newer frameworks).
+- A collection of C# helpers and extensions for the [Stride Game Engine](https://www.stride3d.net/), targeting **.NET 10**. Every project single-targets `net10.0` via the root `Directory.Build.props`; nothing multi-targets today.
 - Provides library projects, code-only examples, snippet examples, and documentation to simplify Stride game development.
 - F# and VB.NET examples are showcase-only (not the primary focus).
 - Uses the latest Stride version with nullable reference types enabled.
@@ -46,10 +46,42 @@ These repository instructions guide GitHub Copilot (and similar AI assistants) t
   - **Stride.CommunityToolkit.Skyboxes**: Skybox utilities
   - **Stride.CommunityToolkit.Windows**: Windows-specific features
 - `examples/`: Code-only and snippet example projects (C#, F#, VB)
-- `benchmarks/`: BenchmarkDotNet-based performance tests (primary suite)
+- `benchmarks/`: BenchmarkDotNet-based performance tests
 - `tests/`: Unit and regression test projects (xUnit, targeting net10.0)
+- `tools/`: Supporting tools, not shipped as packages
+  - **Stride.CommunityToolkit.Examples**: Console example launcher
+  - **Stride.CommunityToolkit.Examples.Launcher**: Avalonia example launcher
+  - **Stride.CommunityToolkit.Examples.MetadataGenerator**: Generates `examples-manifest.json` from example metadata
+- `build/`: Repository build scripts (e.g. `pack-local.cs` for local dev NuGet packages)
 - `docs/`: DocFX sources (manuals, API reference, contributing)
 - `.github/`: GitHub workflows, release metadata, automation, and this instruction file
+
+Solutions: `Stride.CommunityToolkit.slnx` contains everything; `Stride.CommunityToolkit.Core.slnf`
+is a solution filter loading only libraries, tests and tools, because the 56 example projects slow
+IDE load noticeably. See [Building the Toolkit](../docs/contributing/toolkit/building.md).
+
+## Build configuration lives outside the .csproj files
+
+> [!IMPORTANT]
+> Project files are deliberately sparse. If a `.csproj` appears to be missing `TargetFramework`,
+> `Nullable`, `ImplicitUsings`, a Stride version, or package metadata, that is not an oversight —
+> it is supplied by one of the files below. Check these before "fixing" a project file, and prefer
+> changing the shared file over adding a local override.
+
+| File | Applies to | Supplies |
+|---|---|---|
+| `Directory.Build.props` (root) | Every project in the repository | `TargetFramework` (net10.0), `ImplicitUsings`, `Nullable`, `StrideVersion` |
+| `src/CommonSettings.props` | Library projects, imported explicitly | Package metadata: version, licence, authors, icon, readme, SourceLink |
+| `examples/Directory.Build.props` | Example projects only | Host-only `RuntimeIdentifier`, `SelfContained`, output-path settings that keep the example build small |
+| `examples/Directory.Build.targets` | Example projects only | Strips package XML documentation from build output |
+
+Two rules when editing these:
+
+- **MSBuild imports only the *nearest* `Directory.Build.props` / `.targets`.** A nested file must
+  explicitly `Import` the one above it, or the parent's settings are silently lost. The files under
+  `examples/` do this; preserve it.
+- **`StrideVersion` is the single place the Stride version is set.** Reference it as
+  `Version="$(StrideVersion)"` in a `PackageReference` rather than hard-coding a version.
 
 ## Stride engine context (quick reminders)
 
@@ -152,22 +184,19 @@ void Start(Scene rootScene)
 - Refactor legacy “static manager” patterns toward extension-based or instance-centric designs.
 - Mark unclear logic or magic numbers with `// TODO:` plus an issue link.
 
-## Common code-only example pattern
+## Adding a new example
 
-```csharp
-using var game = new Game();
-
-game.Run(start: (Scene rootScene) =>
-{
-    game.SetupBase3DScene();
-    game.AddSkybox();
-
-    var entity = game.Create3DPrimitive(PrimitiveModelType.Sphere)
-                     .AddRigidBody(RigidBodyTypes.Dynamic);
-    entity.Transform.Position = new Vector3(0, 10, 0);
-    entity.Scene = rootScene;
-});
-```
+- Create a folder under `examples/code-only/` named `Example<NN>_<Name>`, optionally with a
+  `_<Variant>` suffix. Existing variants each get their own folder (`Example01_Basic3DScene_Primitives`,
+  `_MeshLine`, `_FSharp`), not sibling files in a shared folder.
+- Add the project to `Stride.CommunityToolkit.slnx`.
+- End `Program.cs` with an `---example-metadata` YAML block inside a block comment. Copy the shape
+  from a neighbouring example; `Stride.CommunityToolkit.Examples.MetadataGenerator` parses it into
+  `examples-manifest.json`.
+  - **Quote any value containing `#` or `:`.** `#` starts a YAML comment, so
+    `- Uses #:package` is silently truncated to `- Uses` with no error. This is why entries such as
+    `"Using helpers: SetupBase3DScene"` are quoted.
+- Examples reference toolkit libraries by `ProjectReference`, not `PackageReference`.
 
 ## Running & debugging examples (AI assistants)
 
@@ -211,12 +240,17 @@ Useful for confirming a visual change, and the resulting PNG can be read back di
 
 ```powershell
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-$bitmap = New-Object System.Drawing.Bitmap 1200, 900
+$screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
+$bitmap = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
 $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-$graphics.CopyFromScreen(0, 0, 0, 0, $bitmap.Size)
+$graphics.CopyFromScreen($screen.Left, $screen.Top, 0, 0, $bitmap.Size)
 $bitmap.Save("$env:TEMP\shot.png", [System.Drawing.Imaging.ImageFormat]::Png)
 $graphics.Dispose(); $bitmap.Dispose()
 ```
+
+`VirtualScreen` is used rather than a fixed size so the capture covers all monitors. A hard-coded
+region anchored at `0,0` silently misses the window on a multi-monitor setup, which reads as "the
+app never rendered".
 
 - Prefer positioning the window from the example itself (`game.Window.Position`, `game.Window.AllowUserResizing`) over forcing it with a `SetWindowPos` P/Invoke. Forcing a resize leaves Stride's `Window.ClientBounds` out of sync with the captured region, which can make correctly rendered UI look as though it is missing.
 - Capture two screenshots a few seconds apart to confirm that animation or physics is actually progressing.
