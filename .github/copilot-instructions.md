@@ -184,6 +184,31 @@ void Start(Scene rootScene)
 - Refactor legacy “static manager” patterns toward extension-based or instance-centric designs.
 - Mark unclear logic or magic numbers with `// TODO:` plus an issue link.
 
+## Working across into the Stride engine repository
+
+Some toolkit limitations are really engine limitations, and a few toolkit features need a small
+change in Stride to be possible at all.
+
+- **Name the real cause.** When a problem traces to Stride rather than the toolkit, say so plainly
+  instead of quietly working around it. A workaround that conceals an engine bug is more expensive
+  later than the bug.
+- **A minimal fix is welcome.** If a Stride source clone is available locally, locating the cause and
+  proposing a surgical fix is in scope and encouraged. Example from practice: .NET file-based apps
+  could not build a Stride project because `Stride.AssetCompiler.targets` concatenated `$(ProjectDir)`
+  with `$(IntermediateOutputPath)`, which is relative for a normal project but absolute for a
+  file-based app. Three lines changed to `[System.IO.Path]::Combine(...)` fixed it.
+- **Prove the fix is non-breaking.** For that change, the relative-path case was verified to produce a
+  byte-identical result, so existing projects were provably unaffected. Do this before proposing
+  anything that touches shared build logic.
+- **Stay shallow unless asked.** Propose the fix, show the diff, and stop. Do not refactor
+  surrounding engine code, chase adjacent issues, or begin a broader cleanup without being asked.
+  Depth into the engine is opt-in, on request.
+- **Leave it for the maintainer.** Make the change on a branch and leave it uncommitted so it can be
+  reviewed and tested against a real engine build. Do not commit or push to the engine repository.
+- **Mention, do not silently fix.** Unclear or missing XML documentation, typos, and suspicious
+  patterns noticed in passing are worth reporting. Fixing them as a side effect of unrelated work
+  makes the diff harder to review and is out of scope unless requested.
+
 ## Adding a new example
 
 - Create a folder under `examples/code-only/` named `Example<NN>_<Name>`, optionally with a
