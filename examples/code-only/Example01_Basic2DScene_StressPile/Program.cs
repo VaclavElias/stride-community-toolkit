@@ -23,6 +23,7 @@ using Stride.Rendering;
 
 Vector3 wallHeight = new(1, 65, 1);
 const float WallWidth = 100;
+const float SpawnHeight = 150;
 const float ColumnWidth = WallWidth - 30;
 
 // One Model per shape, built on first use and kept. Nine of them cost a few hundred KB, and it makes
@@ -236,7 +237,7 @@ void SpawnBatch(int count)
                 // Refit2WithCacheOptimization - a millimetre of noise is enough to avoid it.
                 Spawn(new Vector3(
                     (j - perRow / 2f) * 1.2f + Jitter(),
-                    30 + i * 1.2f + Jitter(),
+                    SpawnHeight + i * 1.2f + Jitter(),
                     0));
             }
         }
@@ -247,7 +248,7 @@ void SpawnBatch(int count)
         {
             Spawn(new Vector3(
                 (random.NextSingle() - 0.5f) * (WallWidth - 10),
-                30 + random.NextSingle() * (count / 20f),
+                SpawnHeight + random.NextSingle() * (count / 20f),
                 0));
         }
     }
