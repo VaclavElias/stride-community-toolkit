@@ -102,9 +102,9 @@ language: csharp                   # csharp | fsharp | vb. Grouping dimension + 
 
 # --- content --------------------------------------------------------------
 description:
-  en: |
+  en: |-                           # `|-` not `|`: strip the trailing newline
     ...
-  cs: |
+  cs: |-
     ...
 concepts:                          # Becomes the "The Program.cs file shows how to:" bullet list
   - Writing a custom RootRenderFeature
@@ -126,6 +126,11 @@ enabled: true
 created: 2025-08-07
 ---
 ```
+
+**`description` uses `|-`, not `|`.** YAML's plain `|` (clip) keeps one newline at the end of a
+block scalar, which reaches the manifest as a literal `\n` at the tail of the JSON string and has to
+be trimmed by every consumer. `|-` (strip) drops it. Newlines *inside* the block are intentional and
+survive either way — this is only about the last one.
 
 **Dropped from the previous draft:**
 
@@ -242,6 +247,10 @@ Checks:
   warning — the value was just truncated. The existing `"Using helpers: SetupBase3DScene"` entries are
   already quoted for the same class of reason, so the convention exists but is undocumented. Reject a
   value that looks truncated rather than accepting it silently.
+- **Trailing newline in `description`.** A `description.en` / `description.cs` value that ends in
+  `\n` means the block scalar was written as `|` rather than `|-` (§2.2). It is invisible in review
+  and only shows up at the consumer, so normalise it during parsing rather than passing it through —
+  every localised description in the current manifest carries one.
 
 ### Step 1.3 — Backfill frontmatter
 
