@@ -634,7 +634,7 @@ the right lever — but they carry the identical URL-stability problem, so the a
 ## 8. Not part of this plan
 
 Related work completed alongside it, documented in
-[`docs/contributing/toolkit/building.md`](../../../docs/contributing/toolkit/building.md) rather than
+[`docs/contributing/toolkit/building.md`](../../docs/contributing/toolkit/building.md) rather than
 here: the examples build I/O fix (476 MB → 90 MB per project), the `Core.slnf` solution filter, and
 `build/pack-local.cs` for local dev NuGet packages. None of it changes the metadata schema; it is
 listed only so the docs-generation work does not rediscover it.

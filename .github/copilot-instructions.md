@@ -55,7 +55,7 @@ These repository instructions guide GitHub Copilot (and similar AI assistants) t
 - `build/`: Repository build scripts (e.g. `pack-local.cs` for local dev NuGet packages)
 - `docs/`: DocFX sources (manuals, API reference, contributing)
 - `.github/`: GitHub workflows, release metadata, automation, and this instruction file
-- `ARCHITECTURE.md` (root): running backlog of API-design observations — see below
+- `notes/ARCHITECTURE.md`: running backlog of API-design observations — see below
 
 Solutions: `Stride.CommunityToolkit.slnx` contains everything; `Stride.CommunityToolkit.Core.slnf`
 is a solution filter loading only libraries, tests and tools, because the 56 example projects slow
@@ -253,9 +253,9 @@ change in Stride to be possible at all.
   patterns noticed in passing are worth reporting. Fixing them as a side effect of unrelated work
   makes the diff harder to review and is out of scope unless requested.
 
-## Architecture notes (`ARCHITECTURE.md`)
+## Architecture notes (`notes/ARCHITECTURE.md`)
 
-[`ARCHITECTURE.md`](../ARCHITECTURE.md) in the repository root collects API-design observations: the
+[`notes/ARCHITECTURE.md`](../notes/ARCHITECTURE.md) collects API-design observations: the
 places where the *shape* of an API, rather than a bug in it, is what trips people up. It is a backlog
 of observations, not a decision record — nothing in it is agreed or scheduled.
 

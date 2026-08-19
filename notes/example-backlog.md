@@ -3,14 +3,14 @@
 Ideas for new examples and the state of each one, covering both `code-only/` and `snippets/`.
 
 This is the planning side of the examples. What an example *is* - levels, categories, complexity
-scoring and the metadata block - is documented in [code-only/README.md](code-only/README.md), and the
+scoring and the metadata block - is documented in [code-only/README.md](../examples/code-only/README.md), and the
 contribution steps are in [the contributing guide](../docs/contributing/examples/index.md). Nothing
 here duplicates those; this file only tracks what has been suggested, what is being built, and what
 was decided against.
 
 > [!IMPORTANT]
 > **Bepu examples have their own build plan:**
-> [`code-only/PLAN_Bepu_Examples.md`](code-only/PLAN_Bepu_Examples.md). That document owns the
+> [`notes/plans/bepu-examples.md`](plans/bepu-examples.md). That document owns the
 > committed batch - nine specified examples with settled naming decisions, per-example specs, a build
 > order, and the findings from building them. This file does not duplicate it: Bepu rows below either
 > point at it or are ideas it has not claimed. **Check it before starting any Bepu example**, and
@@ -85,12 +85,12 @@ What has already been mined for ideas, so it is not searched twice.
 
 | Idea | Target level | Status | Source | Notes |
 |---|---|---|---|---|
-| Box2D contact and sensor events | Beginners | Idea | in-repo | Listed as high priority in [Example18 IMPROVEMENTS.md](code-only/Example18_Box2DPhysics/IMPROVEMENTS.md). Would need the Box2D wrapper extraction below first. |
-| A tour of the collider shapes | Getting Started | Idea | BepuSample `Colliders.sdscene` | One of each primitive collider dropped side by side. **Not claimed by the Bepu plan** - its source scene is one of those that crash on launch (see that plan's appendix), so it was never harvested. Building it procedurally sidesteps the crash entirely. Would also be the natural place to demonstrate that `Size` means a full extent for box-like shapes and a *radius* for round ones ([ARCHITECTURE.md](../ARCHITECTURE.md) item 1). |
+| Box2D contact and sensor events | Beginners | Idea | in-repo | Listed as high priority in [Example18 IMPROVEMENTS.md](../examples/code-only/Example18_Box2DPhysics/IMPROVEMENTS.md). Would need the Box2D wrapper extraction below first. |
+| A tour of the collider shapes | Getting Started | Idea | BepuSample `Colliders.sdscene` | One of each primitive collider dropped side by side. **Not claimed by the Bepu plan** - its source scene is one of those that crash on launch (see that plan's appendix), so it was never harvested. Building it procedurally sidesteps the crash entirely. Would also be the natural place to demonstrate that `Size` means a full extent for box-like shapes and a *radius* for round ones ([ARCHITECTURE.md](ARCHITECTURE.md) item 1). |
 | Convex hull vs mesh collider | Beginners | Agreed | BepuSample `Convex And Mesh Collider.sdscene` | Claimed by the Bepu plan as `Example25_MeshColliders` (Tier 2). Its source scene also crashes, so expect to tune by eye. |
 | Material properties: friction, restitution, damping | Beginners | Agreed | BepuSample `Material Properties.sdscene`; bepuphysics2 `FrictionDemo.cs`, `BouncinessDemo.cs` | Claimed by the Bepu plan as `Example24_PhysicsMaterials` (Tier 2), which rates it the highest value-per-line on its list. |
-| Bepu constraints - servo vs motor vs limit | Beginners | **Done** | BepuSample `Constraint.sdscene`, `Cube Mixer.sdscene` | Built as [`Example15_Constraint_Motors`](code-only/Example15_Constraint_Motors). Findings written up in [bepu-constraints.md](../docs/manual/physics-extensions/bepu-constraints.md). |
-| A rope from a chain of constraints | Intermediate | **Done** | bepuphysics2 `RopeStabilityDemo.cs` (primary); BepuSample `Ropes.sdscene` | Built as [`Example15_Constraint_Rope`](code-only/Example15_Constraint_Rope), following the upstream demo rather than the Stride sample - `DistanceLimit` with zero lever arms, not ball sockets plus swing limits. |
+| Bepu constraints - servo vs motor vs limit | Beginners | **Done** | BepuSample `Constraint.sdscene`, `Cube Mixer.sdscene` | Built as [`Example15_Constraint_Motors`](../examples/code-only/Example15_Constraint_Motors). Findings written up in [bepu-constraints.md](../docs/manual/physics-extensions/bepu-constraints.md). |
+| A rope from a chain of constraints | Intermediate | **Done** | bepuphysics2 `RopeStabilityDemo.cs` (primary); BepuSample `Ropes.sdscene` | Built as [`Example15_Constraint_Rope`](../examples/code-only/Example15_Constraint_Rope), following the upstream demo rather than the Stride sample - `DistanceLimit` with zero lever arms, not ball sockets plus swing limits. |
 | Contact events - reacting to collisions | Beginners | Agreed | BepuSample `Components/Utils/CollisionComponent.cs`, `TriggerUsageComponent.cs` | Claimed by the Bepu plan as `Example16_TriggerZones` (Tier 2), which merges contact events and sensor volumes into one example - see also the Interaction row. |
 | Slow motion and time control | Beginners | Agreed | BepuSample `Components/Utils/TimeControlComponent.cs` | Claimed by the Bepu plan as `Example26_TimeControl` (Tier 2): `TimeScale`, `Enabled` for pause, and live `PoseGravity` changes. |
 | Soft bodies | Advanced | Idea | Bepu repo, `Stride.BepuPhysics.Soft` project, `S2.Softs.sdscene` | Confirmed ported: `sources/engine/Stride.BepuPhysics/Stride.BepuPhysics.Soft` exists in Stride, and has no example anywhere. Old repo is the only sample source - BepuSample dropped it. |
@@ -139,7 +139,7 @@ What has already been mined for ideas, so it is not searched twice.
 | Idea | Target level | Status | Source | Notes |
 |---|---|---|---|---|
 | Reset a body that falls out of bounds | Getting Started | Idea | PhysicsSample, `AutoResetRigidBody.cs` | Teleport a body back to its start once it drops below a threshold. Tiny, and a pattern every prototype needs. Bullet code, so port the idea rather than the script. |
-| Character controller | Intermediate | **Done** | in-repo | Already covered by [`Example20_BepuFirstPersonCharacter`](code-only/Example20_BepuFirstPersonCharacter), which drives Stride's `CharacterComponent` from a `FirstPersonControllerComponent` and its processor. The third-person camera row under Input is the remaining gap, not the controller itself. |
+| Character controller | Intermediate | **Done** | in-repo | Already covered by [`Example20_BepuFirstPersonCharacter`](../examples/code-only/Example20_BepuFirstPersonCharacter), which drives Stride's `CharacterComponent` from a `FirstPersonControllerComponent` and its processor. The third-person camera row under Input is the remaining gap, not the controller itself. |
 | Vehicle with wheels, engine and gears | Advanced | Idea | Bepu repo, `Components/Car/`, `Car/CarEngine.cs`, `CarEngineGear.cs`, `6.Cars.sdscene` | The largest item here. Good candidate for a composite example that merges constraints, input and camera work. |
 
 ### Performance
@@ -165,7 +165,7 @@ Not examples - toolkit API observations that came out of reading the sample proj
 so they are not lost; move them if a toolkit backlog is ever created.
 
 > [!NOTE]
-> A toolkit backlog now exists for one kind of observation: [`ARCHITECTURE.md`](../ARCHITECTURE.md)
+> A toolkit backlog now exists for one kind of observation: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 > in the repository root collects **API-design friction** — cases where the shape of an API, rather
 > than a bug in it, is what trips people up. Prefer it for that; the table below remains the home for
 > "this helper is missing" and "this helper is duplicated".
@@ -185,6 +185,6 @@ Work on the examples themselves rather than new examples.
 |---|---|---|---|
 | Document the `---example-metadata` block in the contributing guide | Idea | in-repo | [The guide](../docs/contributing/examples/index.md) only describes the `*.csproj` properties the console launcher reads - `ExampleTitle`, `ExampleOrder`, `ExampleEnabled`, `ExampleCategory` - and never mentions the YAML block. Someone following it end to end produces an example with no metadata block at all, which is the likely reason so few have one. |
 | Audit which example folders are missing an `---example-metadata` block, and add it | Idea | in-repo | 14 of 63 `code-only/` folders currently have one; see the snapshot above. Worth doing after the guide is fixed, so the gap stops growing. |
-| Decide whether the two metadata systems should converge | Agreed | in-repo | **Direction already settled** - Decision 6 of the [Bepu plan](code-only/PLAN_Bepu_Examples.md): new examples drop `ExampleTitle`/`ExampleOrder`/`ExampleEnabled`/`ExampleCategory` from the `.csproj` and treat the `---example-metadata` block as the single source of truth, which `Example19` and `Example21/22` already do. What is left is applying it to existing examples and pointing the launchers at the manifest (Phase 2 of the MetadataGenerator plan). |
-| Reconcile the category list | Idea | in-repo | `Scripts` is used by an example but is not one of the categories listed in `code-only/README.md`. Either document it or re-categorise the example. |
-| Extract the reusable Box2D wrapper into a library | Idea | in-repo | Scaffolding and goals are already written up in [README_PENDING_LIBRARY.md](code-only/Example18_Box2DPhysics/Box2DPhysics/README_PENDING_LIBRARY.md); the files are deliberately kept free of Stride types so the move is mechanical. |
+| Decide whether the two metadata systems should converge | Agreed | in-repo | **Direction already settled** - Decision 6 of the [Bepu plan](plans/bepu-examples.md): new examples drop `ExampleTitle`/`ExampleOrder`/`ExampleEnabled`/`ExampleCategory` from the `.csproj` and treat the `---example-metadata` block as the single source of truth, which `Example19` and `Example21/22` already do. What is left is applying it to existing examples and pointing the launchers at the manifest (Phase 2 of the MetadataGenerator plan). |
+| Reconcile the category list | Idea | in-repo | `Scripts` is used by an example but is not one of the categories listed in `examples/code-only/README.md`. Either document it or re-categorise the example. |
+| Extract the reusable Box2D wrapper into a library | Idea | in-repo | Scaffolding and goals are already written up in [README_PENDING_LIBRARY.md](../examples/code-only/Example18_Box2DPhysics/Box2DPhysics/README_PENDING_LIBRARY.md); the files are deliberately kept free of Stride types so the move is mechanical. |

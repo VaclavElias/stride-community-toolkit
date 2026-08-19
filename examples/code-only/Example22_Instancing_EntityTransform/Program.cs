@@ -375,7 +375,7 @@ void DrawOverlay()
     Print("sleep - watch their update cost fall to zero as the pile rests,");
     Print("while kind 1 keeps paying the same price for a scene that is not");
     Print("moving. Kind 4 stops uploading to the GPU as well.");
-    Print("See PLAN.md in this example's folder for how far this was taken.");
+    Print("See notes/plans/instancing-entity-transform.md for how far this was taken.");
 }
 
 /*

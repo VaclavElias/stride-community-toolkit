@@ -14,7 +14,7 @@ namespace Stride.CommunityToolkit.Benchmarks.Instancing;
 /// This measures the work done every frame for a master whose instances are moving: read each
 /// instance's world matrix, invert it, and merge the bounding box. It deliberately does not cover the
 /// sleep skip, which needs a Bepu simulation and is worth far more than any of this when it applies -
-/// see the in-game measurements in Example22's PLAN.md.
+/// see the in-game measurements in notes/plans/instancing-entity-transform.md.
 /// </para>
 /// <para>
 /// <see cref="Stock"/> reimplements <see cref="InstancingEntityTransform.Update"/>, whose registration

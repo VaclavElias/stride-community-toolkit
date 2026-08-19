@@ -16,8 +16,8 @@ them up into Decisions.
 | Document | Owns | Lifetime |
 |---|---|---|
 | **This plan** | The committed batch of nine Bepu examples: specs, naming decisions, build order, findings | Temporary — **retire into the docs once the batch is finished** |
-| [`examples/TODO.md`](../TODO.md) | Every example idea across the repository, with status and provenance | Outlives this plan |
-| [`ARCHITECTURE.md`](../../ARCHITECTURE.md) | API-design friction noticed while building | Ongoing |
+| [`notes/example-backlog.md`](../example-backlog.md) | Every example idea across the repository, with status and provenance | Outlives this plan |
+| [`ARCHITECTURE.md`](../ARCHITECTURE.md) | API-design friction noticed while building | Ongoing |
 | [`docs/manual/physics-extensions/`](../../docs/manual/physics-extensions/) | Engine behaviour worth teaching, symptom-first | Permanent |
 
 The backlog links here for anything Bepu, so keep the two consistent: when an example here is
@@ -77,7 +77,7 @@ Settled. No need to re-read unless you want to change one.
 16. **Findings go in the manual, not just in comments.** Non-obvious engine behaviour discovered
     while building an example belongs in `docs/manual/physics-extensions/`, in the symptom-first
     style of the existing pages, and linked from the section index. API-shape friction, as opposed to
-    engine behaviour, goes to [`ARCHITECTURE.md`](../../ARCHITECTURE.md) instead.
+    engine behaviour, goes to [`ARCHITECTURE.md`](../ARCHITECTURE.md) instead.
 17. **Port code, not scenes.** The playground's `.sdscene`/`.sdprefab`/compositor assets are never
     used; code-only examples build everything procedurally (`SetupBase3DScene`, `AddSkybox`,
     `Create3DPrimitive`). This also means the Colliders-scene crash (see
@@ -90,7 +90,7 @@ Settled. No need to re-read unless you want to change one.
 19. **`Size` on a primitive is not always a full extent.** Box-like shapes take full extents; round
     shapes take a *radius*. The generated mesh and generated collider agree, so this only bites when
     a collider is built by hand — which is exactly what setting mass requires. Recorded as item 1 of
-    [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
+    [`ARCHITECTURE.md`](../ARCHITECTURE.md).
 
 ---
 

@@ -42,7 +42,7 @@ New file `FastEntityTransformInstancing.cs` in this folder:
 - **`TimedInstancingEntityTransform : InstancingEntityTransform`** — stock behaviour + a
   `Stopwatch` around `Update()`, so the overlay can show stock vs fast timings side by side.
 
-`Program.cs` gains key **3** (drop cubes on the fast master) and overlay lines showing per-frame
+`Example22_Instancing_EntityTransform/Program.cs` gains key **3** (drop cubes on the fast master) and overlay lines showing per-frame
 update cost of both masters plus a "skipped (all asleep)" indicator.
 
 **How to verify visually:** drop 20k with SHIFT+1 (stock) vs SHIFT+3 (fast), let the pile settle,
