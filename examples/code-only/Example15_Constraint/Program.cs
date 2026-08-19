@@ -25,7 +25,7 @@ const string DraggableEntityName = "Draggable Sphere";
 const string ConnectedEntityName = "Connected Sphere";
 
 // Enhanced settings for better sliding
-const float CubeSpringDampingRation = 50; // Reduced from 100
+const float CubeSpringDampingRatio = 50; // Reduced from 100
 const float SpringFrequency = 20;         // Reduced from 40
 const float FrictionCoefficient = 0.1f;   // Reduced from 0.5f for smoother sliding
 const float ServoMaxForce = 500;          // Reduced from 1000 for softer constraints
@@ -521,7 +521,7 @@ void InitializeDebugOverlay()
     [
         new("GAME INSTRUCTIONS"),
         new("Click the golden sphere and drag to move it (Y-axis locked)"),
-        new("Hold Z to move up, X to move down the golded sphere", Color.Yellow),
+        new("Hold Z to move up, X to move down the golden sphere", Color.Yellow),
         new("Press R to reset the scene", Color.Yellow),
     ]);
 }
@@ -546,7 +546,7 @@ Entity CreateEntity(PrimitiveModelType type, string name, Color color, Vector3 p
 static BodyComponent SetupCubeBody(Entity cubeEntitySetA)
 {
     var cubeBodySetA = cubeEntitySetA.Get<BodyComponent>();
-    cubeBodySetA.SpringDampingRatio = CubeSpringDampingRation;
+    cubeBodySetA.SpringDampingRatio = CubeSpringDampingRatio;
     cubeBodySetA.SpringFrequency = SpringFrequency;
     cubeBodySetA.FrictionCoefficient = FrictionCoefficient;
     cubeBodySetA.CollisionLayer = CollisionLayer.Layer2;
