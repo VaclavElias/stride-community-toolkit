@@ -11,7 +11,7 @@ public class CameraRotationScript : SyncScript
     private const string GroundEntityName = "Ground";
     private float _rotationSpeed = 45f; // degrees per second
     private Vector3 _rotationCentre;
-    DebugOverlaySection? _instructionsPrinter;
+    DebugOverlaySection? _instructions;
 
     public override void Start()
     {
@@ -72,7 +72,7 @@ public class CameraRotationScript : SyncScript
         overlay.Position = DisplayPosition.BottomLeft;
 
         // Runs every frame the overlay is drawn, so the camera position readout stays live
-        _instructionsPrinter = overlay.AddSection(
+        _instructions = overlay.AddSection(
             "Game", () => GenerateInstructions(Entity.Transform.Position));
     }
 
