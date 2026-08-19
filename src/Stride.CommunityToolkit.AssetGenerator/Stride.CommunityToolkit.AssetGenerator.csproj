@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Stride.CommunityToolkit.AssetGenerator</RootNamespace>
+        <AssemblyName>Stride.CommunityToolkit.AssetGenerator</AssemblyName>
+        <IsPackable>false</IsPackable>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <!-- Invoked as `dotnet Stride.CommunityToolkit.AssetGenerator.dll`; no apphost needed. -->
+        <UseAppHost>true</UseAppHost>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    </PropertyGroup>
+
+</Project>

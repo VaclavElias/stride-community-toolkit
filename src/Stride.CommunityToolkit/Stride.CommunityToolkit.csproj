@@ -26,7 +26,42 @@
 
     <ItemGroup>
         <None Include="*.sdpkg" Pack="true" PackagePath="stride" />
+        <!-- buildTransitive so the targets are imported by direct and indirect consumers alike. -->
+        <None Include="build\Stride.CommunityToolkit.targets" Pack="true" PackagePath="buildTransitive\net10.0" />
     </ItemGroup>
+
+    <!--
+        Packs the asset generator console tool under tools/net10.0, where build\Stride.CommunityToolkit.targets
+        expects it. The tool is built on demand rather than through a ProjectReference so that a normal
+        build of this library does not depend on it.
+    -->
+    <PropertyGroup>
+        <StrideToolkitAssetGeneratorProject>..\Stride.CommunityToolkit.AssetGenerator\Stride.CommunityToolkit.AssetGenerator.csproj</StrideToolkitAssetGeneratorProject>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackStrideToolkitAssetGenerator</TargetsForTfmSpecificContentInPackage>
+    </PropertyGroup>
+
+    <Target Name="PackStrideToolkitAssetGenerator">
+        <MSBuild Projects="$(StrideToolkitAssetGeneratorProject)"
+                 Targets="Build"
+                 Properties="Configuration=$(Configuration)">
+            <Output TaskParameter="TargetOutputs" ItemName="_AssetGeneratorAssembly" />
+        </MSBuild>
+
+        <ItemGroup>
+            <_AssetGeneratorFile Include="%(_AssetGeneratorAssembly.RootDir)%(_AssetGeneratorAssembly.Directory)Stride.CommunityToolkit.AssetGenerator.dll" />
+            <_AssetGeneratorFile Include="%(_AssetGeneratorAssembly.RootDir)%(_AssetGeneratorAssembly.Directory)Stride.CommunityToolkit.AssetGenerator.runtimeconfig.json" />
+            <_AssetGeneratorFile Include="%(_AssetGeneratorAssembly.RootDir)%(_AssetGeneratorAssembly.Directory)Stride.CommunityToolkit.AssetGenerator.deps.json" />
+        </ItemGroup>
+
+        <Error Condition="'@(_AssetGeneratorFile)' == ''"
+               Text="The asset generator tool was not built; the package would ship build\Stride.CommunityToolkit.targets without the tool it invokes." />
+
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="@(_AssetGeneratorFile)">
+                <PackagePath>tools/net10.0</PackagePath>
+            </TfmSpecificPackageFile>
+        </ItemGroup>
+    </Target>
 
     <ItemGroup>
         <Compile Update="Engine\EntityExtensions.GetComponents.cs">

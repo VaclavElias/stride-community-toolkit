@@ -18,6 +18,7 @@ namespace Stride.CommunityToolkit.Renderers;
 /// </remarks>
 public class EntityTextRenderer : SceneRendererBase
 {
+    private const string DefaultFontPath = "/Stride.Engine/StrideDefaultFont";
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _font;
     private Scene? _scene;
