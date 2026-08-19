@@ -12,24 +12,51 @@ every 2D example, prompted by the spawn menu freezing on the default Polygon.
 
 ## 1. Finish PR stride3d/stride#3349
 
-Reviewers have been waiting since 11 Aug. The `OutOfPlaneInertiaScale` fix is already applied to the
-`bepu-2d` branch and builds clean; what remains is the review feedback.
+Reviewers have been waiting since 11 Aug. The code and docs work is done and unpushed in the working
+trees of the `stride` and `stride-docs` clones; what remains is the reply.
 
-- **Mechanical review fixes** — drop the invented "Stride's default scale" phrasing (2 places), drop
-  "simulated by Bepu's ordinary 3D solver", assign velocities unconditionally instead of
-  read-compare-write (2 places), mutate `inertia.InverseInertiaTensor.XX` directly rather than
-  copy-modify-assign, use `<para/>` instead of empty `///` lines, and restructure the
-  `SimulationUpdate` / `AfterSimulationUpdate` summaries to say what the method *is*.
-- **`ZTolerance` should throw** — reject non-finite and non-positive values instead of silently
-  reverting to the default; pair with `[DataMemberRange]` so Game Studio cannot produce a bad value.
-- **Delete the hull tuning block** — two of its three lines are no-ops against Stride's defaults, and
-  the third (`MaximumRecoveryVelocity`) was measured to make no difference to the runaway, 3/3. Put
-  that measurement in the reply, since removing it answers two reviewer objections at once.
-- **Split the docs by audience** — observable consequences (Z velocity is engine-managed, energy is
-  not conserved the way a native 2D solver would) belong in user docs; mechanism belongs in code
-  comments. The toolkit's copy of `Body2DComponent` needs the same treatment.
+Done, uncommitted, builds clean, all 6 engine and 13 toolkit `Body2D` tests pass:
+
+- ~~Mechanical review fixes~~ — "Stride's default scale" and "simulated by Bepu's ordinary 3D solver"
+  dropped, velocities written unconditionally through a single `ref` into `bodyRef.Velocity` (one
+  pair of array lookups instead of three), `ref var inverseInertia` instead of copy-modify-assign,
+  no empty `///` lines left, and both `ISimulationUpdate` summaries restructured to say what the
+  method *is* with the behaviour moved to `<remarks>`.
+- ~~`ZTolerance` should throw~~ — now `ArgumentOutOfRangeException` for non-finite and non-positive,
+  paired with `[DataMemberRange(0.0001, 4)]`. Both test suites were asserting the old silent-revert
+  behaviour and were rewritten; the toolkit copy got the same change, so deleting it later cannot
+  change behaviour under callers.
+- ~~Delete the hull tuning block~~ — gone from both copies, along with `HasConvexHull` and the three
+  `Hull*` constants. Nothing outside the two files referenced them. Only hull-collider bodies were
+  ever affected, so among the 2D shapes that is Triangle and Polygon, and among the 3D shapes the
+  stress pile uses it is Cone, Teapot, TriangularPrism and Torus — everything else went through an
+  analytic collider and never reached the block. **Needs a visual pass before pushing**, see below.
+- ~~Split the docs by audience~~ — class `<remarks>` now carries only what a user can observe
+  (Z is engine-managed, a tilt at attach time is frozen not reset, energy is not conserved the way a
+  native 2D solver would), mechanism moved to plain `//` comments. Same treatment applied to the
+  toolkit copy. New manual page `en/manual/physics/2d-bodies.md` in the `stride-docs` `bepu-2d`
+  branch, linked from `toc.yml`, `physics/index.md`, `rigid-bodies.md` and
+  `kinematic-rigid-bodies.md`, and it says outright that the component is still maturing and that a
+  solver-side constraint is being investigated.
+
+Still open:
+
 - **Reply to Eideren** — lead with the rank table (full tensor fine, all-zeroed fine, partly-zeroed
-  fails 3/3 at 20k), then answer the constraint question. He is waiting on this to choose a design.
+  fails 3/3 at 20k), then answer the constraint question. Position agreed: current approach as the
+  interim, his processor fallback (collect the components and apply the corrections right after
+  `ISimulationUpdate.SimulationUpdate`, in parallel) as the concrete next step, custom constraint as
+  a follow-up PR. Include the `MaximumRecoveryVelocity` measurement — it made no difference to the
+  runaway, 3/3 — since that is what justifies deleting the hull tuning block rather than retuning it.
+- **Eyeball the hull-collider examples without the tuning** — the two copies are now identical apart
+  from four unavoidable differences (licence header, namespace and the extra `using`, the paragraph
+  explaining why the copy exists, and the velocity block, since `BodyComponent.BodyReference` is
+  `internal` and unreachable from outside the engine assembly). That makes the toolkit the place to
+  test the engine change. Worth a look, in order: `Example01_Basic2DScene_StressPile` on
+  TriangularPrism at 10k and 20k, which is the exact configuration behind the inertia measurements;
+  then Cone, Teapot and Torus in the same example; then Triangle and Polygon in
+  `Example01_Basic2DScene_SpawnMenu`. Expect piles to be bouncier and to settle less readily — that is
+  the tuning doing what it did. What would change the plan is a *runaway*, since the measurement says
+  `MaximumRecoveryVelocity` made no difference to that, 3/3.
 
 ## 2. 2D shapes — found by auditing the 2D examples
 
