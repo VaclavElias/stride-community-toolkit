@@ -91,10 +91,13 @@ void AddVertexLabels(Scene scene, Entity parent, IReadOnlyCollection<Vector3> lo
                 FontSize = 14,
                 Offset = new Vector2(0, -18),
                 TextColor = Color.White,
-                Alignment = TextAlignment.Center,
+                // Anchor, not Alignment: this is what actually centres a label over its vertex.
+                // TextAlignment only arranges lines within a multi-line block and does nothing at
+                // all to a single line, so the label used to sit to the right of the point.
+                Anchor = TextAnchor.BottomCenter,
                 EnableBackground = true,
                 BackgroundColor = new Color4(0, 0, 0, 0.5f),
-                Padding = 2
+                Padding = new Vector2(2)
             }
         };
 
