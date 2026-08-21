@@ -24,9 +24,8 @@ namespace Example_CubicleCalamity;
 /// </summary>
 /// <remarks>
 /// This is the piece a reader should start from. It owns the order things happen in and delegates the
-/// detail: <see cref="CubeSpawner"/> builds cubes, <see cref="MaterialFactory"/> and
-/// <see cref="LightingRig"/> build the look, and the scripts under <c>Scripts/</c> handle everything
-/// that reacts to the player.
+/// detail: <see cref="CubeSpawner"/> builds cubes, <see cref="MaterialFactory"/> builds the look, and
+/// the scripts under <c>Scripts/</c> handle everything that reacts to the player.
 /// </remarks>
 /// <param name="game">The running game.</param>
 public class CubicleCalamityGame(Game game)
@@ -64,7 +63,9 @@ public class CubicleCalamityGame(Game game)
         AddCamera();
 
         game.AddSceneRenderer(new EntityTextRenderer());
-        game.AddDirectionalLight();
+        // No shadows: the cubes are mostly emissive, so a cast shadow would darken a face that is
+        // otherwise showing its true colour, which is the one thing this board cannot afford
+        game.AddDirectionalLight(enableShadows: false, intensity: 3f);
         game.Add3DGround();
         game.AddProfiler();
 
@@ -73,7 +74,10 @@ public class CubicleCalamityGame(Game game)
         _audio = new GameAudio(game);
 
         AddOrientationGizmo();
-        LightingRig.Add(game, scene, intensity: 5f);
+
+        // The toolkit rig, rather than a local copy of it: six lights down the six world axes. It is
+        // dim because the cubes supply most of their own colour - this is only here for edge definition.
+        game.AddAllDirectionLighting(intensity: 1.5f, showLightGizmo: false);
 
         AddReferenceCube();
         _spawner.SpawnLayer(0);

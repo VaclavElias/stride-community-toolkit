@@ -2,7 +2,6 @@
 SerializedVersion: {Assets: 3.1.0.0}
 AssetFolders:
     -   Path: !dir Assets
-    -   Path: !dir Effects
 RootAssets:
     -   b3b034b4-1f6c-455f-918e-0545a3767cb6:cube-clear-1
     -   47547eb2-bcb0-44da-af8d-543d83e301b1:cube-clear-2

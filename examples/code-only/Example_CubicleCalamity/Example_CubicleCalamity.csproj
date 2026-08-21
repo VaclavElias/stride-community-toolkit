@@ -15,10 +15,5 @@
         <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Windows\Stride.CommunityToolkit.Windows.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="Effects\MaterialSurfaceShadingLightmap.sdsl">
-            <LastGenOutput>MaterialSurfaceShadingLightmap.sdsl.cs</LastGenOutput>
-        </None>
-    </ItemGroup>
 
 </Project>

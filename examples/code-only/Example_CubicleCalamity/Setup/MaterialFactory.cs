@@ -1,6 +1,4 @@
-using Example_CubicleCalamity.Rendering;
 using Example_CubicleCalamity.Shared;
-using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Rendering;
@@ -13,12 +11,37 @@ namespace Example_CubicleCalamity.Setup;
 /// Builds the materials the cubes are painted with.
 /// </summary>
 /// <remarks>
+/// <para>
 /// A material is a GPU resource, so one is built per colour up front and shared by every cube using
 /// it. Building one per cube would work and look identical, and would also mean a thousand copies of
 /// the same thing - a habit worth avoiding early, because it is invisible until it is not.
+/// </para>
+/// <para>
+/// The cubes are mostly <em>emissive</em>, which is the important choice here. Colour matching is the
+/// entire game, so a cube has to read as its own colour from any camera angle - and ordinary diffuse
+/// shading cannot do that, because the diffuse term is multiplied by the angle between the surface and
+/// each light. A face turned away from the lights goes dark no matter how many lights are added, and a
+/// dark red cube next to a lit one is genuinely hard to match by eye. Emissive colour ignores lighting
+/// entirely, so every face is the same colour; a small diffuse component is layered on top purely so
+/// the edges between adjacent cubes stay visible.
+/// </para>
 /// </remarks>
 public static class MaterialFactory
 {
+    /// <summary>
+    /// How much of the cube's colour comes from emission, independent of any light.
+    /// </summary>
+    private const float EmissiveShare = 0.85f;
+
+    /// <summary>
+    /// How much comes from ordinary diffuse shading, which is what keeps edges and corners readable.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately small. Raising it brings back the shape of the stack at the cost of colour
+    /// fidelity, which is the trade this game cannot afford much of.
+    /// </remarks>
+    private const float DiffuseShare = 0.15f;
+
     /// <summary>
     /// Creates one material per colour in <see cref="GameSettings.Colours"/>, keyed by colour so a
     /// cube can look up the material for the colour it was given.
@@ -33,27 +56,25 @@ public static class MaterialFactory
 
         foreach (var colour in GameSettings.Colours)
         {
-            materials.Add(colour, CreateMaterial(game, colour, specular: 0));
+            //materials.Add(colour, game.CreateFlatMaterial(colour));
+            materials.Add(colour, CreateCubeMaterial(game, colour));
         }
 
         return materials;
     }
 
     /// <summary>
-    /// Creates a single flat-lit material.
+    /// Creates the material for a single cube colour.
     /// </summary>
     /// <param name="game">The running game, which owns the graphics device.</param>
-    /// <param name="color">The colour to paint. Defaults to the toolkit's default material colour.</param>
-    /// <param name="specular">How metallic the surface reads. Zero for the cubes, so they stay readable as flat colour.</param>
-    /// <param name="microSurface">Surface glossiness.</param>
+    /// <param name="color">The colour to paint.</param>
     /// <returns>A new material.</returns>
     /// <remarks>
-    /// This uses the example's own <see cref="MaterialLightmapModelFeature"/> rather than a
-    /// standard diffuse model, which is what keeps every face of a cube the same brightness however
-    /// the lights fall on it. Colour matching is the whole game, so a face shaded darker than its
-    /// neighbour would be reading as a different colour.
+    /// No specular feature at all: a highlight is a bright white patch that moves with the camera, and
+    /// on a board where the player is comparing colours it is one more thing that makes two cubes of
+    /// the same colour look different.
     /// </remarks>
-    public static Material CreateMaterial(Game game, Color? color = null, float specular = 1.0f, float microSurface = 0.65f)
+    public static Material CreateCubeMaterial(Game game, Color color)
     {
         ArgumentNullException.ThrowIfNull(game);
 
@@ -61,15 +82,15 @@ public static class MaterialFactory
         {
             Attributes =
             {
-                Diffuse = new MaterialDiffuseMapFeature(new ComputeColor(color ?? GameDefaults.DefaultMaterialColor)),
-                DiffuseModel = new MaterialLightmapModelFeature()
+                Emissive = new MaterialEmissiveMapFeature(new ComputeColor(color))
                 {
-                    Intensity = 20,
-                    LightMap = new ComputeColor(color ?? GameDefaults.DefaultMaterialColor)
+                    Intensity = new ComputeFloat(EmissiveShare),
+                    UseAlpha = false
                 },
-                Specular = new MaterialMetalnessMapFeature(new ComputeFloat(specular)),
-                SpecularModel = new MaterialSpecularMicrofacetModelFeature(),
-                MicroSurface = new MaterialGlossinessMapFeature(new ComputeFloat(microSurface))
+                Diffuse = new MaterialDiffuseMapFeature(new ComputeColor(color * DiffuseShare)),
+                DiffuseModel = new MaterialDiffuseLambertModelFeature(),
+                Specular = null,
+                SpecularModel = null
             }
         };
 
