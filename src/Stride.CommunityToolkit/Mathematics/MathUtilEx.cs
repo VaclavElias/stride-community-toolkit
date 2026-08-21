@@ -68,31 +68,83 @@ public static class MathUtilEx
     /// <param name="target">The location of the object to look-at.</param>
     /// <param name="up">The vector that defines which direction is up.</param>
     /// <param name="result">The created quaternion rotation</param>
+    /// <remarks>
+    /// The result is always finite and unit length, including for the degenerate inputs: an eye
+    /// sitting on the target, a line of sight parallel to <paramref name="up"/>, and a zero-length
+    /// <paramref name="up"/>.
+    /// <para>
+    /// This used to build the quaternion with the single-branch trace formula,
+    /// <c>w = sqrt(1 + m11 + m22 + m33) / 2</c>, which is only valid while that sum is positive. A
+    /// camera orbited to the far side of its target is a 180 degree rotation, where the sum is
+    /// exactly -1: <c>w</c> came out as zero, the reciprocal that follows it divided by zero, and the
+    /// quaternion's components became <c>0 * infinity</c>, which is <c>NaN</c>. Assigning that to a
+    /// <c>TransformComponent.Rotation</c> poisoned the entity's matrix, and any position integrated
+    /// through that matrix afterwards became <c>NaN</c> as well - a camera that could not be
+    /// recovered without resetting its transform. Delegating to
+    /// <see cref="Quaternion.RotationMatrix(Matrix)"/> picks up the branch for each sign of the
+    /// trace, which is what makes every orientation safe rather than merely most of them.
+    /// </para>
+    /// </remarks>
     public static void LookRotation(ref Vector3 eye, ref Vector3 target, ref Vector3 up, out Quaternion result)
     {
-        var forward = target - eye;
+        // Stride is right-handed, so the basis is built around the axis pointing from the target back
+        // towards the eye rather than along the line of sight
+        var forward = eye - target;
 
-        // Which would create LH rotation. Xenko uses RH so we need to reverse it.
-        forward *= -1f;
+        // Nothing to face: the observer is standing on the target, so no rotation is more correct
+        // than any other and the caller's existing orientation is worth more than a guess
+        if (forward.Length() < MathUtil.ZeroTolerance)
+        {
+            result = Quaternion.Identity;
 
+            return;
+        }
 
-        Orthonormalize(ref forward, ref up);
-        Vector3 right;
-        Vector3.Cross(ref up, ref forward, out right);
+        forward.Normalize();
+
+        var upwards = up;
+
+        if (upwards.Length() < MathUtil.ZeroTolerance)
+        {
+            upwards = Vector3.UnitY;
+        }
+
+        Vector3.Cross(ref upwards, ref forward, out var right);
+
+        // Looking straight along the up vector leaves nothing to say which way is sideways. Any axis
+        // not parallel to forward restores that, and the choice only sets the roll, which is
+        // arbitrary in this case anyway.
+        if (right.Length() < MathUtil.ZeroTolerance)
+        {
+            var reference = MathF.Abs(forward.Y) < 0.9f ? Vector3.UnitY : Vector3.UnitX;
+
+            Vector3.Cross(ref reference, ref forward, out right);
+        }
 
         right.Normalize();
 
-        var w = (float)Math.Sqrt(1.0f + right.X + up.Y + forward.Z) * 0.5f;
-        var w4_recip = 1.0f / (4.0f * w);
+        // Re-derived rather than reusing the caller's up, so the three axes are exactly orthogonal
+        // whatever was passed in. A skewed basis is what makes the conversion below produce a
+        // quaternion that is finite but not unit length.
+        Vector3.Cross(ref forward, ref right, out upwards);
 
-        result = new Quaternion()
+        upwards.Normalize();
+
+        var orientation = new Matrix
         {
-            W = w,
-            X = (up.Z - forward.Y) * w4_recip,
-            Y = (forward.X - right.Z) * w4_recip,
-            Z = (right.Y - up.X) * w4_recip,
+            M11 = right.X,
+            M12 = right.Y,
+            M13 = right.Z,
+            M21 = upwards.X,
+            M22 = upwards.Y,
+            M23 = upwards.Z,
+            M31 = forward.X,
+            M32 = forward.Y,
+            M33 = forward.Z,
+            M44 = 1f,
         };
 
+        Quaternion.RotationMatrix(ref orientation, out result);
     }
 
     /// <summary>

@@ -570,21 +570,28 @@ public static class TransformExtensions
 
         MathUtilEx.LookRotation(ref localEye, ref localTarget, ref localUp, out var lookRotation);
 
+        // A backstop rather than the fix. MathUtilEx.LookRotation no longer returns a non-finite
+        // rotation for any input, but this check stays because of how far the damage travels if one
+        // ever gets through: the rotation poisons the world matrix, and anything that integrates a
+        // position through that matrix afterwards is NaN too, which cannot be undone by further
+        // relative movement. The guard used to sit on the smooth path alone, so the default
+        // smooth == 1 assigned straight through it.
+        if (!IsFinite(lookRotation)) return;
+
         if (smooth == 1.0f)
         {
             transform.Rotation = lookRotation;
         }
+        else if (IsFinite(transform.Rotation))
+        {
+            Quaternion.Slerp(ref transform.Rotation, ref lookRotation, smooth, out transform.Rotation);
+        }
         else
         {
-            // Prevents crash caused by NaN values due to entities being directly behind each other.
-            // This does mean that there is an angle where the entity will not rotate.
-            var angle = Quaternion.AngleBetween(transform.Rotation, lookRotation);
-            if (!float.IsNaN(angle))
-            {
-                Quaternion.Slerp(ref transform.Rotation, ref lookRotation, smooth, out transform.Rotation);
-            }
+            // There is nothing sensible to interpolate away from, so snap. Slerping out of a broken
+            // rotation would leave it broken forever, which is worse than ignoring the smoothing once.
+            transform.Rotation = lookRotation;
         }
-
 
         transform.UpdateWorldMatrix();
     }
@@ -639,4 +646,13 @@ public static class TransformExtensions
     {
         transform.LookAt(ref target, ref _worldUp, smooth);
     }
+
+    /// <summary>
+    /// Returns whether every component of the rotation is a real number.
+    /// </summary>
+    private static bool IsFinite(in Quaternion rotation)
+        => float.IsFinite(rotation.X)
+        && float.IsFinite(rotation.Y)
+        && float.IsFinite(rotation.Z)
+        && float.IsFinite(rotation.W);
 }
