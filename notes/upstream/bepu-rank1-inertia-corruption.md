@@ -9,6 +9,13 @@ Companion to [bepu-hull-contact-nan.md](bepu-hull-contact-nan.md). Both end in a
 hull collision, so they may share a root cause, but the trigger and the damage differ enough to
 report separately.
 
+**Related upstream issue:** [#109 "Consider inertia tensor locking safety"](https://github.com/bepu/bepuphysics2/issues/109),
+open, filed by Ross himself: "It's not uncommon to set rows of the inertia tensor to zero to
+restrict local rotation. This can make some constraints unsolvable and cause them to spew NaNs."
+That is the *constraint solver* face of partial zeroing; this report is the *narrow phase* face
+(non-finite contacts and memory corruption, no user constraints involved). Reference #109 when
+filing - it shows the configuration is common enough that Ross considered guarding it.
+
 ## Summary
 
 Locking a body to a plane by zeroing *some* terms of `BodyInertia.InverseInertiaTensor` - `XX` and
