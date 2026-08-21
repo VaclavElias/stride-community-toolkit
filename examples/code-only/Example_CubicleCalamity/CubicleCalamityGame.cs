@@ -260,8 +260,11 @@ public class CubicleCalamityGame(Game game)
         var entity = new Entity(EntityNames.GameManager)
         {
             gameOver,
-            new CubeClickScript(_grid, _keeper, _audio!)
+            new CubeClickScript
             {
+                Grid = _grid,
+                Keeper = _keeper,
+                Sounds = _audio!,
                 Scoreboard = _scoreboard,
                 GameOverText = gameOver,
             },
@@ -301,7 +304,7 @@ public class CubicleCalamityGame(Game game)
             IsVisible = false,
         };
 
-        _scoreboard = new ScoreboardScript(_keeper) { TotalText = total, ComboText = combo };
+        _scoreboard = new ScoreboardScript { Keeper = _keeper, TotalText = total, ComboText = combo };
 
         var entity = new Entity(EntityNames.Scoreboard) { total, combo, _scoreboard };
 

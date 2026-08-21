@@ -20,15 +20,18 @@ public class ScoreboardScript : SyncScript
     private const float PunchDuration = 0.2f;
     private const float PunchScale = 1.25f;
 
-    private readonly ScoreKeeper _keeper;
     private float _displayedScore;
     private float _punchRemaining;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ScoreboardScript"/> class.
+    /// Gets the score keeper this reads from.
     /// </summary>
-    /// <param name="keeper">The score keeper to read from.</param>
-    public ScoreboardScript(ScoreKeeper keeper) => _keeper = keeper;
+    /// <remarks>
+    /// Set through an object initialiser rather than a constructor, so the class keeps the public
+    /// parameterless constructor Stride's STRDIAG010 analyser expects of a component, while
+    /// <c>required</c> keeps the compiler enforcing that it is supplied.
+    /// </remarks>
+    public required ScoreKeeper Keeper { get; init; }
 
     /// <summary>
     /// Gets or sets the text showing the running total.
@@ -46,14 +49,14 @@ public class ScoreboardScript : SyncScript
     public EntityTextComponent? ComboText { get; set; }
 
     /// <inheritdoc />
-    public override void Start() => _displayedScore = _keeper.TotalScore;
+    public override void Start() => _displayedScore = Keeper.TotalScore;
 
     /// <inheritdoc />
     public override void Update()
     {
         var deltaTime = (float)Game.UpdateTime.Elapsed.TotalSeconds;
 
-        _keeper.Update(deltaTime);
+        Keeper.Update(deltaTime);
 
         UpdateTotal(deltaTime);
         UpdateCombo();
@@ -63,7 +66,7 @@ public class ScoreboardScript : SyncScript
     {
         if (TotalText is null) return;
 
-        var target = _keeper.TotalScore;
+        var target = Keeper.TotalScore;
 
         if (_displayedScore < target)
         {
@@ -97,20 +100,20 @@ public class ScoreboardScript : SyncScript
     {
         if (ComboText is null) return;
 
-        if (!_keeper.HasCombo)
+        if (!Keeper.HasCombo)
         {
             ComboText.IsVisible = false;
 
             return;
         }
 
-        var multiplier = ScoreRules.GetMultiplier(_keeper.ComboStep);
+        var multiplier = ScoreRules.GetMultiplier(Keeper.ComboStep);
 
         ComboText.IsVisible = true;
         ComboText.Text = $"COMBO x{multiplier:0.#}";
 
         // Fades as the window runs out, so the streak is visibly expiring rather than just vanishing
-        ComboText.Opacity = Math.Clamp(_keeper.ComboFraction * 1.5f, 0f, 1f);
+        ComboText.Opacity = Math.Clamp(Keeper.ComboFraction * 1.5f, 0f, 1f);
     }
 
     /// <summary>

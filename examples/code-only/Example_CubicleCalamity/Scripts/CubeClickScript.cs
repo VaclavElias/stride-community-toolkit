@@ -21,23 +21,28 @@ namespace Example_CubicleCalamity.Scripts;
 /// </remarks>
 public class CubeClickScript : AsyncScript
 {
-    private readonly CubeGrid _grid;
-    private readonly ScoreKeeper _keeper;
-    private readonly GameAudio _audio;
     private readonly Random _drift = new(1);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CubeClickScript"/> class.
+    /// Gets the logical grid, which is the source of truth for what is where.
     /// </summary>
-    /// <param name="grid">The logical grid, which is the source of truth for what is where.</param>
-    /// <param name="keeper">The running total and combo streak.</param>
-    /// <param name="audio">The game's sound effects.</param>
-    public CubeClickScript(CubeGrid grid, ScoreKeeper keeper, GameAudio audio)
-    {
-        _grid = grid;
-        _keeper = keeper;
-        _audio = audio;
-    }
+    /// <remarks>
+    /// Set through an object initialiser rather than a constructor. Stride's STRDIAG010 analyser wants
+    /// every component to have a public parameterless constructor for deserialisation, which rules out
+    /// constructor injection - but <c>required</c> keeps the compiler enforcing that this is supplied,
+    /// so nothing is lost by moving it.
+    /// </remarks>
+    public required CubeGrid Grid { get; init; }
+
+    /// <summary>
+    /// Gets the running total and combo streak.
+    /// </summary>
+    public required ScoreKeeper Keeper { get; init; }
+
+    /// <summary>
+    /// Gets the game's sound effects. Named Sounds rather than Audio, which would hide ScriptComponent.Audio.
+    /// </summary>
+    public required GameAudio Sounds { get; init; }
 
     /// <summary>
     /// Gets or sets the scoreboard, so a clear can make the total jump.
@@ -91,24 +96,24 @@ public class CubeClickScript : AsyncScript
 
         if (cube.Name != EntityNames.Cube) return;
 
-        var group = MatchFinder.FindGroup(_grid, cube);
+        var group = MatchFinder.FindGroup(Grid, cube);
 
         if (!MatchFinder.IsClearable(group.Count))
         {
             // A lone cube is a miss, not a mistake: a dull note, no popup, and the combo is left
             // alone so a stray click does not cost a streak the player earned
-            _audio.PlayRejected();
+            Sounds.PlayRejected();
 
             return;
         }
 
-        var result = _keeper.RegisterClear(group.Count);
+        var result = Keeper.RegisterClear(group.Count);
 
-        _audio.PlayClear(group.Count);
+        Sounds.PlayClear(group.Count);
 
         if (result.ComboStep > 0)
         {
-            _audio.PlayComboStep(result.ComboStep);
+            Sounds.PlayComboStep(result.ComboStep);
         }
 
         Log.Info($"Cleared {group.Count} {cube.Get<Components.CubeComponent>()?.Color} at {cube.Transform.Position}: {result.Breakdown}");
@@ -119,7 +124,7 @@ public class CubeClickScript : AsyncScript
         // the cubes are still visibly falling into it. Nothing here moves a body: gravity does that,
         // and the two cannot disagree once they settle because SlidingCubeComponent pins each cube to
         // its own column, so the only place a cube can fall to is the slot the grid just gave it.
-        _grid.RemoveAndCollapse(group);
+        Grid.RemoveAndCollapse(group);
 
         foreach (var cleared in group)
         {
@@ -142,15 +147,15 @@ public class CubeClickScript : AsyncScript
     /// </remarks>
     private void CheckForGameOver()
     {
-        if (IsGameOver || MatchFinder.HasClearableGroup(_grid)) return;
+        if (IsGameOver || MatchFinder.HasClearableGroup(Grid)) return;
 
         IsGameOver = true;
 
-        Log.Info($"No moves left. {_grid.Count} cubes stranded, final score {_keeper.TotalScore:N0}.");
+        Log.Info($"No moves left. {Grid.Count} cubes stranded, final score {Keeper.TotalScore:N0}.");
 
         if (GameOverText is null) return;
 
-        GameOverText.Text = $"NO MOVES LEFT\n{_keeper.TotalScore:N0} points\n{_grid.Count} cubes stranded";
+        GameOverText.Text = $"NO MOVES LEFT\n{Keeper.TotalScore:N0} points\n{Grid.Count} cubes stranded";
         GameOverText.IsVisible = true;
     }
 
