@@ -108,6 +108,8 @@
 - name: Rendering
   expanded: true
   items:
+  - name: Entity Text
+    href: rendering/entity-text.md
   - name: MeshBuilder
     href: rendering/mesh-builder.md
   - name: TextureCanvas
