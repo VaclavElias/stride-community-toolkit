@@ -64,7 +64,6 @@
     <Project Path="examples/code-only/Example_2D_Playground/Example_2D_Playground.csproj" />
     <Project Path="examples/code-only/Example_Bepu_Playground/Example_Bepu_Playground.csproj" />
     <Project Path="examples/code-only/Example_CubicleCalamity/Example_CubicleCalamity.csproj" />
-    <Project Path="examples/code-only/Example_CubicleCalamity_BulletPhysics/Example_CubicleCalamity_BulletPhysics.csproj" />
   </Folder>
   <Folder Name="/snippets/">
     <Project Path="examples/snippets/Easing_Example01/Easing_Example01.csproj" />
