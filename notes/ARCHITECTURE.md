@@ -282,3 +282,29 @@ Encountered while adding runtime shape switching to `Example01_Basic2DScene_Stre
 **Options.** Subscribe to the entity's scene changes and unregister automatically, matching
 `InstanceComponent`'s behaviour; or keep the manual model and make the asymmetry loud in the XML docs
 of both types.
+
+---
+
+## 12. `DisplayPosition` is a general screen-corner concept living in `Scripts.Utilities`
+
+**Observation.** `DisplayPosition` names the four window corners plus `None` and `Custom`. It began as
+an implementation detail of `DebugOverlay`, which is why it sits in
+`Stride.CommunityToolkit.Scripts.Utilities`. It now has three consumers - `DebugOverlay`,
+`Basic3DCameraController`, and `EntityTextComponent.ScreenAnchor` - and only the first two are scripts.
+
+**Impact.** Anything that wants to anchor to a corner has to reach into a `Scripts.Utilities`
+namespace that has nothing to do with what it is doing. Adding `ScreenAnchor` to
+`EntityTextComponent` meant every consumer of that property picks up
+`using Stride.CommunityToolkit.Scripts.Utilities;` for an enum naming a corner of the screen, which
+reads as a mistake at the call site. Hit while migrating `Example_CubicleCalamity`'s HUD.
+
+The `None` and `Custom` members compound it. They exist for `DebugOverlay`'s needs - opting out
+entirely, and deferring to a separate `CustomPosition` property - and mean nothing to a component that
+has its own visibility flag and its own explicit-position mode. `EntityTextRenderer` currently maps
+both to the top-left, which is a silent fallback for values that should not have been offerable.
+
+**Options.** Move the enum to a neutral namespace (`Stride.CommunityToolkit.Engine`, or a
+`Stride.CommunityToolkit.Rendering` shared home) and leave a type forward or a rename note, since the
+toolkit is in Preview and breaking changes are acceptable; and/or split the four real corners into a
+`ScreenCorner` enum, leaving `DisplayPosition` as `DebugOverlay`'s own type with its `None` and
+`Custom` extras. The second is more churn but stops components offering values they cannot honour.

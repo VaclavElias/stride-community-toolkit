@@ -64,14 +64,28 @@ The first three are the same investigation: the 2D spawn menu froze whenever sev
 Polygons landed on each other. Full write-up in
 `notes/upstream/bepu-hull-contact-nan.md`, runnable repro in `examples/code-only/_Temp2DProbe`.
 
-- **Bepu: hull-vs-hull contact depth is `NaN` for some extruded polygons** — two regular-polygon
-  hulls (circumradius 0.5, depth 1) overlapping with an offset in *both* X and Y get a manifold with
-  `depth = NaN` on the first timestep; normal and offsets are fine. Reproduces in bare Bepu with no
-  Stride, no `Compound` and no `Body2DComponent`, so nothing in the toolkit causes it. Sides 6 and
-  32 fail, the rest are clean — but the failing set is knife-edge sensitive: computing the vertex
-  angle as `(i * Tau) / sides` instead of `i * (Tau / sides)` also breaks sides 10. That points at
-  numerical robustness in the depth refinement, not at hexagons. **Report upstream** — the write-up
-  has a verified one-file repro with `sides` as a loop variable.
+- **Bepu: hull-vs-hull contact depth is `NaN` for overlapping extruded polygons** — two
+  regular-polygon hulls overlapping get a manifold with `depth = NaN` on the first timestep; normal
+  and offsets are fine. Reproduces in bare Bepu with no Stride, no `Compound` and no
+  `Body2DComponent`, so nothing in the toolkit causes it. Originally this looked like sides 6 and 32
+  at one fixed offset; a Monte Carlo sweep (`SWEEP=1` in the probe, 200 random placements per side
+  count, box-shape control) shows it is far broader: **every side count from 3 up fails at 15–40% of
+  random overlapping poses** once the bodies carry a rotation about Z, triangles and squares
+  included, and axis-aligned (freshly spawned) bodies fail at ~40% for 5, 7 and 8 sides at
+  circumradius 1. Every failure is on the first step — never a gradual blow-up — and the identical
+  placements with an analytic `Box` never fail, so the hull pair handler owns it outright. Confirmed
+  in-engine by the spawn menu crashing with 5- and 7-sided polygons spawned overlapping (20 Aug),
+  which matches the axis-aligned column, including "3 and 4 seem fine". **Report upstream** — the
+  write-up has a verified one-file repro plus the incidence tables and failing triangle/square
+  manifold logs. The bepuphysics2 clone now carries a three-file branch payload, all verified:
+  `DemoTests/HullPairContactTests.cs` (47 ms, drives `CollisionBatcher` directly, box control
+  passes), `Demos/Demos/HullContactNaNDemo.cs` plus its one-line `DemoSet` registration (5/6/7
+  side-count pairs in the standard demo bootstrap; Release shows `sides=6: POSES ARE NaN` on
+  screen, Debug breaks on the `CHECKMATH` assert on the first timestep — verified). Both are
+  expected-to-fail, so they attach to the issue and become the fix PR's regression material.
+  Verified unfixed on master `16ecf9cf`; no existing issue covers it (tracker searched 20 Aug).
+  Paste-ready title and body: `notes/upstream/bepu-hull-contact-nan-issue.md` — push the branch,
+  swap in the compare URL, file it.
 - **Bepu: `Tree.Add` never returns once a pose is `NaN`** — the freeze users actually see. The
   application stops responding with one core pegged; sampled twice, 100 s of CPU apart, always
   inside `Tree.Add` with about ten bodies in the tree. Worth reporting separately: it turns a
@@ -81,15 +95,19 @@ Polygons landed on each other. Full write-up in
   depth, then NaN poses in the same step, then `Tree.Add` never returning. Nothing else in the
   toolkit contributes, so fixing contact generation removes the freeze without any change here. Two
   caveats: the `Tree.Add` hang would still turn *any* future `NaN` into a freeze rather than an
-  error, which is why it is worth reporting separately; and the trigger is narrower than it first
-  looked — holding the spawn key on Polygon freezes within a handful of bodies, but the example's
-  normal seven-shape mix (about 57 hexagons among 400 bodies in one column) was clean over 2 runs.
-- **Decide what the toolkit does in the meantime** — `Primitive2DModelType.Polygon` defaults to
-  `Sides = 6`, which is one of the failing cases, so the default shape freezes the app when two of
-  them collide. Changing the default to 5 or 7 would dodge it today, but the sensitivity result
-  above shows that is luck, not a fix: an unrelated change to how vertices are computed moves the
-  failing set. Preference: leave the default, document the hazard next to
-  `PolygonProceduralModel.Sides`, and let the upstream fix land.
+  error, which is why it is worth reporting separately; and while the *practical* trigger is narrow
+  — bodies spawned overlapping; the example's normal seven-shape mix (about 57 hexagons among 400
+  bodies in one column) was clean over 2 runs — the *shape* exposure is not: the incidence sweep
+  shows every hull polygon from the triangle up can produce the NaN once rotated, so Triangle and
+  Parallelogram are exposed too, not just the regular Polygon.
+- **Decide what the toolkit does in the meantime** — the incidence sweep closed the question of
+  dodging by side count: there is no safe `Sides` value. 5 is the *worst* axis-aligned (~40% per
+  overlapping pair — and it is what the spawn menu example currently ships, `Size = new Vector2(1, 5)`),
+  7 fails at 37%, and even 3 and 4, clean when axis-aligned, fail at 17% once the bodies have
+  rotated. Preference stands: leave the default, document the hazard next to
+  `PolygonProceduralModel.Sides` (now covering Triangle and custom-vertex polygons too), and let the
+  upstream fix land. The only real mitigation available today is not spawning hull shapes
+  overlapping each other.
 - **`Create2DPrimitive` writes back into the caller's options** — `options.Size ??= ...` for Capsule
   and Rectangle mutates the object the caller passed in
   (`src/Stride.CommunityToolkit/Games/GameExtensions.cs:72`). Reusing one options instance across
@@ -238,8 +256,11 @@ that tensor, and reduces it to a deterministic `IndexOutOfRangeException` when r
 The fix already shipped (scaling instead of zeroing) covers it. See
 `notes/upstream/bepu-rank1-inertia-corruption.md`.
 
-**Beware spawn overlap when measuring.** Bodies spawned already interpenetrating produce non-finite
-contacts in *every* configuration, including an untouched inertia tensor and analytic shapes. A first
-pass at the pure-Bepu repro used a grid spacing narrower than the shape and appeared to show that the
-inertia lock was irrelevant. It is not — with a spacing wider than the shape, only the rank-1 tensor
-fails. Space the grid wider than the shape before drawing any conclusion.
+**Beware spawn overlap when measuring.** A first pass at the pure-Bepu repro used a grid spacing
+narrower than the shape and appeared to show that the inertia lock was irrelevant. It is not — with
+a spacing wider than the shape, only the rank-1 tensor fails. Space the grid wider than the shape
+before drawing any conclusion. Precision matters though: the failure mode of a dense *grid* of
+interpenetrating bodies over many steps is distinct from a single overlapping *pair*. The incidence
+sweep's box control shows an overlapping pair of analytic boxes is always clean over 8 steps, at any
+offset and rotation tried — for a pair, only the hull path produces non-finite state, and it does so
+on step one.
