@@ -41,7 +41,6 @@ concepts:
   - Flood filling a grid to find connected same-coloured neighbours
   - "Using helpers: Add3DCamera, Add3DGround, AddGizmo, Create3DPrimitive"
 related:
-  - Example_CubicleCalamity_BulletPhysics
   - Example09_Renderer
   - Example05_SimpleGeometry
 tags:

@@ -1,0 +1,8 @@
+﻿!Sound
+Id: 9cf48835-c4b3-417f-9ab0-038b3f67a01c
+SerializedVersion: {Stride: 2.0.0.0}
+Source: !file ../Resources/click-rejected.ogg
+SampleRate: 44100
+CompressionRatio: 15
+StreamFromDisk: false
+Spatialized: false

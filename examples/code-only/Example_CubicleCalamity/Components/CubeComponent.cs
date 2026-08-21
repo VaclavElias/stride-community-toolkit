@@ -20,6 +20,16 @@ public class CubeComponent : EntityComponent
     public Color Color { get; set; }
 
     /// <summary>
+    /// Gets or sets which column and layer the cube occupies.
+    /// </summary>
+    /// <remarks>
+    /// Maintained by <see cref="Gameplay.CubeGrid"/>, and updated the moment a clear happens rather
+    /// than when the cube finishes falling. Matching reads this instead of the transform, so a click
+    /// during a collapse still finds the right neighbours.
+    /// </remarks>
+    public Int3 GridPosition { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CubeComponent"/> class.
     /// </summary>
     /// <remarks>

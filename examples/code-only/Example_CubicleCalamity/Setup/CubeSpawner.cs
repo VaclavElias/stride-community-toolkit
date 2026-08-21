@@ -1,4 +1,5 @@
 using Example_CubicleCalamity.Components;
+using Example_CubicleCalamity.Gameplay;
 using Example_CubicleCalamity.Shared;
 using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu;
@@ -24,7 +25,7 @@ namespace Example_CubicleCalamity.Setup;
 /// <param name="scene">The scene cubes are added to.</param>
 /// <param name="materials">One material per colour, from <see cref="MaterialFactory"/>.</param>
 /// <param name="seed">Seed for the colour picker, so a run is reproducible.</param>
-public class CubeSpawner(Game game, Scene scene, IReadOnlyDictionary<Color, Material> materials, int seed)
+public class CubeSpawner(Game game, Scene scene, CubeGrid grid, IReadOnlyDictionary<Color, Material> materials, int seed)
 {
     private readonly Random _random = new(seed);
 
@@ -32,8 +33,8 @@ public class CubeSpawner(Game game, Scene scene, IReadOnlyDictionary<Color, Mate
     /// Spawns one full <see cref="GameSettings.Rows"/> x <see cref="GameSettings.Rows"/> layer of
     /// cubes at the given height.
     /// </summary>
-    /// <param name="y">Height of the layer's cube centres, in world units.</param>
-    public void SpawnLayer(float y)
+    /// <param name="layer">Which layer this is, counting from zero at the ground.</param>
+    public void SpawnLayer(int layer)
     {
         for (var x = 0; x < GameSettings.Rows; x++)
         {
@@ -41,9 +42,11 @@ public class CubeSpawner(Game game, Scene scene, IReadOnlyDictionary<Color, Mate
             {
                 var cube = CreateCube();
 
-                cube.Transform.Position = GridToWorld(x, y, z);
+                cube.Transform.Position = GridToWorld(x, layer, z);
 
                 AddCollider(cube);
+
+                grid.Add(new Int3(x, layer, z), cube);
 
                 cube.Scene = scene;
             }
@@ -51,16 +54,22 @@ public class CubeSpawner(Game game, Scene scene, IReadOnlyDictionary<Color, Mate
     }
 
     /// <summary>
-    /// Converts a column index into a world position.
+    /// Converts a grid coordinate into the world position of that cube's centre.
     /// </summary>
+    /// <param name="x">Column index along X.</param>
+    /// <param name="layer">Layer index, counting from zero at the ground.</param>
+    /// <param name="z">Column index along Z.</param>
+    /// <returns>The world position of the cube centre for that coordinate.</returns>
     /// <remarks>
-    /// Grid indices count from zero, so without the offset the platform would grow out of the origin
-    /// in one direction only. <see cref="GameSettings.GridOrigin"/> pulls it back by half its own
-    /// footprint, which centres it on the ground whatever <see cref="GameSettings.Rows"/> is.
+    /// Two offsets, for two different reasons. <see cref="GameSettings.GridOrigin"/> pulls the
+    /// footprint back by half its own width so the platform centres on the ground rather than growing
+    /// out of one corner, whatever <see cref="GameSettings.Rows"/> is. The half cube on Y is because
+    /// a coordinate names a cube's centre while layer zero sits <em>on</em> the ground, so without it
+    /// the bottom layer would be buried half way into the floor.
     /// </remarks>
-    private static Vector3 GridToWorld(int x, float y, int z) => new(
+    public static Vector3 GridToWorld(int x, int layer, int z) => new(
         x * GameSettings.CubeSize.X + GameSettings.GridOrigin,
-        y * GameSettings.CubeSize.Y,
+        (layer + 0.5f) * GameSettings.CubeSize.Y,
         z * GameSettings.CubeSize.Z + GameSettings.GridOrigin);
 
     private Entity CreateCube()

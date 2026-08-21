@@ -1,0 +1,8 @@
+﻿!Sound
+Id: 6bc0192f-898d-46f6-a8af-b0a39fb5f99f
+SerializedVersion: {Stride: 2.0.0.0}
+Source: !file ../Resources/combo-step.ogg
+SampleRate: 44100
+CompressionRatio: 15
+StreamFromDisk: false
+Spatialized: false

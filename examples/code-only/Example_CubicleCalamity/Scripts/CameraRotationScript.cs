@@ -14,7 +14,16 @@ public class CameraRotationScript : SyncScript
     /// </summary>
     private const float MinimumOrbitRadius = 0.01f;
 
-    private float _rotationSpeed = 45f; // degrees per second
+    /// <summary>
+    /// How much faster the camera orbits while shift is held.
+    /// </summary>
+    /// <remarks>
+    /// Matches <c>Basic3DCameraController.SpeedFactor</c>, so shift means the same thing whichever
+    /// way the camera is being moved.
+    /// </remarks>
+    private const float SprintMultiplier = 5f;
+
+    private readonly float _rotationSpeed = 45f; // degrees per second
     private Vector3 _rotationCentre;
     private DebugOverlaySection? _instructions;
 
@@ -40,21 +49,24 @@ public class CameraRotationScript : SyncScript
         InitializeDebugOverlay();
     }
 
+    /// <inheritdoc />
     public override void Update()
     {
-
-        // Compute how many degrees we should turn this frame
         var deltaTime = this.DeltaTime();
 
-        float deltaRotation = 0f;
+        // Shift speeds the orbit up, matching what it already does for the free-look controller's
+        // movement and for rapid clearing. One modifier, the same meaning everywhere.
+        var speed = _rotationSpeed * (IsSprinting() ? SprintMultiplier : 1f);
+
+        var deltaRotation = 0f;
 
         if (Input.IsKeyDown(Keys.Z))
         {
-            deltaRotation = -_rotationSpeed * deltaTime;
+            deltaRotation = -speed * deltaTime;
         }
         else if (Input.IsKeyDown(Keys.C))
         {
-            deltaRotation = +_rotationSpeed * deltaTime;
+            deltaRotation = +speed * deltaTime;
         }
 
         if (Math.Abs(deltaRotation) > 0.001f)
@@ -62,6 +74,9 @@ public class CameraRotationScript : SyncScript
             RotateAroundCentre(deltaRotation);
         }
     }
+
+    private bool IsSprinting()
+        => Input.IsKeyDown(Keys.LeftShift) || Input.IsKeyDown(Keys.RightShift);
 
     /// <summary>
     /// Swings the camera around <see cref="RotationCentre"/> by the given angle and re-aims it.
@@ -106,7 +121,7 @@ public class CameraRotationScript : SyncScript
             //new("Click the golden sphere and drag to move it (Y-axis locked)"),
             new("Click a cube", Color.Yellow),
             new("Hold Shift: Left mouse button down", Color.Yellow),
-            new("Z/C orbit around the platform", Color.Yellow),
+            new("Z/C orbit around the platform (Shift: faster)", Color.Yellow),
             new($"Camera Position: {cameraPosition}", Color.Yellow),
         ];
 }

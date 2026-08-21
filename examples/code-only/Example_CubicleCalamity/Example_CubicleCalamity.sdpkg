@@ -4,4 +4,9 @@ AssetFolders:
     -   Path: !dir Assets
     -   Path: !dir Effects
 RootAssets:
-    -   daf2da16-0f0e-45fd-b080-43dd9a5d7266:wood-tap-5
+    -   b3b034b4-1f6c-455f-918e-0545a3767cb6:cube-clear-1
+    -   47547eb2-bcb0-44da-af8d-543d83e301b1:cube-clear-2
+    -   17d45379-a9a5-4dcc-ad7e-e99cc391a920:cube-clear-3
+    -   7c508e2c-5240-4dea-a8d8-add575a65205:big-clear
+    -   6bc0192f-898d-46f6-a8af-b0a39fb5f99f:combo-step
+    -   9cf48835-c4b3-417f-9ab0-038b3f67a01c:click-rejected

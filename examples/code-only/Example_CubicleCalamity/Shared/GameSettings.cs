@@ -20,6 +20,14 @@ public static class GameSettings
     /// <summary>Points a single cube is worth before any group bonus.</summary>
     public const int BasePointsPerCube = 10;
 
+    /// <summary>Fewest connected cubes that may be cleared. A lone cube is not a match.</summary>
+    public const int MinimumGroupSize = 2;
+
+    /// <summary>
+    /// Seconds after a clear during which the next one still counts as part of the same combo.
+    /// </summary>
+    public const float ComboWindowSeconds = 2.5f;
+
     /// <summary>
     /// The colours a cube can take. A cube matches its neighbour when both carry the same one, so
     /// fewer colours here means larger groups and an easier board.

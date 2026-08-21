@@ -1,4 +1,5 @@
 using Example_CubicleCalamity.Components;
+using Example_CubicleCalamity.Gameplay;
 using Example_CubicleCalamity.Scripts;
 using Example_CubicleCalamity.Setup;
 using Example_CubicleCalamity.Shared;
@@ -9,6 +10,7 @@ using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.Renderers;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -34,8 +36,13 @@ public class CubicleCalamityGame(Game game)
 
     private readonly Vector3 _referenceCubePosition = new(-4, 1, -4);
 
+    private readonly CubeGrid _grid = new();
+    private readonly ScoreKeeper _keeper = new();
+
     private Dictionary<Color, Material> _materials = [];
     private CubeSpawner? _spawner;
+    private GameAudio? _audio;
+    private ScoreboardScript? _scoreboard;
     private BepuSimulation? _simulation;
     private Scene? _scene;
 
@@ -62,16 +69,17 @@ public class CubicleCalamityGame(Game game)
         game.AddProfiler();
 
         _materials = MaterialFactory.CreateCubeMaterials(game);
-        _spawner = new CubeSpawner(game, scene, _materials, Seed);
+        _spawner = new CubeSpawner(game, scene, _grid, _materials, Seed);
+        _audio = new GameAudio(game);
 
         AddOrientationGizmo();
         LightingRig.Add(game, scene, intensity: 5f);
 
         AddReferenceCube();
-        _spawner.SpawnLayer(0.5f);
+        _spawner.SpawnLayer(0);
 
-        AddGameManager();
         AddScoreboard();
+        AddGameManager();
 
         var camera = scene.GetCamera();
 
@@ -95,9 +103,7 @@ public class CubicleCalamityGame(Game game)
         {
             _elapsedTime = 0;
 
-            // Layer centres sit half a cube above the layer index, so the bottom layer rests on the
-            // ground rather than sinking half way into it
-            _spawner?.SpawnLayer(_layer + 0.5f);
+            _spawner?.SpawnLayer(_layer);
 
             _layer++;
         }
@@ -235,29 +241,69 @@ public class CubicleCalamityGame(Game game)
     /// </summary>
     private void AddGameManager()
     {
+        // Centred on screen and hidden until the board runs out of moves
+        var gameOver = new EntityTextComponent()
+        {
+            Text = string.Empty,
+            FontSize = 32,
+            PositionMode = TextPositionMode.Screen,
+            Anchor = TextAnchor.MiddleCenter,
+            Alignment = Stride.Graphics.TextAlignment.Center,
+            TextColor = new Color(255, 220, 120),
+            EnableShadow = true,
+            EnableBackground = true,
+            Padding = new Vector2(20, 14),
+            LayerDepth = 2f,
+            IsVisible = false,
+        };
+
         var entity = new Entity(EntityNames.GameManager)
         {
-            new CubeClickScript()
+            gameOver,
+            new CubeClickScript(_grid, _keeper, _audio!)
+            {
+                Scoreboard = _scoreboard,
+                GameOverText = gameOver,
+            },
+            new ScreenCentreTextScript { Text = gameOver }
         };
 
         entity.Scene = _scene;
     }
 
     /// <summary>
-    /// Adds the on-screen running total.
+    /// Adds the on-screen running total and the combo readout beneath it.
     /// </summary>
     private void AddScoreboard()
     {
-        var entity = new Entity(EntityNames.Scoreboard)
+        // Anchored rather than a fixed pixel position, so both keep their margin from the corner when
+        // the window is resized - which this example allows
+        var total = new EntityTextComponent()
         {
-            new EntityTextComponent()
-            {
-                Text = "Total Score: 0",
-                FontSize = 20,
-                Position = new Vector2(0, 20),
-                TextColor = Color.White,
-            }
+            Text = "Total Score: 0",
+            FontSize = 20,
+            PositionMode = TextPositionMode.Anchored,
+            ScreenAnchor = DisplayPosition.TopLeft,
+            Offset = new Vector2(16, 16),
+            TextColor = Color.White,
+            EnableShadow = true,
         };
+
+        var combo = new EntityTextComponent()
+        {
+            Text = string.Empty,
+            FontSize = 16,
+            PositionMode = TextPositionMode.Anchored,
+            ScreenAnchor = DisplayPosition.TopLeft,
+            Offset = new Vector2(16, 44),
+            TextColor = new Color(255, 210, 70),
+            EnableShadow = true,
+            IsVisible = false,
+        };
+
+        _scoreboard = new ScoreboardScript(_keeper) { TotalText = total, ComboText = combo };
+
+        var entity = new Entity(EntityNames.Scoreboard) { total, combo, _scoreboard };
 
         entity.Scene = _scene;
     }

@@ -1,0 +1,8 @@
+﻿!Sound
+Id: 7c508e2c-5240-4dea-a8d8-add575a65205
+SerializedVersion: {Stride: 2.0.0.0}
+Source: !file ../Resources/big-clear.ogg
+SampleRate: 44100
+CompressionRatio: 15
+StreamFromDisk: false
+Spatialized: false
