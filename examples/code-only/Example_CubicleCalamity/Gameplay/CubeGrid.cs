@@ -54,10 +54,7 @@ public class CubeGrid
 
         var component = cube.Get<CubeComponent>();
 
-        if (component is not null)
-        {
-            component.GridPosition = coordinate;
-        }
+        component?.GridPosition = coordinate;
     }
 
     /// <summary>
@@ -134,10 +131,7 @@ public class CubeGrid
 
                 var component = cube.Get<CubeComponent>();
 
-                if (component is not null)
-                {
-                    component.GridPosition = to;
-                }
+                component?.GridPosition = to;
 
                 moved.Add((cube, readLayer - writeLayer));
             }

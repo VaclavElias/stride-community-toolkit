@@ -15,7 +15,7 @@ public static class ScoreRules
     /// Multiplier for each successive clear inside the combo window. The last entry repeats once the
     /// combo runs past the end of the table.
     /// </summary>
-    private static readonly float[] ComboMultipliers = [1f, 1.5f, 2f, 3f, 5f];
+    private static readonly float[] _comboMultipliers = [1f, 1.5f, 2f, 3f, 5f];
 
     /// <summary>
     /// Scores a clear.
@@ -50,7 +50,7 @@ public static class ScoreRules
     /// <param name="comboStep">Which step of the combo, starting at zero.</param>
     /// <returns>The multiplier applied to the clear.</returns>
     public static float GetMultiplier(int comboStep)
-        => ComboMultipliers[Math.Clamp(comboStep, 0, ComboMultipliers.Length - 1)];
+        => _comboMultipliers[Math.Clamp(comboStep, 0, _comboMultipliers.Length - 1)];
 
     /// <summary>
     /// Returns how big a clear counts as.

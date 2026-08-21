@@ -15,7 +15,7 @@ namespace Example_CubicleCalamity.Gameplay;
 /// </remarks>
 public static class MatchFinder
 {
-    private static readonly Int3[] Neighbours =
+    private static readonly Int3[] _neighbours =
     [
         new(1, 0, 0), new(-1, 0, 0),
         new(0, 1, 0), new(0, -1, 0),
@@ -54,7 +54,7 @@ public static class MatchFinder
 
             group.Add(cube);
 
-            foreach (var offset in Neighbours)
+            foreach (var offset in _neighbours)
             {
                 var next = coordinate + offset;
 
@@ -144,7 +144,7 @@ public static class MatchFinder
         {
             size++;
 
-            foreach (var offset in Neighbours)
+            foreach (var offset in _neighbours)
             {
                 var next = coordinate + offset;
 
