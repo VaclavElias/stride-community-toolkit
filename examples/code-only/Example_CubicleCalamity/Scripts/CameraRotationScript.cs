@@ -1,3 +1,4 @@
+using Example_CubicleCalamity.Shared;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.Core.Mathematics;
@@ -8,7 +9,6 @@ namespace Example_CubicleCalamity.Scripts;
 
 public class CameraRotationScript : SyncScript
 {
-    private const string GroundEntityName = "Ground";
     private float _rotationSpeed = 45f; // degrees per second
     private Vector3 _rotationCentre;
     DebugOverlaySection? _instructions;
@@ -29,7 +29,7 @@ public class CameraRotationScript : SyncScript
         // and silently took the instructions overlay down with it
         _rotationCentre = RotationCentre
             ?? SceneSystem.SceneInstance.RootScene
-                   .Entities.FirstOrDefault(e => e.Name == GroundEntityName)?.Transform.Position
+                   .Entities.FirstOrDefault(e => e.Name == EntityNames.Ground)?.Transform.Position
             ?? Vector3.Zero;
 
         InitializeDebugOverlay();

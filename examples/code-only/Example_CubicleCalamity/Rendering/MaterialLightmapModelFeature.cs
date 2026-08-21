@@ -7,7 +7,7 @@ using Stride.Rendering.Materials;
 using Stride.Rendering.Materials.ComputeColors;
 using Stride.Shaders;
 
-namespace Example_CubicleCalamity;
+namespace Example_CubicleCalamity.Rendering;
 
 /// <summary>
 /// The baked Lightmap light for the diffuse material model attribute.
@@ -41,29 +41,26 @@ public class MaterialLightmapModelFeature : MaterialFeature, IMaterialDiffuseMod
 
         if (LightMap != null)
         {
-            Console.WriteLine("[DEBUG] Adding LightMap composition");
             shaderSource.AddComposition("LightMap", LightMap.GenerateShaderSource(context, new MaterialComputeColorKeys(Map, Value, Color.White)));
         }
 
         var shaderBuilder = context.AddShading(this);
         shaderBuilder.LightDependentSurface = shaderSource;
-
-        Console.WriteLine("[DEBUG] MaterialSurfaceShadingLightmap shader generation completed");
     }
 
-    public bool Equals(MaterialLightmapModelFeature other)
+    public bool Equals(MaterialLightmapModelFeature? other)
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return LightMap.Equals(other.LightMap) && Intensity.Equals(other.Intensity);
     }
 
-    public bool Equals(IMaterialShadingModelFeature other)
+    public bool Equals(IMaterialShadingModelFeature? other)
     {
         return Equals(other as MaterialLightmapModelFeature);
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is null) return false;
         if (ReferenceEquals(this, obj)) return true;

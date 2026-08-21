@@ -2,15 +2,31 @@ using Stride.Core.Mathematics;
 
 namespace Example_CubicleCalamity.Shared;
 
-public static class Constants
+/// <summary>
+/// Every number that shapes the board or the pace of play, in one place so they can be tried out
+/// without hunting through the game code for the one that matters.
+/// </summary>
+public static class GameSettings
 {
-    public const int BasePointsPerCube = 10;
-    public const float Interval = 0.33f;
-    public const int MaxLayers = 10;
+    /// <summary>Cubes along each side of a layer, so a layer holds <c>Rows * Rows</c> cubes.</summary>
     public const int Rows = 10;
-    public const string TotalScore = "Total Score";
 
+    /// <summary>How many layers the platform grows to.</summary>
+    public const int MaxLayers = 10;
+
+    /// <summary>Seconds between one layer spawning and the next.</summary>
+    public const float Interval = 0.33f;
+
+    /// <summary>Points a single cube is worth before any group bonus.</summary>
+    public const int BasePointsPerCube = 10;
+
+    /// <summary>
+    /// The colours a cube can take. A cube matches its neighbour when both carry the same one, so
+    /// fewer colours here means larger groups and an easier board.
+    /// </summary>
     public static readonly List<Color> Colours = [Color.Red, Color.Green, Color.Blue, Color.DarkGoldenrod];
+
+    /// <summary>Width, height and depth of one cube. The grid spacing follows from it.</summary>
     public static readonly Vector3 CubeSize = new(0.5f);
 
     /// <summary>

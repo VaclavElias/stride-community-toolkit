@@ -10,8 +10,11 @@ using Stride.Input;
 
 namespace Example_CubicleCalamity.Scripts;
 
-public class RaycastInteractionScript : AsyncScript
+public class CubeClickScript : AsyncScript
 {
+    /// <summary>Label shown in front of the running total. Not the entity name.</summary>
+    private const string ScoreboardLabel = "Total Score";
+
     private int _totalScore;
     private SoundInstance? _soundInstance;
     private EntityTextComponent? _scoreComponent;
@@ -19,7 +22,7 @@ public class RaycastInteractionScript : AsyncScript
     public override async Task Execute()
     {
         var cameraComponent = Entity.Scene.GetCamera();
-        var totalScoreEntity = Entity.Scene.Entities.FirstOrDefault(e => e.Name == Constants.TotalScore);
+        var totalScoreEntity = Entity.Scene.Entities.FirstOrDefault(e => e.Name == EntityNames.Scoreboard);
 
         _scoreComponent = totalScoreEntity?.Get<EntityTextComponent>();
 
@@ -65,19 +68,18 @@ public class RaycastInteractionScript : AsyncScript
 
     private void OnEntityHit(Entity entity)
     {
-        if (entity.Name == "Cube")
+        if (entity.Name == EntityNames.Cube)
         {
             _soundInstance?.Stop();
             _soundInstance?.Play();
 
             var cubeComponent = entity.Get<CubeComponent>();
 
-            Console.WriteLine($"Cube hit: {cubeComponent.Color}");
-            Console.WriteLine($"Cube position: {entity.Transform.Position}");
+            Log.Info($"Cube hit: {cubeComponent.Color} at {entity.Transform.Position}");
 
             var cubesToRemove = GetCubesToRemove(entity, cubeComponent.Color);
 
-            Console.WriteLine($"Cubes to remove: {cubesToRemove.Count}");
+            Log.Info($"Cubes to remove: {cubesToRemove.Count}");
 
             var score = CalculateScore(cubesToRemove.Count).Result;
 
@@ -85,30 +87,30 @@ public class RaycastInteractionScript : AsyncScript
 
             if (_scoreComponent != null)
             {
-                _scoreComponent.Text = $"{Constants.TotalScore}: {_totalScore:N0}";
+                _scoreComponent.Text = $"{ScoreboardLabel}: {_totalScore:N0}";
             }
 
-            Console.WriteLine($"Score: {CalculateScore(cubesToRemove.Count).Calculations}, Total Score: {_totalScore - score} + {score}");
+            Log.Info($"Score: {_totalScore - score} + {score}");
 
             foreach (var cube in cubesToRemove)
             {
                 cube.Remove();
             }
 
-            AddDisplayScoreEntity(entity.Transform.Position, score, cubesToRemove.Count);
+            AddScorePopup(entity.Transform.Position, score, cubesToRemove.Count);
 
             entity.Remove();
         }
     }
 
-    private void AddDisplayScoreEntity(Vector3 position, int score, int boxes)
+    private void AddScorePopup(Vector3 position, int score, int boxes)
     {
         var fontSize = score > 10000 ? 24 : 18;
 
-        var entity = new Entity("DisplayScore", position)
+        var entity = new Entity(EntityNames.ScorePopup, position)
         {
             new EntityTextComponent() { Text = $"{score} ({boxes} box{(boxes == 1 ? "" : "es")})", FontSize = fontSize, TextColor = Color.White },
-            new ScoreScript()
+            new ScorePopupScript()
         };
 
         entity.Scene = SceneSystem.SceneInstance.RootScene;
@@ -141,9 +143,9 @@ public class RaycastInteractionScript : AsyncScript
         var position = entity.Transform.Position;
 
         return entity.Scene.Entities.Where(x =>
-            x.Name == "Cube" &&
+            x.Name == EntityNames.Cube &&
             x.Get<CubeComponent>().Color == color &&
-            IsNeighbor(position, x.Transform.Position, Constants.CubeSize));
+            IsNeighbor(position, x.Transform.Position, GameSettings.CubeSize));
     }
 
     private static bool IsNeighbor(Vector3 position, Vector3 otherPosition, Vector3 cubeSize)
@@ -162,10 +164,10 @@ public class RaycastInteractionScript : AsyncScript
 
     public static (int Result, string Calculations) CalculateScore(int numberOfCubes)
     {
-        int baseScore = numberOfCubes * Constants.BasePointsPerCube;
+        int baseScore = numberOfCubes * GameSettings.BasePointsPerCube;
 
         int bonus = (numberOfCubes == 1 ? 0 : numberOfCubes) * numberOfCubes * 10;
 
-        return (baseScore + bonus, $"{numberOfCubes} * {Constants.BasePointsPerCube} + {numberOfCubes} * {numberOfCubes}");
+        return (baseScore + bonus, $"{numberOfCubes} * {GameSettings.BasePointsPerCube} + {numberOfCubes} * {numberOfCubes}");
     }
 }

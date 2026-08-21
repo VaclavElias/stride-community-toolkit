@@ -1,0 +1,264 @@
+using Example_CubicleCalamity.Components;
+using Example_CubicleCalamity.Scripts;
+using Example_CubicleCalamity.Setup;
+using Example_CubicleCalamity.Shared;
+using Stride.BepuPhysics;
+using Stride.CommunityToolkit.Bepu;
+using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Games;
+using Stride.CommunityToolkit.Renderers;
+using Stride.CommunityToolkit.Rendering.Compositing;
+using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.Core.Mathematics;
+using Stride.Engine;
+using Stride.Games;
+using Stride.Rendering;
+
+namespace Example_CubicleCalamity;
+
+/// <summary>
+/// Runs Cubicle Calamity: builds the scene once, then grows the platform a layer at a time until it
+/// is complete and hands it over to the physics.
+/// </summary>
+/// <remarks>
+/// This is the piece a reader should start from. It owns the order things happen in and delegates the
+/// detail: <see cref="CubeSpawner"/> builds cubes, <see cref="MaterialFactory"/> and
+/// <see cref="LightingRig"/> build the look, and the scripts under <c>Scripts/</c> handle everything
+/// that reacts to the player.
+/// </remarks>
+/// <param name="game">The running game.</param>
+public class CubicleCalamityGame(Game game)
+{
+    /// <summary>Seed for cube colours, so the same board comes up every run while tuning.</summary>
+    private const int Seed = 1;
+
+    private readonly Vector3 _referenceCubePosition = new(-4, 1, -4);
+
+    private Dictionary<Color, Material> _materials = [];
+    private CubeSpawner? _spawner;
+    private BepuSimulation? _simulation;
+    private Scene? _scene;
+
+    private double _elapsedTime;
+    private int _layer = 1;
+    private bool _platformComplete;
+
+    /// <summary>
+    /// Builds the scene. Called once, before the first frame.
+    /// </summary>
+    /// <param name="scene">The root scene to populate.</param>
+    public void Start(Scene scene)
+    {
+        _scene = scene;
+
+        game.Window.AllowUserResizing = true;
+        game.AddGraphicsCompositor().AddCleanUIStage();
+
+        AddCamera();
+
+        game.AddSceneRenderer(new EntityTextRenderer());
+        game.AddDirectionalLight();
+        game.Add3DGround();
+        game.AddProfiler();
+
+        _materials = MaterialFactory.CreateCubeMaterials(game);
+        _spawner = new CubeSpawner(game, scene, _materials, Seed);
+
+        AddOrientationGizmo();
+        LightingRig.Add(game, scene, intensity: 5f);
+
+        AddReferenceCube();
+        _spawner.SpawnLayer(0.5f);
+
+        AddGameManager();
+        AddScoreboard();
+
+        var camera = scene.GetCamera();
+
+        camera?.Entity.Add(new CameraRotationScript { RotationCentre = GameSettings.PlatformCentre });
+
+        _simulation = camera?.Entity.GetSimulation();
+
+        ConfigureSolverForLockedStacks();
+    }
+
+    /// <summary>
+    /// Grows the platform, then releases it. Called once per frame.
+    /// </summary>
+    /// <param name="scene">The root scene.</param>
+    /// <param name="time">Timing for the current frame.</param>
+    public void Update(Scene scene, GameTime time)
+    {
+        _elapsedTime += time.Elapsed.TotalSeconds;
+
+        if (_elapsedTime >= GameSettings.Interval && _layer <= GameSettings.MaxLayers - 1)
+        {
+            _elapsedTime = 0;
+
+            // Layer centres sit half a cube above the layer index, so the bottom layer rests on the
+            // ground rather than sinking half way into it
+            _spawner?.SpawnLayer(_layer + 0.5f);
+
+            _layer++;
+        }
+
+        if (!_platformComplete && _layer == GameSettings.MaxLayers)
+        {
+            _platformComplete = true;
+
+            ReleaseCubesToPhysics(scene);
+        }
+    }
+
+    /// <summary>
+    /// Turns every cube from kinematic to dynamic, so the finished platform starts obeying gravity.
+    /// </summary>
+    /// <remarks>
+    /// Cubes are spawned kinematic so each layer hangs in place while the ones above it are still
+    /// being built. Letting them fall as they spawn would scatter the platform before it exists.
+    /// </remarks>
+    /// <param name="scene">The scene holding the cubes.</param>
+    private static void ReleaseCubesToPhysics(Scene scene)
+    {
+        foreach (var entity in scene.Entities)
+        {
+            if (entity.Name != EntityNames.Cube) continue;
+
+            var body = entity.Get<SlidingCubeComponent>();
+
+            if (body is null) continue;
+
+            body.Kinematic = false;
+
+            // Going dynamic re-applies the shape inertia, which undoes the rotation lock.
+            // SimulationUpdate would catch it on the next step anyway; doing it here closes the
+            // one step of freedom in between.
+            body.ApplyRotationLock();
+        }
+    }
+
+    /// <summary>
+    /// Raises the solver's substep count, which is what stops a rotation-locked stack from jittering.
+    /// </summary>
+    /// <remarks>
+    /// Locking rotation makes the four contact points on each cube face linearly dependent - they all
+    /// control the same single linear degree of freedom - and a single-substep solve cannot converge
+    /// them. The stack never settles, so it never sleeps, and the residual impulses read as boiling.
+    /// <para>
+    /// Measured on a headless 10x10x10 replica of this scene using Stride's defaults: at one substep
+    /// all 1000 bodies stay awake with an RMS vertical velocity of 0.166; at two substeps every one
+    /// sleeps at 0.00001, and a 15 second run takes 119 ms rather than 1308 ms - sleeping saves far
+    /// more than the extra substep costs. Contact spring settings and MaximumRecoveryVelocity made
+    /// no useful difference, and an unlocked stack settles fine at one substep, which is what
+    /// identifies the rotation lock as the thing being paid for here.
+    /// </para>
+    /// <para>
+    /// Stride's SoftStart temporarily multiplies this by <see cref="BepuSimulation.SoftStartSubstepFactor"/>
+    /// and divides it back afterwards, so setting it here round-trips correctly.
+    /// </para>
+    /// </remarks>
+    private void ConfigureSolverForLockedStacks()
+    {
+        if (_simulation is null) return;
+
+        _simulation.Simulation.Solver.SubstepCount = 2;
+    }
+
+    /// <summary>
+    /// Adds the camera, aimed at the middle of the platform.
+    /// </summary>
+    /// <remarks>
+    /// Two ordering details matter here.
+    /// <para>
+    /// <see cref="TransformExtensions.LookAt(Stride.Engine.TransformComponent, Vector3, Vector3, float)"/>
+    /// takes the eye position from <c>Transform.LocalMatrix</c> rather than from
+    /// <c>Transform.Position</c>, and that matrix is still identity until the transform is updated.
+    /// Without the explicit refresh the camera would be treated as sitting at the origin, looking
+    /// straight up at a target directly above it - a degenerate rotation, and a blank screen.
+    /// </para>
+    /// <para>
+    /// The aiming also has to happen before the controller is attached, because
+    /// <c>Basic3DCameraController.Start</c> caches the transform it finds as the pose that H
+    /// restores. Doing it in this order means H resets to a view of the platform too.
+    /// </para>
+    /// </remarks>
+    private void AddCamera()
+    {
+        var camera = game.Add3DCamera();
+
+        camera.Transform.UpdateWorldMatrix();
+        camera.Transform.LookAt(GameSettings.PlatformCentre, Vector3.UnitY);
+
+        camera.Add3DCameraController();
+    }
+
+    /// <summary>
+    /// Adds the axis gizmo that shows which way X, Y and Z run.
+    /// </summary>
+    /// <remarks>
+    /// Building a game from code alone means there is no editor viewport to orient in - no grid, no
+    /// axis widget, nothing that answers "which way is X" except what the scene draws for itself.
+    /// This is that. Its placement is under review; see the plan notes on orientation aids.
+    /// </remarks>
+    private void AddOrientationGizmo()
+    {
+        var entity = new Entity(EntityNames.OrientationGizmo);
+
+        entity.AddGizmo(game.GraphicsDevice, showAxisName: true);
+        entity.Transform.Position = new Vector3(-7.5f, 1, -7.5f);
+        entity.Scene = _scene;
+    }
+
+    /// <summary>
+    /// Adds a single colliderless cube used as a fixed visual reference beside the platform.
+    /// </summary>
+    /// <remarks>
+    /// It takes no part in play - no collider and no <see cref="CubeComponent"/>, so the raycast and
+    /// the colour matching both pass it by. Kept for now, alongside the orientation gizmo, pending
+    /// the decision on what the example's reference markers should be.
+    /// </remarks>
+    private void AddReferenceCube()
+    {
+        var cube = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions()
+        {
+            EntityName = EntityNames.ReferenceCube,
+            Material = _materials[GameSettings.Colours[0]],
+            Size = GameSettings.CubeSize
+        });
+
+        cube.Transform.Position = _referenceCubePosition;
+        cube.Scene = _scene;
+    }
+
+    /// <summary>
+    /// Adds the entity carrying the scripts that run the game, rather than any object within it.
+    /// </summary>
+    private void AddGameManager()
+    {
+        var entity = new Entity(EntityNames.GameManager)
+        {
+            new CubeClickScript()
+        };
+
+        entity.Scene = _scene;
+    }
+
+    /// <summary>
+    /// Adds the on-screen running total.
+    /// </summary>
+    private void AddScoreboard()
+    {
+        var entity = new Entity(EntityNames.Scoreboard)
+        {
+            new EntityTextComponent()
+            {
+                Text = "Total Score: 0",
+                FontSize = 20,
+                Position = new Vector2(0, 20),
+                TextColor = Color.White,
+            }
+        };
+
+        entity.Scene = _scene;
+    }
+}

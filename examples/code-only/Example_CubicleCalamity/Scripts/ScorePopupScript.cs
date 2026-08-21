@@ -4,7 +4,7 @@ using Stride.Engine;
 
 namespace Example_CubicleCalamity.Scripts;
 
-public class ScoreScript : SyncScript
+public class ScorePopupScript : SyncScript
 {
     private float _maxHeight = 25f;
     private TimeSpan _elapsed = TimeSpan.Zero;
