@@ -115,16 +115,16 @@ public class CubeClickScript : AsyncScript
 
         AddScorePopup(cube.Transform.Position, result);
 
-        // The grid is updated before anything falls, so the next click already matches the finished
-        // layout even while the cubes are still visibly dropping into it
-        var moved = _grid.RemoveAndCollapse(group);
+        // The grid collapses immediately, so the next click already matches the finished layout while
+        // the cubes are still visibly falling into it. Nothing here moves a body: gravity does that,
+        // and the two cannot disagree once they settle because SlidingCubeComponent pins each cube to
+        // its own column, so the only place a cube can fall to is the slot the grid just gave it.
+        _grid.RemoveAndCollapse(group);
 
         foreach (var cleared in group)
         {
             cleared.Remove();
         }
-
-        DropCubes(moved);
 
         Scoreboard?.Punch();
 
@@ -152,35 +152,6 @@ public class CubeClickScript : AsyncScript
 
         GameOverText.Text = $"NO MOVES LEFT\n{_keeper.TotalScore:N0} points\n{_grid.Count} cubes stranded";
         GameOverText.IsVisible = true;
-    }
-
-    /// <summary>
-    /// Teleports each surviving cube down to the slot the grid now says it occupies.
-    /// </summary>
-    /// <remarks>
-    /// The bodies are moved rather than left to fall, so the picture matches the grid immediately.
-    /// Physics still owns everything after this - the cubes settle, jostle and sleep as usual - but
-    /// the two can no longer disagree about which slot a cube is in.
-    /// <para>
-    /// Removing a cube wakes the stack on its own, because <c>Bodies.Remove</c> forces the sleeping
-    /// island active. Teleporting one does not, which is why this runs after the removals rather than
-    /// before them.
-    /// </para>
-    /// </remarks>
-    private static void DropCubes(List<(Entity Cube, int Dropped)> moved)
-    {
-        foreach (var (cube, dropped) in moved)
-        {
-            var body = cube.Get<Components.SlidingCubeComponent>();
-
-            if (body is null) continue;
-
-            var position = cube.Transform.Position;
-
-            position.Y -= dropped * GameSettings.CubeSize.Y;
-
-            body.Teleport(position, body.Orientation);
-        }
     }
 
     private void AddScorePopup(Vector3 position, ScoreResult result)
