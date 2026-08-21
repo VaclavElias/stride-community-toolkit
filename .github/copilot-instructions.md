@@ -117,6 +117,13 @@ Two rules when editing these:
 - Entities must be added to a Scene graph to be processed.
 - Physics: Prefer Bepu components; keep Bullet only for transition/testing. Avoid mixing both on the same entity.
 - Core components commonly manipulated: Transform (position, rotation, scale), Camera, Rigidbody, Script logic.
+- **Losing window focus pauses the whole audio engine.** `AudioSystem` hooks `Game.Deactivated` and
+  calls `AudioEngine.PauseAudio()`, and `SoundInstance.Play` then returns *silently* — no exception,
+  no queued playback. The click that brings the window back is delivered before the matching
+  `ResumeAudio()`, so the first sound after refocusing is dropped and every later one works, which
+  reads as a flaky sound bug. Check `AudioEngine.State` and resume before playing if it matters.
+- A `SoundInstance` plays one sound at a time: replaying one that is still sounding cuts it off. For
+  effects that can overlap, keep several instances and cycle through them.
 
 ### Bepu transform ownership (frequent source of confusion)
 
