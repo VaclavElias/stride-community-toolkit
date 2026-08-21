@@ -13,15 +13,24 @@ public class CameraRotationScript : SyncScript
     private Vector3 _rotationCentre;
     DebugOverlaySection? _instructions;
 
+    /// <summary>
+    /// Gets or sets the world point the camera orbits and aims at. Leave <see langword="null"/> to
+    /// fall back to the ground entity's position.
+    /// </summary>
+    /// <remarks>
+    /// The ground sits at Y = 0, so orbiting around it alone aims the camera at the base of the
+    /// platform. Pointing this at the platform's mid-height keeps the stack framed as it turns.
+    /// </remarks>
+    public Vector3? RotationCentre { get; set; }
+
     public override void Start()
     {
-        //var ground = Entity.Scene.Entities.FirstOrDefault(e => e.Name == GroundEntityName);
-        var ground = SceneSystem.SceneInstance.RootScene
-                         .Entities.FirstOrDefault(e => e.Name == GroundEntityName);
-
-        if (ground == null) return;
-
-        _rotationCentre = ground.Transform.Position;
+        // Falls back to the ground, then to the origin - previously a missing ground returned early
+        // and silently took the instructions overlay down with it
+        _rotationCentre = RotationCentre
+            ?? SceneSystem.SceneInstance.RootScene
+                   .Entities.FirstOrDefault(e => e.Name == GroundEntityName)?.Transform.Position
+            ?? Vector3.Zero;
 
         InitializeDebugOverlay();
     }
@@ -82,7 +91,7 @@ public class CameraRotationScript : SyncScript
             //new("Click the golden sphere and drag to move it (Y-axis locked)"),
             new("Click a cube", Color.Yellow),
             new("Hold Shift: Left mouse button down", Color.Yellow),
-            new("Z/C orbit around the ground", Color.Yellow),
+            new("Z/C orbit around the platform", Color.Yellow),
             new($"Camera Position: {cameraPosition}", Color.Yellow),
         ];
 }

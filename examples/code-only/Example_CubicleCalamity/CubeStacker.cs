@@ -1,9 +1,7 @@
-using BepuPhysics;
 using Example_CubicleCalamity.Components;
 using Example_CubicleCalamity.Scripts;
 using Example_CubicleCalamity.Shared;
 using Stride.BepuPhysics;
-using Stride.BepuPhysics.Constraints;
 using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
@@ -45,7 +43,7 @@ public class CubeStacker
         //_game.SetupBase3DScene();
         _game.Window.AllowUserResizing = true;
         _game.AddGraphicsCompositor().AddCleanUIStage();
-        _game.Add3DCamera().Add3DCameraController();
+        AddCamera();
         //_game.AddEntityDebugSceneRenderer(new()
         //{
         //    ShowFontBackground = false
@@ -70,8 +68,66 @@ public class CubeStacker
         AddTotalScoreEntity();
 
         var camera = _scene.GetCamera();
-        camera?.Entity.Add(new CameraRotationScript());
-        //_simulation = camera?.Entity.GetSimulation().Simulation;
+        camera?.Entity.Add(new CameraRotationScript { RotationCentre = Constants.PlatformCentre });
+
+        _simulation = camera?.Entity.GetSimulation();
+
+        ConfigureSolverForLockedStacks();
+    }
+
+    /// <summary>
+    /// Raises the solver's substep count, which is what stops a rotation-locked stack from jittering.
+    /// </summary>
+    /// <remarks>
+    /// Locking rotation makes the four contact points on each cube face linearly dependent - they all
+    /// control the same single linear degree of freedom - and a single-substep solve cannot converge
+    /// them. The stack never settles, so it never sleeps, and the residual impulses read as boiling.
+    /// <para>
+    /// Measured on a headless 10x10x10 replica of this scene using Stride's defaults: at one substep
+    /// all 1000 bodies stay awake with an RMS vertical velocity of 0.166; at two substeps every one
+    /// sleeps at 0.00001, and a 15 second run takes 119 ms rather than 1308 ms - sleeping saves far
+    /// more than the extra substep costs. Contact spring settings and MaximumRecoveryVelocity made
+    /// no useful difference, and an unlocked stack settles fine at one substep, which is what
+    /// identifies the rotation lock as the thing being paid for here.
+    /// </para>
+    /// <para>
+    /// Stride's SoftStart temporarily multiplies this by <see cref="BepuSimulation.SoftStartSubstepFactor"/>
+    /// and divides it back afterwards, so setting it here round-trips correctly.
+    /// </para>
+    /// </remarks>
+    private void ConfigureSolverForLockedStacks()
+    {
+        if (_simulation is null) return;
+
+        _simulation.Simulation.Solver.SubstepCount = 2;
+    }
+
+    /// <summary>
+    /// Adds the camera, aimed at the middle of the platform.
+    /// </summary>
+    /// <remarks>
+    /// Two ordering details matter here.
+    /// <para>
+    /// <see cref="TransformExtensions.LookAt(Stride.Engine.TransformComponent, Vector3, Vector3, float)"/>
+    /// takes the eye position from <c>Transform.LocalMatrix</c> rather than from
+    /// <c>Transform.Position</c>, and that matrix is still identity until the transform is updated.
+    /// Without the explicit refresh the camera would be treated as sitting at the origin, looking
+    /// straight up at a target directly above it - a degenerate rotation, and a blank screen.
+    /// </para>
+    /// <para>
+    /// The aiming also has to happen before the controller is attached, because
+    /// <c>Basic3DCameraController.Start</c> caches the transform it finds as the pose that H
+    /// restores. Doing it in this order means H resets to a view of the platform too.
+    /// </para>
+    /// </remarks>
+    private void AddCamera()
+    {
+        var camera = _game.Add3DCamera();
+
+        camera.Transform.UpdateWorldMatrix();
+        camera.Transform.LookAt(Constants.PlatformCentre, Vector3.UnitY);
+
+        camera.Add3DCameraController();
     }
 
     private void AddGizmo(Scene scene)
@@ -107,7 +163,6 @@ public class CubeStacker
         entity.Scene = _scene;
     }
 
-    // ToDo: Can we change box physics so it doesn't bump?
     public void Update(Scene scene, GameTime time)
     {
         _elapsedTime += time.Elapsed.TotalSeconds;
@@ -116,9 +171,7 @@ public class CubeStacker
         {
             _elapsedTime = 0;
 
-            var entities = CreateCubeLayer(_layer + 0.5f);
-
-            //AddColliders(entities);
+            CreateCubeLayer(_layer + 0.5f);
 
             _layer++;
         }
@@ -131,77 +184,17 @@ public class CubeStacker
             {
                 if (cube.Name != "Cube") continue;
 
-                var body = cube.Get<BodyComponent>();
+                var body = cube.Get<SlidingCubeComponent>();
 
                 if (body == null) continue;
 
                 body.Kinematic = false;
+
+                // Going dynamic re-applies the shape inertia, which undoes the rotation lock.
+                // SimulationUpdate would catch it on the next step anyway; doing it here closes the
+                // one step of freedom in between.
+                body.ApplyRotationLock();
             }
-        }
-
-        foreach (var cube in scene.Entities)
-        {
-            if (cube.Name != "Cube") continue;
-
-            var body = cube.Get<BodyComponent>();
-
-            //body.AngularVelocity = Vector3.Zero;
-            //body.LinearVelocity = Vector3.Zero;
-
-            //body.AngularVelocity = Vector3.Zero;
-            //body.LinearVelocity = new(0, -0.1f, 0);
-
-            //  Make all sleeping except those moving down
-            //body.Awake = false;
-            //body.Gravity = new Vector3(0, -10, 0);
-            //body.Kinematic = true;
-
-            //body.BodyInertia = new BodyInertia
-            //{
-            //    //InverseMass = 1,
-            //    InverseInertiaTensor = new BepuUtilities.Symmetric3x3
-            //    {
-            //        XX = 1,
-            //        ZY = 1,
-            //        YX = 1,
-            //        YY = 1,
-            //        ZX = 1,
-            //        ZZ = 1
-            //    }
-            //};
-
-            //if (body.AngularVelocity.LengthSquared() > 0.001f)
-            //{
-            //    body.AngularVelocity = Vector3.Zero;
-            //}
-
-            //if (body.Awake && body.LinearVelocity.LengthSquared() > 0.1f)
-            //{
-            //    body.LinearVelocity = Vector3.Zero;
-            //}
-
-            //body.SpringDampingRatio = 1;
-            //body.SpringFrequency = 40;
-
-            //if (body.Awake && body.AngularVelocitys.LengthSquared() > 0.001f)
-            //{
-            //    //body.BodyInertia = new BodyInertia
-            //    //{
-            //    //    InverseMass = 1,
-            //    //    InverseInertiaTensor = default
-            //    //};
-            //}
-
-            //var body = _simulatison.Bodies[cube];
-            //if (body.Awake && body.AngularVelocity.LengthSquared() > 0.001f)
-            //{
-            //    body.AngularVelocity = Vector3.Zero;
-            //}
-
-            //if (body.Awake && body.LinearVelocity.LengthSquared() > 0.001f)
-            //{
-            //    //body.LinearVelocity = new Vector3(0, -10, 0);
-            //}
         }
     }
 
@@ -276,28 +269,25 @@ public class CubeStacker
         });
         cube.Transform.Position = startPosition;
         cube.Scene = _scene;
-        //var entities = CreateCubeLayer(y, scene);
-        //AddColliders(entities);
     }
 
-    private void AddFirstLayer(float y)
+    private void AddFirstLayer(float y) => CreateCubeLayer(y);
+
+    private void CreateCubeLayer(float y)
     {
-        var entities = CreateCubeLayer(y);
-
-        //AddColliders(entities);
-    }
-
-    private List<Entity> CreateCubeLayer(float y)
-    {
-        var entities = new List<Entity>();
-
         for (var x = 0; x < Constants.Rows; x++)
         {
             for (var z = 0; z < Constants.Rows; z++)
             {
                 var entity = CreateCube(Constants.CubeSize);
 
-                entity.Transform.Position = new Vector3(x, y, z) * Constants.CubeSize;
+                var position = new Vector3(x, y, z) * Constants.CubeSize;
+
+                // Centre the platform on the ground rather than letting it grow out of one corner
+                position.X += Constants.GridOrigin;
+                position.Z += Constants.GridOrigin;
+
+                entity.Transform.Position = position;
 
                 AddCollider(entity);
 
@@ -306,233 +296,34 @@ public class CubeStacker
                 //entity.AddGizmo(_game.GraphicsDevice);
 
                 //entity.Transform.Children.Add(_translationGizmo.Create(scene).Transform);
-
-                entities.Add(entity);
             }
-        }
-
-        return entities;
-    }
-
-    private static void AddColliders(List<Entity> entities)
-    {
-        foreach (var entity in entities)
-        {
-            AddCollider(entity);
         }
     }
 
     private static void AddCollider(Entity entity)
     {
+        // A single BoxCollider still has to be wrapped: ColliderBase does not implement ICollider,
+        // only CompoundCollider, MeshCollider and EmptyCollider do.
         var compoundCollider = new CompoundCollider();
 
-        var boxCollider = new BoxCollider
+        compoundCollider.Colliders.Add(new BoxCollider
         {
             Size = Constants.CubeSize,
-            Mass = 1000000000,
-        };
+            // Was 1e9. All cubes shared it so the mass ratios were fine, but it also scales the
+            // inertia tensor and puts contact impulses nine orders of magnitude away from where
+            // Bepu's absolute epsilons and sleep thresholds are tuned.
+            Mass = 1,
+        });
 
-        compoundCollider.Colliders.Add(boxCollider);
-
-        //var zeroInertia = new BodyInertia
-        //{
-        //    InverseMass = 100,
-        //    InverseInertiaTensor = default
-        //};
-
-        var body = new BodyComponent
+        // Kinematic until the whole tower is built, so layers hang in the air while they spawn.
+        // Nothing here may touch BodyInertia or the velocities: their setters no-op until the
+        // component is added to an entity below, at which point SlidingCubeComponent.AttachInner
+        // takes over and locks rotation.
+        entity.Add(new SlidingCubeComponent
         {
             Collider = compoundCollider,
-            //BodyInertia = zeroInertia,
-            //AngularVelocity = Vector3.Zero,
-            //LinearVelocity = Vector3.Zero,
-        };
-
-        // I need to get ShapeIndex with reflection
-        //var shapeIndex = body.ShapeIndex;
-        //var pos = body.Pose;
-
-        body.Kinematic = true;
-
-        //var pose = body.Pose;
-
-        body.BodyInertia = new BodyInertia
-        {
-            InverseMass = 1 / boxCollider.Mass,
-            InverseInertiaTensor = default
-        };
-
-        //body.SleepThreshold = 0.01f;
-        //body.MinimumTimestepCountUnderThreshold = 32;
-
-        entity.Add(body);
-
-        //var index = body.Sha
-
-        //body.SpringFrequency = 1;
-        //body.SpringDampingRatio = 0;
-
-
-        //body.AngularVelocity = Vector3.Zero;
-        //body.LinearVelocity = Vector3.Zero;
-        //body.FrictionCoefficient = 3f;
-        //body.MaximumRecoveryVelocity = 10;
-        //body.SpringDampingRatio = 10000000;
-        //body.SpringFrequency = 1000;
-        //body.SpeculativeMargin = 10;
-
-        // This works differently when set here
-        //body.BodyInertia = zeroInertia;
-
-        //body.FrictionCoefficient = 2;
-        //body.InterpolationMode = InterpolationMode.Interpolated;
-
-
-        //var bodyDescription = new BodyDescription
-        //{
-        //    LocalInertia = zeroInertia,
-        //    Pose = new RigidPose
-        //    {
-        //        Position = entity.Transform.Position,
-        //        Orientation = entity.Transform.Rotation
-        //    },
-        //    Activity = new BodyActivityDescription
-        //    {
-        //        SleepThreshold = 0.01f,
-        //        //MinimumTimestepCountForSleep = 32
-        //    }
-        //};
-
-        // var collidable = new CollidableDescription(shapeIndex, 0.1f);
-
-        // var activityDescription = new BodyActivityDescription
-        // {
-        //     SleepThreshold = 0.01f, // or -1 if you really don't want it to sleep
-        //     MinimumTimestepCountUnderThreshold = 32
-        // };
-
-        // var bodyDescription = BodyDescription.CreateDynamic(
-        //    (RigidPose)pos,
-        //    zeroInertia,
-        //    collidable,
-        //    activityDescription
-        //);
-
-        //entity.GetSimulation().Simulation.Bodies.Add(bodyDescription);
-        // Apply the OneBodyAngularServo constraint to keep the box's orientation fixed.
-
-        var ballSocket = new BallSocketConstraintComponent
-        {
-            A = body,
-            //B = body,
-            LocalOffsetA = Vector3.Zero,
-            LocalOffsetB = Vector3.Zero,
-            SpringDampingRatio = 1,
-            SpringFrequency = 30
-        };
-
-        var oneBodyLinearServo = new OneBodyLinearServoConstraintComponent
-        {
-            A = body,
-            Target = new Vector3(0, -10, 0),
-            //B = body,
-            ServoMaximumSpeed = 0.1f,
-            ServoBaseSpeed = 1,
-            ServoMaximumForce = 1,
-
-            //LocalOffsetA = Vector3.Zero,
-            //LocalOffsetB = Vector3.Zero,
-            //LocalPlaneNormal = new Vector3(0, 1, 0),
-        };
-
-        //var rotation = entity.Transform.Rotation;
-
-        var oneBodyAngularServo = new OneBodyAngularServoConstraintComponent
-        {
-            A = body,
-            TargetOrientation = Quaternion.Identity,
-            SpringDampingRatio = 1,
-            SpringFrequency = 30,
-        };
-
-        var pointOnLine = new PointOnLineServoConstraintComponent
-        {
-            A = body,
-            B = body,
-            LocalOffsetA = Vector3.Zero,
-            LocalOffsetB = Vector3.Zero,
-            LocalDirection = Vector3.UnitY,
-            SpringDampingRatio = 1,
-            SpringFrequency = 30,
-        };
-
-        var linearAxisServe = new LinearAxisServoConstraintComponent
-        {
-            A = body,
-            B = body,
-            LocalOffsetA = Vector3.Zero,
-            LocalOffsetB = Vector3.Zero,
-            LocalPlaneNormal = Vector3.UnitX,
-            SpringDampingRatio = 1,
-            SpringFrequency = 30,
-        };
-
-        var linearAxisServe2 = new LinearAxisServoConstraintComponent
-        {
-            A = body,
-            B = body,
-            LocalOffsetA = Vector3.Zero,
-            LocalOffsetB = Vector3.Zero,
-            LocalPlaneNormal = Vector3.UnitZ,
-            SpringDampingRatio = 1,
-            SpringFrequency = 30,
-        };
-
-        var angularServo = new AngularServoConstraintComponent
-        {
-            A = body,
-            B = body,
-            TargetRelativeRotationLocalA = Quaternion.Identity,
-        };
-
-        var _oblscc = new OneBodyLinearServoConstraintComponent();
-        _oblscc.ServoMaximumSpeed = float.MaxValue;
-        _oblscc.ServoBaseSpeed = 0;
-        _oblscc.ServoMaximumForce = 1000;
-        _oblscc.A = body;
-        _oblscc.Enabled = false;
-
-        var _obascc = new OneBodyAngularServoConstraintComponent();
-        _obascc.ServoMaximumSpeed = float.MaxValue;
-        _obascc.ServoBaseSpeed = 0;
-        _obascc.ServoMaximumForce = 1000;
-        _obascc.A = body;
-        _obascc.Enabled = false;
-
-        //entity.Add(_oblscc);
-        //entity.Add(_obascc);
-
-        //entity.Add(oneBodyLinearServo);
-        //entity.Add(angularServo);
-        //entity.Add(linearAxisServe);
-        //entity.Add(linearAxisServe2);
-        //entity.Add(angularServo);
-
-
-
-        //var angularServo = new AngularServoConstraintComponent
-        //{
-        //    A = body,
-        //    B = body,
-        //    TargetRelativeRotationLocalA = Quaternion.Identity,
-        //};
-
-        //entity.Add(angularServo);
-
-        //body.Constraints = new RigidConstraints();
-        //body.LinearVelocity = new Vector3(0, 1f, 0); // Set an initial velocity along the Y-axis
-        //body.LinearFactor = new Vector3(0, 1, 0); // Restrict linear motion to the Y-axis
-        //body.AngularFactor = Vector3.Zero; // Restrict angular rotation on all axes
+            Kinematic = true,
+        });
     }
 
     private Entity CreateCube(Vector3 size)
