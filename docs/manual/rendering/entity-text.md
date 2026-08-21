@@ -103,6 +103,42 @@ component goes away. An earlier version of the renderer walked the scene's top-l
 instead, so labels parented to another entity - the obvious way to attach a label to a thing - never
 drew, and every short-lived label leaked a cache entry.
 
+## The debug renderer
+
+`EntityDebugSceneRenderer` is the other side of the same coin. Where `EntityTextComponent` draws text
+an entity **opts into**, the debug renderer labels **every** entity automatically with its name and/or
+position, in one shared style:
+
+```csharp
+game.AddEntityDebugSceneRenderer(new()
+{
+    ShowEntityPosition = true,
+    IncludeChildEntities = true,
+    PositionColor = Color.DarkBlue,
+    EnableBackground = true,
+});
+```
+
+It is a debugging overlay you switch on, not authored content, which is why it stays a separate
+renderer. Both share their drawing — projection, anchoring, background, shadow — so those behave
+identically in each.
+
+Options worth knowing:
+
+- **`IncludeChildEntities`** is off by default. A scene built from composed entities can hold far more
+  children than top-level entities, and labelling all of them at once is usually unreadable.
+- **`EntityFilter`** is the cheapest way to make a busy scene legible — narrow to one name or one
+  component type instead of reading every label on screen.
+- **`PositionColor`** gives the coordinates their own colour, and moves them onto a line beneath the
+  name. Two colours on one line means measuring and chaining the parts, and a stack reads better.
+- **`MaxDistance`** drops labels past a given range.
+
+> [!IMPORTANT]
+> A default background only makes sense paired with a default text colour. The debug renderer's text
+> defaults to **black** on a **light** panel; `EntityTextComponent` defaults to **white** on a **dark**
+> one. The two used to share a single default background, so darkening it to suit white text silently
+> turned every debug label into black-on-black. If you change one, change the other.
+
 ## Limitations
 
 - One `SpriteFont` per component, no rich text or per-character colour.
