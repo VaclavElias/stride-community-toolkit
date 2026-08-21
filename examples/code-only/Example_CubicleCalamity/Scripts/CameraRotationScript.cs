@@ -9,9 +9,14 @@ namespace Example_CubicleCalamity.Scripts;
 
 public class CameraRotationScript : SyncScript
 {
+    /// <summary>
+    /// Closest the camera may be to the orbit centre and still be swung around it, in world units.
+    /// </summary>
+    private const float MinimumOrbitRadius = 0.01f;
+
     private float _rotationSpeed = 45f; // degrees per second
     private Vector3 _rotationCentre;
-    DebugOverlaySection? _instructions;
+    private DebugOverlaySection? _instructions;
 
     /// <summary>
     /// Gets or sets the world point the camera orbits and aims at. Leave <see langword="null"/> to
@@ -58,19 +63,29 @@ public class CameraRotationScript : SyncScript
         }
     }
 
+    /// <summary>
+    /// Swings the camera around <see cref="RotationCentre"/> by the given angle and re-aims it.
+    /// </summary>
+    /// <param name="angleDegrees">How far to swing this frame, in degrees.</param>
+    /// <remarks>
+    /// The orbit is computed from the camera's own position each frame rather than from a stored
+    /// angle, so it composes with the free-look controller instead of fighting it: fly somewhere with
+    /// WASD and the orbit continues from wherever that left the camera.
+    /// </remarks>
     private void RotateAroundCentre(float angleDegrees)
     {
-        // Compute offset from centre
         var offset = Entity.Transform.Position - _rotationCentre;
 
-        // Rotate offset around world‑Y
-        var yawQuat = Quaternion.RotationY(MathUtil.DegreesToRadians(angleDegrees));
-        var rotatedOffset = Vector3.Transform(offset, yawQuat);
+        // Sitting on the centre leaves no radius to swing through and no direction to look in. Both
+        // are degenerate, so there is nothing meaningful to do until the camera is moved off it.
+        if (offset.Length() < MinimumOrbitRadius) return;
 
-        // Reposition the camera
+        var yaw = Quaternion.RotationY(MathUtil.DegreesToRadians(angleDegrees));
+        var rotatedOffset = Vector3.Transform(offset, yaw);
+
         Entity.Transform.Position = _rotationCentre + rotatedOffset;
 
-        // Re‑aim the camera at the centre (preserves original pitch/tilt)
+        // Re-aim at the centre, which preserves the pitch the camera already had
         Entity.Transform.LookAt(_rotationCentre, Vector3.UnitY);
     }
 
