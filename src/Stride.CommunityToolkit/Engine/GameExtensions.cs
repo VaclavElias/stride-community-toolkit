@@ -312,6 +312,8 @@ public static class GameExtensions
     /// </summary>
     /// <param name="game">The Game instance to which the directional light will be added.</param>
     /// <param name="entityName">Optional name for the new directional light entity. If null, the entity will not be named.</param>
+    /// <param name="enableShadows">Whether the light casts shadows. Defaults to <see langword="true"/>.</param>
+    /// <param name="intensity">Brightness of the light. Defaults to 20.</param>
     /// <returns>The created Entity object representing the directional light.</returns>
     /// <remarks>
     /// <para>
@@ -324,20 +326,26 @@ public static class GameExtensions
     /// - Shadow Filter: PCF (Percentage Closer Filtering) with a filter size of 5x5
     /// </para>
     /// <para>The entity will be added to the game's root scene. You can customize the light properties by accessing the returned Entity object.</para>
+    /// <para>
+    /// Note that <paramref name="enableShadows"/> only controls shadows <em>cast</em> by geometry onto
+    /// other geometry. It does not flatten shading: a surface facing away from the light is still
+    /// darkened by the diffuse N·L term, whatever this is set to. For a surface that reads as the same
+    /// colour from every angle, use an emissive material such as <see cref="CreateFlatMaterial"/>.
+    /// </para>
     /// </remarks>
-    public static Entity AddDirectionalLight(this Game game, string? entityName = "Directional Light")
+    public static Entity AddDirectionalLight(this Game game, string? entityName = "Directional Light", bool enableShadows = true, float intensity = 20.0f)
     {
         var entity = new Entity(entityName)
         {
             new LightComponent
             {
-                Intensity = 20.0f,
+                Intensity = intensity,
                 Type = new LightDirectional
                 {
                     Color = new ColorRgbProvider(Color.White),
                     Shadow =
                     {
-                        Enabled = true,
+                        Enabled = enableShadows,
                         Size = LightShadowMapSize.Large,
                         Filter = new LightShadowMapFilterTypePcf { FilterSize = LightShadowMapFilterTypePcfSize.Filter5x5 },
                         PartitionMode = new LightDirectionalShadowMap.PartitionLogarithmic(),
@@ -363,17 +371,28 @@ public static class GameExtensions
     /// <param name="intensity">The intensity of the light sources.</param>
     /// <param name="showLightGizmo">Specifies whether to display a gizmo for the light in the editor. Default is true.</param>
     /// <remarks>
+    /// <para>
     /// This method creates six directional lights positioned around a central point, each aiming from a unique angle to simulate uniform lighting from all directions.
     /// The lights are added at predefined positions and rotations to cover the scene evenly.
+    /// </para>
+    /// <para>
+    /// There really are six. Until this was corrected the array held only five - both horizontal axes,
+    /// both depth axes, and a single vertical one - so every object in the scene was left permanently
+    /// unlit from either above or below, which reads as an object whose colour is wrong on one face
+    /// rather than as a missing light.
+    /// </para>
     /// </remarks>
     public static void AddAllDirectionLighting(this Game game, float intensity = 5, bool showLightGizmo = true)
     {
         var position = new Vector3(7f, 2f, 0);
 
+        // A directional light shines along its entity's forward axis, so these six rotations aim one
+        // light down each of the six world axes
         var rotations = new[]
         {
             Quaternion.Identity,
             Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(180)),
+            Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90)),
             Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(270)),
             Quaternion.RotationAxis(Vector3.UnitY, MathUtil.DegreesToRadians(90)),
             Quaternion.RotationAxis(Vector3.UnitY, MathUtil.DegreesToRadians(270))
