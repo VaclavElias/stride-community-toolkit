@@ -83,11 +83,19 @@ void Start(Scene rootScene)
 
 void Spawn(ShapeItem shape, Vector3 position)
 {
-    var entity = game.Create2DPrimitive(shape.Type, new()
+    var bepuOptions = new Bepu2DPhysicsOptions()
     {
         Material = game.CreateFlatMaterial(random.NextColor()),
         Vertices = shape.Vertices,
-    });
+    };
+
+    if (shape.Type == Primitive2DModelType.Polygon && shape.Vertices == null)
+    {
+        bepuOptions.Size = new Vector2(1, 5);
+        bepuOptions.Depth = 4;
+    }
+
+    var entity = game.Create2DPrimitive(shape.Type, bepuOptions);
 
     entity.Transform.Position = position;
     entity.Scene = scene;
