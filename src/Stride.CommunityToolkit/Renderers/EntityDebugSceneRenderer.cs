@@ -45,7 +45,11 @@ public class EntityDebugSceneRenderer : SceneRendererBase
 
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _font = Content.Load<SpriteFont>(RendererDefaults.DefaultFontPath);
-        _backgroundTexture = Texture.New2D(GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, [(Color)RendererDefaults.DefaultBackground]);
+        // Opaque white, because the colour is supplied when the rectangle is drawn. Baking the
+        // background colour in here as well multiplied it into itself, so the requested colour was
+        // squared and its alpha with it - which is why a background asked for at alpha 0.01 came out
+        // at 0.0001 and never appeared at all.
+        _backgroundTexture = Texture.New2D(GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, [Color.White]);
 
         var graphicsCompositor = Context.Tags.Get(GraphicsCompositor.Current);
         _camera = graphicsCompositor?.Cameras.Count > 0 ? graphicsCompositor.Cameras[0].Camera : null;
@@ -170,7 +174,7 @@ public class EntityDebugSceneRenderer : SceneRendererBase
             textDimensions.X + _options.Padding * 2,
             textDimensions.Y + _options.Padding * 2);
 
-        var bgColor = _options.BackgroundColor ?? RendererDefaults.DefaultBackground;
+        var bgColor = _options.BackgroundColor ?? RendererDefaults.DefaultDebugBackground;
         if (bgColor.A <= 0f)
             return; // fully transparent, skip draw
 
