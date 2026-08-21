@@ -13,5 +13,11 @@ internal static class RendererDefaults
     /// <summary>
     /// Default background color used behind on-screen debug/overlay text.
     /// </summary>
-    public static readonly Color4 DefaultBackground = new(0.9f, 0.9f, 0.9f, 0.01f);
+    /// <remarks>
+    /// A dark, half-transparent panel, so light text stays readable over whatever the scene happens
+    /// to put behind it. This used to be a near-white with an alpha of 0.01, multiplied into a
+    /// backing texture that was itself near-transparent - the product was invisible, so no background
+    /// ever actually appeared, including where an example explicitly asked for one.
+    /// </remarks>
+    public static readonly Color4 DefaultBackground = new(0f, 0f, 0f, 0.5f);
 }
