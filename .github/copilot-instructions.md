@@ -124,6 +124,12 @@ Two rules when editing these:
   reads as a flaky sound bug. Check `AudioEngine.State` and resume before playing if it matters.
 - A `SoundInstance` plays one sound at a time: replaying one that is still sounding cuts it off. For
   effects that can overlap, keep several instances and cycle through them.
+- **Front faces wind clockwise as seen by the camera** — the Direct3D convention
+  (`RasterizerStateDescription.DefaultFrontFaceCounterClockwise` is `false`). Do not trust prose that
+  says counter-clockwise; read the raster state. Winding a closed mesh the wrong way does not draw it
+  wrong, it draws it **inside-out**: the near faces cull away and the camera looks into a hollow
+  shell whose parallax moves unnaturally. When generating geometry, assert the winding in a test —
+  the geometric right-hand normal of each triangle must point *opposite* its outward lighting normal.
 
 ### Bepu transform ownership (frequent source of confusion)
 
