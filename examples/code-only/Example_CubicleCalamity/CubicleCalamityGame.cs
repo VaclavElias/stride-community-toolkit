@@ -6,10 +6,8 @@ using Example_CubicleCalamity.Shared;
 using Stride.BepuPhysics;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.Renderers;
 using Stride.CommunityToolkit.Rendering.Compositing;
-using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -77,9 +75,8 @@ public class CubicleCalamityGame(Game game)
 
         // The toolkit rig, rather than a local copy of it: six lights down the six world axes. It is
         // dim because the cubes supply most of their own colour - this is only here for edge definition.
-        game.AddAllDirectionLighting(intensity: 1.5f, showLightGizmo: false);
+        game.AddAllDirectionLighting(intensity: 5, showLightGizmo: false);
 
-        AddReferenceCube();
         _spawner.SpawnLayer(0);
 
         AddScoreboard();
@@ -217,27 +214,6 @@ public class CubicleCalamityGame(Game game)
         entity.AddGizmo(game.GraphicsDevice, showAxisName: true);
         entity.Transform.Position = new Vector3(-7.5f, 1, -7.5f);
         entity.Scene = _scene;
-    }
-
-    /// <summary>
-    /// Adds a single colliderless cube used as a fixed visual reference beside the platform.
-    /// </summary>
-    /// <remarks>
-    /// It takes no part in play - no collider and no <see cref="CubeComponent"/>, so the raycast and
-    /// the colour matching both pass it by. Kept for now, alongside the orientation gizmo, pending
-    /// the decision on what the example's reference markers should be.
-    /// </remarks>
-    private void AddReferenceCube()
-    {
-        var cube = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions()
-        {
-            EntityName = EntityNames.ReferenceCube,
-            Material = _materials[GameSettings.Colours[0]],
-            Size = GameSettings.CubeSize
-        });
-
-        cube.Transform.Position = _referenceCubePosition;
-        cube.Scene = _scene;
     }
 
     /// <summary>
