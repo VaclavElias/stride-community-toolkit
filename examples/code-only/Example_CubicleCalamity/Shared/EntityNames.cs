@@ -31,4 +31,7 @@ public static class EntityNames
 
     /// <summary>Colliderless reference cube. See the orientation-aids note in the plan.</summary>
     public const string ReferenceCube = "ReferenceCube";
+
+    /// <summary>One line of the 3D game-over menu, so a restart can find and remove them.</summary>
+    public const string GameOverMenu = "GameOverMenu";
 }

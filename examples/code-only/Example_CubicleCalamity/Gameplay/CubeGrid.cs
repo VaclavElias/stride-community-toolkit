@@ -42,6 +42,11 @@ public class CubeGrid
     public IReadOnlyDictionary<Int3, Entity> Cubes => _cubes;
 
     /// <summary>
+    /// Forgets every cube, for a fresh board. The entities themselves are the caller's to remove.
+    /// </summary>
+    public void Clear() => _cubes.Clear();
+
+    /// <summary>
     /// Places a cube at a grid coordinate and records that coordinate on the cube itself.
     /// </summary>
     /// <param name="coordinate">Column and layer indices.</param>

@@ -118,4 +118,77 @@ public static class FallingLetters
             entity.Scene = scene;
         }
     }
+
+    /// <summary>
+    /// Spawns one line of 3D menu text: a static letter mesh with no physics that keeps turning to
+    /// face the camera, so it stays readable while the player orbits.
+    /// </summary>
+    /// <param name="game">The running game.</param>
+    /// <param name="scene">The scene the line is added to.</param>
+    /// <param name="text">The line to show. Every character must have an authored glyph, or be a space.</param>
+    /// <param name="position">Where the line's centre hovers, in world units.</param>
+    /// <param name="material">The line's material.</param>
+    /// <param name="scale">Letter height in world units. Defaults to 0.45.</param>
+    /// <returns>The created entity, named <see cref="EntityNames.GameOverMenu"/> so it can be removed on restart.</returns>
+    public static Entity SpawnMenuLine(Game game, Scene scene, string text, Vector3 position, Material material, float scale = 0.45f)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(scene);
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(material);
+
+        var entity = new Entity(Shared.EntityNames.GameOverMenu)
+        {
+            new ModelComponent
+            {
+                Model = new Model
+                {
+                    new MaterialInstance { Material = material },
+                    new Mesh
+                    {
+                        Draw = LetterMeshFactory.CreateTextMeshDraw(game.GraphicsDevice, text, depth: 0.12f, centerOrigin: true),
+                        MaterialIndex = 0
+                    }
+                }
+            },
+            new Scripts.FaceCameraScript()
+        };
+
+        entity.Transform.Position = position;
+        entity.Transform.Scale = new Vector3(scale);
+        entity.Scene = scene;
+
+        return entity;
+    }
+
+    /// <summary>
+    /// Disposes the GPU buffers behind an entity's letter meshes and removes it from its scene.
+    /// </summary>
+    /// <param name="entity">An entity whose meshes this class created.</param>
+    /// <remarks>
+    /// Letter meshes are built per entity and tracked by no content manager, so a restart that only
+    /// removed the entities would leak a buffer pair per letter, every game. Only for entities whose
+    /// meshes were built here - shared primitive models must never be disposed like this.
+    /// </remarks>
+    public static void ReleaseAndRemove(Entity entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        var model = entity.Get<ModelComponent>()?.Model;
+
+        if (model is not null)
+        {
+            foreach (var mesh in model.Meshes)
+            {
+                foreach (var vertexBuffer in mesh.Draw.VertexBuffers)
+                {
+                    vertexBuffer.Buffer.Dispose();
+                }
+
+                mesh.Draw.IndexBuffer?.Buffer.Dispose();
+            }
+        }
+
+        entity.Scene = null;
+    }
 }

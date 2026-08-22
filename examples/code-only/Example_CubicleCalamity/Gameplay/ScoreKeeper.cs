@@ -39,6 +39,16 @@ public class ScoreKeeper
     public bool HasCombo => ComboStep > 0 && _comboRemaining > 0f;
 
     /// <summary>
+    /// Puts the keeper back to a fresh game: zero score, no combo.
+    /// </summary>
+    public void Reset()
+    {
+        TotalScore = 0;
+        ComboStep = 0;
+        _comboRemaining = 0f;
+    }
+
+    /// <summary>
     /// Scores a clear, extends the combo, and adds the result to the total.
     /// </summary>
     /// <param name="cubeCount">How many cubes were cleared.</param>

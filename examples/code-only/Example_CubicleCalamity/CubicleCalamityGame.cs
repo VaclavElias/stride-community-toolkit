@@ -40,6 +40,7 @@ public class CubicleCalamityGame(Game game)
     private CubeSpawner? _spawner;
     private GameAudio? _audio;
     private ScoreboardScript? _scoreboard;
+    private CubeClickScript? _clickScript;
     private BepuSimulation? _simulation;
     private Scene? _scene;
 
@@ -251,7 +252,46 @@ public class CubicleCalamityGame(Game game)
             new ScreenCentreTextScript { Text = gameOver }
         };
 
+        _clickScript = entity.Get<CubeClickScript>();
+        _clickScript!.RestartRequested = Restart;
+
         entity.Scene = _scene;
+    }
+
+    /// <summary>
+    /// Tears the finished game down and starts a fresh one, keeping the scene's fixtures - camera,
+    /// lights, ground, gizmo - in place.
+    /// </summary>
+    /// <remarks>
+    /// Restarting means undoing everything a playthrough created: cubes and score popups are plain
+    /// removals, but the fallen 3D letters own their GPU mesh buffers, so they go through
+    /// <see cref="FallingLetters.ReleaseAndRemove"/> - removing them alone would leak a buffer pair
+    /// per letter, every game. With the state reset, the ordinary <see cref="Update"/> loop rebuilds
+    /// the platform exactly as it did at startup.
+    /// </remarks>
+    private void Restart()
+    {
+        if (_scene is null) return;
+
+        foreach (var entity in _scene.Entities.ToList())
+        {
+            if (entity.Name is EntityNames.Cube or EntityNames.ScorePopup)
+            {
+                entity.Remove();
+            }
+            else if (entity.Name.StartsWith("Letter", StringComparison.Ordinal))
+            {
+                FallingLetters.ReleaseAndRemove(entity);
+            }
+        }
+
+        _grid.Clear();
+        _keeper.Reset();
+        _clickScript?.ResetForRestart();
+
+        _elapsedTime = 0;
+        _layer = 1;
+        _platformComplete = false;
     }
 
     /// <summary>

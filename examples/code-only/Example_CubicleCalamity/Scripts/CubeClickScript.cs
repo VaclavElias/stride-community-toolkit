@@ -6,6 +6,7 @@ using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Input;
+using Stride.Rendering;
 
 namespace Example_CubicleCalamity.Scripts;
 
@@ -22,6 +23,9 @@ namespace Example_CubicleCalamity.Scripts;
 public class CubeClickScript : AsyncScript
 {
     private readonly Random _drift = new(1);
+    private Material? _letterMaterial;
+    private Material? _digitMaterial;
+    private Material? _menuMaterial;
 
     /// <summary>
     /// Gets the logical grid, which is the source of truth for what is where.
@@ -59,6 +63,12 @@ public class CubeClickScript : AsyncScript
     /// </summary>
     public bool IsGameOver { get; private set; }
 
+    /// <summary>
+    /// Gets or sets what a restart actually does - rebuilding the board is the game controller's
+    /// job, so this script only detects the request.
+    /// </summary>
+    public Action? RestartRequested { get; set; }
+
     /// <inheritdoc />
     public override async Task Execute()
     {
@@ -71,6 +81,15 @@ public class CubeClickScript : AsyncScript
             if (!IsGameOver && Input.HasMouse && IsClicking())
             {
                 TryClear(camera);
+            }
+
+            // The menu keys live only behind game over, so they cannot fire mid-game. Q also moves
+            // the camera down (the controller owns Q/E), which does not matter for the frame in
+            // which the game exits.
+            if (IsGameOver)
+            {
+                if (Input.IsKeyPressed(Keys.R)) RestartRequested?.Invoke();
+                if (Input.IsKeyPressed(Keys.Q)) ((Game)Game).Exit();
             }
 
             await Script.NextFrame();
@@ -184,8 +203,11 @@ public class CubeClickScript : AsyncScript
         var scene = Entity.Scene;
         var game = (Game)Game;
 
-        var letterMaterial = game.CreateMaterial(Color.Gold, specular: 0.1f, microSurface: 0.4f);
-        var digitMaterial = game.CreateMaterial(Color.White, specular: 0.1f, microSurface: 0.4f);
+        // Cached across restarts: materials are GPU resources, and a fresh set per game over would
+        // leak three of them every time the player presses R
+        var letterMaterial = _letterMaterial ??= game.CreateMaterial(Color.Gold, specular: 0.1f, microSurface: 0.4f);
+        var digitMaterial = _digitMaterial ??= game.CreateMaterial(Color.White, specular: 0.1f, microSurface: 0.4f);
+        var menuMaterial = _menuMaterial ??= game.CreateMaterial(new Color(170, 220, 255), specular: 0.1f, microSurface: 0.4f);
 
         // The player can be anywhere on the orbit when the board dies, so the words spawn turned
         // toward wherever the camera is right now. Facing is decided once, at spawn - after that the
@@ -213,6 +235,30 @@ public class CubeClickScript : AsyncScript
         FallingLetters.SpawnWord(game, scene, "GAME", new Vector3(0, 7f, 0) + towardCamera * 0.6f, letterMaterial, yaw, seed: 1);
         FallingLetters.SpawnWord(game, scene, "OVER", new Vector3(0, 9.5f, 0) - towardCamera * 0.6f, letterMaterial, yaw, seed: 2);
         FallingLetters.SpawnWord(game, scene, Keeper.TotalScore.ToString(), new Vector3(0, 12f, 0), digitMaterial, yaw, seed: 3);
+
+        // The menu is static 3D lettering that keeps facing the camera - unlike the words above it
+        // never falls, because a menu the player has to chase defeats its purpose
+        FallingLetters.SpawnMenuLine(game, scene, "R - RESTART", new Vector3(0, 5.4f, 0), menuMaterial);
+        FallingLetters.SpawnMenuLine(game, scene, "Q - QUIT", new Vector3(0, 4.6f, 0), menuMaterial);
+    }
+
+    /// <summary>
+    /// Clears the game-over state for a fresh board: hides the banner, removes the 3D menu, and
+    /// accepts clicks again. The board itself is rebuilt by whoever invoked the restart.
+    /// </summary>
+    public void ResetForRestart()
+    {
+        IsGameOver = false;
+
+        if (GameOverText is not null)
+        {
+            GameOverText.IsVisible = false;
+        }
+
+        foreach (var entity in Entity.Scene.Entities.Where(e => e.Name == EntityNames.GameOverMenu).ToList())
+        {
+            FallingLetters.ReleaseAndRemove(entity);
+        }
     }
 
     private void AddScorePopup(Vector3 position, ScoreResult result)

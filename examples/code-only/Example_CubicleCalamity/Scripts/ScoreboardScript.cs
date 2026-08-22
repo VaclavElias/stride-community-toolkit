@@ -79,6 +79,11 @@ public class ScoreboardScript : SyncScript
                 _displayedScore = target;
             }
         }
+        else if (_displayedScore > target)
+        {
+            // The score only ever drops on a restart; snap rather than count a million points down
+            _displayedScore = target;
+        }
 
         TotalText.Text = $"{Label}: {(int)_displayedScore:N0}";
 
