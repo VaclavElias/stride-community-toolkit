@@ -56,16 +56,38 @@ public static class GraphicsCompositorExtensions
     }
 
     /// <summary>
-    /// Adds a new scene renderer to the given GraphicsCompositor's game. If the game is already a collection of scene renderers,
+    /// Adds a scene renderer only if one of the same type is not already present.
+    /// </summary>
+    /// <typeparam name="TRenderer">Type of renderer to ensure.</typeparam>
+    /// <param name="graphicsCompositor">The GraphicsCompositor to add to.</param>
+    /// <param name="create">Creates the renderer, called only when one is actually needed.</param>
+    /// <returns>Returns the GraphicsCompositor instance, allowing for method chaining.</returns>
+    /// <remarks>
+    /// Meant for renderers that draw everything of a given kind in the scene, where a second instance
+    /// would draw everything twice rather than add anything. It lets a helper guarantee the rendering
+    /// its own output depends on, without having to know whether the caller already arranged it.
+    /// </remarks>
+    public static GraphicsCompositor EnsureSceneRenderer<TRenderer>(this GraphicsCompositor graphicsCompositor, Func<TRenderer> create)
+        where TRenderer : SceneRendererBase
+    {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+        ArgumentNullException.ThrowIfNull(create);
+
+        if (graphicsCompositor.Game is SceneRendererCollection existing && existing.Children.Any(child => child is TRenderer))
+        {
+            return graphicsCompositor;
+        }
+
+        return graphicsCompositor.AddSceneRenderer(create());
+    }
+
+    /// <summary>
+    /// Adds a new scene renderer to the specified GraphicsCompositor's game. If the game is already a scene renderer collection,
     /// the new scene renderer is added to that collection. Otherwise, a new scene renderer collection is created to house both
     /// the existing game and the new scene renderer.
     /// </summary>
     /// <param name="graphicsCompositor">The GraphicsCompositor to which the scene renderer will be added.</param>
     /// <param name="sceneRenderer">The new <see cref="SceneRendererBase"/> instance that will be added to the GraphicsCompositor's game.</param>
-    /// <remarks>
-    /// This method will either add the scene renderer to an existing SceneRendererCollection or create a new one to house both
-    /// the existing game and the new scene renderer. In either case, the GraphicsCompositor's game will end up with the new scene renderer added.
-    /// </remarks>
     /// <returns>Returns the modified GraphicsCompositor instance, allowing for method chaining.</returns>
     public static GraphicsCompositor AddSceneRenderer(this GraphicsCompositor graphicsCompositor, SceneRendererBase sceneRenderer)
     {
