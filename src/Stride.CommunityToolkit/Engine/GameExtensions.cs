@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Renderers;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
@@ -441,6 +442,14 @@ public static class GameExtensions
 
         if (groundEntity is null) return;
 
+        // The axis letters are world-space text, so the renderer that draws them has to be present.
+        // Doing it here rather than leaving it to the caller keeps this a single call - and without it
+        // the letters simply never appear, with no error to explain why.
+        if (showAxisName)
+        {
+            game.SceneSystem.GraphicsCompositor?.EnsureSceneRenderer(() => new WorldTextRenderer());
+        }
+
         var gizmoEntity = new Entity("Gizmo");
 
         gizmoEntity.AddGizmo(game.GraphicsDevice, showAxisName: showAxisName, rotateAxisNames: rotateAxisNames);
@@ -550,6 +559,44 @@ public static class GameExtensions
                                  throw new InvalidOperationException(GameDefaults.GraphicsCompositorNotSet);
 
         graphicsCompositor.AddSceneRenderer(renderer);
+    }
+
+    /// <summary>
+    /// Registers the renderer that draws <see cref="WorldTextComponent"/>, once, however many times
+    /// this is called.
+    /// </summary>
+    /// <param name="game">The game whose compositor the renderer is added to.</param>
+    /// <exception cref="InvalidOperationException">Thrown if the <see cref="GraphicsCompositor"/> is not set in the game's <see cref="SceneSystem"/>.</exception>
+    /// <remarks>
+    /// A <see cref="WorldTextComponent"/> without this renderer simply never appears - no error, no
+    /// log line, just absent text - so call this whenever world text is used. Helpers that create
+    /// world text themselves, such as <see cref="AddGroundGizmo"/> with axis names, call it on your
+    /// behalf; calling it again is harmless, because a duplicate renderer is not added.
+    /// </remarks>
+    public static void AddWorldTextRenderer(this Game game)
+    {
+        var graphicsCompositor = game.SceneSystem.GraphicsCompositor ??
+                                 throw new InvalidOperationException(GameDefaults.GraphicsCompositorNotSet);
+
+        graphicsCompositor.EnsureSceneRenderer(() => new WorldTextRenderer());
+    }
+
+    /// <summary>
+    /// Registers the renderer that draws <see cref="EntityTextComponent"/>, once, however many times
+    /// this is called.
+    /// </summary>
+    /// <param name="game">The game whose compositor the renderer is added to.</param>
+    /// <exception cref="InvalidOperationException">Thrown if the <see cref="GraphicsCompositor"/> is not set in the game's <see cref="SceneSystem"/>.</exception>
+    /// <remarks>
+    /// The screen-space counterpart of <see cref="AddWorldTextRenderer"/>, with the same failure mode
+    /// when forgotten: components collect, nothing draws them, and no error says why.
+    /// </remarks>
+    public static void AddEntityTextRenderer(this Game game)
+    {
+        var graphicsCompositor = game.SceneSystem.GraphicsCompositor ??
+                                 throw new InvalidOperationException(GameDefaults.GraphicsCompositorNotSet);
+
+        graphicsCompositor.EnsureSceneRenderer(() => new EntityTextRenderer());
     }
 
     /// <summary>

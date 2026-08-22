@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 using Stride.Extensions;
 using Stride.Graphics;
@@ -91,22 +92,46 @@ public class TranslationGizmo : AxialGizmo
     {
         if (!showAxisName) return;
 
-        var letter = new Letter3D(GraphicsDevice, rotateAxisNames);
+        entity.AddChild(CreateAxisLabel("X", new Vector3(1.1f, 0.15f, 0f), GetRedColor(), rotateAxisNames));
+        entity.AddChild(CreateAxisLabel("Y", new Vector3(0f, 1.15f, 0f), GetGreenColor(), rotateAxisNames));
+        entity.AddChild(CreateAxisLabel("Z", new Vector3(0f, 0.15f, 1.1f), GetBlueColor(), rotateAxisNames));
+    }
 
-        var xLetter = letter.CreateLetterX();
-        xLetter.Transform.Position.X = 1.1f;
-        xLetter.Transform.Position.Y = 0.15f;
+    /// <summary>
+    /// Creates one axis label as world-space text.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// These used to be little meshes built from cylinders, one entity and draw call per stroke, spun
+    /// to face the camera every frame by a script. That last part is what made the geometry pointless:
+    /// a mesh that always turns to face you can never look like anything a flat quad could not, so all
+    /// the extra vertices bought was a blurry approximation of a letter. Text drawn in world space is
+    /// sharper, is one object instead of three, and gives the axis names the same depth behaviour as
+    /// the arrows they label.
+    /// </para>
+    /// <para>
+    /// Requires a <see cref="Renderers.WorldTextRenderer"/> in the graphics compositor. The
+    /// <see cref="Engine.GameExtensions.AddGroundGizmo"/> helper arranges that; a gizmo added straight
+    /// to an entity cannot, because it is handed only a graphics device.
+    /// </para>
+    /// </remarks>
+    private static Entity CreateAxisLabel(string axisName, Vector3 position, Color color, bool billboard)
+    {
+        var label = new Entity($"Letter{axisName}")
+        {
+            new WorldTextComponent
+            {
+                Text = axisName,
+                Height = 0.3f,
+                TextColor = color,
+                Billboard = billboard,
+                Anchor = TextAnchor.MiddleCenter,
+            }
+        };
 
-        var yLetter = letter.CreateLetterY();
-        yLetter.Transform.Position.Y = 1.15f;
+        label.Transform.Position = position;
 
-        var zLetter = letter.CreateLetterZ();
-        zLetter.Transform.Position.Z = 1.1f;
-        zLetter.Transform.Position.Y = 0.15f;
-
-        entity.AddChild(xLetter);
-        entity.AddChild(yLetter);
-        entity.AddChild(zLetter);
+        return label;
     }
 
     /// <summary>
