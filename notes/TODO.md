@@ -211,7 +211,44 @@ Small, found while auditing every 2D example. All nine build clean.
   unused usings (`System.Xml.Linq`, `System.Reflection`), and it calls `Add3DGround` and
   `Add3DCameraController` in a 2D playground. Either finish it or drop it.
 
-## 7. Revisit only if Bepu fixes the rank-1 tensor
+## 7. Text, gizmos and Cubicle Calamity follow-ups
+
+Distilled from `notes/plans/cubicle-calamity-scoring.md` when that plan was retired (Aug 2026).
+Everything shipped is committed or in the working tree; only what is still open lives here.
+
+- **Orientation aids need a decision** (was "commit 4"). Two entities in Cubicle Calamity are
+  deliberate developer-orientation markers, kept but unplaced: `OrientationGizmo` sits at
+  `(-7.5, 1, -7.5)` from before the platform was centred on the origin, and the colliderless
+  `ReferenceCube` at `(-4, 1, -4)` has no stated purpose. The options weighed: world-space at the
+  origin (honest, but buried inside the stack), offset clear of the board (today's state, misleading
+  about where the origin is), or pinned to a screen corner the way editor viewports do it. The last
+  one generalises to every code-only example — "where the hell is X" is not a Cubicle Calamity
+  problem — so it is really a toolkit-feature question and belongs in `ARCHITECTURE.md` if pursued.
+- **Review `MeshBuilder`** before building on it: correctness, modern C#, efficiency. Agreed as the
+  step before mesh letters.
+- **Hand-authored 3D letter meshes** — X, Y, Z first, digits later, each glyph a 2D polygon outline
+  defined in code and extruded through `MeshBuilder`. Cross-platform is the constraint that shapes
+  this: `VL.Stride.Text3d` was evaluated and declined because its glyph outlines come from
+  DirectWrite (Windows-only) and it is a vvvv package besides — reopen only if a cross-platform C#
+  glyph-outline library appears. Intended showcase: decorative lettering ("GAME OVER") in Cubicle
+  Calamity; axis labels are already better served by `WorldTextComponent`.
+- **`TextPositionMode` cannot centre on screen** — corners and explicit pixels only, so Cubicle
+  Calamity's game-over banner needs a four-line `ScreenCentreTextScript` recomputing its position
+  every frame. A centre option belongs in the component.
+- **Skybox source cubemap has no mip chain** — `skybox_texture_hdr.dds` ships `dwMipMapCount = 1`,
+  so the GGX prefilter's importance sampling reads mip 0 for all 1024 samples: the slowest and
+  noisiest path. Hypothesis, not measured: shipping a mipped DDS (or generating mips at load) should
+  improve reflection quality and prefilter speed more than any size change. Needs a before/after
+  comparison; do not change the texture without one.
+- **`Example_CubicleCalamity` breaks the `Example<NN>_<Name>` folder convention** — renaming touches
+  the `.slnx`, `.sdpkg`, `.csproj` and namespace. Decide rather than drift.
+- **Combo window as a visible draining bar** — the clearest way to make combos something to play
+  toward, and the first thing in the example that starts to want real UI. Optional polish.
+- **`CubeGrid.RemoveAndCollapse` returns drop distances nothing consumes** since the physics-driven
+  collapse replaced the teleport; only the tests read it, and they are what pin the collapse rule.
+  Either keep it as a tested contract or make it `void` and assert grid state instead.
+
+## 8. Revisit only if Bepu fixes the rank-1 tensor
 
 Do not act on this speculatively — it is here so the question is not re-derived later.
 
@@ -225,7 +262,7 @@ Do not act on this speculatively — it is here so the question is not re-derive
 - **Watch which way the fix goes.** If Bepu instead decides a rank-1 tensor is unsupported and adds
   validation, scaling becomes the only option and this item is closed.
 
-## 8. Later
+## 9. Later
 
 - **Custom one-body 2D constraint** — only once Eideren has picked a direction. Prototype in the
   toolkit first, where nothing needs review, score it against the current approach with the harness,
