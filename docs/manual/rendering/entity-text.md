@@ -5,6 +5,10 @@ using Stride's UI system. It is meant for labels, debug readouts, floating numbe
 code-only projects, where bringing up a UI page for one line of text is more machinery than the job
 needs.
 
+This is *screen-space* text: always the same pixel size, always on top of the scene. For text that
+lives inside the scene — scaled by perspective and hidden by geometry in front of it — see
+[World Text](world-text.md).
+
 Two pieces are involved:
 
 - **`EntityTextComponent`** records *what* to draw and *where*.
@@ -12,7 +16,7 @@ Two pieces are involved:
   the graphics compositor.
 
 ```csharp
-game.AddSceneRenderer(new EntityTextRenderer());
+game.AddEntityTextRenderer();
 
 var entity = game.Create3DPrimitive(PrimitiveModelType.Cube);
 

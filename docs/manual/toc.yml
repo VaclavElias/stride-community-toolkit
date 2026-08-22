@@ -110,6 +110,8 @@
   items:
   - name: Entity Text
     href: rendering/entity-text.md
+  - name: World Text
+    href: rendering/world-text.md
   - name: MeshBuilder
     href: rendering/mesh-builder.md
   - name: TextureCanvas
