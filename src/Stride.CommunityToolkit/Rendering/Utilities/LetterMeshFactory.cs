@@ -48,7 +48,7 @@ public static class LetterMeshFactory
     /// Gets the characters that have an authored glyph. Space is also accepted and advances without
     /// drawing; lookups are case-insensitive.
     /// </summary>
-    public static string SupportedCharacters => "0123456789AEGMORVXYZ";
+    public static string SupportedCharacters => "0123456789-AEGIMOQRSTUVXYZ";
 
     /// <summary>
     /// Builds one mesh containing the given text as solid extruded glyphs.
@@ -148,11 +148,19 @@ public static class LetterMeshFactory
             '7' => [Top(), RightBar(0, TopY)],
             '8' => [Top(), Middle(), Bottom(), LeftBar(MiddleTopY, TopY), LeftBar(BottomY, MiddleY), RightBar(MiddleTopY, TopY), RightBar(BottomY, MiddleY)],
             '9' => [Top(), LeftBar(MiddleTopY, TopY), Middle(), RightBar(MiddleTopY, TopY), RightBar(BottomY, MiddleY), Bottom()],
+            '-' => [Rect(0.08f, MiddleY, Width - 0.08f, MiddleTopY)],
             'A' => [Top(), Middle(), LeftBar(MiddleTopY, TopY), LeftBar(0, MiddleY), RightBar(MiddleTopY, TopY), RightBar(0, MiddleY)],
             'E' => [Top(), Middle(), Bottom(), LeftBar(MiddleTopY, TopY), LeftBar(BottomY, MiddleY)],
+            'I' => [Top(), Bottom(), Rect(0.24f, BottomY, 0.46f, TopY)],
             'G' => [Top(), Bottom(), LeftBar(BottomY, TopY), RightBar(BottomY, MiddleY), Rect(0.35f, MiddleY, Width, MiddleTopY)],
             'M' => [Rect(0, 0, Stroke, 1), Rect(RightX, 0, Width, 1), Rect(Stroke, 0.6f, RightX, 1)],
+            // Q is an O with a tail tucked inside the counter: a triangle abutting the bottom bar's
+            // top edge and the right bar's left edge, so nothing overlaps
+            'Q' => [Top(), Bottom(), LeftBar(BottomY, TopY), RightBar(BottomY, TopY), CreateQTail()],
             'R' => [Rect(0, 0, Stroke, 1), Rect(Stroke, TopY, Width, 1), RightBar(MiddleTopY, TopY), Rect(Stroke, MiddleY, Width, MiddleTopY), CreateRLeg()],
+            'S' => [Top(), LeftBar(MiddleTopY, TopY), Middle(), RightBar(BottomY, MiddleY), Bottom()],
+            'T' => [Top(), Rect(0.24f, 0, 0.46f, TopY)],
+            'U' => [Bottom(), LeftBar(BottomY, 1), RightBar(BottomY, 1)],
             'V' => [CreateV()],
             'X' => [CreateX()],
             'Y' => [CreateY()],
@@ -184,6 +192,13 @@ public static class LetterMeshFactory
     /// <summary>R's diagonal leg, hanging from the middle bar down to the bottom-right corner.</summary>
     private static Vector2[] CreateRLeg() =>
         [new(0.30f, MiddleY), new(0.48f, MiddleY), new(Width, 0), new(0.52f, 0)];
+
+    /// <summary>
+    /// Q's tail: a triangle inside the counter, abutting the bottom bar's top edge and the right
+    /// bar's left edge.
+    /// </summary>
+    private static Vector2[] CreateQTail() =>
+        [new(0.28f, BottomY), new(RightX, 0.42f), new(RightX, BottomY)];
 
     private static Vector2[] CreateV() =>
         [new(0.22f, 0), new(0.48f, 0), new(Width, 1), new(0.46f, 1), new(0.35f, 0.40f), new(0.24f, 1), new(0, 1)];
