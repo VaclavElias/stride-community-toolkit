@@ -13,6 +13,7 @@ using Stride.Rendering.Materials.ComputeColors;
 using var game = new Game();
 
 Entity? circleEntity = null;
+Material? sharedMaterial = null;
 game.Run(start: Start, update: Update);
 
 void Start(Scene rootScene)
@@ -22,13 +23,65 @@ void Start(Scene rootScene)
 
     CreateMeshEntity(game.GraphicsDevice, rootScene, Vector3.Zero, CreateTriangleMesh);
     CreateMeshEntity(game.GraphicsDevice, rootScene, Vector3.UnitX * 2, CreatePlaneMesh);
+    CreateMeshEntity(game.GraphicsDevice, rootScene, Vector3.UnitX * 4, CreateNonIndexedTriangleMesh);
+}
+
+void CreateNonIndexedTriangleMesh(MeshBuilder meshBuilder)
+{
+    // No index buffer at all: with IndexingType.None the vertices are drawn in the order they were
+    // added, three per triangle. Simplest possible mesh, at the cost of repeating shared vertices.
+    meshBuilder.WithIndexType(IndexingType.None);
+    meshBuilder.WithPrimitiveType(PrimitiveType.TriangleList);
+
+    var position = meshBuilder.WithPosition<Vector3>();
+    var color = meshBuilder.WithColor<Color>();
+
+    meshBuilder.AddVertex();
+    meshBuilder.SetElement(position, new Vector3(0, 0, 0));
+    meshBuilder.SetElement(color, Color.Yellow);
+
+    meshBuilder.AddVertex();
+    meshBuilder.SetElement(position, new Vector3(0.5f, 1, 0));
+    meshBuilder.SetElement(color, Color.Purple);
+
+    meshBuilder.AddVertex();
+    meshBuilder.SetElement(position, new Vector3(1, 0, 0));
+    meshBuilder.SetElement(color, Color.Teal);
 }
 
 void Update(Scene rootScene, GameTime gameTime)
 {
     var segments = (int)((Math.Cos(gameTime.Total.TotalMilliseconds / 500) + 1) / 2 * 47) + 3;
-    circleEntity?.Remove();
+
+    // Rebuilding a mesh means releasing the old one first. ToMeshDraw hands the caller two GPU
+    // buffers that no content manager tracks, so removing the entity alone leaks them - and this
+    // runs every frame, which is exactly how such a leak becomes megabytes per second.
+    if (circleEntity is not null)
+    {
+        ReleaseMeshBuffers(circleEntity);
+        circleEntity.Remove();
+    }
+
     circleEntity = CreateMeshEntity(game.GraphicsDevice, rootScene, Vector3.UnitX * -2, b => CreateCircleMesh(b, segments));
+}
+
+// Disposes the GPU buffers behind an entity's meshes. Only for meshes this example built itself -
+// content-manager-loaded models manage their own buffers.
+static void ReleaseMeshBuffers(Entity entity)
+{
+    var model = entity.Get<ModelComponent>()?.Model;
+
+    if (model is null) return;
+
+    foreach (var mesh in model.Meshes)
+    {
+        foreach (var vertexBuffer in mesh.Draw.VertexBuffers)
+        {
+            vertexBuffer.Buffer.Dispose();
+        }
+
+        mesh.Draw.IndexBuffer?.Buffer.Dispose();
+    }
 }
 
 void CreateTriangleMesh(MeshBuilder meshBuilder)
@@ -128,9 +181,13 @@ Entity CreateMeshEntity(GraphicsDevice graphicsDevice, Scene rootScene, Vector3 
 
     var entity = new Entity { Scene = rootScene, Transform = { Position = position } };
 
+    // One material shared by every mesh this example builds. A material is a GPU resource like the
+    // buffers are, so building one per frame for the animated circle would be the same leak again.
+    sharedMaterial ??= CreateMaterial(graphicsDevice);
+
     var model = new Model
     {
-        new MaterialInstance { Material = CreateMaterial(graphicsDevice)  },
+        new MaterialInstance { Material = sharedMaterial },
         new Mesh {
             Draw = meshBuilder.ToMeshDraw(graphicsDevice),
             MaterialIndex = 0
