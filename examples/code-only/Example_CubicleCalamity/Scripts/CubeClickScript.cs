@@ -96,6 +96,16 @@ public class CubeClickScript : AsyncScript
 
         if (cube.Name != EntityNames.Cube) return;
 
+        ClearFrom(cube);
+    }
+
+    /// <summary>
+    /// Clears the group connected to a cube, scores it, and collapses the board - everything a click
+    /// does once the raycast has decided what was clicked.
+    /// </summary>
+    /// <param name="cube">The cube the clear starts from.</param>
+    private void ClearFrom(Entity cube)
+    {
         var group = MatchFinder.FindGroup(Grid, cube);
 
         if (!MatchFinder.IsClearable(group.Count))
@@ -153,10 +163,56 @@ public class CubeClickScript : AsyncScript
 
         Log.Info($"No moves left. {Grid.Count} cubes stranded, final score {Keeper.TotalScore:N0}.");
 
+        SpawnGameOverLetters();
+
         if (GameOverText is null) return;
 
-        GameOverText.Text = $"NO MOVES LEFT\n{Keeper.TotalScore:N0} points\n{Grid.Count} cubes stranded";
+        GameOverText.Text = $"{Keeper.TotalScore:N0} points\n{Grid.Count} cubes stranded";
         GameOverText.IsVisible = true;
+    }
+
+    /// <summary>
+    /// Drops "GAME OVER" and the final score onto the board as solid physics letters.
+    /// </summary>
+    /// <remarks>
+    /// The words spawn at increasing heights, so they land in sequence - GAME, then OVER, then the
+    /// score in 3D digits raining down last. Everything tumbles off whatever is left of the platform,
+    /// which is the whole fun of ending a physics game with physics.
+    /// </remarks>
+    private void SpawnGameOverLetters()
+    {
+        var scene = Entity.Scene;
+        var game = (Game)Game;
+
+        var letterMaterial = game.CreateMaterial(Color.Gold, specular: 0.1f, microSurface: 0.4f);
+        var digitMaterial = game.CreateMaterial(Color.White, specular: 0.1f, microSurface: 0.4f);
+
+        // The player can be anywhere on the orbit when the board dies, so the words spawn turned
+        // toward wherever the camera is right now. Facing is decided once, at spawn - after that the
+        // letters are ordinary rigid bodies and tumble however they land.
+        var yaw = 0f;
+        var towardCamera = Vector3.UnitZ;
+        var cameraEntity = scene.GetCamera()?.Entity;
+
+        if (cameraEntity is not null)
+        {
+            var direction = cameraEntity.Transform.Position - GameSettings.PlatformCentre;
+
+            direction.Y = 0;
+
+            if (direction.LengthSquared() > MathUtil.ZeroTolerance)
+            {
+                direction.Normalize();
+                towardCamera = direction;
+                yaw = MathF.Atan2(direction.X, direction.Z);
+            }
+        }
+
+        // The two words are staggered along the view direction, so the nearer one never hides the
+        // farther one whichever side the camera watches from
+        FallingLetters.SpawnWord(game, scene, "GAME", new Vector3(0, 7f, 0) + towardCamera * 0.6f, letterMaterial, yaw, seed: 1);
+        FallingLetters.SpawnWord(game, scene, "OVER", new Vector3(0, 9.5f, 0) - towardCamera * 0.6f, letterMaterial, yaw, seed: 2);
+        FallingLetters.SpawnWord(game, scene, Keeper.TotalScore.ToString(), new Vector3(0, 12f, 0), digitMaterial, yaw, seed: 3);
     }
 
     private void AddScorePopup(Vector3 position, ScoreResult result)
