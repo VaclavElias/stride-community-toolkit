@@ -258,6 +258,34 @@ public class MeshBuilder : IDisposable
     }
 
     /// <summary>
+    ///     Reads back a previously added index.
+    /// </summary>
+    /// <param name="indexPosition">The position within the index list, from 0 to <see cref="IndexCount" /> - 1</param>
+    /// <returns>The vertex index stored at that position</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The position is outside the added indices</exception>
+    /// <remarks>
+    ///     The read-side counterpart of <see cref="AddIndex" />, mirroring what
+    ///     <see cref="GetElement{T}(int,int)" /> is to <see cref="SetElement{T}(int,int,T)" />. Winding
+    ///     order lives in the indices, so without this it cannot be inspected or tested at all.
+    /// </remarks>
+    public int GetIndex(int indexPosition)
+    {
+        if (indexPosition < 0 || indexPosition >= IndexCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(indexPosition),
+                $"Index position must be a value between 0 and {IndexCount - 1}");
+        }
+
+        ref var address = ref Unsafe.AddByteOffset(
+            ref MemoryMarshal.GetArrayDataReference(_indexBuffer),
+            (nuint)(indexPosition * _indexStride));
+
+        return _indexStride == 2
+            ? Unsafe.ReadUnaligned<short>(ref address)
+            : Unsafe.ReadUnaligned<int>(ref address);
+    }
+
+    /// <summary>
     ///     Adds a new vertex
     /// </summary>
     /// <returns>
