@@ -340,6 +340,88 @@
   },
   {
     "title": {
+      "en": "Entity Text (Screen-Space)",
+      "cs": "Text entity (v prostoru obrazovky)"
+    },
+    "level": "Getting Started",
+    "category": "Text",
+    "complexity": 1,
+    "description": {
+      "en": "A gallery of everything EntityTextComponent can do, one feature per pole: anchoring, shadows,\nbackgrounds, scaling, rotation, opacity, distance fading, several texts on one entity, and\nHUD text pinned to window corners that survives resizing.\nScreen-space text keeps its pixel size at any distance and is never hidden by geometry.\n",
+      "cs": "Galerie v\u0161eho, co EntityTextComponent um\u00ED, jedna vlastnost na sloupek: ukotven\u00ED, st\u00EDny, pozad\u00ED,\n\u0161k\u00E1lov\u00E1n\u00ED, rotace, pr\u016Fhlednost, mizen\u00ED s vzd\u00E1lenost\u00ED, v\u00EDce text\u016F na jedn\u00E9 entit\u011B a HUD text\np\u0159ichycen\u00FD k roh\u016Fm okna, kter\u00FD p\u0159e\u017Eije zm\u011Bnu velikosti.\nText v prostoru obrazovky si dr\u017E\u00ED velikost v pixelech na jakoukoli vzd\u00E1lenost a geometrie ho nikdy nezakryje.\n"
+    },
+    "concepts": [
+      "Registering the text renderer once: AddEntityTextRenderer",
+      "Centring a label over an object with TextAnchor, not TextAlignment",
+      "Shadow and background for readability over a 3D scene",
+      "Animating Scale instead of FontSize",
+      "Distance fading with FadeStartDistance and MaxDistance",
+      "Several EntityTextComponents on one entity",
+      "HUD text that survives window resizing: TextPositionMode.Anchored"
+    ],
+    "related": [
+      "Example01_WorldText",
+      "Example05_SimpleGeometry",
+      "Example09_Renderer"
+    ],
+    "tags": [
+      "3D",
+      "Text",
+      "Text Rendering",
+      "HUD",
+      "Screen Space",
+      "Labels",
+      "Getting Started"
+    ],
+    "order": 210,
+    "enabled": true,
+    "created": "2026-08-22",
+    "isDraft": false,
+    "projectName": "Example01_EntityText",
+    "projectPath": "Example01_EntityText\\Program.cs"
+  },
+  {
+    "title": {
+      "en": "World Text (In-Scene)",
+      "cs": "Text ve sv\u011Bt\u011B (ve sc\u00E9n\u011B)"
+    },
+    "level": "Getting Started",
+    "category": "Text",
+    "complexity": 1,
+    "description": {
+      "en": "A gallery of everything WorldTextComponent can do, one setting per station: billboarding that\nstays upright, free billboarding, text fixed in place, text lying flat on the ground, world-unit\nsizing, depth-tested text hidden behind a wall next to text drawn through it, and distance fading.\nWorld text lives inside the scene - it shrinks with distance and geometry can hide it.\n",
+      "cs": "Galerie v\u0161eho, co WorldTextComponent um\u00ED, jedno nastaven\u00ED na stanovi\u0161t\u011B: billboard dr\u017E\u00EDc\u00ED se\nvzp\u0159\u00EDmen\u011B, voln\u00FD billboard, pevn\u011B um\u00EDst\u011Bn\u00FD text, text le\u017E\u00EDc\u00ED na zemi, velikost ve sv\u011Btov\u00FDch\njednotk\u00E1ch, text skryt\u00FD za zd\u00ED vedle textu kreslen\u00E9ho skrz ni a mizen\u00ED s vzd\u00E1lenost\u00ED.\nText ve sv\u011Bt\u011B \u017Eije uvnit\u0159 sc\u00E9ny - zmen\u0161uje se s vzd\u00E1lenost\u00ED a geometrie ho m\u016F\u017Ee zakr\u00FDt.\n"
+    },
+    "concepts": [
+      "Registering the text renderer once: AddWorldTextRenderer",
+      "Billboarding: KeepUpright versus facing the camera freely",
+      "Text fixed to a surface or lying flat with Billboard = false",
+      "Height in world units versus FontSize as sharpness",
+      "Depth-tested text hidden by geometry, and DepthTest = false to draw through",
+      "Distance fading with FadeStartDistance and MaxDistance"
+    ],
+    "related": [
+      "Example01_EntityText",
+      "Example05_SimpleGeometry"
+    ],
+    "tags": [
+      "3D",
+      "Text",
+      "Text Rendering",
+      "World Space",
+      "Billboard",
+      "Labels",
+      "Getting Started"
+    ],
+    "order": 220,
+    "enabled": true,
+    "created": "2026-08-22",
+    "isDraft": false,
+    "projectName": "Example01_WorldText",
+    "projectPath": "Example01_WorldText\\Program.cs"
+  },
+  {
+    "title": {
       "en": "Give Me a Cube",
       "cs": "Dej mi kostku"
     },
