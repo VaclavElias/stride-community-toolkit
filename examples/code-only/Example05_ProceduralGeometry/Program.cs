@@ -24,6 +24,35 @@ void Start(Scene rootScene)
     CreateMeshEntity(game.GraphicsDevice, rootScene, Vector3.Zero, CreateTriangleMesh);
     CreateMeshEntity(game.GraphicsDevice, rootScene, Vector3.UnitX * 2, CreatePlaneMesh);
     CreateMeshEntity(game.GraphicsDevice, rootScene, Vector3.UnitX * 4, CreateNonIndexedTriangleMesh);
+
+    CreateLetterEntity(rootScene);
+}
+
+void CreateLetterEntity(Scene rootScene)
+{
+    // Solid extruded lettering: glyph outlines authored in code, triangulated by ear clipping and
+    // extruded through MeshBuilder. Real geometry, so it is lit and shadowed like any other mesh -
+    // unlike EntityTextComponent and WorldTextComponent, which draw font glyphs.
+    //
+    // Standing on the ground behind the gallery row, on purpose: the glyph baseline is at Y = 0,
+    // and letters floating in mid-air read strangely when the camera orbits - with nothing
+    // anchoring them, the parallax between the front faces and the side walls looks like the
+    // letters themselves are turning
+    var entity = new Entity { Scene = rootScene, Transform = { Position = new Vector3(-1.5f, 0, -2.5f) } };
+
+    // Not the gallery's shared material: that one reads colour from a vertex stream, and the letter
+    // mesh has position and normal only, so it needs a material with a colour of its own
+    var model = new Model
+    {
+        new MaterialInstance { Material = game.CreateMaterial(Color.Gold, specular: 0.1f, microSurface: 0.4f) },
+        new Mesh
+        {
+            Draw = LetterMeshFactory.CreateTextMeshDraw(game.GraphicsDevice, "XYZ"),
+            MaterialIndex = 0
+        }
+    };
+
+    entity.Add(new ModelComponent { Model = model });
 }
 
 void CreateNonIndexedTriangleMesh(MeshBuilder meshBuilder)
