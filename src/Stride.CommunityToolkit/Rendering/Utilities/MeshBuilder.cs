@@ -20,12 +20,12 @@ public class MeshBuilder : IDisposable
     /// <summary>
     ///     The list of vertex elements added to this mesh builder
     /// </summary>
-    private readonly List<VertexElementWithOffset> _vertexElements = new();
+    private readonly List<VertexElementWithOffset> _vertexElements = [];
 
     /// <summary>
     ///     A type erased buffer for the indices
     /// </summary>
-    private byte[] _indexBuffer = Array.Empty<byte>();
+    private byte[] _indexBuffer = [];
 
     /// <summary>
     ///     The size of an index can be 0, 2 (int16) or 4 (int32)
@@ -40,7 +40,7 @@ public class MeshBuilder : IDisposable
     /// <summary>
     ///     A type erased buffer for vertex elements
     /// </summary>
-    private byte[] _vertexBuffer = Array.Empty<byte>();
+    private byte[] _vertexBuffer = [];
 
     /// <summary>
     ///     The size in bytes for single combination of vertex elements
@@ -123,40 +123,43 @@ public class MeshBuilder : IDisposable
         _indexStride = (int)indexingType;
     }
 
+    // These wrappers must forward pixelFormat. They once dropped it, which made the documented
+    // escape hatch for types ConvertTypeToFormat cannot map unreachable through every one of them.
+
     /// <inheritdoc cref="WithElement{T}" />
     public int WithPosition<T>(int semanticIndex = 0, string semanticName = "POSITION",
         PixelFormat pixelFormat = PixelFormat.None) where T : unmanaged =>
-        WithElement<T>(semanticIndex, semanticName);
+        WithElement<T>(semanticIndex, semanticName, pixelFormat);
 
     /// <inheritdoc cref="WithElement{T}" />
     public int WithPositionTransformed<T>(int semanticIndex = 0, string semanticName = "SV_POSITION",
         PixelFormat pixelFormat = PixelFormat.None) where T : unmanaged =>
-        WithElement<T>(semanticIndex, semanticName);
+        WithElement<T>(semanticIndex, semanticName, pixelFormat);
 
     /// <inheritdoc cref="WithElement{T}" />
     public int WithNormal<T>(int semanticIndex = 0, string semanticName = "NORMAL",
         PixelFormat pixelFormat = PixelFormat.None) where T : unmanaged =>
-        WithElement<T>(semanticIndex, semanticName);
+        WithElement<T>(semanticIndex, semanticName, pixelFormat);
 
     /// <inheritdoc cref="WithElement{T}" />
     public int WithColor<T>(int semanticIndex = 0, string semanticName = "COLOR",
         PixelFormat pixelFormat = PixelFormat.None) where T : unmanaged =>
-        WithElement<T>(semanticIndex, semanticName);
+        WithElement<T>(semanticIndex, semanticName, pixelFormat);
 
     /// <inheritdoc cref="WithElement{T}" />
     public int WithTextureCoordinate<T>(int semanticIndex = 0, string semanticName = "TEXCOORD",
         PixelFormat pixelFormat = PixelFormat.None) where T : unmanaged =>
-        WithElement<T>(semanticIndex, semanticName);
+        WithElement<T>(semanticIndex, semanticName, pixelFormat);
 
     /// <inheritdoc cref="WithElement{T}" />
     public int WithTangent<T>(int semanticIndex = 0, string semanticName = "TANGENT",
         PixelFormat pixelFormat = PixelFormat.None) where T : unmanaged =>
-        WithElement<T>(semanticIndex, semanticName);
+        WithElement<T>(semanticIndex, semanticName, pixelFormat);
 
     /// <inheritdoc cref="WithElement{T}" />
     public int WithBiTangent<T>(int semanticIndex = 0, string semanticName = "BITANGENT",
         PixelFormat pixelFormat = PixelFormat.None) where T : unmanaged =>
-        WithElement<T>(semanticIndex, semanticName);
+        WithElement<T>(semanticIndex, semanticName, pixelFormat);
 
     /// <summary>
     ///     Registers a new vertex element
@@ -194,10 +197,12 @@ public class MeshBuilder : IDisposable
     /// <exception cref="InvalidOperationException">The mesh builder isn't configured to use indices</exception>
     public void AddIndex(int vertexIndex)
     {
-        if (vertexIndex < 0 || vertexIndex > VertexCount)
+        // >= rather than >: an index equal to VertexCount references a vertex that does not exist,
+        // which the GPU would happily read as garbage
+        if (vertexIndex < 0 || vertexIndex >= VertexCount)
         {
             throw new ArgumentOutOfRangeException(nameof(vertexIndex),
-                $"VertexIndex must be a value between 0 and {VertexCount}");
+                $"VertexIndex must be a value between 0 and {VertexCount - 1}");
         }
 
         if (_indexStride == Unsafe.SizeOf<short>() && vertexIndex > short.MaxValue)
@@ -236,13 +241,7 @@ public class MeshBuilder : IDisposable
     private void AddIndexWithResize(int vertexIndex)
     {
         var nextCapacity = Math.Max(MinCapacity * _indexStride, _indexBuffer.Length * 2);
-        var nextBuffer = ArrayPool<byte>.Shared.Rent(nextCapacity);
-
-        if (_indexBuffer.Length > 0)
-        {
-            Buffer.BlockCopy(_indexBuffer, 0, nextBuffer, 0, _indexBuffer.Length);
-            ArrayPool<byte>.Shared.Return(_indexBuffer);
-        }
+        var nextBuffer = RentZeroed(nextCapacity, _indexBuffer);
 
         _indexBuffer = nextBuffer;
 
@@ -278,17 +277,37 @@ public class MeshBuilder : IDisposable
     private int AddVertexWithResize()
     {
         var nextCapacity = Math.Max(MinCapacity * _vertexStride, _vertexBuffer.Length * 2);
-        var nextBuffer = ArrayPool<byte>.Shared.Rent(nextCapacity);
-
-        if (_vertexBuffer.Length > 0)
-        {
-            Buffer.BlockCopy(_vertexBuffer, 0, nextBuffer, 0, _vertexBuffer.Length);
-            ArrayPool<byte>.Shared.Return(_vertexBuffer);
-        }
+        var nextBuffer = RentZeroed(nextCapacity, _vertexBuffer);
 
         _vertexBuffer = nextBuffer;
 
         return VertexCount++;
+    }
+
+    /// <summary>
+    ///     Rents a buffer of at least the requested size, copies the old one into it, zeroes the
+    ///     rest, and returns the old buffer to the pool.
+    /// </summary>
+    /// <remarks>
+    ///     The zeroing is not cosmetic. Pooled arrays arrive holding whatever their previous renter
+    ///     left in them, and two kinds of byte in the vertex buffer are never written afterwards:
+    ///     the alignment padding between elements, and any element the caller forgets to set. Both
+    ///     end up on the GPU, so without this they would be nondeterministic garbage instead of a
+    ///     predictable zero.
+    /// </remarks>
+    private static byte[] RentZeroed(int capacity, byte[] previous)
+    {
+        var next = ArrayPool<byte>.Shared.Rent(capacity);
+
+        if (previous.Length > 0)
+        {
+            Buffer.BlockCopy(previous, 0, next, 0, previous.Length);
+            ArrayPool<byte>.Shared.Return(previous);
+        }
+
+        Array.Clear(next, previous.Length, next.Length - previous.Length);
+
+        return next;
     }
 
     /// <summary>
@@ -353,18 +372,27 @@ public class MeshBuilder : IDisposable
     /// </summary>
     private ref T GetElementRef<T>(int vertexIndex, int elementIndex) where T : unmanaged
     {
-        if (elementIndex < 0 || elementIndex > _vertexElements.Count)
+        // Both checks are >=. They were once >, and the off-by-one on the vertex index was the
+        // dangerous half: index == VertexCount landed inside the pooled array's slack, so writing
+        // one vertex past the end corrupted nothing visibly and threw nothing.
+        if (elementIndex < 0 || elementIndex >= _vertexElements.Count)
+        {
             throw new ArgumentOutOfRangeException(nameof(elementIndex),
-                $"Element index must be a value between 0 and {_vertexElements.Count}");
+                $"Element index must be a value between 0 and {_vertexElements.Count - 1}");
+        }
 
-        if (vertexIndex < 0 || vertexIndex > VertexCount)
+        if (vertexIndex < 0 || vertexIndex >= VertexCount)
+        {
             throw new ArgumentOutOfRangeException(nameof(vertexIndex),
-                $"Vertex index must be a value between 0 and {VertexCount}");
+                $"Vertex index must be a value between 0 and {VertexCount - 1}");
+        }
 
         var element = _vertexElements[elementIndex];
         if (element.Size != Unsafe.SizeOf<T>())
+        {
             throw new ArgumentException(
                 $"Value has a size of {Unsafe.SizeOf<T>()}, but was defined with a size of {element.Size}", nameof(T));
+        }
 
         var elementOffset = vertexIndex * _vertexStride + element.Offset;
 
@@ -378,36 +406,72 @@ public class MeshBuilder : IDisposable
     /// <param name="device">The graphics device</param>
     /// <param name="clear">Determines if the mesh builder should be reset after this call</param>
     /// <returns>A mesh draw instance</returns>
+    /// <exception cref="ArgumentNullException">The graphics device is null</exception>
     /// <exception cref="InvalidOperationException">The primitive type was not set to a valid value</exception>
+    /// <exception cref="InvalidOperationException">No vertices were added, or indexing was configured but no indices were added</exception>
+    /// <remarks>
+    ///     The caller owns the two GPU buffers this creates. They are not tracked by any content
+    ///     manager, so rebuilding a mesh repeatedly without disposing the previous draw's buffers
+    ///     leaks GPU memory.
+    /// </remarks>
     public MeshDraw ToMeshDraw(GraphicsDevice device, bool clear = true)
     {
+        ArgumentNullException.ThrowIfNull(device);
+
         if (PrimitiveType == PrimitiveType.Undefined)
             throw new InvalidOperationException("A primitive type must be set");
 
+        // Both guards exist because Direct3D rejects zero-sized buffers with E_INVALIDARG, which
+        // surfaces as an unexplained failure deep inside Buffer.New rather than as anything naming
+        // the actual mistake
+        if (VertexCount == 0)
+            throw new InvalidOperationException("Cannot create a mesh with no vertices");
+
+        if (_indexStride != 0 && IndexCount == 0)
+        {
+            throw new InvalidOperationException(
+                $"Indexing type {IndexType} was configured but no indices were added. Add indices, or use {nameof(IndexingType)}.{nameof(IndexingType.None)} for a non-indexed mesh");
+        }
+
+        // The backing arrays come from the pool, so they are almost always larger than the data
+        // they hold; slicing keeps the garbage tail off the GPU. Instance count is zero because
+        // this is not instanced geometry - it once carried VertexCount, which poisoned the
+        // declaration's precomputed hash and defeated declaration sharing across meshes.
+        var vertexBuffer = Stride.Graphics.Buffer.New(
+            device,
+            (ReadOnlySpan<byte>)_vertexBuffer.AsSpan(0, VertexCount * _vertexStride),
+            _vertexStride,
+            BufferFlags.VertexBuffer);
+
+        var vertexDeclaration = new VertexDeclaration(
+            [.. _vertexElements.Select(v => v.VertexElement)],
+            instanceCount: 0,
+            vertexStride: _vertexStride);
+
         var draw = new MeshDraw
         {
-            VertexBuffers = new[]
-            {
-                new VertexBufferBinding(
-                    Stride.Graphics.Buffer.New(device, _vertexBuffer, _vertexStride, BufferFlags.VertexBuffer),
-                    new VertexDeclaration(
-                        _vertexElements.Select(v => v.VertexElement).ToArray(),
-                        VertexCount,
-                        _vertexStride
-                    ),
-                    VertexCount,
-                    _vertexStride
-                )
-            },
-            IndexBuffer = new IndexBufferBinding(
-                Stride.Graphics.Buffer.New(device, _indexBuffer, _indexStride, BufferFlags.IndexBuffer),
-                _indexStride == Unsafe.SizeOf<int>(),
-                IndexCount
-            ),
+            VertexBuffers = [new VertexBufferBinding(vertexBuffer, vertexDeclaration, VertexCount, _vertexStride)],
             PrimitiveType = PrimitiveType,
-            DrawCount = IndexCount,
             StartLocation = 0
         };
+
+        if (_indexStride == 0)
+        {
+            // Non-indexed: the engine's mesh render path draws DrawCount vertices directly when
+            // there is no index buffer
+            draw.DrawCount = VertexCount;
+        }
+        else
+        {
+            var indexBuffer = Stride.Graphics.Buffer.New(
+                device,
+                (ReadOnlySpan<byte>)_indexBuffer.AsSpan(0, IndexCount * _indexStride),
+                _indexStride,
+                BufferFlags.IndexBuffer);
+
+            draw.IndexBuffer = new IndexBufferBinding(indexBuffer, _indexStride == Unsafe.SizeOf<int>(), IndexCount);
+            draw.DrawCount = IndexCount;
+        }
 
         if (clear) Clear();
 
@@ -422,12 +486,12 @@ public class MeshBuilder : IDisposable
         _vertexElements.Clear();
 
         if (_vertexBuffer.Length > 0) ArrayPool<byte>.Shared.Return(_vertexBuffer);
-        _vertexBuffer = Array.Empty<byte>();
+        _vertexBuffer = [];
         VertexCount = 0;
         _vertexStride = 0;
 
         if (_indexBuffer.Length > 0) ArrayPool<byte>.Shared.Return(_indexBuffer);
-        _indexBuffer = Array.Empty<byte>();
+        _indexBuffer = [];
         IndexCount = 0;
         _indexStride = 0;
     }

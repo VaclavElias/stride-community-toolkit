@@ -96,7 +96,9 @@ meshBuilder.SetElement(color, Color.Blue);
 ## Indices
 Next we need to tell the `MeshBuilder` how we want to connect the vertices.
 We configured indexing for our builder so we need to do this explicitly.
-For a simple example like this you could also completely skip the indexing part and use `IndexingType.None` instead.
+For a simple example like this you could also completely skip the indexing part and use
+`IndexingType.None` instead: the vertices are then drawn in the order they were added, three per
+triangle, at the cost of repeating any vertex that two triangles share.
 
 The winding order in Stride is counter-clockwise so we use these indices.
 
@@ -137,6 +139,32 @@ var model = new Model
 ```
 
 Congrats 🥳 you got a triangle.
+
+## Who owns the buffers
+
+`ToMeshDraw` creates two GPU buffers — vertex and, when indexing is configured, index — and hands
+them to you. **No content manager tracks them**, so if you rebuild a mesh (an animated shape rebuilt
+per frame, say) you must dispose the previous draw's buffers yourself, or each rebuild leaks GPU
+memory:
+
+```csharp
+foreach (var vertexBuffer in mesh.Draw.VertexBuffers)
+    vertexBuffer.Buffer.Dispose();
+
+mesh.Draw.IndexBuffer?.Buffer.Dispose();
+```
+
+The Procedural Geometry example shows this pattern on its animated circle.
+
+## Custom pixel formats
+
+Every `With*` method infers the GPU format from `T` — `Vector3` becomes `R32G32B32_Float`, `Color`
+becomes `R8G8B8A8_UNorm`, and so on. For a type the inference does not know, or to store data in a
+different format than the CLR type suggests, pass the format explicitly:
+
+```csharp
+var position = meshBuilder.WithPosition<Vector3>(pixelFormat: PixelFormat.R32G32B32A32_Float);
+```
 
 ## Example
 
