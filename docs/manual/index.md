@@ -4,7 +4,7 @@
 
 The toolkit is a set of extensions and helpers for [Stride](https://www.stride3d.net/), an open-source C# game engine. Its largest piece is the **code-only** approach: building a Stride game from a plain C# project, with no editor and no asset pipeline.
 
-Nothing here is required to use Stride. Everything is an extension method or a small component you can read, copy and change.
+The toolkit is optional: Stride doesn't need it, and you can adopt as much or as little of it as you like. Everything is an extension method or a small component you can read, copy and change.
 
 ## Start here
 
