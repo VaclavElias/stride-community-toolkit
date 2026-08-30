@@ -264,6 +264,15 @@ public class Basic2DCameraController : SyncScript
 
                 lines.Add(new("H: Reset Camera"));
 
+                // Live state, matching the 3D controller's help: where the camera is and how much of
+                // the world is visible (OrthographicSize is the view height in world units)
+                var position = Entity.Transform.Position;
+                lines.Add(new($"Position: {position.X:0.##}, {position.Y:0.##}", Color.Yellow));
+
+                var camera = _camera ?? Entity.Get<CameraComponent>();
+                if (camera is not null)
+                    lines.Add(new($"Zoom: {camera.OrthographicSize:0.##} world units high", Color.Yellow));
+
                 return lines;
             }, HelpCollapsed, order: -100);
     }
