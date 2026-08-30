@@ -117,6 +117,12 @@ public sealed class ChartTrajectory : ChartSeries
         _tipOnLine = false;
     }
 
+    /// <summary>
+    /// Rescales the trail's ribbon width for the current view, keeping the recorded geometry - called by
+    /// the chart when a view-driven range change would otherwise leave the trail too thick or too thin.
+    /// </summary>
+    internal void RescaleWidth(float scale) => _line.SetWidthScale(scale);
+
     /// <inheritdoc />
     private protected override void ReleaseResources() => _line.Dispose();
 }

@@ -3,6 +3,10 @@ using Stride.CommunityToolkit.Rendering.Lines;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Extensions;
+using Stride.Graphics;
+using Stride.Graphics.GeometricPrimitives;
+using Stride.Rendering;
 using System.Globalization;
 
 namespace Stride.CommunityToolkit.Charts;
@@ -31,6 +35,8 @@ public sealed class Chart
     // The view height the chart was created with; ViewScale compares the current height against it
     private readonly float _referenceHeight;
     private readonly float _referencePixelHeight;
+    private Entity? _majorGridPlane;
+    private Entity? _minorGridPlane;
 
     /// <summary>The entity every part of the chart is parented to. Add it to a scene and move it to place the chart.</summary>
     public Entity Root { get; }
@@ -47,8 +53,10 @@ public sealed class Chart
         get => _gridModels.Count > 0 && _gridModels[0].Enabled;
         set
         {
-            foreach (var model in _gridModels)
-                model.Enabled = value;
+            for (var i = 0; i < _gridModels.Count; i++)
+            {
+                _gridModels[i].Enabled = value && (i == 0 || Options.MinorDivisions > 1);
+            }
         }
     }
 
@@ -60,9 +68,10 @@ public sealed class Chart
         _referencePixelHeight = game.GraphicsDevice.Presenter.BackBuffer.Height;
         Root = new Entity(name);
 
+        CreateGridPlanes();
         BuildAxes();
         BuildTicks();
-        BuildGrids();
+        UpdateGridPlanes();
 
         if (options.ShowLabels)
         {
@@ -167,20 +176,15 @@ public sealed class Chart
     {
         ArgumentNullException.ThrowIfNull(points);
 
-        var closed = options?.Closed == true && points.Count > 1;
+        var (runs, keepClosed) = ComputeLineRuns(points, options?.Closed == true, clip);
 
-        // A closed shape is clipped as an open one that returns to its start; if nothing was cut it is drawn
-        // closed after all, so the seam gets a proper mitred join
-        IReadOnlyList<Vector3> source = closed ? [.. points, points[0]] : points;
+        var series = AddSeries(runs, options, name ?? $"Line {_series.Count + 1}", closed: keepClosed);
 
-        var runs = clip ? Clip(source) : PolylineClipping.SplitAtNonFinite(source);
+        // Remembered so a view-driven chart can re-clip the line when the visible range changes
+        series.SourcePoints = points;
+        series.ClipSource = clip;
 
-        var keepClosed = closed && runs.Count == 1 && runs[0].Length == source.Count
-            && runs[0][0] == source[0] && runs[0][^1] == source[^1];
-
-        return keepClosed
-            ? AddSeries([points], options, name ?? $"Line {_series.Count + 1}", closed: true)
-            : AddSeries(runs, options, name ?? $"Line {_series.Count + 1}", closed: false);
+        return series;
     }
 
     /// <summary>
@@ -446,7 +450,7 @@ public sealed class Chart
 
         BuildAxes();
         BuildTicks();
-        BuildGrids();
+        UpdateGridPlanes();
 
         if (o.ShowLabels)
         {
@@ -457,7 +461,7 @@ public sealed class Chart
 
         foreach (var series in _series)
         {
-            ReplotFunction(series);
+            ReplotSeries(series);
         }
     }
 
@@ -526,7 +530,6 @@ public sealed class Chart
         }
 
         _scaffolding.Clear();
-        _gridModels.Clear();
     }
 
     private void AddScaffold(Entity entity)
@@ -535,24 +538,48 @@ public sealed class Chart
         _scaffolding.Add(entity);
     }
 
-    private void ReplotFunction(ChartSeries series)
+    /// <summary>
+    /// Rebuilds one series for the current ranges and view scale: function plots are re-sampled, point
+    /// lines and parametric curves are re-clipped from their remembered points, and a trajectory keeps its
+    /// recorded geometry and only rescales its ribbon width.
+    /// </summary>
+    private void ReplotSeries(ChartSeries series)
     {
-        if (series.Function is null || series.IsDisposed)
+        if (series.IsDisposed)
             return;
 
-        // The sample density per world unit is what the plot was created with, so zooming out keeps the
-        // same detail per unit instead of stretching a fixed count across a wider range; the cap bounds
-        // the rebuild cost at deep zoom-out
-        var width = Options.XMax - Options.XMin;
-        var samples = Math.Clamp((int)(series.SampleDensity * width), series.SampleCount, 8000);
-        var points = PolylineSampling.Function(series.Function, Options.XMin, Options.XMax, samples);
-
-        var branches = PolylineClipping.SplitAtJumps(points, (Options.YMax - Options.YMin) * 0.25f, extendEnds: true);
-
-        var runs = new List<IReadOnlyList<Vector3>>();
-        foreach (var branch in branches)
+        if (series is ChartTrajectory trajectory)
         {
-            runs.AddRange(Clip(branch));
+            trajectory.RescaleWidth(ViewScale);
+            return;
+        }
+
+        List<IReadOnlyList<Vector3>> runs;
+        var keepClosed = false;
+
+        if (series.Function is not null)
+        {
+            // The sample density per world unit is what the plot was created with, so zooming out keeps
+            // the same detail per unit instead of stretching a fixed count across a wider range; the cap
+            // bounds the rebuild cost at deep zoom-out
+            var width = Options.XMax - Options.XMin;
+            var samples = Math.Clamp((int)(series.SampleDensity * width), series.SampleCount, 8000);
+            var points = PolylineSampling.Function(series.Function, Options.XMin, Options.XMax, samples);
+            var branches = PolylineClipping.SplitAtJumps(points, (Options.YMax - Options.YMin) * 0.25f, extendEnds: true);
+
+            runs = [];
+            foreach (var branch in branches)
+            {
+                runs.AddRange(Clip(branch));
+            }
+        }
+        else if (series.SourcePoints is not null)
+        {
+            (runs, keepClosed) = ComputeLineRuns(series.SourcePoints, series.Options.Closed, series.ClipSource);
+        }
+        else
+        {
+            return;
         }
 
         if (series.Entity.Get<ModelComponent>() is { } old)
@@ -572,8 +599,42 @@ public sealed class Chart
             return;
 
         var effective = ScaledOptions(series.Options);
-        var newMesh = PolylineMeshBuilder.BuildMany(_game.GraphicsDevice, runs, effective);
+        var newMesh = keepClosed && runs.Count == 1
+            ? PolylineMeshBuilder.Build(_game.GraphicsDevice, runs[0], effective)
+            : PolylineMeshBuilder.BuildMany(_game.GraphicsDevice, runs, effective);
         series.Entity.Add(PolylineExtensions.CreateModel(_game, newMesh, effective));
+    }
+
+    /// <summary>
+    /// Turns raw points into drawable runs: a closed shape is clipped as an open one that returns to its
+    /// start, and drawn closed after all when nothing was cut, so the seam gets a proper mitred join.
+    /// </summary>
+    private (List<IReadOnlyList<Vector3>> Runs, bool KeepClosed) ComputeLineRuns(IReadOnlyList<Vector3> points, bool closed, bool clip)
+    {
+        closed = closed && points.Count > 1;
+
+        IReadOnlyList<Vector3> source = closed ? [.. points, points[0]] : points;
+
+        var clipped = clip ? Clip(source) : PolylineClipping.SplitAtNonFinite(source);
+
+        var keepClosed = closed && clipped.Count == 1 && clipped[0].Length == source.Count
+            && clipped[0][0] == source[0] && clipped[0][^1] == source[^1];
+
+        var runs = new List<IReadOnlyList<Vector3>>();
+
+        if (keepClosed)
+        {
+            runs.Add(points);
+        }
+        else
+        {
+            foreach (var run in clipped)
+            {
+                runs.Add(run);
+            }
+        }
+
+        return (runs, keepClosed);
     }
 
     private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
@@ -663,56 +724,74 @@ public sealed class Chart
         }
     }
 
-    private void BuildGrids()
+    private void CreateGridPlanes()
     {
-        var o = Options;
+        var device = _game.GraphicsDevice;
+        var texture = ChartGridTexture.Create(device);
 
-        // Minor grid sits behind the major grid, and skips the lines the major grid already draws
-        if (o.MinorDivisions > 1)
+        _majorGridPlane = CreateGridPlane(device, texture, Options.GridColor, "Major grid", -LayerStep);
+        _minorGridPlane = CreateGridPlane(device, texture, Options.MinorGridColor, "Minor grid", -2f * LayerStep);
+
+        foreach (var plane in new[] { _majorGridPlane, _minorGridPlane })
         {
-            var minorStep = o.TickStep / o.MinorDivisions;
-            AddGrid(GridLines(minorStep, skipMultiplesOf: o.TickStep), o.MinorGridWidth * ViewScale, o.MinorGridColor, "Minor grid", -2f * LayerStep);
+            var model = plane.Get<ModelComponent>()!;
+            model.Enabled = Options.GridVisible;
+            _gridModels.Add(model);
+            Root.AddChild(plane);
         }
-
-        AddGrid(GridLines(o.TickStep, skipMultiplesOf: null), o.GridWidth * ViewScale, o.GridColor, "Grid", -LayerStep);
     }
 
-    private List<(Vector3, Vector3)> GridLines(float step, float? skipMultiplesOf)
+    private static Entity CreateGridPlane(GraphicsDevice device, Texture texture, Color color, string name, float z)
     {
-        var o = Options;
-        var lines = new List<(Vector3, Vector3)>();
+        var material = ChartGridTexture.CreateMaterial(device, texture, color);
 
-        foreach (var x in TickValues(o.XMin, o.XMax, step))
+        var entity = new Entity(name)
         {
-            if (skipMultiplesOf is { } major && IsMultiple(x, major))
-                continue;
+            new ModelComponent
+            {
+                Model = new Model
+                {
+                    material,
+                    new Mesh { Draw = GeometricPrimitive.Plane.New(device, ChartGridTexture.PlaneCells, ChartGridTexture.PlaneCells).ToMeshDraw() },
+                },
+            },
+        };
 
-            lines.Add((new Vector3(x, o.YMin, 0f), new Vector3(x, o.YMax, 0f)));
-        }
+        entity.Transform.Position = new Vector3(0f, 0f, z);
 
-        foreach (var y in TickValues(o.YMin, o.YMax, step))
-        {
-            if (skipMultiplesOf is { } major && IsMultiple(y, major))
-                continue;
-
-            lines.Add((new Vector3(o.XMin, y, 0f), new Vector3(o.XMax, y, 0f)));
-        }
-
-        return lines;
+        return entity;
     }
 
-    private void AddGrid(List<(Vector3, Vector3)> lines, float width, Color color, string name, float z)
+    /// <summary>
+    /// Points the two grid planes at the current ranges: each is scaled so one texture cell equals its
+    /// step and snapped to a cell multiple near the view centre, so the grid appears infinite and its
+    /// lines land exactly on the tick values. This is the scene editor's grid technique - the lines live
+    /// in a mip-mapped texture filtered by the GPU sampler, so they are stable at every zoom, and a range
+    /// change only moves two transforms instead of rebuilding geometry.
+    /// </summary>
+    private void UpdateGridPlanes()
     {
-        if (lines.Count == 0)
-            return;
+        var o = Options;
+        var centre = new Vector2((o.XMin + o.XMax) * 0.5f, (o.YMin + o.YMax) * 0.5f);
 
-        var grid = _game.CreateSegments(lines, new PolylineOptions { Width = width, Color = color }, name);
-        grid.Transform.Position = new Vector3(0f, 0f, z);
-        AddScaffold(grid);
+        Place(_majorGridPlane!, o.TickStep);
 
-        var model = grid.Get<ModelComponent>()!;
-        model.Enabled = Options.GridVisible;
-        _gridModels.Add(model);
+        var hasMinor = o.MinorDivisions > 1;
+        _minorGridPlane!.Get<ModelComponent>()!.Enabled = hasMinor && _gridModels[0].Enabled;
+
+        if (hasMinor)
+        {
+            Place(_minorGridPlane!, o.TickStep / o.MinorDivisions);
+        }
+
+        void Place(Entity plane, float cell)
+        {
+            plane.Transform.Scale = new Vector3(cell, cell, 1f);
+            plane.Transform.Position = new Vector3(
+                MathF.Round(centre.X / cell) * cell,
+                MathF.Round(centre.Y / cell) * cell,
+                plane.Transform.Position.Z);
+        }
     }
 
     private void BuildLabels()

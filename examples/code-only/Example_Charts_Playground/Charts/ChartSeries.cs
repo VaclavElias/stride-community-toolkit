@@ -44,6 +44,10 @@ public class ChartSeries : IDisposable
     internal int SampleCount;
     internal float SampleDensity;
 
+    // Set for lines and parametric curves so a view-driven chart can re-clip them when the range changes
+    internal IReadOnlyList<Vector3>? SourcePoints;
+    internal bool ClipSource;
+
     internal ChartSeries(string name, Entity entity, PolylineOptions options, bool isEmpty)
     {
         Name = name;

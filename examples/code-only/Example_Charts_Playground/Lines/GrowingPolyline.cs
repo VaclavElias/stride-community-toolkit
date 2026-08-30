@@ -40,7 +40,8 @@ public sealed class GrowingPolyline : IDisposable
     private readonly List<VertexPositionNormalTexture> _vertices;
     private readonly List<int> _indices;
     private readonly Vector3 _normal;
-    private readonly float _halfWidth;
+    private readonly float _baseHalfWidth;
+    private float _halfWidth;
     private readonly BoundingBox? _fixedBounds;
     private bool _hasGrownBounds;
     private int _count;
@@ -83,7 +84,8 @@ public sealed class GrowingPolyline : IDisposable
         _game = game;
         Capacity = capacity;
         _normal = PolylineMeshBuilder.NormalOf(options);
-        _halfWidth = options.Width * 0.5f;
+        _baseHalfWidth = options.Width * 0.5f;
+        _halfWidth = _baseHalfWidth;
         _fixedBounds = bounds;
 
         var maxVertices = capacity * 2;
@@ -190,6 +192,24 @@ public sealed class GrowingPolyline : IDisposable
             Mesh.BoundingBox = BoundingBox.Empty;
             Mesh.BoundingSphere = default;
         }
+    }
+
+    /// <summary>
+    /// Rescales the ribbon width relative to the width the line was created with and rebuilds the mesh -
+    /// how a view-driven chart keeps a recorded trail the same thickness on screen while zooming.
+    /// </summary>
+    /// <param name="scale">The multiplier on the creation-time width; <c>1</c> restores it.</param>
+    internal void SetWidthScale(float scale)
+    {
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
+
+        var halfWidth = _baseHalfWidth * scale;
+
+        if (halfWidth == _halfWidth)
+            return;
+
+        _halfWidth = halfWidth;
+        Rebuild();
     }
 
     /// <summary>
