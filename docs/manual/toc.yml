@@ -4,6 +4,8 @@
   href: getting-started.md
 - name: Components and Scripts
   href: components-and-scripts.md
+- name: Engine Patterns
+  href: engine-patterns.md
 # - name: What's new in docs
 #   href: whats-new.md
 - name: Code-Only
