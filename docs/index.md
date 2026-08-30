@@ -10,7 +10,7 @@ _disableToc: false
 
 ## 👋 Introduction
 
-The [Stride Community Toolkit](https://github.com/stride3d/stride-community-toolkit) is a set of C# helpers and [extensions](manual/index.md) designed to enhance your experience with the [Stride Game Engine](https://www.stride3d.net/). It simplifies and streamlines routine development tasks 🛠️, making it easier to build applications for Stride using **.NET 10**.
+The [Stride Community Toolkit](https://github.com/stride3d/stride-community-toolkit) is a set of C# helpers and [extensions](manual/index.md) designed to enhance your experience with the [Stride Game Engine](https://www.stride3d.net/). It simplifies and streamlines routine development tasks 🛠️, making it easier to build applications for Stride using **.NET 10**. The library is written in C# but works from any .NET language - the examples include [F#](manual/code-only/examples/index.md#f-getting-started) and [Visual Basic](manual/code-only/examples/index.md#visual-basic-getting-started).
 
 > [!TIP]
 > Experienced developers can dive straight into the source, these helpers are thin wrappers over Stride APIs, meant to accelerate iteration (not hide the engine).
@@ -35,7 +35,7 @@ This approach allows us to quickly iterate and integrate new features and improv
 
 ## 🔧 Installation
 
-The toolkit, available as a 📦 [NuGet package](https://www.nuget.org/profiles/StrideCommunity), can be integrated into new or existing Stride Game C# projects. Each toolkit version targets one Stride release - the [Getting Started](manual/getting-started.md) page has the compatibility table and the installation steps.
+The toolkit, available as a 📦 [NuGet package](https://www.nuget.org/profiles/StrideCommunity), can be integrated into new or existing Stride projects. Each toolkit version targets one Stride release - the [Getting Started](manual/getting-started.md) page has the compatibility table and the installation steps.
 
 ## 🛠️ Toolkit Repository
 
