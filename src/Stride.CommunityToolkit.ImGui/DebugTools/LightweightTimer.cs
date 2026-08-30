@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Stride.CommunityToolkit.ImGui;
+namespace Stride.CommunityToolkit.ImGui.DebugTools;
 
 /// <summary>
 /// Represents a lightweight timer for measuring elapsed time with minimal overhead.

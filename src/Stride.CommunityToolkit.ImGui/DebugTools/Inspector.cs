@@ -8,7 +8,7 @@ using static Hexa.NET.ImGui.ImGui;
 using static Stride.CommunityToolkit.ImGui.ImGuiExtension;
 using ImGuiDir = Hexa.NET.ImGui.ImGuiDir;
 
-namespace Stride.CommunityToolkit.ImGui;
+namespace Stride.CommunityToolkit.ImGui.DebugTools;
 
 /// <summary>
 /// Inspector window for debugging and modifying object properties.

@@ -7,10 +7,10 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using static Hexa.NET.ImGui.ImGui;
 using static Stride.CommunityToolkit.ImGui.ImGuiExtension;
-using static Stride.CommunityToolkit.ImGui.PerfMonitorHelpers;
+using static Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitorHelpers;
 using TimeSpan = System.TimeSpan;
 
-namespace Stride.CommunityToolkit.ImGui;
+namespace Stride.CommunityToolkit.ImGui.DebugTools;
 
 /// <summary>
 /// Performance monitor window for Stride Engine

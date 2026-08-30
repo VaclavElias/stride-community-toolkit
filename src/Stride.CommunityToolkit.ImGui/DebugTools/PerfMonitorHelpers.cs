@@ -5,7 +5,7 @@ using static Hexa.NET.ImGui.ImGui;
 using static Stride.CommunityToolkit.ImGui.ImGuiExtension;
 using TimeSpan = System.TimeSpan;
 
-namespace Stride.CommunityToolkit.ImGui;
+namespace Stride.CommunityToolkit.ImGui.DebugTools;
 
 /// <summary>
 /// The stateless companions of <see cref="PerfMonitor"/>: sample-strip drawing, Stride profiler

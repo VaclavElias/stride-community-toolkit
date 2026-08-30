@@ -4,7 +4,7 @@ using System.Reflection;
 using static Hexa.NET.ImGui.ImGui;
 using static Stride.CommunityToolkit.ImGui.ImGuiExtension;
 
-namespace Stride.CommunityToolkit.ImGui;
+namespace Stride.CommunityToolkit.ImGui.DebugTools;
 
 /// <summary>
 /// The collection views of <see cref="Inspector"/>: an <see cref="IEnumerable"/> shown item by item,

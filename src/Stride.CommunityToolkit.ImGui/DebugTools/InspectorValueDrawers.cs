@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using static Hexa.NET.ImGui.ImGui;
 using static Stride.CommunityToolkit.ImGui.ImGuiExtension;
 
-namespace Stride.CommunityToolkit.ImGui;
+namespace Stride.CommunityToolkit.ImGui.DebugTools;
 
 /// <summary>
 /// The leaf-value widgets <see cref="Inspector"/> draws: one ImGui control per primitive type, the

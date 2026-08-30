@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Xml;
 using WebUtility = System.Net.WebUtility;
 
-namespace Stride.CommunityToolkit.ImGui;
+namespace Stride.CommunityToolkit.ImGui.DebugTools;
 
 /// <summary>
 /// Utility class to provide documentation for various types where available with the assembly
