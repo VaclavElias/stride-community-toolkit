@@ -23,9 +23,10 @@ using Stride.Input;
 //              it) and a paper-like clear colour, and skip the physics ground a chart does not need.
 //   glow 3D  - the default 3D scene with skybox and bloom; emissive intensity above 1 makes lines glow.
 //
-// Controls: G toggles the grid, T removes or restores the tan curve, Space throws the ball whose
-// flight the trajectory records live. The keys are listed in the DebugOverlay section so they share
-// one screen block with the camera help (F2 collapses it, F3 moves it, F4 hides it).
+// Controls: G toggles the grid, T removes or restores the tan curve, L toggles the legend, Space
+// throws the ball whose flight the trajectory records live; the mouse hovers a coordinate readout
+// over the chart. The keys are listed in the DebugOverlay section so they share one screen block with
+// the camera help (F2 collapses it, F3 moves it, F4 hides it).
 
 // Without this a scaled-up 4K desktop hands the game a scaled, blurred window. A no-op off Windows.
 WindowsDpiManager.EnablePerMonitorV2();
@@ -39,6 +40,8 @@ using var game = new Game();
 Chart? chart = null;
 ChartSeries? tangent = null;
 ChartTrajectory? trail = null;
+ChartCursor? cursor = null;
+CameraComponent? camera = null;
 Entity? ball = null;
 
 // The thrown ball: launched from the lower left corner, integrated by hand each frame - the point of
@@ -122,6 +125,9 @@ void Start(Scene rootScene)
         "ball");
     chart.Root.AddChild(ball);
 
+    // The readout that follows the mouse; fed with the camera and cursor position every frame
+    cursor = chart.AddCursor();
+
     ThrowBall();
 
     // The overlay draws itself and is shared with the camera controller's help; the lambda is read
@@ -146,6 +152,7 @@ void Start(Scene rootScene)
         new("CHART"),
         new($"Press G to toggle the grid ({(chart.GridVisible ? "on" : "off")})", Color.Yellow),
         new($"Press T to {(tangent is null ? "restore" : "remove")} the tan curve", Color.Yellow),
+        new($"Press L to toggle the legend ({(chart.LegendVisible ? "on" : "off")})", Color.Yellow),
         new($"Press Space to throw the ball (trail: {trail.Count}/{trail.Capacity} points)", Color.Yellow),
         new($"{chart.Series.Count} series: {string.Join(", ", chart.Series.Select(s => s.Name))}"),
     ]);
@@ -158,6 +165,11 @@ void Update(Scene scene, GameTime time)
     if (game.Input.IsKeyPressed(Keys.G))
     {
         chart.GridVisible = !chart.GridVisible;
+    }
+
+    if (game.Input.IsKeyPressed(Keys.L))
+    {
+        chart.LegendVisible = !chart.LegendVisible;
     }
 
     // Remove frees the ribbon's GPU buffers; plotting again builds new ones. Cheap enough to do on a
@@ -178,6 +190,14 @@ void Update(Scene scene, GameTime time)
     if (game.Input.IsKeyPressed(Keys.Space))
     {
         ThrowBall();
+    }
+
+    // The readout follows the mouse over the chart plane; hidden while the cursor is off the chart
+    camera ??= scene.Entities.Select(e => e.Get<CameraComponent>()).FirstOrDefault(c => c != null);
+
+    if (camera is not null)
+    {
+        cursor?.Update(camera, game.Input.MousePosition);
     }
 
     if (!ballFlying || trail is null || ball is null) return;
@@ -219,27 +239,29 @@ order: 35
 description:
   en: |-
     A sandbox for chart and plotting helpers: a chart with axes, tick marks, labels, a major and minor
-    grid, and function curves drawn as lines with real thickness. Two presets share one API - a flat,
-    paper-like 2D chart under an orthographic camera with MSAA and pixel-sized labels, and a glowing
-    3D chart in a lit scene with bloom. Hardware lines are one pixel wide, so each line is a ribbon
-    mesh built by PolylineMeshBuilder from sampled points. Curves are clipped to the chart, broken
-    where a function is undefined or jumps across an asymptote, and can be removed again with their
-    GPU buffers freed. A thrown ball records its flight into a growing trajectory that lands exactly
-    on the plotted analytic curve. The helpers live in their final toolkit namespaces and will move
-    into the library once their shape settles.
+    grid, a legend, a mouse coordinate readout, and function curves drawn as lines with real thickness.
+    Two presets share one API - a flat, paper-like 2D chart under an orthographic camera with MSAA and
+    pixel-sized labels, and a glowing 3D chart in a lit scene with bloom. Hardware lines are one pixel
+    wide, so each line is a ribbon mesh built by PolylineMeshBuilder from sampled points. Curves are
+    clipped to the chart, broken where a function is undefined or jumps across an asymptote, and can
+    be removed again with their GPU buffers freed. A thrown ball records its flight into a growing
+    trajectory that lands exactly on the plotted analytic curve. The helpers live in their final
+    toolkit namespaces and will move into the library once their shape settles.
 concepts:
   - Building a ribbon mesh from a list of points, and one mesh from many segments or runs
   - Sampling y = f(x) and parametric curves into points
   - "Clipping a polyline to a rectangle (Liang-Barsky) and splitting it at NaN and at asymptotes"
   - "A growing trajectory: pre-allocated Default-usage buffers updated in place, no per-frame allocations"
   - Comparing a simulated flight path with the analytic ballistic curve on the same chart
+  - "A mouse readout: intersecting the pick ray with the chart plane, no Stride UI needed"
+  - A legend rebuilt from the live series list, with its ribbon buffers freed on every rebuild
   - "Emissive intensity above 1 plus bloom: glowing lines"
   - Why thin geometry flickers without MSAA, and enabling it on the 2D compositor
   - Screen-sized tick labels with EntityTextComponent versus world-sized ones with WorldTextComponent
   - Composing a 2D scene by hand instead of SetupBase2DScene
   - Removing a curve and disposing the vertex and index buffers nothing else tracks
   - Toggling a ModelComponent with a key listed in a DebugOverlay section
-  - "Using helpers: Add2DGraphicsCompositor, Add2DCamera, Add2DCameraController, SetupBase3DScene, AddSkybox, DebugOverlay"
+  - "Using helpers: Add2DGraphicsCompositor, Add2DCamera, Add2DCameraController, SetupBase3DScene, AddSkybox, DebugOverlay, GetPickRay"
 tags:
   - 2D
   - 3D

@@ -99,6 +99,16 @@ public sealed class ChartOptions
     /// <summary>Numeric format for the tick labels. Defaults to <c>"0.##"</c>.</summary>
     public string LabelFormat { get; set; } = "0.##";
 
+    /// <summary>
+    /// Whether a legend - a colour swatch and name per series, stacked in the chart's top left corner - is
+    /// built and kept in step with the series. Defaults to <see langword="true"/>; hide and show it at
+    /// runtime with <see cref="Chart.LegendVisible"/>.
+    /// </summary>
+    public bool ShowLegend { get; set; } = true;
+
+    /// <summary>Numeric format of the <see cref="ChartCursor"/> readout. Defaults to <c>"0.00"</c>.</summary>
+    public string CursorFormat { get; set; } = "0.00";
+
     /// <summary>Ribbon width used for curves added without explicit options. Defaults to <c>0.06</c>.</summary>
     public float CurveWidth { get; set; } = 0.06f;
 

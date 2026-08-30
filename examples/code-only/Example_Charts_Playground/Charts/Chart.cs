@@ -22,7 +22,7 @@ public sealed class Chart
 {
     // Every ribbon lies in the chart plane, so coplanar ones z-fight where they cross and flicker dark
     // fringes. Each layer is nudged along Z by this much: grids behind the axes, ticks and curves in front.
-    private const float LayerStep = 0.005f;
+    internal const float LayerStep = 0.005f;
 
     private readonly Game _game;
     private readonly List<ModelComponent> _gridModels = [];
@@ -186,6 +186,7 @@ public sealed class Chart
 
         Root.RemoveChild(series.Entity);
         series.Dispose();
+        RebuildLegend();
 
         return true;
     }
@@ -202,6 +203,7 @@ public sealed class Chart
         }
 
         _series.Clear();
+        RebuildLegend();
     }
 
     /// <summary>
@@ -234,6 +236,7 @@ public sealed class Chart
 
         var series = new ChartTrajectory(seriesName, entity, options, line, Options);
         _series.Add(series);
+        RebuildLegend();
 
         return series;
     }
@@ -248,6 +251,147 @@ public sealed class Chart
             EmissiveIntensity = Options.CurveEmissiveIntensity,
             Color = palette.Length > 0 ? palette[_series.Count % palette.Length] : Color.White,
         };
+    }
+
+    // Legend: rebuilt whenever the series change, so it always matches what is drawn
+    private const float LegendRowStep = 0.5f;
+    private Entity? _legendRoot;
+    private bool _legendVisible = true;
+
+    /// <summary>
+    /// Shows or hides the legend without rebuilding it. The legend itself appears only while
+    /// <see cref="ChartOptions.ShowLegend"/> is on and the chart has at least one series.
+    /// </summary>
+    public bool LegendVisible
+    {
+        get => _legendVisible;
+        set
+        {
+            _legendVisible = value;
+            ApplyLegendVisibility();
+        }
+    }
+
+    /// <summary>
+    /// Adds a coordinate readout that follows the mouse: a ring marker on the chart under the cursor and a
+    /// label with the chart-space coordinates, in the chart's label style. Call
+    /// <see cref="ChartCursor.Update"/> from your update loop with the camera and the mouse position.
+    /// </summary>
+    /// <returns>The cursor, already parented to the chart and hidden until its first update.</returns>
+    public ChartCursor AddCursor()
+    {
+        EnsureTextRenderer();
+
+        return new ChartCursor(_game, this);
+    }
+
+    /// <summary>
+    /// Tears down and rebuilds the legend - a colour swatch and name per series, stacked in the chart's top
+    /// left corner. Called automatically when series are added or removed.
+    /// </summary>
+    private void RebuildLegend()
+    {
+        if (_legendRoot is not null)
+        {
+            // The swatches own ribbon buffers nothing else tracks
+            foreach (var child in _legendRoot.GetChildren().ToArray())
+            {
+                if (child.Get<ModelComponent>()?.Model is { } model)
+                {
+                    foreach (var mesh in model.Meshes)
+                    {
+                        PolylineMeshBuilder.Release(mesh);
+                    }
+                }
+            }
+
+            Root.RemoveChild(_legendRoot);
+            _legendRoot = null;
+        }
+
+        if (!Options.ShowLegend || _series.Count == 0)
+            return;
+
+        EnsureTextRenderer();
+
+        var o = Options;
+
+        _legendRoot = new Entity("Legend");
+        _legendRoot.Transform.Position = new Vector3(o.XMin + 0.4f, o.YMax - 0.5f, 3f * LayerStep);
+
+        for (var i = 0; i < _series.Count; i++)
+        {
+            var series = _series[i];
+            var y = -i * LegendRowStep;
+
+            var swatch = _game.CreatePolyline(
+                [new Vector3(0f, y, 0f), new Vector3(0.45f, y, 0f)],
+                new PolylineOptions { Width = o.CurveWidth, Color = series.Color, EmissiveIntensity = series.Options.EmissiveIntensity },
+                $"Legend swatch {series.Name}");
+            _legendRoot.AddChild(swatch);
+
+            var label = new Entity($"Legend label {series.Name}");
+
+            if (o.LabelMode == ChartLabelMode.Screen)
+            {
+                label.Add(new EntityTextComponent
+                {
+                    Text = series.Name,
+                    FontSize = o.LabelFontSize,
+                    TextColor = o.LabelColor,
+                    Anchor = TextAnchor.MiddleLeft,
+                    Offset = new Vector2(6f, 0f),
+                });
+            }
+            else
+            {
+                label.Add(new WorldTextComponent
+                {
+                    Text = series.Name,
+                    Height = o.LabelHeight,
+                    TextColor = o.LabelColor,
+                    Anchor = TextAnchor.MiddleLeft,
+                    Billboard = true,
+                    KeepUpright = true,
+                });
+            }
+
+            label.Transform.Position = new Vector3(0.6f, y, 0f);
+            _legendRoot.AddChild(label);
+        }
+
+        Root.AddChild(_legendRoot);
+        ApplyLegendVisibility();
+    }
+
+    private void ApplyLegendVisibility()
+    {
+        if (_legendRoot is null)
+            return;
+
+        foreach (var child in _legendRoot.GetChildren())
+        {
+            if (child.Get<ModelComponent>() is { } model)
+                model.Enabled = _legendVisible;
+
+            if (child.Get<EntityTextComponent>() is { } screenText)
+                screenText.IsVisible = _legendVisible;
+
+            if (child.Get<WorldTextComponent>() is { } worldText)
+                worldText.IsVisible = _legendVisible;
+        }
+    }
+
+    /// <summary>
+    /// Registers the renderer the chart's label mode needs; harmless when already registered, and needed
+    /// here because the legend and cursor draw text even when tick labels are off.
+    /// </summary>
+    private void EnsureTextRenderer()
+    {
+        if (Options.LabelMode == ChartLabelMode.Screen)
+            _game.AddEntityTextRenderer();
+        else
+            _game.AddWorldTextRenderer();
     }
 
     private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
@@ -277,6 +421,7 @@ public sealed class Chart
 
         var series = new ChartSeries(name, entity, options, isEmpty: runs.Count == 0);
         _series.Add(series);
+        RebuildLegend();
 
         return series;
     }
