@@ -81,3 +81,27 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiExtension", Scope = "deep", Justification = "PlotLines mirrors the native Dear ImGui signature parameter for parameter.")]
 [assembly: SuppressMessage("NDepend", "ND1701:PotentiallyDeadMethods", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor+ThreadSampleCollection", Scope = "deep", Justification = "Instantiated through the generic new() constraint in PerfMonitorHelpers.Guaranteed, which static analysis cannot see.")]
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor+ThreadSampleCollection", Justification = "Instantiated through the generic new() constraint in PerfMonitorHelpers.Guaranteed, which static analysis cannot see.")]
+// --- DebugShapes: the tagged-union design -------------------------------------------------------
+// Renderable and DebugRenderable are tagged unions: one constructor per shape kind, all payloads at
+// the same FieldOffset. That is what lets a frame of debug shapes live in one flat list with no
+// allocation per shape.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Renderable", Scope = "deep", Justification = "One constructor per shape kind is the tagged union's discriminator.")]
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.DebugRenderable", Scope = "deep", Justification = "One constructor per shape kind is the tagged union's discriminator.")]
+// SizeOfInst sums the nine overlapping payloads; because they share one FieldOffset the real value
+// is only as large as the biggest of them. ImmediateDebugRenderObject is a genuinely wide render
+// object, but exactly four of them exist (solid/wireframe x opaque/transparent).
+[assembly: SuppressMessage("NDepend", "ND1309:InstancesSizeShouldntBeTooBig", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Renderable", Justification = "Explicit-layout union: the payloads overlap, so the instance is the size of its largest member.")]
+[assembly: SuppressMessage("NDepend", "ND1309:InstancesSizeShouldntBeTooBig", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.DebugRenderable", Justification = "Explicit-layout union: the payloads overlap, so the instance is the size of its largest member.")]
+[assembly: SuppressMessage("NDepend", "ND1309:InstancesSizeShouldntBeTooBig", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.ImmediateDebugRenderObject", Justification = "Holds six per-shape counter structs; four instances exist for the whole system.")]
+// The byte width is load-bearing: DebugPrimitiveType sits at FieldOffset(0) and the payloads start
+// at FieldOffset(1), so widening the enum would either break the layout or pad every queued shape.
+[assembly: SuppressMessage("NDepend", "ND2206:EnumStorageShouldBeInt32", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.DebugPrimitiveType", Scope = "deep", Justification = "Packed into the tagged unions at FieldOffset(0); the payloads begin at byte 1.")]
+[assembly: SuppressMessage("NDepend", "ND2206:EnumStorageShouldBeInt32", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.ImmediateDebugRenderSystem+DebugRenderableFlags", Scope = "deep", Justification = "Packed alongside DebugPrimitiveType in DebugRenderable's header bytes.")]
+// The Draw* API mirrors Stride's own debug-draw shape: every parameter after the geometry has a
+// default, so a call is normally DrawCapsule(position, height, radius). Folding them into an options
+// object would make the common call longer, not shorter.
+[assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.ImmediateDebugRenderSystem", Scope = "deep", Justification = "Debug-draw API: geometry first, then all-defaulted color/duration/depthTest/solid.")]
+// --- Charts playground: grown in final namespaces ahead of extraction ----------------------
+[assembly: SuppressMessage("NDepend", "ND2103:NamespaceNameShouldCorrespondToFileLocation", Target = "Example_Charts_Playground:Stride.CommunityToolkit.Charts", Justification = "Chart helpers grow in the playground in their final library namespace so extraction is a move, not a rewrite.")]
+[assembly: SuppressMessage("NDepend", "ND2103:NamespaceNameShouldCorrespondToFileLocation", Target = "Example_Charts_Playground:Stride.CommunityToolkit.Rendering.Lines", Justification = "Same as Stride.CommunityToolkit.Charts: final namespace ahead of extraction into the core library.")]
+[assembly: SuppressMessage("NDepend", "ND1204:OverridesOfMethodShouldCallBaseMethod", Target = "Example_Charts_Playground:Stride.CommunityToolkit.Charts.ChartTrajectory.ReleaseResources()", Justification = "Replace, not refine, by design: the trajectory's buffers are owned and disposed by its GrowingPolyline; calling base would double-release them.")]

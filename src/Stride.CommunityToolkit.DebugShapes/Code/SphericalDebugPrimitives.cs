@@ -43,11 +43,11 @@ internal static class SphericalDebugPrimitives
     /// </summary>
     private readonly struct WireframeGrid
     {
-        internal int VerticalLoopCount { get; }
-        internal int VerticalSegments { get; }
-        internal int HorizontalSegments { get; }
-        internal int UvSplits { get; }
-        internal int UvSplitOffsetVertical { get; }
+        internal readonly int VerticalLoopCount;
+        internal readonly int VerticalSegments;
+        internal readonly int HorizontalSegments;
+        internal readonly int UvSplits;
+        internal readonly int UvSplitOffsetVertical;
 
         internal WireframeGrid(int verticalLoopCount, int verticalSegments, int horizontalSegments, int uvSplits, int uvSplitOffsetVertical)
         {

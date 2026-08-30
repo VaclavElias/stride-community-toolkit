@@ -46,6 +46,10 @@ internal sealed class PrimitiveInstanceStore
     /// </summary>
     internal void ProcessRenderables(List<Renderable> renderables, ref Primitives offsets)
     {
+        // One instance slot per shape, written at the offset its own kind has reached so far, so shapes
+        // of a kind end up contiguous and can be drawn with a single instanced call.
+        // Scale carries the shape's dimensions: a radius becomes a diameter, a cube's extents become
+        // end - start, and a flat shape gets zero on the axis it has no thickness in.
         var span = CollectionsMarshal.AsSpan(renderables);
         for (int i = 0; i < span.Length; ++i)
         {

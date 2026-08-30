@@ -406,8 +406,14 @@ public class ImmediateDebugRenderSystem : GameSystemBase
         _renderMessages.Clear();
     }
 
+    /// <summary>
+    /// Hands one frame's queued shapes to the render objects: each message carries its own shape kind
+    /// in a tagged union, so the loop reads the tag and forwards the matching payload.
+    /// </summary>
     private void HandlePrimitives(GameTime gameTime, List<DebugRenderable> messages)
     {
+        // Four render objects exist so that one pipeline state covers a whole batch: solid or wireframe,
+        // opaque or transparent. A shape picks its own by its fill flag and its colour's alpha.
         ImmediateDebugRenderObject ChooseRenderer(DebugRenderableFlags flags, byte alpha)
         {
             if (alpha < 255)
@@ -422,6 +428,8 @@ public class ImmediateDebugRenderSystem : GameSystemBase
 
         if (messages.Count == 0) return;
 
+        // Walked as a span, by reference: a DebugRenderable is a wide union and copying one per shape
+        // would dominate the cost of drawing it.
         var span = CollectionsMarshal.AsSpan(messages);
         for (int i = 0; i < span.Length; ++i)
         {

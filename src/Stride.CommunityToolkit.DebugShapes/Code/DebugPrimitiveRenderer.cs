@@ -13,15 +13,6 @@ namespace Stride.CommunityToolkit.DebugShapes.Code;
 /// </summary>
 internal sealed class DebugPrimitiveRenderer
 {
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct InstanceData
-    {
-        public Vector3 Position;
-        public Quaternion Rotation;
-        public Vector3 Scale;
-        public Color Color;
-    }
-
     private Buffer? _vertexBuffer;
     private Buffer? _indexBuffer;
     private Buffer? _transformBuffer;

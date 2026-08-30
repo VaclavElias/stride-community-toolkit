@@ -1093,7 +1093,91 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1914$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1904$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1905$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1906$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Don't assign a field from many methods</Name>
+// <Id>ND1906:DontAssignAFieldFromManyMethods</Id>
+            
+warnif count > 0 
+from f in JustMyCode.Fields where 
+  // Stride Community Toolkit tweak: fields of data-oriented structs, in the same spirit as the
+  // ND1802/ND1805 carve-outs. A counter or offset aggregate passed around by ref (Primitives here)
+  // is meant to be written by every step of the pipeline; that is the type's whole job.
+  !f.ParentType.IsValueType &&
+  !f.IsEnumValue &&
+  !f.IsImmutable && 
+  !f.IsInitOnly &&
+  !f.IsGeneratedByCompiler &&
+  !f.IsEventDelegateObject
+
+let methodsAssigningMe = f.MethodsAssigningMe.Where(m => !m.IsConstructor)
+
+// The thresholds 4 and 3 are arbitrary and it should avoid matching too many fields.
+// Threshold is even lower for static fields because this reveals situations even more complex.
+where methodsAssigningMe.Count() >= (!f.IsStatic ? 4 : 3)
+
+select new { 
+   f, 
+   methodsAssigningMe, 
+   f.MethodsReadingMeButNotAssigningMe, 
+   f.MethodsUsingMe,
+   staticOrInst = f.IsStatic ? "static" : "instance",
+   Debt = (4+(f.IsStatic ? 10 : 5)).ToMinutes().ToDebt(),
+   Severity = Severity.High
+} 
+
+//<Expl>
+// The *{4} {0}* is assigned from the *{1}*.
+// Do reduce the number of methods that assign it.
+// By now there is no clear and predictable pattern 
+// for how this state changes at runtime.
+//</Expl>
+
+//<Desc>
+// A field assigned from many methods is a symptom of **bug-prone code**.
+// Notice that:
+//
+// • For an instance field, constructor(s) of its class that assign the field are not counted.
+//
+// • For a static field, the class constructor that assigns the field is not counted.
+//
+// The default threshold for *instance fields* is equal to *4 or more than 4 methods
+// assigning the instance field*. Such situation makes harder to anticipate the 
+// field state at runtime. The code is then complicated to read, hard to debug 
+// and hard to maintain. Hard-to-solve bugs due to corrupted state are often the 
+// consequence of fields *anarchically assigned*.
+//
+// The situation is even more complicated if the field is *static*.
+// Indeed, such situation potentially involves global random accesses from
+// various parts of the application. This is why this rule provides a lower 
+// threshold equals to *3 or more than 3 methods assigning the static field*.
+// 
+// If the object containing such field is meant to be used from multiple threads, 
+// there are **alarming chances** that the code is unmaintainable and bugged.
+// When multiple threads are involved, the rule of thumb is to use immutable objects.
+//
+// If the field type is a reference type (interfaces, classes, strings, delegates) 
+// corrupted state might result in a *NullReferenceException*.
+// If the field type is a value type (number, boolean, structure) 
+// corrupted state might result in wrong result not even signaled by an exception 
+// thrown.
+//</Desc>
+
+//<HowToFix>
+// There is no straight advice to refactor the number of methods responsible 
+// for assigning a field. Sometime the situation is simple enough, like when
+// a field that hold an indentation state is assigned by many writer methods.
+// Such situation only requires to define two methods *IndentPlus()/IndentMinus()* 
+// that assign the field, called from all writers methods.
+//
+// Sometime the solution involves rethinking and then rewriting 
+// a complex algorithm. Such field can sometime become just a variable accessed 
+// locally by a method or a *closure*. Sometime, just rethinking the life-time 
+// and the role of the parent object allows the field to become immutable 
+// (i.e assigned only by the constructor).
+//
+// The estimated Debt, which means the effort to fix such issue,
+// is equal to 4 minutes plus 5 minutes per method assigning the instance field
+// or 10 minutes per method assigning the static field.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1907$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1908$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1909$]]></Query>
