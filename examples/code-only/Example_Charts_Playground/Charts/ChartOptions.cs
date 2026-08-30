@@ -124,6 +124,25 @@ public sealed class ChartOptions
     /// <summary>Numeric format of the <see cref="ChartCursor"/> readout. Defaults to <c>"0.00"</c>.</summary>
     public string CursorFormat { get; set; } = "0.00";
 
+    /// <summary>The chart's title, drawn above the top edge in the label style. <see langword="null"/> or empty for none.</summary>
+    public string? Title { get; set; }
+
+    /// <summary>The x axis title, drawn at the axis's right end. <see langword="null"/> or empty for none.</summary>
+    public string? XTitle { get; set; }
+
+    /// <summary>The y axis title, drawn at the axis's top end. <see langword="null"/> or empty for none.</summary>
+    public string? YTitle { get; set; }
+
+    /// <summary>The z axis title of a 3D chart, drawn at the axis's far end. <see langword="null"/> or empty for none.</summary>
+    public string? ZTitle { get; set; }
+
+    /// <summary>Font size of <see cref="Title"/> in pixels, used in <see cref="ChartLabelMode.Screen"/>. Defaults to <c>22</c>.</summary>
+    public float TitleFontSize { get; set; } = 22f;
+
+    /// <summary>Height of <see cref="Title"/> in chart units, used in <see cref="ChartLabelMode.World"/>. Defaults to <c>0.5</c>.</summary>
+    public float TitleHeight { get; set; } = 0.5f;
+
+
     /// <summary>Ribbon width used for curves added without explicit options. Defaults to <c>0.06</c>.</summary>
     public float CurveWidth { get; set; } = 0.06f;
 

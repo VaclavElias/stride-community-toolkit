@@ -48,6 +48,10 @@ public class ChartSeries : IDisposable
     internal IReadOnlyList<Vector3>? SourcePoints;
     internal bool ClipSource;
 
+    // Set for scatter series so a view-driven chart can re-filter and re-size the markers
+    internal IReadOnlyList<Vector3>? MarkerPoints;
+    internal float MarkerSize;
+
     internal ChartSeries(string name, Entity entity, PolylineOptions options, bool isEmpty)
     {
         Name = name;

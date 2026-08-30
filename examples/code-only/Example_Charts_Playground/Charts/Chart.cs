@@ -78,6 +78,8 @@ public sealed class Chart
         {
             BuildLabels();
         }
+
+        BuildTitles();
     }
 
     /// <summary>
@@ -253,6 +255,157 @@ public sealed class Chart
         RebuildLegend();
 
         return series;
+    }
+
+    /// <summary>
+    /// Adds scatter markers: one small × per point, all batched into a single mesh. Points outside the
+    /// chart's ranges are dropped, and on a view-driven chart the markers keep their on-screen size and are
+    /// re-filtered when the range changes.
+    /// </summary>
+    /// <param name="points">The data points, in chart units.</param>
+    /// <param name="size">The marker's diagonal extent in chart units at the creation-time view.</param>
+    /// <param name="options">Ribbon width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
+    /// <param name="name">The series and entity name.</param>
+    /// <returns>The series, already on the chart; remove it like any other.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="size"/> is not positive.</exception>
+    public ChartSeries AddMarkers(IReadOnlyList<Vector3> points, float size = 0.14f, PolylineOptions? options = null, string? name = null)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size);
+
+        options ??= DefaultCurveOptions();
+
+        var seriesName = name ?? $"Markers {_series.Count + 1}";
+        var entity = new Entity(seriesName);
+        entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
+        Root.AddChild(entity);
+
+        var series = new ChartSeries(seriesName, entity, options, isEmpty: false)
+        {
+            MarkerPoints = points,
+            MarkerSize = size,
+        };
+
+        _series.Add(series);
+        BuildMarkerModel(series);
+        RebuildLegend();
+
+        return series;
+    }
+
+    private void BuildMarkerModel(ChartSeries series)
+    {
+        if (series.Entity.Get<ModelComponent>() is { } old)
+        {
+            if (old.Model is { } oldModel)
+            {
+                foreach (var mesh in oldModel.Meshes)
+                {
+                    PolylineMeshBuilder.Release(mesh);
+                }
+            }
+
+            series.Entity.Remove(old);
+        }
+
+        var o = Options;
+        var half = series.MarkerSize * 0.5f * ViewScale;
+        var segments = new List<(Vector3 Start, Vector3 End)>();
+
+        foreach (var p in series.MarkerPoints!)
+        {
+            if (!float.IsFinite(p.X) || !float.IsFinite(p.Y) || !float.IsFinite(p.Z))
+                continue;
+
+            if (p.X < o.XMin || p.X > o.XMax || p.Y < o.YMin || p.Y > o.YMax)
+                continue;
+
+            if (Is3D && (p.Z < o.ZMin || p.Z > o.ZMax))
+                continue;
+
+            segments.Add((new Vector3(p.X - half, p.Y - half, p.Z), new Vector3(p.X + half, p.Y + half, p.Z)));
+            segments.Add((new Vector3(p.X - half, p.Y + half, p.Z), new Vector3(p.X + half, p.Y - half, p.Z)));
+        }
+
+        if (segments.Count == 0)
+            return;
+
+        var effective = ScaledOptions(series.Options);
+        var markerMesh = PolylineMeshBuilder.BuildSegments(_game.GraphicsDevice, segments, effective);
+        series.Entity.Add(PolylineExtensions.CreateModel(_game, markerMesh, effective));
+    }
+
+    /// <summary>
+    /// Builds the chart and axis titles, in the chart's label style: the chart title above the top edge,
+    /// axis titles at the ends of their axes the way maths textbooks letter them. Rebuilt with the rest of
+    /// the scaffolding when the range changes.
+    /// </summary>
+    private void BuildTitles()
+    {
+        var o = Options;
+
+        if (string.IsNullOrEmpty(o.Title) && string.IsNullOrEmpty(o.XTitle) && string.IsNullOrEmpty(o.YTitle) && string.IsNullOrEmpty(o.ZTitle))
+            return;
+
+        EnsureTextRenderer();
+
+        var axisY = Math.Clamp(0f, o.YMin, o.YMax);
+        var axisX = Math.Clamp(0f, o.XMin, o.XMax);
+
+        if (o.Title is { Length: > 0 } title)
+        {
+            // Anchored inside the top edge: on a view-driven chart YMax is the window top, so anything
+            // above it would be off screen
+            AddTitleLabel(title, new Vector3((o.XMin + o.XMax) * 0.5f, o.YMax, 0f), TextAnchor.TopCenter, new Vector2(0f, 10f), o.TitleFontSize, o.TitleHeight);
+        }
+
+        if (o.XTitle is { Length: > 0 } xTitle)
+        {
+            AddTitleLabel(xTitle, new Vector3(o.XMax, axisY, 0f), TextAnchor.TopRight, new Vector2(-4f, 10f), o.LabelFontSize, o.LabelHeight);
+        }
+
+        if (o.YTitle is { Length: > 0 } yTitle)
+        {
+            AddTitleLabel(yTitle, new Vector3(axisX, o.YMax, 0f), TextAnchor.TopLeft, new Vector2(10f, 4f), o.LabelFontSize, o.LabelHeight);
+        }
+
+        if (Is3D && o.ZTitle is { Length: > 0 } zTitle)
+        {
+            AddTitleLabel(zTitle, new Vector3(axisX, axisY, o.ZMax), TextAnchor.TopLeft, new Vector2(10f, 4f), o.LabelFontSize, o.LabelHeight);
+        }
+    }
+
+    private void AddTitleLabel(string text, Vector3 position, TextAnchor anchor, Vector2 screenOffset, float fontSize, float worldHeight)
+    {
+        var label = new Entity($"Title {text}");
+
+        if (Options.LabelMode == ChartLabelMode.Screen)
+        {
+            label.Add(new EntityTextComponent
+            {
+                Text = text,
+                FontSize = fontSize,
+                TextColor = Options.LabelColor,
+                Anchor = anchor,
+                Offset = screenOffset,
+            });
+        }
+        else
+        {
+            label.Add(new WorldTextComponent
+            {
+                Text = text,
+                Height = worldHeight,
+                TextColor = Options.LabelColor,
+                Anchor = anchor,
+                Billboard = true,
+                KeepUpright = true,
+            });
+        }
+
+        label.Transform.Position = position;
+        AddScaffold(label);
     }
 
     private PolylineOptions DefaultCurveOptions()
@@ -458,6 +611,7 @@ public sealed class Chart
             BuildLabels();
         }
 
+        BuildTitles();
         RebuildLegend();
 
         foreach (var series in _series)
@@ -552,6 +706,12 @@ public sealed class Chart
         if (series is ChartTrajectory trajectory)
         {
             trajectory.RescaleWidth(ViewScale);
+            return;
+        }
+
+        if (series.MarkerPoints is not null)
+        {
+            BuildMarkerModel(series);
             return;
         }
 

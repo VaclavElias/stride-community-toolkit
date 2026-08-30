@@ -100,6 +100,12 @@ void Start(Scene rootScene)
     options.YMin = -4f;
     options.YMax = 4f;
 
+    // Titles in the chart's label style: the chart title above the top edge, axis letters at the ends
+    options.Title = "Charts Playground";
+    options.XTitle = "x";
+    options.YTitle = "y";
+    options.ZTitle = "z";
+
     if (use3DScene)
     {
         // The 3D chart gets a real Z extent and a floor grid; curves that stay at z = 0 draw exactly
@@ -157,6 +163,19 @@ void Start(Scene rootScene)
 
     // The live trail the flying ball leaves behind; one point is appended per frame in Update
     trail = chart.AddTrajectory(capacity: 900, name: "throw");
+
+    // Scatter: noisy measurements around the sin curve, drawn as one batched mesh of x markers - the
+    // classic "data points versus fitted curve" picture. The seed keeps the noise identical every run,
+    // and the explicit colour keeps the palette rotation of the earlier series unchanged.
+    var random = new Random(42);
+    var samples = new List<Vector3>();
+
+    for (var x = -4.5f; x <= 4.5f; x += 0.45f)
+    {
+        samples.Add(new Vector3(x, 2f * MathF.Sin(x) + (float)(random.NextDouble() - 0.5) * 0.7f, 0f));
+    }
+
+    chart.AddMarkers(samples, options: new PolylineOptions { Width = options.CurveWidth, Color = new Color(96, 66, 166), EmissiveIntensity = options.CurveEmissiveIntensity }, name: "samples");
 
     // The ball itself is a small closed ribbon circle moved along the flight path
     ball = game.CreatePolyline(
@@ -302,6 +321,7 @@ concepts:
   - "A growing trajectory: pre-allocated Default-usage buffers updated in place, no per-frame allocations"
   - "A view-driven chart: ranges follow the camera, with 1-2-5 tick steps picked per zoom level"
   - "3D charts: a Z axis, box clipping and grid planes on the floor and walls, opt-in via ZMin/ZMax"
+  - Chart and axis titles, and scatter markers batched into one mesh
   - Comparing a simulated flight path with the analytic ballistic curve on the same chart
   - "A mouse readout: intersecting the pick ray with the chart plane, no Stride UI needed"
   - A legend rebuilt from the live series list, with its ribbon buffers freed on every rebuild
