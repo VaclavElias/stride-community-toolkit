@@ -137,7 +137,8 @@ void Update(Scene scene, GameTime time)
         float finalY = initialDragY + verticalOffset;
 
         // Update the sphere's position while locking the Y coordinate
-        draggableBody.Position = new Vector3(newPosition.X, finalY, newPosition.Z);
+        // Teleport moves a kinematic body without giving it a velocity, so releasing it does not fling it
+        draggableBody.Teleport(new Vector3(newPosition.X, finalY, newPosition.Z), draggableBody.Orientation);
 
         lastSpherePosition = draggableBody.Position;
     }
