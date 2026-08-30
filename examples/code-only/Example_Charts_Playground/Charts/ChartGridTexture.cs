@@ -32,7 +32,7 @@ internal static class ChartGridTexture
     /// Creates the mip-mapped grid texture. One texture serves every grid plane; the tint and cell size
     /// come from the material and the plane's scale.
     /// </summary>
-    public static Texture Create(GraphicsDevice device)
+    internal static Texture Create(GraphicsDevice device)
     {
         using var image = GenerateGridImage();
 
@@ -46,7 +46,7 @@ internal static class ChartGridTexture
     /// <param name="device">The device to compile the material on.</param>
     /// <param name="texture">The texture from <see cref="Create"/>.</param>
     /// <param name="color">The line tint - a chart's <c>GridColor</c> or <c>MinorGridColor</c>.</param>
-    public static Material CreateMaterial(GraphicsDevice device, Texture texture, Color color)
+    internal static Material CreateMaterial(GraphicsDevice device, Texture texture, Color color)
     {
         var material = Material.New(device, new MaterialDescriptor
         {
@@ -79,7 +79,7 @@ internal static class ChartGridTexture
     /// that keeps the grid equally bright however far the sampler has minified it, instead of thin lines
     /// aliasing away or dense ones blowing out.
     /// </summary>
-    internal static Image GenerateGridImage()
+    private static Image GenerateGridImage()
     {
         var image = Image.New2D(TopSize, TopSize, true, PixelFormat.R8G8B8A8_UNorm_SRgb);
         image.Clear();

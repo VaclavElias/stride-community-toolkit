@@ -10,6 +10,7 @@ using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
+using System.Globalization;
 
 // Playground for the chart helpers that are being grown here before moving into the toolkit.
 // Lines/ and Charts/ are already in their final namespaces (Stride.CommunityToolkit.Rendering.Lines
@@ -38,7 +39,7 @@ var use3DScene = args.Any(a => a.Equals("--3d", StringComparison.OrdinalIgnoreCa
 // adapts its tick step, sampling density and line widths at a given zoom level
 var zoomArg = 0f;
 var zoomIndex = Array.FindIndex(args, a => a.Equals("--zoom", StringComparison.OrdinalIgnoreCase));
-if (zoomIndex >= 0 && zoomIndex + 1 < args.Length) _ = float.TryParse(args[zoomIndex + 1], out zoomArg);
+if (zoomIndex >= 0 && zoomIndex + 1 < args.Length) _ = float.TryParse(args[zoomIndex + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out zoomArg);
 
 using var game = new Game();
 
@@ -165,14 +166,16 @@ void Start(Scene rootScene)
     trail = chart.AddTrajectory(capacity: 900, name: "throw");
 
     // Scatter: noisy measurements around the sin curve, drawn as one batched mesh of x markers - the
-    // classic "data points versus fitted curve" picture. The seed keeps the noise identical every run,
-    // and the explicit colour keeps the palette rotation of the earlier series unchanged.
-    var random = new Random(42);
+    // classic "data points versus fitted curve" picture. The jitter is a deterministic hash of x (the
+    // classic shader one-liner), so the picture is identical every run without involving Random, and
+    // the explicit colour keeps the palette rotation of the earlier series unchanged.
     var samples = new List<Vector3>();
 
     for (var x = -4.5f; x <= 4.5f; x += 0.45f)
     {
-        samples.Add(new Vector3(x, 2f * MathF.Sin(x) + (float)(random.NextDouble() - 0.5) * 0.7f, 0f));
+        var hash = MathF.Sin(x * 12.9898f) * 43758.5453f;
+        var jitter = (hash - MathF.Floor(hash) - 0.5f) * 0.7f;
+        samples.Add(new Vector3(x, 2f * MathF.Sin(x) + jitter, 0f));
     }
 
     chart.AddMarkers(samples, options: new PolylineOptions { Width = options.CurveWidth, Color = new Color(96, 66, 166), EmissiveIntensity = options.CurveEmissiveIntensity }, name: "samples");

@@ -167,7 +167,7 @@ public class PolylineClippingTests
     [Fact]
     public void ClipSegment_ReturnsTheInteriorParameterRange()
     {
-        var hit = PolylineClipping.ClipSegment(new Vector3(-10, 0, 0), new Vector3(10, 0, 0), -5, 5, -5, 5, out var t0, out var t1);
+        var hit = PolylineClipping.ClipSegment(new Vector3(-10, 0, 0), new Vector3(10, 0, 0), Rect(-5, 5, -5, 5), out var t0, out var t1);
 
         Assert.True(hit);
         Assert.Equal(0.25f, t0, Tolerance);
@@ -177,7 +177,7 @@ public class PolylineClippingTests
     [Fact]
     public void ClipSegment_KeepsTheFullRange_WhenEntirelyInside()
     {
-        var hit = PolylineClipping.ClipSegment(new Vector3(-1, 0, 0), new Vector3(1, 0, 0), -5, 5, -5, 5, out var t0, out var t1);
+        var hit = PolylineClipping.ClipSegment(new Vector3(-1, 0, 0), new Vector3(1, 0, 0), Rect(-5, 5, -5, 5), out var t0, out var t1);
 
         Assert.True(hit);
         Assert.Equal(0f, t0, Tolerance);
@@ -187,7 +187,7 @@ public class PolylineClippingTests
     [Fact]
     public void ClipSegment_ReturnsFalse_WhenTheSegmentMisses()
     {
-        var hit = PolylineClipping.ClipSegment(new Vector3(-10, 6, 0), new Vector3(10, 6, 0), -5, 5, -5, 5, out _, out _);
+        var hit = PolylineClipping.ClipSegment(new Vector3(-10, 6, 0), new Vector3(10, 6, 0), Rect(-5, 5, -5, 5), out _, out _);
 
         Assert.False(hit);
     }
@@ -245,17 +245,19 @@ public class PolylineClippingTests
     }
 
     [Fact]
-    public void ClipSegment3D_MatchesThe2DOverload_WhenZIsUnbounded()
+    public void ClipSegment_IgnoresZ_WhenTheBoxIsUnboundedInZ()
     {
         var a = new Vector3(-10, 0, 42);
         var b = new Vector3(10, 0, -17);
 
-        var hit2D = PolylineClipping.ClipSegment(a, b, -5, 5, -5, 5, out var t0In2D, out var t1In2D);
-        var hit3D = PolylineClipping.ClipSegment(a, b, -5, 5, -5, 5, -1e30f, 1e30f, out var t0In3D, out var t1In3D);
+        var hit = PolylineClipping.ClipSegment(a, b, Rect(-5, 5, -5, 5), out var t0, out var t1);
 
-        Assert.True(hit2D);
-        Assert.True(hit3D);
-        Assert.Equal(t0In2D, t0In3D, Tolerance);
-        Assert.Equal(t1In2D, t1In3D, Tolerance);
+        Assert.True(hit);
+        Assert.Equal(0.25f, t0, Tolerance);
+        Assert.Equal(0.75f, t1, Tolerance);
     }
+
+    /// <summary>A clip box bounded in X and Y and unbounded in Z - the 2D chart case.</summary>
+    private static BoundingBox Rect(float xMin, float xMax, float yMin, float yMax)
+        => new(new Vector3(xMin, yMin, -PolylineClipping.UnboundedZ), new Vector3(xMax, yMax, PolylineClipping.UnboundedZ));
 }

@@ -51,13 +51,10 @@ public sealed class ChartTrajectory : ChartSeries
         var previous = _previous;
         _previous = point;
 
-        var o = _chartOptions;
-
         if (previous is null)
         {
             // No segment to draw yet; a lone inside point becomes the start of the first one
-            if (point.X >= o.XMin && point.X <= o.XMax && point.Y >= o.YMin && point.Y <= o.YMax
-                && (o.ZMax <= o.ZMin || (point.Z >= o.ZMin && point.Z <= o.ZMax)))
+            if (IsInside(point))
             {
                 _line.Add(point);
                 _tipOnLine = true;
@@ -66,11 +63,9 @@ public sealed class ChartTrajectory : ChartSeries
             return;
         }
 
-        var hit = o.ZMax > o.ZMin
-            ? PolylineClipping.ClipSegment(previous.Value, point, o.XMin, o.XMax, o.YMin, o.YMax, o.ZMin, o.ZMax, out var t0, out var t1)
-            : PolylineClipping.ClipSegment(previous.Value, point, o.XMin, o.XMax, o.YMin, o.YMax, out t0, out t1);
+        var box = ClipBox();
 
-        if (!hit)
+        if (!PolylineClipping.ClipSegment(previous.Value, point, in box, out var t0, out var t1))
         {
             _line.Break();
             _tipOnLine = false;
@@ -130,4 +125,22 @@ public sealed class ChartTrajectory : ChartSeries
 
     /// <inheritdoc />
     private protected override void ReleaseResources() => _line.Dispose();
+
+    /// <summary>The chart's ranges as a clip box; a flat chart just leaves Z unbounded.</summary>
+    private BoundingBox ClipBox()
+    {
+        var o = _chartOptions;
+
+        return new BoundingBox(
+            new Vector3(o.XMin, o.YMin, o.ZMax > o.ZMin ? o.ZMin : -PolylineClipping.UnboundedZ),
+            new Vector3(o.XMax, o.YMax, o.ZMax > o.ZMin ? o.ZMax : PolylineClipping.UnboundedZ));
+    }
+
+    private bool IsInside(Vector3 point)
+    {
+        var o = _chartOptions;
+
+        return point.X >= o.XMin && point.X <= o.XMax && point.Y >= o.YMin && point.Y <= o.YMax
+            && (o.ZMax <= o.ZMin || (point.Z >= o.ZMin && point.Z <= o.ZMax));
+    }
 }

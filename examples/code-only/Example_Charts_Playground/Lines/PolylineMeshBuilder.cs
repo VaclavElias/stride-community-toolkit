@@ -189,6 +189,8 @@ public static class PolylineMeshBuilder
             totalLength += Vector3.Distance(points[count - 1], points[0]);
         }
 
+        // Two vertices per point, pushed half a width to each side of the local tangent, staying in
+        // the plane the options chose; U tracks distance travelled, V marks the two edges
         for (var i = 0; i < count; i++)
         {
             var tangent = TangentAt(points, i, closed);
@@ -202,6 +204,8 @@ public static class PolylineMeshBuilder
             vertices.Add(new VertexPositionNormalTexture(points[i] + side, normal, new Vector2(u, 1f)));
         }
 
+        // Two triangles per segment, joining each vertex pair to the next; a closed loop wraps the
+        // last pair back to the first
         for (var s = 0; s < segmentCount; s++)
         {
             var a = baseIndex + s * 2;

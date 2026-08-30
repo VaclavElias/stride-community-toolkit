@@ -150,7 +150,7 @@ public sealed class ChartOptions
     public float CurveEmissiveIntensity { get; set; } = 2.5f;
 
     /// <summary>Colours handed out in turn to curves added without explicit options.</summary>
-    public Color[] CurvePalette { get; set; } =
+    public IReadOnlyList<Color> CurvePalette { get; set; } =
     [
         Color.Cyan, Color.Orange, Color.Magenta, Color.Yellow, Color.LightGreen, Color.HotPink, Color.DeepSkyBlue,
     ];

@@ -39,18 +39,26 @@ public class ChartSeries : IDisposable
     /// <summary>Whether <see cref="Dispose"/> has run.</summary>
     public bool IsDisposed { get; private set; }
 
-    // Set for y = f(x) plots so a view-driven chart can re-sample the curve when the range changes
-    internal Func<float, float>? Function;
-    internal int SampleCount;
-    internal float SampleDensity;
+    /// <summary>Set for <c>y = f(x)</c> plots so a view-driven chart can re-sample the curve when the range changes.</summary>
+    internal Func<float, float>? Function { get; set; }
 
-    // Set for lines and parametric curves so a view-driven chart can re-clip them when the range changes
-    internal IReadOnlyList<Vector3>? SourcePoints;
-    internal bool ClipSource;
+    /// <summary>The sample count the plot was created with; re-sampling never goes below it.</summary>
+    internal int SampleCount { get; set; }
 
-    // Set for scatter series so a view-driven chart can re-filter and re-size the markers
-    internal IReadOnlyList<Vector3>? MarkerPoints;
-    internal float MarkerSize;
+    /// <summary>Samples per world unit at creation time, so re-sampling keeps the same detail per unit.</summary>
+    internal float SampleDensity { get; set; }
+
+    /// <summary>Set for lines and parametric curves so a view-driven chart can re-clip them when the range changes.</summary>
+    internal IReadOnlyList<Vector3>? SourcePoints { get; set; }
+
+    /// <summary>Whether <see cref="SourcePoints"/> are clipped to the chart's ranges when re-plotted.</summary>
+    internal bool ClipSource { get; set; }
+
+    /// <summary>Set for scatter series so a view-driven chart can re-filter and re-size the markers.</summary>
+    internal IReadOnlyList<Vector3>? MarkerPoints { get; set; }
+
+    /// <summary>The marker's diagonal extent in chart units at the creation-time view.</summary>
+    internal float MarkerSize { private get; set; }
 
     internal ChartSeries(string name, Entity entity, PolylineOptions options, bool isEmpty)
     {
@@ -66,7 +74,14 @@ public class ChartSeries : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (IsDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>The standard dispose pattern for an unsealed type; the work happens once, on the disposing path.</summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (IsDisposed || !disposing)
             return;
 
         IsDisposed = true;
@@ -77,6 +92,44 @@ public class ChartSeries : IDisposable
         {
             Entity.Remove(model);
         }
+    }
+
+    /// <summary>
+    /// Rebuilds the scatter mesh from <see cref="MarkerPoints"/> for the chart's current ranges and view
+    /// scale: one × per visible point, two ribbon segments each, all batched into a single mesh.
+    /// </summary>
+    internal void RebuildMarkerModel(Chart chart)
+    {
+        ReleaseModel();
+
+        var half = MarkerSize * 0.5f * chart.ViewScale;
+        var segments = CollectMarkerSegments(chart.Options, chart.Is3D, half);
+
+        if (segments.Count == 0)
+            return;
+
+        var effective = chart.ScaledOptions(Options);
+        var mesh = PolylineMeshBuilder.BuildSegments(chart.Game.GraphicsDevice, segments, effective);
+        Entity.Add(PolylineExtensions.CreateModel(chart.Game, mesh, effective));
+    }
+
+    /// <summary>
+    /// Releases the current model's mesh buffers and removes the model, ready for a rebuild.
+    /// </summary>
+    internal void ReleaseModel()
+    {
+        if (Entity.Get<ModelComponent>() is not { } old)
+            return;
+
+        if (old.Model is { } model)
+        {
+            foreach (var mesh in model.Meshes)
+            {
+                PolylineMeshBuilder.Release(mesh);
+            }
+        }
+
+        Entity.Remove(old);
     }
 
     /// <summary>
@@ -94,5 +147,29 @@ public class ChartSeries : IDisposable
         {
             PolylineMeshBuilder.Release(mesh);
         }
+    }
+
+    private List<(Vector3 Start, Vector3 End)> CollectMarkerSegments(ChartOptions o, bool is3D, float half)
+    {
+        var segments = new List<(Vector3 Start, Vector3 End)>();
+
+        foreach (var p in MarkerPoints!)
+        {
+            // Only finite points inside the chart's ranges get a marker; the rest simply disappear until
+            // panning or zooming brings them back
+            if (!float.IsFinite(p.X) || !float.IsFinite(p.Y) || !float.IsFinite(p.Z))
+                continue;
+
+            if (p.X < o.XMin || p.X > o.XMax || p.Y < o.YMin || p.Y > o.YMax)
+                continue;
+
+            if (is3D && (p.Z < o.ZMin || p.Z > o.ZMax))
+                continue;
+
+            segments.Add((new Vector3(p.X - half, p.Y - half, p.Z), new Vector3(p.X + half, p.Y + half, p.Z)));
+            segments.Add((new Vector3(p.X - half, p.Y + half, p.Z), new Vector3(p.X + half, p.Y - half, p.Z)));
+        }
+
+        return segments;
     }
 }

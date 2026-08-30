@@ -20,7 +20,7 @@ namespace Stride.CommunityToolkit.Charts;
 /// presets. The mouse ray is intersected with the chart's plane, so it works with the orthographic 2D
 /// camera and a free 3D camera alike, and respects the chart root's position, rotation and scale.
 /// </remarks>
-public sealed class ChartCursor
+public sealed class ChartCursor : IDisposable
 {
     private readonly Chart _chart;
     private readonly Entity _marker;
@@ -28,6 +28,7 @@ public sealed class ChartCursor
     private readonly Entity _labelEntity;
     private readonly EntityTextComponent? _screenText;
     private readonly WorldTextComponent? _worldText;
+    private bool _isDisposed;
 
     /// <summary>
     /// The point under the mouse in chart units, or <see langword="null"/> while the cursor is off the chart -
@@ -157,5 +158,28 @@ public sealed class ChartCursor
 
         if (_worldText is not null)
             _worldText.IsVisible = false;
+    }
+
+    /// <summary>
+    /// Removes the marker and label from the chart and frees the ring's ribbon buffers. Called by
+    /// <see cref="Chart.Dispose"/>; safe to call twice.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_isDisposed)
+            return;
+
+        _isDisposed = true;
+
+        if (_markerModel.Model is { } model)
+        {
+            foreach (var mesh in model.Meshes)
+            {
+                PolylineMeshBuilder.Release(mesh);
+            }
+        }
+
+        _chart.Root.RemoveChild(_marker);
+        _chart.Root.RemoveChild(_labelEntity);
     }
 }
