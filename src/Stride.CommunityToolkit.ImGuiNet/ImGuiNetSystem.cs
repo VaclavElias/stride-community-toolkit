@@ -646,12 +646,12 @@ public class ImGuiNetSystem : GameSystemBase
         WorldText
     }
 
-    private struct DrawCommand
+    private readonly record struct DrawCommand
     {
-        public DrawCommandType Type;
-        public Vector2 ScreenPosition;
-        public Vector3 WorldPosition;
-        public string Message;
-        public Vector4 Color;
+        internal DrawCommandType Type { get; init; }
+        internal Vector2 ScreenPosition { get; init; }
+        internal Vector3 WorldPosition { get; init; }
+        internal required string Message { get; init; }
+        internal Vector4 Color { get; init; }
     }
 }

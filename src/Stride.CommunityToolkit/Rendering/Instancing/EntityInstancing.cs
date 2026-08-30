@@ -333,7 +333,7 @@ public class EntityInstancing : InstancingUserArray
     /// Stride's own math API uses <c>ref</c> for the same reason.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void InvertRigid(ref Matrix m, out Matrix result)
+    private static void InvertRigid(ref Matrix m, out Matrix result)
     {
         result.M11 = m.M11; result.M12 = m.M21; result.M13 = m.M31; result.M14 = 0f;
         result.M21 = m.M12; result.M22 = m.M22; result.M23 = m.M32; result.M24 = 0f;

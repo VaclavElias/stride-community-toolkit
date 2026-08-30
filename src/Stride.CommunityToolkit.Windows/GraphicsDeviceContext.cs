@@ -29,7 +29,7 @@ public static class GraphicsDeviceContext
         }
         finally
         {
-            NativeMethods.ReleaseDC(System.IntPtr.Zero, hdc);
+            _ = NativeMethods.ReleaseDC(System.IntPtr.Zero, hdc); // 0 only when hdc was not a valid DC; nothing to do about it here
         }
     }
 }

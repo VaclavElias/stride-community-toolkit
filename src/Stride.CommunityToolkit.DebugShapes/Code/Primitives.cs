@@ -18,7 +18,7 @@ internal struct Primitives
     public int Cones;
     public int Lines;
 
-    public void Clear()
+    internal void Clear()
     {
         Quads = 0;
         Circles = 0;

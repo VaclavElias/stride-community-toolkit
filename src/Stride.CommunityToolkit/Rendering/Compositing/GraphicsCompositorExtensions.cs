@@ -25,7 +25,7 @@ public static class GraphicsCompositorExtensions
     /// </summary>
     /// <returns>A RenderGroupMask representing all groups except for Group31.</returns>
     private static RenderGroupMask RenderGroupMaskAllExcludingGroup31() =>
-            Enum.GetValues(typeof(RenderGroupMask)).Cast<RenderGroupMask>()
+            Enum.GetValues<RenderGroupMask>()
                 .Aggregate((mask, next) => mask | next) & ~RenderGroupMask.Group31;
 
     /// <summary>

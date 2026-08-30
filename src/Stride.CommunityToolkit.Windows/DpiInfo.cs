@@ -3,40 +3,15 @@ namespace Stride.CommunityToolkit.Windows;
 /// <summary>
 /// DPI result including the raw DPI values, the derived scale factor and whether a fallback was used.
 /// </summary>
-public readonly struct DpiInfo
+/// <param name="DpiX">Horizontal DPI value (dots per inch).</param>
+/// <param name="DpiY">Vertical DPI value (dots per inch).</param>
+/// <param name="IsFallback">Whether the value was obtained via a fallback method (such as GDI) rather than modern monitor APIs.</param>
+public readonly record struct DpiInfo(uint DpiX, uint DpiY, bool IsFallback)
 {
-    /// <summary>
-    /// Horizontal DPI value (dots per inch).
-    /// </summary>
-    public uint DpiX { get; }
-
-    /// <summary>
-    /// Vertical DPI value (dots per inch).
-    /// </summary>
-    public uint DpiY { get; }
-
-    /// <summary>
-    /// Indicates whether the value was obtained via a fallback method (such as GDI) rather than modern monitor APIs.
-    /// </summary>
-    public bool IsFallback { get; }
-
     /// <summary>
     /// Derived scale factor based on a 96 DPI baseline. (e.g. 96 DPI -> 1.0f)
     /// </summary>
     public float Scale => DpiX / 96f;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DpiInfo"/> struct.
-    /// </summary>
-    /// <param name="dpiX">Horizontal DPI value.</param>
-    /// <param name="dpiY">Vertical DPI value.</param>
-    /// <param name="isFallback">True if values were obtained via fallback; otherwise false.</param>
-    public DpiInfo(uint dpiX, uint dpiY, bool isFallback)
-    {
-        DpiX = dpiX;
-        DpiY = dpiY;
-        IsFallback = isFallback;
-    }
 
     /// <summary>
     /// Returns a readable representation of the DPI information including scale and fallback flag.

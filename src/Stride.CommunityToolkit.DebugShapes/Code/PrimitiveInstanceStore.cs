@@ -26,7 +26,7 @@ internal sealed class PrimitiveInstanceStore
     /// <summary>
     /// Ensures backing lists have capacity for the given number of instances and line vertices.
     /// </summary>
-    public void EnsureCapacity(int additionalInstances, int additionalLineVertices)
+    internal void EnsureCapacity(int additionalInstances, int additionalLineVertices)
     {
         _instances.EnsureSize(_instances.Count + additionalInstances);
         _lineVertices.EnsureSize(_lineVertices.Count + additionalLineVertices);
@@ -36,7 +36,7 @@ internal sealed class PrimitiveInstanceStore
     /// Processes renderables and writes instance/line data into backing lists.
     /// Offsets are incremented in-place to reflect consumed slots.
     /// </summary>
-    public void ProcessRenderables(List<Renderable> renderables, ref Primitives offsets)
+    internal void ProcessRenderables(List<Renderable> renderables, ref Primitives offsets)
     {
         var span = CollectionsMarshal.AsSpan(renderables);
         for (int i = 0; i < span.Length; ++i)

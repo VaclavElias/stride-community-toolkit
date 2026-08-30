@@ -94,7 +94,7 @@ public static class ScreenshotCapture
         private int _frame;
         private bool _captured;
 
-        public ScreenshotSystem(Game game, string outputPath, int targetFrame)
+        internal ScreenshotSystem(Game game, string outputPath, int targetFrame)
             : base(game.Services)
         {
             _game = game;

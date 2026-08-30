@@ -143,7 +143,7 @@ public static class ScriptSystemExtensions
     /// <param name="delay">The amount of time to wait.</param>
     /// <param name="scriptDelegateWatcher">Allows to stop waiting if <see cref="ScriptComponent"/> is not active.</param>
     /// <returns>The <see cref="Task"/> to await.</returns>
-    internal static async Task WaitFor(this ScriptSystem scriptSystem, TimeSpan delay, ScriptDelegateWatcher scriptDelegateWatcher)
+    private static async Task WaitFor(this ScriptSystem scriptSystem, TimeSpan delay, ScriptDelegateWatcher scriptDelegateWatcher)
     {
         ArgumentNullException.ThrowIfNull(scriptSystem);
 
@@ -583,4 +583,30 @@ public static class ScriptSystemExtensions
     /// </exception>
     private static IGame GetGame(ScriptSystem scriptSystem) =>
         scriptSystem.Game ?? throw new InvalidOperationException($"The {nameof(ScriptSystem)} is not attached to a game.");
+
+    /// <summary>
+    /// Remembers which <see cref="ScriptComponent"/>, if any, a delegate belongs to, so a scheduled callback can
+    /// stop once that script has left the scene instead of running against a dead entity.
+    /// </summary>
+    private readonly record struct ScriptDelegateWatcher
+    {
+        private readonly ScriptComponent? _script;
+
+        internal ScriptDelegateWatcher(Delegate? @delegate)
+        {
+            ArgumentNullException.ThrowIfNull(@delegate);
+
+            var invocationList = @delegate.GetInvocationList();
+
+            _script = invocationList.Length == 1 && invocationList[0].Target is ScriptComponent scriptComponent
+                ? scriptComponent
+                : null;
+        }
+
+        /// <summary>
+        /// <see langword="true"/> while the owning script is still in a scene, or always when the delegate
+        /// did not come from a script.
+        /// </summary>
+        internal bool IsActive => _script is null || (_script.Entity != null && (_script.SceneSystem?.SceneInstance?.Contains(_script.Entity) == true));
+    }
 }
