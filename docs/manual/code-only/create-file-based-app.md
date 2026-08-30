@@ -13,6 +13,8 @@ file-based app into exactly that project when it outgrows one file, so nothing i
 > Requires the .NET 10 SDK. Visual Studio does not build file-based apps; run them from the command
 > line or the Visual Studio Code terminal. Everything else in [Getting Started](../getting-started.md)
 > applies.
+>
+> C# only. File-based apps are a C# compiler feature - `dotnet run Program.fs` does not recognise the file, and an F# script under `dotnet fsi` cannot run Stride because the asset compiler only runs as part of a project build. For F# and Visual Basic create a project as in [Create Project](create-project.md); the [F# examples](examples/basic-examples-fs.md) and [VB examples](examples/basic-examples-vb.md) show the code.
 
 ## Steps
 
