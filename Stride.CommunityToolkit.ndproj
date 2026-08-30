@@ -670,7 +670,52 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1801$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1802$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1803$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1804$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid publicly visible constant fields</Name>
+// <Id>ND1804:AvoidPubliclyVisibleConstantFields</Id>
+
+warnif count > 0 
+from f in JustMyCode.Fields
+// Stride Community Toolkit tweak: shipped libraries only. Nothing compiles against the examples or the
+// tools, so a constant inlined into them cannot go stale - and example code reads better with const.
+where f.ParentAssembly.Name.StartsWith("Stride.CommunityToolkit") && !f.ParentAssembly.Name.StartsWith("Stride.CommunityToolkit.Examples") &&
+      f.IsLiteral && 
+      f.IsPubliclyVisible && 
+     !f.IsEnumValue
+select new {
+   f,
+
+   Debt = 30.ToSeconds().ToDebt(), // It is fast to update field declaration
+   Severity = Severity.Medium
+}
+
+//<Expl>
+// The constant *{0}* is publicly exposed  to other assemblies. 
+// This situation can lead to binary compatibility problems because 
+// when the constant value gets changed, clients of the library 
+// may need to be recompiled to use the updated value.
+//</Expl>
+
+//<Desc>
+// This rule warns about constant fields that are visible outside their 
+// parent assembly. Such field, when used from outside its parent assembly,
+// has its constant value *hard-coded* into the client assembly.
+// Hence, when changing the field's value, it is *mandatory* to recompile 
+// all assemblies that consume the field, else the program will run
+// with different constant values in-memory. Certainly in such situation
+// bugs are lurking.
+//
+// Notice that enumeration value fields suffer from the same *potential
+// pitfall*. But enumeration values cannot be declared as 
+// *static readonly* hence the rule comes with the condition
+// **&& !f.IsEnumValue** to avoid matching these. Unless you decide
+// to banish public enumerations, just let the rule *as is*.
+//</Desc>
+
+//<HowToFix>
+// Declare matched fields as **static readonly** instead of **constant**. 
+// This way, the field value is *safely changeable* without the need to 
+// recompile client assemblies.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1805$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1806$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1807$]]></Query>
