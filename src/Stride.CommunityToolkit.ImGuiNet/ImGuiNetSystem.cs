@@ -22,7 +22,7 @@ public class ImGuiNetSystem : GameSystemBase
     private static readonly Logger Logger = GlobalLogger.GetLogger("ImGuiNet");
 
     // GameSystemBase.Game is nullable; resolve it once so every later access is a plain dereference.
-    private readonly IGame _game;
+    private readonly GameBase _game;
 
     private readonly List<DrawCommand> _drawCommands = [];
     private bool _showUI = true;

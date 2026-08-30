@@ -15,38 +15,38 @@ namespace Stride.CommunityToolkit.ImGui;
 /// </summary>
 public class Inspector : BaseWindow
 {
-    /// <summary> Array of all possible <see cref="Filter"/> values </summary>
-    static readonly Filter[] FILTER_VALUES = (Filter[])Enum.GetValues(typeof(Filter));
+    /// <summary>Array of all possible <see cref="Filter"/> values</summary>
+    static readonly Filter[] FILTER_VALUES = Enum.GetValues<Filter>();
     const float DUMMY_WIDTH = 19;
     const float INDENTATION2 = DUMMY_WIDTH + 8;
 
-    /// <summary> A UI handler function to draw and modify values </summary>
+    /// <summary>A UI handler function to draw and modify values</summary>
     public delegate bool ValueHandler(string label, ref object value);
-    /// <summary> Add your drawing functions to explicitly override drawing for objects of the given type </summary>
+    /// <summary>Add your drawing functions to explicitly override drawing for objects of the given type</summary>
     public static ConcurrentDictionary<Type, ValueHandler> ValueDrawingHandlers = new ConcurrentDictionary<Type, ValueHandler>();
 
-    /// <summary> Any live inspectors </summary>
-    static List<Inspector> _inspectors = new List<Inspector>();
+    /// <summary>Any live inspectors</summary>
+    static List<Inspector> _inspectors = [];
 
 
-    Dictionary<Type, TypeCache> _cachedTypeData = new Dictionary<Type, TypeCache>();
-    /// <summary> Opened sub object of the inspected object in the tree view </summary>
-    HashSet<int> _openedId = new HashSet<int>();
-    /// <summary> Lets not keep references from being GCed </summary>
+    Dictionary<Type, TypeCache> _cachedTypeData = [];
+    /// <summary>Opened sub object of the inspected object in the tree view</summary>
+    HashSet<int> _openedId = [];
+    /// <summary>Lets not keep references from being GCed</summary>
     WeakReference<object?> _target = new(null);
 
 
     // Settings
-    /// <summary> Is this interface returned by <see cref="FindFreeInspector"/> </summary>
+    /// <summary>Is this interface returned by <see cref="FindFreeInspector"/></summary>
     public bool Locked = false;
-    /// <summary> Show specialized interface to handle IEnumerable types </summary>
+    /// <summary>Show specialized interface to handle IEnumerable types</summary>
     public bool EnumerableView = true;
     /// <summary>
     /// For <see cref="Target"/> of type <see cref="System.Type"/>, return the content of 'static type.*' instead of 'typeof(type).*'
     /// </summary>
     public bool TypeAsStatic = true;
 
-    /// <summary> Members shown within the interface </summary>
+    /// <summary>Members shown within the interface</summary>
     public Filter MemberFilter
     {
         get => _memberFilter;
@@ -61,7 +61,7 @@ public class Inspector : BaseWindow
 
     Filter _memberFilter = Filter.Public | Filter.Inherited | Filter.Properties | Filter.Fields | Filter.Instance;
 
-    /// <summary> The object to inspect </summary>
+    /// <summary>The object to inspect</summary>
     public object? Target
     {
         get => _target.TryGetTarget(out var target) ? target : null;
@@ -78,8 +78,7 @@ public class Inspector : BaseWindow
     (object? key, object? value) _dicAddCommandData;
 
     /// <summary>
-    /// Creates a new inspector window and registers it with the game's systems. Prefer
-    /// <see cref="FindFreeInspector"/> to reuse an open window that is not <see cref="Locked"/>.
+    /// Creates a new inspector window and registers it with the game's systems. Prefer <see cref="FindFreeInspector"/> to reuse an open window that is not <see cref="Locked"/>.
     /// </summary>
     /// <param name="services">The game's service registry, which must already contain an <see cref="ImGuiSystem"/>.</param>
     public Inspector(IServiceRegistry services) : base(services)
@@ -183,7 +182,9 @@ public class Inspector : BaseWindow
                             readOnly = true;
                         }
                         else
+                        {
                             throw new NotImplementedException($"UI handler for type {member.GetType()} not implemented");
+                        }
                     }
                     catch (Exception e)
                     {
@@ -197,8 +198,11 @@ public class Inspector : BaseWindow
                     SetCursorPosX(-0.5f);
                     Button("?");
                     if (IsItemHovered())
+                    {
                         using (Tooltip())
                             TextUnformatted(summary);
+                    }
+
                     SameLine();
                 }
 
@@ -282,7 +286,10 @@ public class Inspector : BaseWindow
                     }
                 }
                 else
+                {
                     Dummy(new Vector2(DUMMY_WIDTH, 1));
+                }
+
                 SameLine();
                 TextUnformatted(constantName);
 
@@ -296,7 +303,7 @@ public class Inspector : BaseWindow
                     goto RECURSE;
                 }
                 // Basic value type: Present UI handler for values
-                else if (readOnly == false)
+                else if (!readOnly)
                 {
                     switch (value)
                     {
@@ -453,15 +460,15 @@ RECURSE:
 
                 if (removeKey)
                 {
-                    target.GetType().GetMethod(nameof(IDictionary.Remove), new[] { data.key })
-                        ?.Invoke(target, new[] { keyToRemove });
+                    target.GetType().GetMethod(nameof(IDictionary.Remove), [data.key])
+                        ?.Invoke(target, [keyToRemove]);
                 }
 
                 if (changeKey)
                 {
                     // IDictionary[ keyToChange ] = valueOfKeyToChange
                     var parameters = new[] { keyToChange, valueOfKeyToChange };
-                    target.GetType().GetProperty("Item", data.value, new[] { data.key })?
+                    target.GetType().GetProperty("Item", data.value, [data.key])?
                         .SetMethod?.Invoke(target, parameters);
                 }
             }
@@ -482,7 +489,7 @@ RECURSE:
                 if (Button("Add"))
                 {
                     var parameters = new[] { key, value };
-                    target.GetType().GetMethod(nameof(IDictionary.Add), new[] { data.key, data.value })
+                    target.GetType().GetMethod(nameof(IDictionary.Add), [data.key, data.value])
                         ?.Invoke(target, parameters);
 
                     _dicAddCommandData = (null, null);
@@ -518,14 +525,14 @@ RECURSE:
             foreach (object? o in (IEnumerable)target)
             {
                 object? o2 = o;
-                using (ID($"{o}{i.ToString()}"))
+                using (ID($"{o}{i}"))
                 {
                     SetCursorPosX(GetCursorPosX() - DUMMY_WIDTH);
                     if (Button("x"))
                         indexToRemove = i;
                 }
                 SameLine();
-                if (DrawValue($"{i.ToString()}:", ref o2, false, hashcodeSource))
+                if (DrawValue($"{i}:", ref o2, false, hashcodeSource))
                 {
                     indexToChange = i;
                     objectToAssign = o2;
@@ -540,13 +547,13 @@ RECURSE:
                 MethodInfo? listAccessor;
                 if (target.GetType().IsArray)
                 {
-                    listAccessor = target.GetType().GetMethod("SetValue", new[] { typeof(object), typeof(int) });
-                    listAccessor?.Invoke(target, new[] { objectToAssign, indexToChange.Value });
+                    listAccessor = target.GetType().GetMethod("SetValue", [typeof(object), typeof(int)]);
+                    listAccessor?.Invoke(target, [objectToAssign, indexToChange.Value]);
                 }
                 else
                 {
-                    listAccessor = target.GetType().GetProperty("Item", typeData.AsList, new[] { typeof(int) })?.SetMethod;
-                    listAccessor?.Invoke(target, new[] { indexToChange.Value, objectToAssign });
+                    listAccessor = target.GetType().GetProperty("Item", typeData.AsList, [typeof(int)])?.SetMethod;
+                    listAccessor?.Invoke(target, [indexToChange.Value, objectToAssign]);
                 }
                 if (listAccessor == null)
                     System.Console.WriteLine($"Couldn't find {nameof(listAccessor)} for {target.GetType()}");
@@ -554,7 +561,7 @@ RECURSE:
             // Calling 'RemoveAt(int index)'
             if (indexToRemove != null)
             {
-                target.GetType().GetMethod(nameof(IList.RemoveAt), new[] { typeof(int) })?.Invoke(target, new object[] { indexToRemove.Value });
+                target.GetType().GetMethod(nameof(IList.RemoveAt), [typeof(int)])?.Invoke(target, [indexToRemove.Value]);
             }
 
             // Calling 'Add(ObjectType object)'
@@ -562,7 +569,7 @@ RECURSE:
             {
                 var valueType = typeData.AsList;
                 var value = GetTypeData(typeData.AsList).NewObject();
-                target.GetType().GetMethod(nameof(IList.Add), new[] { valueType })?.Invoke(target, new[] { value });
+                target.GetType().GetMethod(nameof(IList.Add), [valueType])?.Invoke(target, [value]);
             }
         }
 
@@ -634,8 +641,7 @@ RECURSE:
     }
 
     /// <summary>
-    /// Which members of the inspected object are listed. A member is shown only when every category it belongs to
-    /// is included, so <c>Public | Fields | Instance</c> shows public instance fields and nothing else.
+    /// Which members of the inspected object are listed. A member is shown only when every category it belongs to is included, so <c>Public | Fields | Instance</c> shows public instance fields and nothing else.
     /// </summary>
     [Flags]
     public enum Filter : uint
@@ -789,7 +795,7 @@ RECURSE:
             return fi.IsDefined(typeof(CompilerGeneratedAttribute), true);
         }
 
-        /// <summary> Reflection doesn't provide private inherited fields for some reason, this resolves that issue </summary>
+        /// <summary>Reflection doesn't provide private inherited fields for some reason, this resolves that issue</summary>
         static IEnumerable<MemberInfo> GetAllMembers(Type t)
         {
             foreach (MemberInfo member in t.GetMembers(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
