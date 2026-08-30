@@ -21,9 +21,27 @@ public class ImGuiNetSystem : GameSystemBase
 {
     private static readonly Logger Logger = GlobalLogger.GetLogger("ImGuiNet");
 
+    // GameSystemBase.Game is nullable; resolve it once so every later access is a plain dereference.
+    private readonly IGame _game;
+
     private readonly List<DrawCommand> _drawCommands = [];
     private bool _showUI = true;
     private bool _initialized = false;
+
+    /// <summary>
+    /// Whether <c>NewFrame</c> has been called without a matching <c>Render</c> yet.
+    /// </summary>
+    /// <remarks>
+    /// Dear ImGui requires exactly one <c>NewFrame</c> per <c>Render</c>, and this system splits the pair
+    /// across <see cref="Update"/> and <see cref="EndDraw"/>. That holds only while the host runs one
+    /// update per draw - true of Stride's default variable timestep, and not true once
+    /// <c>IsFixedTimeStep</c> is set, because the game then runs extra updates to catch up whenever a
+    /// frame overruns. The startup shader compile causes exactly that, and two <c>NewFrame</c> calls in a
+    /// row abort the process from native code with "Forgot to call Render() or EndFrame() at the end of
+    /// the previous frame?" - an abort, so neither the <see cref="_initialized"/> guard nor the
+    /// try/catch in <see cref="EndDraw"/> can intercept it.
+    /// </remarks>
+    private bool _frameBegun;
 
     private InputManager? _inputManager;
     private GraphicsDevice? _graphicsDevice;
@@ -84,12 +102,14 @@ public class ImGuiNetSystem : GameSystemBase
     /// <param name="registry">The service registry.</param>
     public ImGuiNetSystem(IServiceRegistry registry) : base(registry)
     {
+        _game = Game ?? throw new InvalidOperationException("ImGuiNetSystem: IGame must be available in the service registry.");
+
         Enabled = true;
         Visible = true;
         UpdateOrder = 1;
 
         Services.AddService(this);
-        Game.GameSystems.Add(this);
+        _game.GameSystems.Add(this);
     }
 
     /// <summary>
@@ -166,9 +186,9 @@ public class ImGuiNetSystem : GameSystemBase
         base.Initialize();
 
         _inputManager = Services.GetService<InputManager>();
-        _graphicsDevice = Game.GraphicsDevice;
-        _graphicsContext = Game.GraphicsContext;
-        var sceneSystem = Game.Services.GetService<SceneSystem>();
+        _graphicsDevice = _game.GraphicsDevice;
+        _graphicsContext = _game.GraphicsContext;
+        var sceneSystem = _game.Services.GetService<SceneSystem>();
         _commandList = _graphicsContext?.CommandList;
 
         if (_graphicsDevice == null)
@@ -186,7 +206,7 @@ public class ImGuiNetSystem : GameSystemBase
             io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
 
             // Compute initial DPI / framebuffer scale using Stride backbuffer vs client bounds
-            var clientBounds = Game.Window.ClientBounds;
+            var clientBounds = _game.Window.ClientBounds;
             var back = _graphicsDevice.Presenter?.BackBuffer;
             float initialScale = 1.0f;
             if (back != null && clientBounds.Width > 0 && clientBounds.Height > 0)
@@ -329,7 +349,7 @@ public class ImGuiNetSystem : GameSystemBase
 
             if (_commandList != null)
             {
-                _fontTexture.SetData(_commandList, new DataPointer(pixels, width * height * bytesPerPixel));
+                _fontTexture.SetData(_commandList, new ReadOnlySpan<byte>(pixels, width * height * bytesPerPixel));
             }
 
             // Set a simple texture ID for ImGui (using texture hashcode as a simple identifier)
@@ -356,7 +376,7 @@ public class ImGuiNetSystem : GameSystemBase
         var io = ImGui.GetIO();
 
         // Update display size
-        var clientBounds = Game.Window.ClientBounds;
+        var clientBounds = _game.Window.ClientBounds;
         io.DisplaySize = new Vector2(clientBounds.Width, clientBounds.Height);
 
         // HiDPI/backbuffer scaling (matches Box2D.NET pattern)
@@ -403,8 +423,16 @@ public class ImGuiNetSystem : GameSystemBase
             UpdateInput();
         }
 
+        // An update that never reached a draw left a frame open. Close it before starting the next one,
+        // discarding its draw data - the frame it belonged to is not being presented anyway.
+        if (_frameBegun)
+        {
+            ImGui.EndFrame();
+        }
+
         // Start new ImGui frame
         ImGui.NewFrame();
+        _frameBegun = true;
 
         // Process draw commands
         ProcessDrawCommands();
@@ -415,9 +443,15 @@ public class ImGuiNetSystem : GameSystemBase
     {
         if (!_initialized) return;
 
+        // Nothing to present when the draw is not paired with an update - Render() without a preceding
+        // NewFrame() asserts just as loudly as the reverse.
+        if (!_frameBegun) return;
+
         try
         {
             ImGui.Render();
+            _frameBegun = false;
+
             RenderImGuiDrawData();
         }
         catch (Exception ex)
@@ -433,7 +467,7 @@ public class ImGuiNetSystem : GameSystemBase
             return;
 
         // Set up projection matrix
-        var clientBounds = Game.Window.ClientBounds;
+        var clientBounds = _game.Window.ClientBounds;
         var projMatrix = Matrix.OrthoRH(clientBounds.Width, -clientBounds.Height, -1, 1);
 
         // Set pipeline state
@@ -481,9 +515,9 @@ public class ImGuiNetSystem : GameSystemBase
 
             // Upload vertex and index data
             _vertexBinding.Buffer.SetData(_commandList,
-                new DataPointer(cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>()));
+                new ReadOnlySpan<ImDrawVert>((void*)cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size));
             _indexBinding.Buffer.SetData(_commandList,
-                new DataPointer(cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size * sizeof(ushort)));
+                new ReadOnlySpan<ushort>((void*)cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size));
 
             // Set buffers
             _commandList.SetVertexBuffer(0, _vertexBinding.Buffer, 0, Unsafe.SizeOf<ImDrawVert>());

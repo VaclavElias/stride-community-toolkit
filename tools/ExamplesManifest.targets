@@ -1,0 +1,78 @@
+<Project>
+
+    <!--
+        Generates examples-manifest.json before the build and copies it next to the executable.
+
+        Imported by both example launchers. It lives here rather than being repeated in each .csproj so
+        the two cannot drift apart - they are consumers of the same contract and must run the generator
+        the same way.
+
+        Paths are resolved from this file's own location, so the importing project can sit anywhere
+        under tools/.
+    -->
+
+    <!--
+        DependsOnTargets is required, not decoration. BeforeBuild runs *before* ResolveReferences in
+        CoreBuild's dependency chain, so the ProjectReference alone does not get the generator built in
+        time - the hook fired first and failed with "cannot find MetadataGenerator.exe". Naming
+        ResolveProjectReferences here pulls the project-to-project build in front of this target while
+        leaving the hook point unchanged, so the None item below is still picked up for the copy.
+    -->
+    <Target Name="GenerateExamplesManifest" BeforeTargets="BeforeBuild" DependsOnTargets="ResolveProjectReferences">
+        <PropertyGroup>
+            <ExamplesRoot>$(MSBuildThisFileDirectory)..\examples\code-only</ExamplesRoot>
+            <MediaPath>$(MSBuildThisFileDirectory)..\docs\manual\code-only\examples\media</MediaPath>
+            <ManifestOutput>$(MSBuildProjectDirectory)\examples-manifest.json</ManifestOutput>
+            <GeneratorProject>$(MSBuildThisFileDirectory)Stride.CommunityToolkit.Examples.MetadataGenerator\Stride.CommunityToolkit.Examples.MetadataGenerator.csproj</GeneratorProject>
+            <GeneratorArgs>generate &quot;$(ExamplesRoot)&quot; --output &quot;$(ManifestOutput)&quot; --media-path &quot;$(MediaPath)&quot; --strict</GeneratorArgs>
+        </PropertyGroup>
+
+        <Message Text="Generating examples metadata manifest..." Importance="high" />
+
+        <!--
+            Deliberately fails the build on a validation error (plan D10). A malformed metadata block
+            would otherwise produce a quietly incomplete manifest and a green build, which is how two
+            examples lost their order without anyone noticing.
+
+            The generator logs warnings and errors to stderr and everything else to stdout, so raising
+            StandardErrorImportance while lowering StandardOutputImportance keeps a successful build
+            quiet and still prints every finding on a failure.
+
+            StandardOutputImportance must be set explicitly. Exec defaults it to high, so leaving it
+            alone put all sixty-odd per-example lines into every build - and one of them, the
+            "Validation finished: 0 error(s)..." summary, matched Visual Studio's own error-format
+            parser and produced a red row in the Error List on a build with no errors at all. MSBuild
+            never classified it, so the CLI reported 0/0 and the problem was invisible outside the IDE.
+
+            Both streams must declare utf-8. Only StdErrEncoding was set at first, and the result was
+            legible but absurd: the error line rendered its ✖ correctly while every stdout line above it
+            came through as "Ô£à Example01_Basic2DScene ÔÇö ...". That is ✅ and — as UTF-8 bytes decoded
+            through the console's OEM code page, one stream getting the encoding it was promised and the
+            other falling back to the default.
+        -->
+        <!--
+            The no-build flag is load-bearing. Without it `dotnet run` builds the generator, and both
+            importing projects run this target while the solution also builds the generator itself,
+            one solution build could have three builds of the same project in flight and two live
+            MetadataGenerator.exe processes. The result was an intermittent
+            "cannot access MetadataGenerator.exe because it is being used by another process" as one
+            build tried to copy apphost.exe over an exe another had already started.
+
+            It is safe only because both importing projects carry a ProjectReference to the generator
+            with ReferenceOutputAssembly="false", which makes MSBuild build it once, first. Remove that
+            reference and this fails on a clean tree. The target still runs once per importing project,
+            which is harmless: each writes its own manifest, and running one exe twice was never the
+            problem - overwriting it was.
+        -->
+        <Exec Command="dotnet run --no-build --project &quot;$(GeneratorProject)&quot; --configuration $(Configuration) -- $(GeneratorArgs)"
+              StandardErrorImportance="high"
+              StandardOutputImportance="low"
+              StdErrEncoding="utf-8"
+              StdOutEncoding="utf-8" />
+
+        <ItemGroup>
+            <None Include="$(ManifestOutput)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+        </ItemGroup>
+    </Target>
+
+</Project>

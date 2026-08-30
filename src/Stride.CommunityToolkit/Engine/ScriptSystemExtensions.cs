@@ -2,24 +2,22 @@ using Stride.Core.MicroThreading;
 using Stride.Engine;
 using Stride.Engine.Events;
 using Stride.Engine.Processors;
+using Stride.Games;
 
 namespace Stride.CommunityToolkit.Engine;
 
 /// <summary>
-/// Provides extension methods for the <see cref="ScriptSystem"/> to facilitate time-based operations, including delays and frame-based executions.
-/// These extensions are useful for managing time in game logic, such as delaying actions or executing logic over a period of time.
+/// Provides extension methods for the <see cref="ScriptSystem"/> to facilitate time-based operations, including delays and frame-based executions. These extensions are useful for managing time in game logic, such as delaying actions or executing logic over a period of time.
 /// </summary>
 /// <example>
-/// <para>
-/// Example 1: Delaying an action for 2 seconds in game time (affected by time warp):
-/// </para>
+///
+/// <para>Example 1: Delaying an action for 2 seconds in game time (affected by time warp): </para>
 /// <code>
 /// await scriptSystem.DelayWarped(2.0f);
 /// // Action will be delayed for 2 in-game seconds, accounting for any time warp factors.
 /// </code>
-/// <para>
-/// Example 2: Running a continuous action for 5 seconds of real time (unaffected by time warp):
-/// </para>
+///
+/// <para>Example 2: Running a continuous action for 5 seconds of real time (unaffected by time warp): </para>
 /// <code>
 /// await scriptSystem.ExecuteInTime(5.0f, elapsed =>
 /// {
@@ -27,17 +25,15 @@ namespace Stride.CommunityToolkit.Engine;
 ///     DebugText.Print($"Time elapsed: {elapsed} seconds");
 /// });
 /// </code>
-/// <para>
-/// Example 3: Delaying an action for 3 real-time seconds (unaffected by time warp):
-/// </para>
+///
+/// <para>Example 3: Delaying an action for 3 real-time seconds (unaffected by time warp): </para>
 /// <code>
 /// await scriptSystem.Delay(3.0f);
 /// // Action will be delayed for exactly 3 real seconds.
 /// </code>
 /// </example>
 /// <remarks>
-/// These extensions allow you to control how game logic interacts with time, whether you need frame-based operations or time delays.
-/// The methods are useful for both real-time and in-game time-based operations.
+/// These extensions allow you to control how game logic interacts with time, whether you need frame-based operations or time delays. The methods are useful for both real-time and in-game time-based operations.
 /// </remarks>
 public static class ScriptSystemExtensions
 {
@@ -50,10 +46,13 @@ public static class ScriptSystemExtensions
     /// <remarks>This delay takes into account the game's time warp factor, using the <c>WarpElapsed</c> property of <c>UpdateTime</c>.</remarks>
     public static async Task DelayWarped(this ScriptSystem script, float seconds)
     {
+        ArgumentNullException.ThrowIfNull(script);
+
+        var game = GetGame(script);
         float t = 0f;
-        while (script.Game.IsRunning && t < seconds)
+        while (game.IsRunning && t < seconds)
         {
-            t += (float)script.Game.UpdateTime.WarpElapsed.TotalSeconds;
+            t += (float)game.UpdateTime.WarpElapsed.TotalSeconds;
             await script.NextFrame();
         }
     }
@@ -78,10 +77,13 @@ public static class ScriptSystemExtensions
     /// <remarks>This method accounts for the game's <c>WarpElapsed</c> time factor during execution.</remarks>
     public static async Task ExecuteInWarpedTime(this ScriptSystem script, float seconds, Action<float> action)
     {
+        ArgumentNullException.ThrowIfNull(script);
+
+        var game = GetGame(script);
         float t = 0f;
-        while (script.Game.IsRunning && t < seconds)
+        while (game.IsRunning && t < seconds)
         {
-            t += (float)script.Game.UpdateTime.WarpElapsed.TotalSeconds;
+            t += (float)game.UpdateTime.WarpElapsed.TotalSeconds;
             action?.Invoke(t);
             await script.NextFrame();
         }
@@ -97,43 +99,45 @@ public static class ScriptSystemExtensions
     /// <remarks>This method operates in real time, without considering the game's time warp.</remarks>
     public static async Task ExecuteInTime(this ScriptSystem script, float seconds, Action<float> action)
     {
+        ArgumentNullException.ThrowIfNull(script);
+
+        var game = GetGame(script);
         float t = 0f;
-        while (script.Game.IsRunning && t < seconds)
+        while (game.IsRunning && t < seconds)
         {
-            t += (float)script.Game.UpdateTime.Elapsed.TotalSeconds;
+            t += (float)game.UpdateTime.Elapsed.TotalSeconds;
             action?.Invoke(t);
             await script.NextFrame();
         }
     }
 
     /// <summary>
-    /// Waits for the specified delay <paramref name="delay"/> .
+    /// Waits for the specified delay <paramref name="delay"/>.
     /// </summary>
     /// <param name="scriptSystem">The <see cref="ScriptSystem"/>.</param>
     /// <param name="delay">The amount of time to wait.</param>
     /// <returns>The <see cref="Task"/> to await.</returns>
     public static async Task WaitFor(this ScriptSystem scriptSystem, TimeSpan delay)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
 
         if (delay <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(delay), "Must be greater than zero.");
         }
 
-        while (scriptSystem.Game.IsRunning && delay >= TimeSpan.Zero)
+        var game = GetGame(scriptSystem);
+
+        while (game.IsRunning && delay >= TimeSpan.Zero)
         {
-            delay -= scriptSystem.Game.UpdateTime.Elapsed;
+            delay -= game.UpdateTime.Elapsed;
             await scriptSystem.NextFrame();
         }
 
     }
 
     /// <summary>
-    /// Waits for the specified delay <paramref name="delay"/> .
+    /// Waits for the specified delay <paramref name="delay"/>.
     /// </summary>
     /// <param name="scriptSystem">The <see cref="ScriptSystem"/>.</param>
     /// <param name="delay">The amount of time to wait.</param>
@@ -141,19 +145,18 @@ public static class ScriptSystemExtensions
     /// <returns>The <see cref="Task"/> to await.</returns>
     internal static async Task WaitFor(this ScriptSystem scriptSystem, TimeSpan delay, ScriptDelegateWatcher scriptDelegateWatcher)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
 
         if (delay <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(delay), "Must be greater than zero.");
         }
 
-        while (scriptSystem.Game.IsRunning && scriptDelegateWatcher.IsActive && delay >= TimeSpan.Zero)
+        var game = GetGame(scriptSystem);
+
+        while (game.IsRunning && scriptDelegateWatcher.IsActive && delay >= TimeSpan.Zero)
         {
-            delay -= scriptSystem.Game.UpdateTime.Elapsed;
+            delay -= game.UpdateTime.Elapsed;
             await scriptSystem.NextFrame();
         }
 
@@ -168,7 +171,7 @@ public static class ScriptSystemExtensions
     /// <param name="action">The micro thread function to execute.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/>, <paramref name="eventKey"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/>, <paramref name="eventKey"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
     /// </remarks>
@@ -177,36 +180,23 @@ public static class ScriptSystemExtensions
         EventKey<T> eventKey, Action<T> action,
         long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
-
-        if (eventKey == null)
-        {
-            throw new ArgumentNullException(nameof(eventKey));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(eventKey);
+        ArgumentNullException.ThrowIfNull(action);
 
         return scriptSystem.AddOnEventAction(new EventReceiver<T>(eventKey), action, priority);
-
     }
-
 
     /// <summary>
     /// Adds a micro thread function to the <paramref name="scriptSystem"/> that executes when the event is published.
     /// </summary>
     /// <typeparam name="T">The type of the event handler parameter.</typeparam>
     /// <param name="scriptSystem">The <see cref="ScriptSystem"/>.</param>
-    /// <param name="receiver">The event reciever to listen to for.</param>
+    /// <param name="receiver">The event receiver to listen to for.</param>
     /// <param name="action">The micro thread function to execute.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/>, <paramref name="receiver"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/>, <paramref name="receiver"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
     /// </remarks>
@@ -216,20 +206,11 @@ public static class ScriptSystemExtensions
         Action<T> action,
         long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(action);
 
-        if (receiver == null)
-        {
-            throw new ArgumentNullException(nameof(receiver));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        var game = GetGame(scriptSystem);
 
         return scriptSystem.AddTask(DoEvent, priority);
 
@@ -238,7 +219,7 @@ public static class ScriptSystemExtensions
         {
             var scriptDelegateWatcher = new ScriptDelegateWatcher(action);
 
-            while (scriptSystem.Game.IsRunning && scriptDelegateWatcher.IsActive)
+            while (game.IsRunning && scriptDelegateWatcher.IsActive)
             {
                 if (receiver.TryReceive(out var data))
                 {
@@ -250,7 +231,6 @@ public static class ScriptSystemExtensions
         }
     }
 
-
     /// <summary>
     /// Adds a micro thread function to the <paramref name="scriptSystem"/> that executes when the event is published.
     /// </summary>
@@ -260,7 +240,7 @@ public static class ScriptSystemExtensions
     /// <param name="action">The micro thread function to execute.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/>, <paramref name="eventKey"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/>, <paramref name="eventKey"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
     /// </remarks>
@@ -269,25 +249,12 @@ public static class ScriptSystemExtensions
        EventKey<T> eventKey, Func<T, Task> action,
        long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
-
-        if (eventKey == null)
-        {
-            throw new ArgumentNullException(nameof(eventKey));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(eventKey);
+        ArgumentNullException.ThrowIfNull(action);
 
         return scriptSystem.AddOnEventTask(new EventReceiver<T>(eventKey), action, priority);
-
     }
-
 
     /// <summary>
     /// Adds a micro thread function to the <paramref name="scriptSystem"/> that executes when the event is published.
@@ -298,7 +265,7 @@ public static class ScriptSystemExtensions
     /// <param name="action">The micro thread function to execute.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/>, <paramref name="receiver"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/>, <paramref name="receiver"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
     /// </remarks>
@@ -308,21 +275,11 @@ public static class ScriptSystemExtensions
         Func<T, Task> action,
         long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(action);
 
-        if (receiver == null)
-        {
-            throw new ArgumentNullException(nameof(receiver));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
-
+        var game = GetGame(scriptSystem);
 
         return scriptSystem.AddTask(DoEvent, priority);
 
@@ -331,7 +288,7 @@ public static class ScriptSystemExtensions
         {
             var scriptDelegateWatcher = new ScriptDelegateWatcher(action);
 
-            while (scriptSystem.Game.IsRunning && scriptDelegateWatcher.IsActive)
+            while (game.IsRunning && scriptDelegateWatcher.IsActive)
             {
                 if (receiver.TryReceive(out var data))
                 {
@@ -343,7 +300,6 @@ public static class ScriptSystemExtensions
         }
     }
 
-
     /// <summary>
     /// Adds a micro thread function to the <paramref name="scriptSystem"/> that executes after waiting specified delay.
     /// </summary>
@@ -352,7 +308,7 @@ public static class ScriptSystemExtensions
     /// <param name="delay">The amount of time to wait for.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="delay"/> is less than zero.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
@@ -363,15 +319,10 @@ public static class ScriptSystemExtensions
        TimeSpan delay,
        long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(action);
 
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        var game = GetGame(scriptSystem);
 
         return scriptSystem.AddTask(DoTask, priority);
 
@@ -382,13 +333,12 @@ public static class ScriptSystemExtensions
 
             await scriptSystem.WaitFor(delay, scriptDelegateWatcher);
 
-            if (scriptSystem.Game.IsRunning && scriptDelegateWatcher.IsActive)
+            if (game.IsRunning && scriptDelegateWatcher.IsActive)
             {
                 await action();
             }
         }
     }
-
 
     /// <summary>
     /// Adds a micro thread function to the <paramref name="scriptSystem"/> that executes after waiting specified delay.
@@ -398,7 +348,7 @@ public static class ScriptSystemExtensions
     /// <param name="delay">The amount of time to wait for.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="delay"/> is less than zero.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
@@ -409,20 +359,15 @@ public static class ScriptSystemExtensions
        TimeSpan delay,
        long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(action);
 
         if (delay <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(delay), "Must be greater than zero.");
         }
+
+        var game = GetGame(scriptSystem);
 
         return scriptSystem.AddTask(DoTask, priority);
 
@@ -433,7 +378,7 @@ public static class ScriptSystemExtensions
 
             await scriptSystem.WaitFor(delay, scriptDelegateWatcher);
 
-            if (scriptSystem.Game.IsRunning && scriptDelegateWatcher.IsActive)
+            if (game.IsRunning && scriptDelegateWatcher.IsActive)
             {
                 action();
             }
@@ -449,7 +394,7 @@ public static class ScriptSystemExtensions
     /// <param name="repeatEvery">The amount of time to wait for between repetition.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="delay"/> or <paramref name="repeatEvery"/> is less than zero.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
@@ -461,20 +406,15 @@ public static class ScriptSystemExtensions
        TimeSpan repeatEvery,
        long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(action);
 
         if (delay <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(delay), "Must be greater than zero.");
         }
+
+        var game = GetGame(scriptSystem);
 
         return scriptSystem.AddTask(DoTask, priority);
 
@@ -485,9 +425,9 @@ public static class ScriptSystemExtensions
 
             var scriptDelegateWatcher = new ScriptDelegateWatcher(action);
 
-            while (scriptSystem.Game.IsRunning && scriptDelegateWatcher.IsActive)
+            while (game.IsRunning && scriptDelegateWatcher.IsActive)
             {
-                elapsedTime += scriptSystem.Game.UpdateTime.Elapsed;
+                elapsedTime += game.UpdateTime.Elapsed;
 
                 if (elapsedTime >= delay)
                 {
@@ -509,7 +449,7 @@ public static class ScriptSystemExtensions
     /// <param name="repeatEvery">The amount of time to wait for between repetition.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="delay"/> or <paramref name="repeatEvery"/> is less than zero.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
@@ -521,15 +461,8 @@ public static class ScriptSystemExtensions
        TimeSpan repeatEvery,
        long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(action);
 
         if (delay <= TimeSpan.Zero)
         {
@@ -541,6 +474,8 @@ public static class ScriptSystemExtensions
             throw new ArgumentOutOfRangeException(nameof(repeatEvery), "Must be greater than zero.");
         }
 
+        var game = GetGame(scriptSystem);
+
         return scriptSystem.AddTask(DoTask, priority);
 
         //C# 7 Local function could also use a variable Func<Task> DoEvent = async () => { ... };
@@ -550,9 +485,9 @@ public static class ScriptSystemExtensions
 
             var scriptDelegateWatcher = new ScriptDelegateWatcher(action);
 
-            while (scriptSystem.Game.IsRunning && scriptDelegateWatcher.IsActive)
+            while (game.IsRunning && scriptDelegateWatcher.IsActive)
             {
-                elapsedTime += scriptSystem.Game.UpdateTime.Elapsed;
+                elapsedTime += game.UpdateTime.Elapsed;
 
                 if (elapsedTime >= delay)
                 {
@@ -573,7 +508,7 @@ public static class ScriptSystemExtensions
     /// <param name="duration">The duration of the time to execute the micro thread function for.</param>
     /// <param name="priority">The priority of the micro thread action being added.</param>
     /// <returns>The <see cref="MicroThread"/>.</returns>
-    /// <exception cref="ArgumentNullException"> If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">If <paramref name="scriptSystem"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="duration"/> is less than zero.</exception>
     /// <remarks>
     /// If the <paramref name="action"/> is a <see cref="ScriptComponent"/> instance method the micro thread will be automatically stopped if the <see cref="ScriptComponent"/> or <see cref="Entity"/> is removed.
@@ -584,20 +519,15 @@ public static class ScriptSystemExtensions
        TimeSpan duration,
        long priority = 0L)
     {
-        if (scriptSystem == null)
-        {
-            throw new ArgumentNullException(nameof(scriptSystem));
-        }
-
-        if (action == null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(scriptSystem);
+        ArgumentNullException.ThrowIfNull(action);
 
         if (duration <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(duration), "Must be greater than zero.");
         }
+
+        var game = GetGame(scriptSystem);
 
         return scriptSystem.AddTask(DoTask, priority);
 
@@ -608,9 +538,9 @@ public static class ScriptSystemExtensions
 
             var scriptDelegateWatcher = new ScriptDelegateWatcher(action);
 
-            while (scriptSystem.Game.IsRunning && scriptDelegateWatcher.IsActive)
+            while (game.IsRunning && scriptDelegateWatcher.IsActive)
             {
-                elapsedTime += scriptSystem.Game.UpdateTime.Elapsed;
+                elapsedTime += game.UpdateTime.Elapsed;
 
                 if (elapsedTime >= duration)
                 {
@@ -635,10 +565,7 @@ public static class ScriptSystemExtensions
     /// <exception cref="ArgumentNullException">If <paramref name="microThreads"/> is <see langword="null"/>.</exception>
     public static void CancelAll(this ICollection<MicroThread> microThreads)
     {
-        if (microThreads == null)
-        {
-            throw new ArgumentNullException(nameof(microThreads));
-        }
+        ArgumentNullException.ThrowIfNull(microThreads);
 
         foreach (var thread in microThreads)
         {
@@ -647,4 +574,13 @@ public static class ScriptSystemExtensions
 
         microThreads.Clear();
     }
+
+    /// <summary>
+    /// Returns the <see cref="IGame"/> the <paramref name="scriptSystem"/> belongs to.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// If the <paramref name="scriptSystem"/> has no game, which Stride only allows in a mock environment.
+    /// </exception>
+    private static IGame GetGame(ScriptSystem scriptSystem) =>
+        scriptSystem.Game ?? throw new InvalidOperationException($"The {nameof(ScriptSystem)} is not attached to a game.");
 }

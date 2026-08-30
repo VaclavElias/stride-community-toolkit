@@ -3,62 +3,37 @@ using BepuPhysics.Collidables;
 using Stride.BepuPhysics;
 using Stride.BepuPhysics.Components;
 using Stride.BepuPhysics.Definitions;
-using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.Core;
+using Stride.Core.Annotations;
 using Stride.Engine;
 using NRigidPose = BepuPhysics.RigidPose;
 
 namespace Stride.CommunityToolkit.Bepu;
 
 /// <summary>
-/// A dynamic body confined to the XY plane, simulated by Bepu's ordinary 3D solver.
+/// A dynamic body confined to the XY plane.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Two things keep a body in the plane. Rotation is locked at the source, by scaling down the X and Y
-/// terms of the inverse inertia tensor once when the body attaches, which leaves the solver able to
-/// rotate about those axes only by amounts too small to see. Position is kept on Z = 0 by a
-/// small velocity correction applied before each solve, so the solver resolves it together with
-/// every contact rather than having its result overwritten afterwards.
+/// The body moves and collides in three dimensions like any other, but its position on Z and its
+/// rotation about X and Y are managed for it. Writing to them has no lasting effect: out-of-plane
+/// position and velocity are corrected before every solve, so a value assigned from game code is
+/// gone by the next step.
 /// </para>
 /// <para>
-/// Correcting by velocity rather than by teleporting is deliberate. Moving a body's position between
-/// steps injects energy, which shows up as jitter and creeping instability in dense piles, and it
-/// discards the contact information the solver just computed.
+/// Rotation about X and Y is locked, not reset. A body that is already tilted about one of those
+/// axes when it attaches keeps that tilt, held at that angle for as long as it lives. Give bodies an
+/// identity rotation, or one about Z only, unless a permanent tilt is what you want.
 /// </para>
 /// <para>
-/// Bodies are left free to fall asleep, which is what makes large 2D scenes cheap. Nothing here
-/// wakes a resting body: the correction is skipped entirely while asleep, and once settled at
-/// Z = 0 with no out-of-plane velocity there is nothing left to write.
+/// Energy is not conserved the way a purpose-built 2D solver would conserve it. Contact resolution
+/// runs in three dimensions and can push a body along Z; that motion is discarded rather than
+/// redirected into the plane, so a little kinetic energy is lost whenever it happens. It is small
+/// enough not to show in ordinary scenes, but it is a real difference from a native 2D engine.
 /// </para>
 /// <para>
-/// This mirrors how every other engine confines a body to a plane: Stride's own Bullet integration
-/// sets <c>LinearFactor = (1,1,0)</c> and <c>AngularFactor = (0,0,1)</c> for 2D shapes, and Unity,
-/// Unreal and Godot all expose the same idea as per-axis freeze flags. Scaling down the inverse
-/// inertia is the angular factor, and clearing out-of-plane velocity each step is the linear one.
-/// Bepu has no
-/// linear factor to set, and the solver can still introduce Z velocity after this runs, which is what
-/// the small positional correction cleans up - the others get it for free inside the integrator.
-/// </para>
-/// <para>
-/// Locking an axis prevents change; it does not undo what is already there. A body tilted about X or
-/// Y when it attaches keeps that tilt, frozen at that angle, exactly as a frozen rotation behaves in
-/// those other engines. Give bodies an identity or Z-only rotation if that is not wanted.
-/// </para>
-/// <para>
-/// The lock scales the out-of-plane inverse inertia rather than zeroing it, because zeroing only the
-/// X and Y terms and leaving Z responsive makes the contact solver diverge in dense piles - see
-/// <see cref="OutOfPlaneInertiaScale"/>. The residue this leaves is removed every step by the angular
-/// velocity clamp, so it never builds up.
-/// </para>
-/// <para>
-/// One thing to be aware of when using hull colliders: attaching one caps
-/// <see cref="CollidableComponent.MaximumRecoveryVelocity"/> and
-/// <see cref="CollidableComponent.SpringFrequency"/>, and raises
-/// <see cref="CollidableComponent.SpringDampingRatio"/> to at least one, because hulls generate
-/// energetic corrections in dense piles. These are ceilings and a floor rather than overwrites, so
-/// gentler settings survive untouched - but a deliberately stiff or bouncy hull body will come out
-/// softer than it was configured. Set the values after attaching to override.
+/// Bodies are still free to sleep, which is what keeps large 2D scenes cheap. Nothing here wakes a
+/// resting body.
 /// </para>
 /// <para>
 /// This design has been upstreamed as <c>Stride.BepuPhysics.Body2DComponent</c>, and this copy keeps
@@ -71,90 +46,67 @@ namespace Stride.CommunityToolkit.Bepu;
 [ComponentCategory("Physics - Bepu 2D")]
 public class Body2DComponent : BodyComponent, ISimulationUpdate
 {
-    /// <summary>Cap on recovery velocity for hull colliders, which are prone to energetic corrections.</summary>
-    private const float HullMaximumRecoveryVelocity = 1.5f;
-
-    /// <summary>Minimum contact spring damping for hull colliders, to settle piles rather than bounce them.</summary>
-    private const float HullSpringDampingRatio = 1f;
-
-    /// <summary>Cap on contact spring frequency for hull colliders; stiffer springs fight the substep count.</summary>
-    private const float HullSpringFrequency = 30f;
-
     /// <summary>
     /// Ceiling on the plane-restoring speed, in world units per second.
     /// </summary>
     /// <remarks>
-    /// Normal drift is measured in millimetres and never comes close to this. It exists for the
-    /// pathological cases - a body spawned or teleported far off the plane, or thrown there by a
-    /// numerical blow-up - where an unbounded correction would otherwise fling it back fast enough to
-    /// tunnel through geometry and destabilise the solver.
+    /// This mainly guards extreme cases (for example, a body spawned far from the plane) by preventing
+    /// an overly aggressive snap-back velocity.
     /// </remarks>
     private const float MaximumCorrectionSpeed = 1f;
 
-    /// <summary>One millimetre at Stride's default scale.</summary>
+    /// <summary>Default drift allowance, one millimetre for a scene built at one unit per metre.</summary>
     private const float DefaultZTolerance = 0.001f;
 
-    /// <summary>
-    /// What the out-of-plane inverse inertia terms are scaled by, rather than being set to zero.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Setting them to zero is the obvious way to express "infinitely resistant to rotation about
-    /// this axis", and it is what every engine's freeze-rotation flag amounts to. In a dense pile of
-    /// triangular prisms it also kills the process: the solve diverges, bodies are flung far enough
-    /// to make the broad-phase bounds meaningless, the pair count runs away and the narrow phase
-    /// allocates until there is no memory left - tens of gigabytes within seconds.
-    /// </para>
-    /// <para>
-    /// What matters is that only <i>some</i> terms are zeroed. Measured over three runs each at
-    /// 20,000 bodies: a full tensor never fails, a tensor with every term zeroed never fails - that
-    /// is the idiom Bepu's own character demo uses, and it means "no torque can rotate this" - but
-    /// zeroing X and Y while leaving Z responsive fails every time. A partly-zeroed tensor is the
-    /// degenerate case, not a zeroed one.
-    /// </para>
-    /// <para>
-    /// Scaling instead of zeroing keeps every term non-zero while leaving the body four orders of
-    /// magnitude harder to rotate out of plane than within it, which is indistinguishable from
-    /// locked. Anything that does leak through is removed by the angular velocity clamp in
-    /// <see cref="SimulationUpdate"/> on the same step, so it cannot accumulate. Measured over 20
-    /// runs at 8,000 and 20,000 bodies: no runaway, no increase in bodies squeezed out of the pile,
-    /// and a pile that settles where the zeroed version kept churning.
-    /// </para>
-    /// <para>
-    /// Why a partly-zeroed tensor misbehaves is not established. The evidence here is empirical, and
-    /// the underlying behaviour may be worth reporting to Bepu rather than only working around.
-    /// </para>
-    /// </remarks>
+    // What the out-of-plane inverse-inertia terms are scaled by, rather than being set to zero.
+    //
+    // Zeroing them is the obvious way to say "infinitely resistant to rotation about this axis", but
+    // zeroing *some* terms and not others is a degenerate case the solver handles badly. In a dense
+    // pile of hull-shaped bodies the solve diverges, bodies are flung far enough to make the
+    // broad-phase bounds meaningless, the pair count runs away, and the narrow phase allocates until
+    // the process dies - tens of gigabytes within seconds.
+    //
+    // Measured over three runs each at 20,000 triangular prisms: a full tensor never fails, a tensor
+    // with every term zeroed never fails (the idiom Bepu's character demo uses), and one with X and Y
+    // zeroed while Z stays responsive fails every time. Scaling keeps every term non-zero while
+    // leaving the body four orders of magnitude harder to rotate out of plane than within it. Any
+    // residue it leaves is cleared by the angular velocity correction in SimulationUpdate on the same
+    // step, so it cannot accumulate.
+    //
+    // Do not simplify this back to zero.
     private const float OutOfPlaneInertiaScale = 1e-4f;
 
-    /// <summary>
-    /// Tracks the kinematic state the rotation lock was applied for, so it can be restored when the
-    /// body switches back to dynamic and Bepu reinstates the full shape inertia.
-    /// </summary>
+    // Tracks the kinematic state the rotation lock was applied for, so it can be restored when the
+    // body switches back to dynamic and Bepu reinstates the full shape inertia
     private bool _lockedWhileKinematic;
 
     private float _zTolerance = DefaultZTolerance;
 
     /// <summary>
     /// Gets or sets how far the body may drift off the Z = 0 plane before it is pulled back, in world
-    /// units. Defaults to 0.001 (one millimetre at Stride's default scale).
+    /// units. Defaults to 0.001, one millimetre for a scene built at one unit per metre.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Out-of-plane velocity is always removed; this only governs the positional correction. A larger
-    /// value settles more readily, a smaller one holds the plane more tightly.
-    /// </para>
-    /// <para>
-    /// Values that are not finite and positive fall back to the default rather than being stored.
-    /// Zero or negative would make the correction fire on floating-point noise alone and write a
-    /// velocity every step, which can stop bodies sleeping; NaN and infinity would disable it entirely.
-    /// </para>
+    /// Out-of-plane velocity is always cleared; this value only controls when positional correction
+    /// starts.
     /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The value is not finite, or is not greater than zero.
+    /// </exception>
+    [DataMemberRange(0.0001, 4)]
     [Display("Z tolerance", category: CategoryActivity)]
     public float ZTolerance
     {
         get => _zTolerance;
-        set => _zTolerance = float.IsFinite(value) && value > 0f ? value : DefaultZTolerance;
+        set
+        {
+            if (!float.IsFinite(value) || value <= 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Z tolerance must be a finite value greater than zero.");
+            }
+
+            _zTolerance = value;
+        }
     }
 
     /// <summary>
@@ -164,45 +116,25 @@ public class Body2DComponent : BodyComponent, ISimulationUpdate
     public Body2DComponent() => InterpolationMode = InterpolationMode.Interpolated;
 
     /// <inheritdoc />
-    /// <remarks>
-    /// Keeps the shape-derived inertia so rolling about Z still works, and zeroes the inverse inertia
-    /// terms that would allow yaw and pitch. Hull colliders additionally get milder contact settings,
-    /// because they tend to generate energetic corrections in dense piles.
-    /// </remarks>
     protected override void AttachInner(NRigidPose pose, BodyInertia shapeInertia, TypedIndex shapeIndex)
     {
         base.AttachInner(pose, shapeInertia, shapeIndex);
 
+        // Bepu hands the body its shape inertia during the base call, so this is the first point at
+        // which there is something to lock
         ApplyRotationLock();
-
-        if (!HasConvexHull(Collider)) return;
-
-        MaximumRecoveryVelocity = MathF.Min(MaximumRecoveryVelocity, HullMaximumRecoveryVelocity);
-        SpringDampingRatio = MathF.Max(SpringDampingRatio, HullSpringDampingRatio);
-        SpringFrequency = MathF.Min(SpringFrequency, HullSpringFrequency);
     }
 
     /// <summary>
-    /// Confines the body to the plane, before the solver runs for this step.
+    /// Updates the simulation state of the 2D body.
     /// </summary>
     /// <param name="sim">The simulation stepping this body.</param>
     /// <param name="simTimeStep">The fixed time step, in seconds.</param>
     /// <remarks>
-    /// <para>
-    /// Runs before the solve so the correction is resolved alongside contacts instead of overwriting
-    /// their result. Sleeping bodies return before the correction - they cannot move, so there is
-    /// nothing to correct, and this method is dispatched for every registered body on every step
-    /// whether it is awake or not - but the rotation lock is refreshed first, so it is never stale
-    /// when a body wakes.
-    /// </para>
-    /// <para>
-    /// The correction sets a velocity equal and opposite to the drift, a proportional gain of one per
-    /// second, so an error decays with a time constant of roughly a second, and is capped at
-    /// <see cref="MaximumCorrectionSpeed"/> so a badly placed body cannot be flung back. It is
-    /// deliberately gentle: a stiffer pull would fight contact resolution and reintroduce the jitter
-    /// that teleporting causes. <paramref name="simTimeStep"/> is therefore unused - expressing the
-    /// correction as a velocity already makes that time constant independent of the step size.
-    /// </para>
+    /// Runs before the solver, so the corrections applied here are resolved together with every
+    /// contact rather than overwriting the solver's result afterwards. Out-of-plane velocity is
+    /// cleared, and once the body is further from the plane than <see cref="ZTolerance"/> a bounded
+    /// velocity pulls it back. Sleeping bodies are left alone.
     /// </remarks>
     public virtual void SimulationUpdate(BepuSimulation sim, float simTimeStep)
     {
@@ -214,8 +146,6 @@ public class Body2DComponent : BodyComponent, ISimulationUpdate
 
         if (!Awake) return;
 
-        var velocity = LinearVelocity;
-
         // Out-of-plane velocity is never wanted. Removing it even inside the tolerance band is what
         // stops slow drift accumulating until it crosses the threshold
         var zError = Position.Z;
@@ -223,14 +153,22 @@ public class Body2DComponent : BodyComponent, ISimulationUpdate
             ? Math.Clamp(-zError, -MaximumCorrectionSpeed, MaximumCorrectionSpeed)
             : 0f;
 
+        // The one place this copy has to differ from the engine's. There, the body's velocity is
+        // reached through BodyComponent.BodyReference and written through a single ref, so the writes
+        // are unconditional and cost one pair of array lookups between them. BodyReference is
+        // internal, so outside the engine assembly the public properties are all there is: each one
+        // is a full getter or setter, which makes it worth testing before writing
+        var velocity = LinearVelocity;
+
         if (velocity.Z != targetVelocityZ)
         {
             velocity.Z = targetVelocityZ;
             LinearVelocity = velocity;
         }
 
-        // Rotation about X and Y is already impossible, but a velocity can survive from before the
-        // body attached or from a direct assignment
+        // The inertia lock makes X/Y rotation negligible rather than impossible, so this clears the
+        // residue each step. It also catches velocity surviving from before the body attached, or
+        // from a direct assignment
         var angularVelocity = AngularVelocity;
 
         if (angularVelocity.X != 0f || angularVelocity.Y != 0f)
@@ -242,10 +180,14 @@ public class Body2DComponent : BodyComponent, ISimulationUpdate
     }
 
     /// <summary>
-    /// Does nothing. The whole correction happens before the solve, in <see cref="SimulationUpdate"/>.
+    /// Method called after the simulation has run on the 2D body.
     /// </summary>
     /// <param name="sim">The simulation that stepped this body.</param>
     /// <param name="simTimeStep">The fixed time step, in seconds.</param>
+    /// <remarks>
+    /// Does nothing. The whole correction has already happened before the solve, in
+    /// <see cref="SimulationUpdate"/>.
+    /// </remarks>
     public virtual void AfterSimulationUpdate(BepuSimulation sim, float simTimeStep) { }
 
     /// <summary>
@@ -254,17 +196,15 @@ public class Body2DComponent : BodyComponent, ISimulationUpdate
     private void ApplyRotationLock()
     {
         var inertia = BodyInertia;
-        var inverseInertia = inertia.InverseInertiaTensor;
+        ref var inverseInertia = ref inertia.InverseInertiaTensor;
 
-        // Scaled rather than zeroed, and the off-diagonals dropped, which leaves a diagonal tensor
-        // with positive entries - still invertible. See OutOfPlaneInertiaScale for why that matters.
+        // Scaled rather than zeroed - see OutOfPlaneInertiaScale, this is not an oversight
         inverseInertia.XX *= OutOfPlaneInertiaScale;
         inverseInertia.YY *= OutOfPlaneInertiaScale;
         inverseInertia.YX = 0f;
         inverseInertia.ZX = 0f;
         inverseInertia.ZY = 0f; // ZZ is left alone, so the body can still roll in the plane
 
-        inertia.InverseInertiaTensor = inverseInertia;
         BodyInertia = inertia;
 
         _lockedWhileKinematic = Kinematic;
@@ -274,39 +214,13 @@ public class Body2DComponent : BodyComponent, ISimulationUpdate
     /// Reapplies the rotation lock after a switch between kinematic and dynamic.
     /// </summary>
     /// <remarks>
-    /// Turning <see cref="BodyComponent.Kinematic"/> off restores the body's full shape inertia,
-    /// which silently undoes the lock applied at attach time and lets the body tumble out of the plane.
+    /// Turning <see cref="BodyComponent.Kinematic"/> off restores the body's full shape inertia, which
+    /// silently undoes the lock applied at attach time and would let the body tumble out of the plane.
     /// </remarks>
     private void RestoreRotationLockIfKinematicChanged()
     {
         if (_lockedWhileKinematic == Kinematic) return;
 
         ApplyRotationLock();
-    }
-
-    /// <summary>
-    /// Determines whether a collider contains at least one <see cref="ConvexHullCollider"/>.
-    /// </summary>
-    /// <param name="collider">The collidable's collider, which may be <see langword="null"/>.</param>
-    /// <returns><see langword="true"/> if a convex hull is present.</returns>
-    /// <remarks>
-    /// A hull can only ever be a child of a compound, never the collider itself: the property is typed
-    /// <see cref="ICollider"/>, which <see cref="ColliderBase"/> - and so <see cref="ConvexHullCollider"/>
-    /// - does not implement. Testing <c>collider is ConvexHullCollider</c> here is dead code, and the
-    /// compiler says as much with CS0184. Compounds cannot nest either, for the same reason, so a
-    /// single pass over the children covers every case.
-    /// </remarks>
-    private static bool HasConvexHull(ICollider? collider)
-    {
-        if (collider is not CompoundCollider compound) return false;
-
-        var colliders = compound.Colliders;
-
-        for (var i = 0; i < colliders.Count; i++)
-        {
-            if (colliders[i] is ConvexHullCollider) return true;
-        }
-
-        return false;
     }
 }

@@ -1,0 +1,8 @@
+﻿!Sound
+Id: b3b034b4-1f6c-455f-918e-0545a3767cb6
+SerializedVersion: {Stride: 2.0.0.0}
+Source: !file ../Resources/cube-clear-1.ogg
+SampleRate: 44100
+CompressionRatio: 15
+StreamFromDisk: false
+Spatialized: false

@@ -1,22 +1,38 @@
 using Hexa.NET.ImGui;
 using Stride.Core;
-using Stride.Core.Annotations;
 using Stride.Core.Mathematics;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
 using Stride.Rendering;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static Hexa.NET.ImGui.ImGui;
 
 namespace Stride.CommunityToolkit.ImGui;
 
+/// <summary>
+/// The Dear ImGui backend for Stride: feeds input to ImGui, begins a frame every update and renders the draw lists
+/// at the end of every draw. Create one after the game's graphics device exists and every <see cref="BaseWindow"/>
+/// created afterwards is drawn through it.
+/// </summary>
+/// <remarks>
+/// The constructor registers the instance as a service and as a game system, so keeping the returned reference is
+/// optional; <see cref="BaseWindow"/> finds it through <see cref="IServiceRegistry"/>.
+/// </remarks>
 public class ImGuiSystem : GameSystemBase
 {
+    /// <summary>
+    /// The ImGui context this system created and renders. Pass it to add-on libraries (ImNodes, ImPlot) that need to
+    /// share the context.
+    /// </summary>
     public readonly ImGuiContextPtr ImGuiContext;
 
+    /// <summary>
+    /// A UI scale factor windows can read through <see cref="BaseWindow.Scale"/> to size themselves for the display's DPI.
+    /// Defaults to <c>1</c>; it is not applied automatically.
+    /// </summary>
     public float Scale
     {
         get => _scale;
@@ -31,40 +47,65 @@ public class ImGuiSystem : GameSystemBase
     private ImGuiPlatformIOPtr _platform;
 
     // dependencies
-    private readonly InputManager? input;
-    private readonly GraphicsDevice? device;
-    private readonly GraphicsDeviceManager? deviceManager;
-    private readonly GraphicsContext? context;
-    private readonly EffectSystem? effectSystem;
-    private CommandList? commandList;
+    private readonly IGame _game;
+    private readonly InputManager input;
+    private readonly GraphicsDevice device;
+    private readonly GraphicsDeviceManager deviceManager;
+    private readonly GraphicsContext context;
+    private readonly EffectSystem effectSystem;
+    private readonly CommandList commandList;
 
     // device objects
-    private PipelineState? imPipeline;
-    private VertexDeclaration? imVertLayout;
+    private PipelineState imPipeline;
+    private VertexDeclaration imVertLayout;
     private VertexBufferBinding vertexBinding;
-    private IndexBufferBinding? indexBinding;
-    private EffectInstance? imShader;
+    private IndexBufferBinding indexBinding;
+    private EffectInstance imShader;
     private readonly Dictionary<ImTextureID, Texture> _managedTextures = new();
 
     private Dictionary<Keys, ImGuiKey> _keys = [];
     private bool _isFirstFrame = true;
 
-    public ImGuiSystem([NotNull] IServiceRegistry registry, [NotNull] GraphicsDeviceManager graphicsDeviceManager, InputManager inputManager = null) : base(registry)
+    /// <summary>
+    /// Whether <see cref="Hexa.NET.ImGui.ImGui.NewFrame"/> has been called without a matching
+    /// <see cref="Hexa.NET.ImGui.ImGui.Render"/> yet.
+    /// </summary>
+    /// <remarks>
+    /// Dear ImGui requires exactly one <c>NewFrame</c> per <c>Render</c>, and this system splits the pair
+    /// across <see cref="Update"/> and <see cref="EndDraw"/>. That holds only while the host runs one
+    /// update per draw, which is true of Stride's default variable timestep and <em>not</em> true when
+    /// <see cref="GameBase.IsFixedTimeStep"/> is set: the game then runs extra updates to catch up
+    /// whenever a frame overruns, which the startup shader compile reliably causes. Two <c>NewFrame</c>
+    /// calls in a row abort the process with "Forgot to call Render() or EndFrame() at the end of the
+    /// previous frame?".
+    ///
+    /// The pair cannot simply be moved into the draw phase: windows build their UI from
+    /// <see cref="BaseWindow.Update"/>, which runs after this system's update, so <c>NewFrame</c> has to
+    /// have happened by then.
+    /// </remarks>
+    private bool _frameBegun;
+
+    /// <summary>
+    /// Creates the ImGui context, compiles the ImGui shader, allocates the vertex and index buffers, and registers the
+    /// system with the game's services and systems.
+    /// </summary>
+    /// <param name="registry">The game's service registry; must provide <see cref="IGame"/>, <see cref="GraphicsContext"/> and <see cref="EffectSystem"/>.</param>
+    /// <param name="graphicsDeviceManager">The device manager whose <see cref="GraphicsDeviceManager.GraphicsDevice"/> is rendered to.</param>
+    /// <param name="inputManager">The input manager to read from, or <see langword="null"/> to resolve it from <paramref name="registry"/>.</param>
+    /// <exception cref="ArgumentNullException">If <paramref name="registry"/> or <paramref name="graphicsDeviceManager"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">If a required service or the graphics device is not available yet.</exception>
+    public ImGuiSystem(IServiceRegistry registry, GraphicsDeviceManager graphicsDeviceManager, InputManager? inputManager = null) : base(registry)
     {
-        input = inputManager ?? Services.GetService<InputManager>();
-        Debug.Assert(input != null, "ImGuiSystem: InputManager must be available!");
+        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(graphicsDeviceManager);
 
+        _game = Game ?? throw new InvalidOperationException("ImGuiSystem: IGame must be available!");
+        input = inputManager ?? Services.GetService<InputManager>() ?? throw new InvalidOperationException("ImGuiSystem: InputManager must be available!");
         deviceManager = graphicsDeviceManager;
-        Debug.Assert(deviceManager != null, "ImGuiSystem: GraphicsDeviceManager must be available!");
-
-        device = deviceManager.GraphicsDevice;
-        Debug.Assert(device != null, "ImGuiSystem: GraphicsDevice must be available!");
-
-        context = Services.GetService<GraphicsContext>();
-        Debug.Assert(context != null, "ImGuiSystem: GraphicsContext must be available!");
-
-        effectSystem = Services.GetService<EffectSystem>();
-        Debug.Assert(effectSystem != null, "ImGuiSystem: EffectSystem must be available!");
+        device = deviceManager.GraphicsDevice ?? throw new InvalidOperationException("ImGuiSystem: GraphicsDevice must be available!");
+        context = Services.GetService<GraphicsContext>() ?? throw new InvalidOperationException("ImGuiSystem: GraphicsContext must be available!");
+        effectSystem = Services.GetService<EffectSystem>() ?? throw new InvalidOperationException("ImGuiSystem: EffectSystem must be available!");
+        commandList = context.CommandList;
 
         ImGuiContext = CreateContext();
         SetCurrentContext(ImGuiContext);
@@ -89,9 +130,10 @@ public class ImGuiSystem : GameSystemBase
 
         // Include this new instance into our services and systems so that stride fires our functions automatically
         Services.AddService(this);
-        Game.GameSystems.Add(this);
+        _game.GameSystems.Add(this);
     }
 
+    /// <inheritdoc />
     protected override void Destroy()
     {
         foreach (var texture in _managedTextures.Values)
@@ -139,10 +181,10 @@ public class ImGuiSystem : GameSystemBase
     }
 
     [FixedAddressValueType]
-    static SetClipboardDelegate setClipboardFn;
+    static SetClipboardDelegate? setClipboardFn;
 
     [FixedAddressValueType]
-    static GetClipboardDelegate getClipboardFn;
+    static GetClipboardDelegate? getClipboardFn;
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     unsafe delegate void SetClipboardDelegate(ImGuiContextPtr ctx, byte* text);
@@ -159,11 +201,9 @@ public class ImGuiSystem : GameSystemBase
         return (byte*)_platform.PlatformClipboardUserData;
     }
 
+    [MemberNotNull(nameof(imShader), nameof(imVertLayout), nameof(imPipeline), nameof(indexBinding))]
     void CreateDeviceObjects()
     {
-        // set up a commandlist
-        commandList = context.CommandList;
-
         // compile de shader
         imShader = new EffectInstance(effectSystem.LoadEffect("ImGuiShader").WaitForResult());
         imShader.UpdateEffect(device);
@@ -210,7 +250,9 @@ public class ImGuiSystem : GameSystemBase
         var indexBufferBinding = new IndexBufferBinding(indexBuffer, is32Bits, 0);
         indexBinding = indexBufferBinding;
 
-        var vertexBuffer = Stride.Graphics.Buffer.Vertex.New(device, INITIAL_VERTEX_BUFFER_SIZE * imVertLayout.CalculateSize(), GraphicsResourceUsage.Dynamic);
+        // BufferFlags is passed explicitly: without it, C# picks the generic New<T>(device, ref readonly T value, usage)
+        // overload with T = int (it needs no default argument) and creates a 4-byte buffer holding the size value.
+        var vertexBuffer = Stride.Graphics.Buffer.Vertex.New(device, INITIAL_VERTEX_BUFFER_SIZE * imVertLayout.CalculateSize(), GraphicsResourceUsage.Dynamic, BufferFlags.None);
         var vertexBufferBinding = new VertexBufferBinding(vertexBuffer, layout, 0);
         vertexBinding = vertexBufferBinding;
     }
@@ -245,7 +287,7 @@ public class ImGuiSystem : GameSystemBase
             ? PixelFormat.R8G8B8A8_UNorm
             : PixelFormat.R8_UNorm;
         var newTexture = Texture.New2D(device, textureData.Width, textureData.Height, pixelFormat, TextureFlags.ShaderResource);
-        newTexture.SetData(commandList, new DataPointer((nint)textureData.Pixels, textureData.GetSizeInBytes()));
+        newTexture.SetData(commandList, new ReadOnlySpan<byte>(textureData.Pixels, textureData.GetSizeInBytes()));
 
         // Use high-bit sentinel to distinguish ImGui-managed IDs from ImGuiExtension user-texture IDs (which start from 1)
         var managedId = (ImTextureID)(nint)(0x80000000u | (uint)textureData.UniqueID);
@@ -266,12 +308,12 @@ public class ImGuiSystem : GameSystemBase
             {
                 existing.Dispose();
                 var newTexture = Texture.New2D(device, textureData.Width, textureData.Height, pixelFormat, TextureFlags.ShaderResource);
-                newTexture.SetData(commandList, new DataPointer((nint)textureData.Pixels, textureData.GetSizeInBytes()));
+                newTexture.SetData(commandList, new ReadOnlySpan<byte>(textureData.Pixels, textureData.GetSizeInBytes()));
                 _managedTextures[texId] = newTexture;
             }
             else
             {
-                existing.SetData(commandList, new DataPointer((nint)textureData.Pixels, textureData.GetSizeInBytes()));
+                existing.SetData(commandList, new ReadOnlySpan<byte>(textureData.Pixels, textureData.GetSizeInBytes()));
             }
         }
         textureData.SetStatus(ImTextureStatus.Ok);
@@ -288,6 +330,11 @@ public class ImGuiSystem : GameSystemBase
         textureData.SetStatus(ImTextureStatus.Ok);
     }
 
+    /// <summary>
+    /// Forwards this frame's input and display size to ImGui and begins a new ImGui frame. Windows build their UI in
+    /// their own <c>Update</c>, which runs after this one.
+    /// </summary>
+    /// <inheritdoc />
     public override void Update(GameTime gameTime)
     {
         var deltaTime = (float)gameTime.Elapsed.TotalSeconds;
@@ -296,7 +343,7 @@ public class ImGuiSystem : GameSystemBase
             _isFirstFrame = false;
             deltaTime = 1 / 60f;
         }
-        var surfaceSize = Game.Window.ClientBounds;
+        var surfaceSize = _game.Window.ClientBounds;
         _io.DisplaySize = new System.Numerics.Vector2(surfaceSize.Width, surfaceSize.Height);
         _io.DeltaTime = deltaTime;
 
@@ -342,12 +389,33 @@ public class ImGuiSystem : GameSystemBase
             _io.AddKeyEvent(ImGuiKey.ModCtrl, input.IsKeyDown(Keys.LeftCtrl) || input.IsKeyDown(Keys.RightCtrl));
             _io.AddKeyEvent(ImGuiKey.ModSuper, input.IsKeyDown(Keys.LeftWin) || input.IsKeyDown(Keys.RightWin));
         }
+        // An update that never reached a draw left a frame open. Close it before starting the next one,
+        // discarding its draw data - the frame it belonged to is not being presented anyway.
+        if (_frameBegun)
+        {
+            Hexa.NET.ImGui.ImGui.EndFrame();
+        }
+
         Hexa.NET.ImGui.ImGui.NewFrame();
+        _frameBegun = true;
     }
 
+    /// <summary>
+    /// Ends the ImGui frame begun in <see cref="Update"/>, uploads any textures ImGui requested and renders the draw
+    /// lists on top of everything else drawn this frame.
+    /// </summary>
     public override void EndDraw()
     {
+        // Nothing to present when the draw is not paired with an update - Render() without a preceding
+        // NewFrame() asserts just as loudly as the reverse.
+        if (!_frameBegun)
+        {
+            return;
+        }
+
         Hexa.NET.ImGui.ImGui.Render();
+        _frameBegun = false;
+
         var drawData = Hexa.NET.ImGui.ImGui.GetDrawData();
         ProcessTextureUpdates(drawData);
         RenderDrawLists(drawData);
@@ -383,8 +451,8 @@ public class ImGuiSystem : GameSystemBase
         for (int n = 0; n < drawData.CmdListsCount; n++)
         {
             ImDrawListPtr cmdList = drawData.CmdLists[n];
-            vertexBinding.Buffer.SetData(commandList, new DataPointer(cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>()), vtxOffsetBytes);
-            indexBinding.Buffer.SetData(commandList, new DataPointer(cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size * sizeof(ushort)), idxOffsetBytes);
+            vertexBinding.Buffer.SetData(commandList, new ReadOnlySpan<ImDrawVert>(cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size), vtxOffsetBytes);
+            indexBinding.Buffer.SetData(commandList, new ReadOnlySpan<ushort>(cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size), idxOffsetBytes);
             vtxOffsetBytes += cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>();
             idxOffsetBytes += cmdList.IdxBuffer.Size * sizeof(ushort);
         }
@@ -393,7 +461,7 @@ public class ImGuiSystem : GameSystemBase
     void RenderDrawLists(ImDrawDataPtr drawData)
     {
         // view proj
-        var surfaceSize = Game.Window.ClientBounds;
+        var surfaceSize = _game.Window.ClientBounds;
         var projMatrix = Matrix.OrthoRH(surfaceSize.Width, -surfaceSize.Height, -1, 1);
 
         CheckBuffers(drawData); // potentially resize buffers first if needed

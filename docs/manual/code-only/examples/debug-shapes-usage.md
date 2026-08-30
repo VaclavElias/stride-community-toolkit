@@ -6,8 +6,6 @@ The `Program.cs` file shows how to:
 - Initialize the DebugShapes system and enable it for the scene
 - Draw sphere and circle shapes at specific positions
 
-[!INCLUDE [note-additional-packages](../../../includes/manual/examples/note-additional-packages.md)]
-
 > [!NOTE]
 > Other required NuGet package: `Stride.CommunityToolkit.DebugShapes`.
 
@@ -15,4 +13,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example08_DebugShapes_Usage).
 
-[!code-csharp[](../../../../examples/code-only/Example08_DebugShapes_Usage/Program.cs)]
+[!code-csharp[](../../../../examples/code-only/Example08_DebugShapes_Usage/Program.cs?start=1&end=63)]

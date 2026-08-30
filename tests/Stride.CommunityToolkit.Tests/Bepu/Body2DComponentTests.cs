@@ -12,10 +12,10 @@ namespace Stride.CommunityToolkit.Tests.Bepu;
 /// <para>
 /// The plane confinement itself only exists while a <c>BepuSimulation</c> is stepping, so it belongs
 /// in an integration test built on Stride's <c>GameTestBase</c> rather than here. What is testable in
-/// isolation is the <see cref="Body2DComponent.ZTolerance"/> validation, which silently substitutes
-/// the default for values that would otherwise break the correction: negative or zero would make it
-/// fire on floating-point noise and write a velocity every step, stopping bodies from sleeping, while
-/// NaN and infinity would disable it altogether.
+/// isolation is the <see cref="Body2DComponent.ZTolerance"/> validation, which rejects values that
+/// would otherwise break the correction: negative or zero would make it fire on floating-point noise
+/// and write a velocity every step, stopping bodies from sleeping, while NaN and infinity would
+/// disable it altogether.
 /// </para>
 /// <para>
 /// This file deliberately does not import <c>Stride.BepuPhysics</c>, which declares a component of
@@ -60,25 +60,27 @@ public class Body2DComponentTests
     [InlineData(float.NaN)]
     [InlineData(float.PositiveInfinity)]
     [InlineData(float.NegativeInfinity)]
-    public void ZTolerance_FallsBackToDefaultForUnusableValues(float value)
+    public void ZTolerance_ThrowsForUnusableValues(float value)
     {
+        // Throwing rather than reverting: a body running with a tolerance nobody asked for is worse
+        // than a loud failure at the point the bad value was written
         var body = CreateBody();
 
-        body.ZTolerance = value;
-
-        Assert.Equal(DefaultZTolerance, body.ZTolerance);
+        Assert.Throws<ArgumentOutOfRangeException>(() => body.ZTolerance = value);
     }
 
     [Fact]
-    public void ZTolerance_RecoversAfterAnUnusableValue()
+    public void ZTolerance_KeepsItsLastGoodValueAfterARejection()
     {
-        // A rejected assignment must not leave the property stuck or poison later valid ones
+        // A rejected assignment must leave the property exactly as it was, and must not poison later
+        // valid ones
         var body = CreateBody();
 
         body.ZTolerance = 0.25f;
-        body.ZTolerance = float.NaN;
 
-        Assert.Equal(DefaultZTolerance, body.ZTolerance);
+        Assert.Throws<ArgumentOutOfRangeException>(() => body.ZTolerance = float.NaN);
+
+        Assert.Equal(0.25f, body.ZTolerance);
 
         body.ZTolerance = 0.5f;
 

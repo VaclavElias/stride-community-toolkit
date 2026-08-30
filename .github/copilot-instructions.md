@@ -55,7 +55,7 @@ These repository instructions guide GitHub Copilot (and similar AI assistants) t
 - `build/`: Repository build scripts (e.g. `pack-local.cs` for local dev NuGet packages)
 - `docs/`: DocFX sources (manuals, API reference, contributing)
 - `.github/`: GitHub workflows, release metadata, automation, and this instruction file
-- `ARCHITECTURE.md` (root): running backlog of API-design observations — see below
+- `notes/ARCHITECTURE.md`: running backlog of API-design observations — see below
 
 Solutions: `Stride.CommunityToolkit.slnx` contains everything; `Stride.CommunityToolkit.Core.slnf`
 is a solution filter loading only libraries, tests and tools, because the 56 example projects slow
@@ -117,6 +117,19 @@ Two rules when editing these:
 - Entities must be added to a Scene graph to be processed.
 - Physics: Prefer Bepu components; keep Bullet only for transition/testing. Avoid mixing both on the same entity.
 - Core components commonly manipulated: Transform (position, rotation, scale), Camera, Rigidbody, Script logic.
+- **Losing window focus pauses the whole audio engine.** `AudioSystem` hooks `Game.Deactivated` and
+  calls `AudioEngine.PauseAudio()`, and `SoundInstance.Play` then returns *silently* — no exception,
+  no queued playback. The click that brings the window back is delivered before the matching
+  `ResumeAudio()`, so the first sound after refocusing is dropped and every later one works, which
+  reads as a flaky sound bug. Check `AudioEngine.State` and resume before playing if it matters.
+- A `SoundInstance` plays one sound at a time: replaying one that is still sounding cuts it off. For
+  effects that can overlap, keep several instances and cycle through them.
+- **Front faces wind clockwise as seen by the camera** — the Direct3D convention
+  (`RasterizerStateDescription.DefaultFrontFaceCounterClockwise` is `false`). Do not trust prose that
+  says counter-clockwise; read the raster state. Winding a closed mesh the wrong way does not draw it
+  wrong, it draws it **inside-out**: the near faces cull away and the camera looks into a hollow
+  shell whose parallax moves unnaturally. When generating geometry, assert the winding in a test —
+  the geometric right-hand normal of each triangle must point *opposite* its outward lighting normal.
 
 ### Bepu transform ownership (frequent source of confusion)
 
@@ -253,9 +266,9 @@ change in Stride to be possible at all.
   patterns noticed in passing are worth reporting. Fixing them as a side effect of unrelated work
   makes the diff harder to review and is out of scope unless requested.
 
-## Architecture notes (`ARCHITECTURE.md`)
+## Architecture notes (`notes/ARCHITECTURE.md`)
 
-[`ARCHITECTURE.md`](../ARCHITECTURE.md) in the repository root collects API-design observations: the
+[`notes/ARCHITECTURE.md`](../notes/ARCHITECTURE.md) collects API-design observations: the
 places where the *shape* of an API, rather than a bug in it, is what trips people up. It is a backlog
 of observations, not a decision record — nothing in it is agreed or scheduled.
 

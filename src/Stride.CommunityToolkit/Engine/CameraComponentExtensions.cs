@@ -1,5 +1,5 @@
 using Stride.CommunityToolkit.Graphics;
-using Stride.CommunityToolkit.Scripts;
+using Stride.CommunityToolkit.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
 
@@ -440,12 +440,5 @@ public static class CameraComponentExtensions
             Y = 1f - position.Y * 2f,
             Z = 0f
         };
-    }
-
-    private static Vector3 ScreenToClipSpace(Vector2 position)
-    {
-        ScreenToClipSpace(ref position, out var result);
-
-        return result;
     }
 }

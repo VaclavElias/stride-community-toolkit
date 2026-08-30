@@ -46,7 +46,7 @@ using Stride.Rendering;
 // The shape every body uses. Change this one line to drop something else: spheres roll, cones tip
 // over, and Cone, Teapot, Torus and TriangularPrism come out as convex hulls, which are far more
 // expensive to simulate than a box or a sphere. Everything below is shape-agnostic.
-var modelType = PrimitiveModelType.Cone;
+var modelType = PrimitiveModelType.Cube;
 
 const int ItemsPerDrop = 200;
 const float ItemScale = 0.5f;
@@ -375,19 +375,21 @@ void DrawOverlay()
     Print("sleep - watch their update cost fall to zero as the pile rests,");
     Print("while kind 1 keeps paying the same price for a scene that is not");
     Print("moving. Kind 4 stops uploading to the GPU as well.");
-    Print("See PLAN.md in this example's folder for how far this was taken.");
+    Print("See notes/plans/instancing-entity-transform.md for how far this was taken.");
 }
 
 /*
 ---example-metadata
+slug: instancing-entity-transform
 title:
   en: Instancing with Entity Transforms
   cs: Instancing s transformacemi entit
 level: Advanced
-category: Rendering
+category: Performance
 complexity: 4
+order: 50
 description:
-  en: |
+  en: |-
     Keep every object a real entity - with a transform, a physics body and anything else you need - while
     still drawing the whole crowd in a single draw call. A master entity holds a ModelComponent and an
     instancing type that reads its members' world matrices each frame, and the members carry no
@@ -398,7 +400,7 @@ description:
     239 to 329 FPS, and the example also shows where the real ceiling lies, because instancing removes
     draw calls and does nothing about simulation cost. One line at the top switches the whole pile to
     any other primitive, so the same comparison can be run with spheres, cones or hulls.
-  cs: |
+  cs: |-
     Zachovejte každý objekt jako plnohodnotnou entitu - s transformací, fyzikálním tělesem i čímkoli dalším -
     a přesto vykreslete celý zástup jediným vykreslovacím voláním. Hlavní entita nese ModelComponent
     a instancing, který každý snímek načítá světové matice svých členů; členové sami žádný ModelComponent
@@ -419,10 +421,6 @@ concepts:
   - Knowing when instancing does not help
   - "Using helpers: AddInstancingSupport, AddInstancingBufferUpload"
   - "Using helpers: SetupBase3D, Add3DGround, AddBepu3DPhysics"
-related:
-  - Example21_Instancing
-  - Example02_GiveMeACube
-  - Example_Bepu_Playground
 tags:
   - 3D
   - Rendering
@@ -432,8 +430,9 @@ tags:
   - Draw Calls
   - Performance
   - Entity Component
-  - Advanced
-order: 22
+related:
+  - Example21_Instancing
+  - Example02_GiveMeACube
 enabled: true
 created: 2026-08-07
 ---

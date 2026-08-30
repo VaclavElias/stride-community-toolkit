@@ -117,7 +117,7 @@ Or by using the Stride Community Toolkit Examples Launcher application.
 
 ## Contributing
 
-Before starting, check the [example backlog](../TODO.md) - the idea may already be listed, already
+Before starting, check the [example backlog](../../notes/example-backlog.md) - the idea may already be listed, already
 built, or previously declined for a reason worth knowing. It also records which categories have no
 examples yet, if you are looking for something useful to write.
 

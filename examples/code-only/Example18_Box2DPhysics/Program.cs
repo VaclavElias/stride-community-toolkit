@@ -4,6 +4,7 @@ using Example18_Box2DPhysics.Helpers;
 using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Games;
 
 // Example 18: Box2D Physics Integration
 // This example demonstrates how to integrate Box2D.NET with Stride game engine
@@ -15,11 +16,11 @@ using Stride.Engine;
 Box2DSimulation? simulation = null;
 SceneManager? sceneManager = null;
 
-using var app = new Game();
+using var game = new Game();
 
-app.Run(start: Start, update: Update);
+game.Run(start: Start, update: Update);
 
-void Start(Game game)
+void Start(Scene rootScene)
 {
     // Configure the game window
     game.Window.AllowUserResizing = true;
@@ -42,14 +43,12 @@ void Start(Game game)
     ConfigurePhysicsWorld();
 
     // Initialize the demo manager to handle all demo logic
-    sceneManager = new SceneManager(game, game.SceneSystem.SceneInstance.RootScene, simulation);
+    sceneManager = new SceneManager(game, rootScene, simulation);
     sceneManager.Initialize();
 }
 
-void Update(Game game)
+void Update(Scene rootScene, GameTime time)
 {
-    var time = game.UpdateTime;
-
     // Update physics simulation
     simulation?.Update(time.Elapsed);
 
@@ -70,3 +69,41 @@ void ConfigurePhysicsWorld()
     simulation.TimeScale = 1.0f;
     simulation.MaxStepsPerFrame = 3;
 }
+/*
+---example-metadata
+slug: box2d-physics
+title:
+  en: Box2D.NET Physics
+level: Advanced
+category: Physics
+complexity: 4
+order: 90
+description:
+  en: |-
+    A 2D simulation run by Box2D.NET rather than by Stride's own physics, with Stride reduced to drawing
+    the result. That split is the whole lesson: the physics world steps on a fixed timestep of its own,
+    and entity transforms are copied from body poses afterwards, so nothing in the scene graph is
+    allowed to move a body directly. The same pattern applies to any external simulation you want to
+    drive a Stride scene with.
+concepts:
+  - Hosting an external physics world alongside Stride
+  - "Stepping a simulation on a fixed timestep, independent of frame rate"
+  - Creating dynamic, kinematic and static bodies in Box2D
+  - Copying body poses onto entity transforms each frame
+  - Why the scene graph must not write back to the simulation
+  - "Requires the Box2D.NET NuGet package"
+tags:
+  - 2D
+  - Physics
+  - Box2D
+  - Integration
+  - Fixed Timestep
+  - Third Party
+related:
+  - Example19_Jitter2Physics
+  - Example01_Basic2DScene
+media: stride-game-engine-example-18-box2d.webp
+enabled: true
+created: 2025-08-11
+---
+*/

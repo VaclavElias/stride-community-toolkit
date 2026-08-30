@@ -24,10 +24,8 @@ The project demonstrates important render pipeline concepts including:
 
 This approach to custom rendering is particularly useful for creating background effects, post-processing, and other visual enhancements that require direct access to the rendering pipeline.
 
-[!INCLUDE [note-additional-packages](../../../includes/manual/examples/note-additional-packages.md)]
-
 ![Stride UI Example](media/stride-game-engine-example-13-root-renderer-shader.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example13_RootRendererShader).
 
-[!code-csharp[](../../../../examples/code-only/Example13_RootRendererShader/Program.cs)]
+[!code-csharp[](../../../../examples/code-only/Example13_RootRendererShader/Program.cs?start=1&end=57)]

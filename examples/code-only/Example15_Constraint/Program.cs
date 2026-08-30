@@ -4,6 +4,7 @@ using Stride.BepuPhysics.Definitions;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -25,7 +26,7 @@ const string DraggableEntityName = "Draggable Sphere";
 const string ConnectedEntityName = "Connected Sphere";
 
 // Enhanced settings for better sliding
-const float CubeSpringDampingRation = 50; // Reduced from 100
+const float CubeSpringDampingRatio = 50; // Reduced from 100
 const float SpringFrequency = 20;         // Reduced from 40
 const float FrictionCoefficient = 0.1f;   // Reduced from 0.5f for smoother sliding
 const float ServoMaxForce = 500;          // Reduced from 1000 for softer constraints
@@ -521,7 +522,7 @@ void InitializeDebugOverlay()
     [
         new("GAME INSTRUCTIONS"),
         new("Click the golden sphere and drag to move it (Y-axis locked)"),
-        new("Hold Z to move up, X to move down the golded sphere", Color.Yellow),
+        new("Hold Z to move up, X to move down the golden sphere", Color.Yellow),
         new("Press R to reset the scene", Color.Yellow),
     ]);
 }
@@ -546,7 +547,7 @@ Entity CreateEntity(PrimitiveModelType type, string name, Color color, Vector3 p
 static BodyComponent SetupCubeBody(Entity cubeEntitySetA)
 {
     var cubeBodySetA = cubeEntitySetA.Get<BodyComponent>();
-    cubeBodySetA.SpringDampingRatio = CubeSpringDampingRation;
+    cubeBodySetA.SpringDampingRatio = CubeSpringDampingRatio;
     cubeBodySetA.SpringFrequency = SpringFrequency;
     cubeBodySetA.FrictionCoefficient = FrictionCoefficient;
     cubeBodySetA.CollisionLayer = CollisionLayer.Layer2;
@@ -581,3 +582,48 @@ static OneBodyAngularServoConstraintComponent CreateOneBodyAngularServoConstrain
     };
     return angularServoSetA;
 }
+/*
+---example-metadata
+slug: constraints
+title:
+  en: Various Constraints
+level: Advanced
+category: Physics
+complexity: 5
+order: 70
+description:
+  en: |-
+    The full tour of Bepu constraints in one interactive scene: a distance limit holding two spheres
+    within a range, a distance servo actively driving a separation with spring settings, a ball socket
+    pivoting a platform on a static foundation, and point-on-line servos confining cubes to vertical
+    tracks. It is meant to be played with - drag the golden sphere, Z and X raise and lower it, clicking
+    a cube removes it so the stack above collapses, R resets everything.
+concepts:
+  - "Limiting a range with DistanceLimitConstraintComponent"
+  - "Driving a target separation with DistanceServoConstraintComponent"
+  - "Pivoting a body with BallSocketConstraintComponent"
+  - "Confining motion to an axis with PointOnLineServoConstraintComponent"
+  - Tuning a servo with spring frequency and damping
+  - Anchoring a constraint to a static foundation
+  - Filtering collisions between the connected parts
+  - Removing constrained bodies at runtime and resetting the scene
+  - "Using helpers: SetupBase3DScene, AddSkybox, AddProfiler"
+tags:
+  - 3D
+  - Bepu
+  - Physics
+  - Constraint
+  - Servo
+  - Ball Socket
+  - Spring
+  - Input
+related:
+  - Example15_Constraint_Simple
+  - Example15_Constraint_Motors
+  - Example15_Constraint_Rope
+media: stride-game-engine-example-15-constraints.webp
+tocName: Various Constraints
+enabled: true
+created: 2025-02-02
+---
+*/

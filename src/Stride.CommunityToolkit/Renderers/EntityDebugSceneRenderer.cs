@@ -1,4 +1,4 @@
-using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Engine;
 using Stride.Graphics;
 using Stride.Rendering;
@@ -9,18 +9,25 @@ using System.Text;
 namespace Stride.CommunityToolkit.Renderers;
 
 /// <summary>
-/// Scene renderer that draws per-entity debug information (e.g., entity name and/or position) as screen-space text.
+/// Scene renderer that draws per-entity debug information - the entity's name and/or position - as
+/// screen-space text over the 3D scene.
 /// </summary>
 /// <remarks>
-/// Uses 2D text rendering over the 3D scene via <see cref="SpriteBatch"/>. Appearance can be customized through
-/// <see cref="EntityDebugSceneRendererOptions"/> (font size/color, background, offsets, etc.).
+/// <para>
+/// Appearance is controlled through <see cref="EntityDebugSceneRendererOptions"/>. Unlike
+/// <see cref="EntityTextRenderer"/>, which draws text that entities opt into by carrying an
+/// <see cref="EntityTextComponent"/>, this labels entities automatically and styles them all the same
+/// way - it is a debugging overlay to switch on, not authored content.
+/// </para>
+/// <para>
+/// The two share their drawing through <see cref="ScreenTextDrawer"/>, so anchoring, backgrounds,
+/// shadows and projection behave identically in both.
+/// </para>
 /// </remarks>
 public class EntityDebugSceneRenderer : SceneRendererBase
 {
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _font;
-    private Scene? _scene;
-    private CameraComponent? _camera;
     private Texture? _backgroundTexture;
     private readonly StringBuilder _stringBuilder = new();
     private readonly EntityDebugSceneRendererOptions _options;
@@ -36,47 +43,37 @@ public class EntityDebugSceneRenderer : SceneRendererBase
     /// <param name="options">Options to customize debug text appearance. If null, defaults are used.</param>
     public EntityDebugSceneRenderer(EntityDebugSceneRendererOptions? options = null) => _options = options ?? new();
 
-    /// <summary>
-    /// Initializes core resources needed by the renderer (font, sprite batch, background texture).
-    /// </summary>
+    /// <inheritdoc />
     protected override void InitializeCore()
     {
         base.InitializeCore();
 
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _font = Content.Load<SpriteFont>(RendererDefaults.DefaultFontPath);
-        _backgroundTexture = Texture.New2D(GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, [(Color)RendererDefaults.DefaultBackground]);
-
-        var graphicsCompositor = Context.Tags.Get(GraphicsCompositor.Current);
-        _camera = graphicsCompositor?.Cameras.Count > 0 ? graphicsCompositor.Cameras[0].Camera : null;
-        _scene = SceneInstance.GetCurrent(Context)?.RootScene;
+        _backgroundTexture = ScreenTextDrawer.CreateBackgroundTexture(GraphicsDevice);
     }
 
-    /// <summary>
-    /// Draws the configured debug information for each entity in the current scene.
-    /// </summary>
-    /// <param name="context">Rendering context providing access to the compositor and scene.</param>
-    /// <param name="drawContext">Draw context used to submit draw calls.</param>
+    /// <inheritdoc />
     protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
     {
-        // Quick exit if there is nothing to render
-        if (!_options.ShowEntityName && !_options.ShowEntityPosition)
-        {
-            return;
-        }
+        if (!_options.ShowEntityName && !_options.ShowEntityPosition) return;
 
-        if (_spriteBatch is null || _camera is null || _scene is null)
-        {
-            return;
-        }
+        if (_spriteBatch is null || _font is null) return;
 
-        var entities = _scene.Entities;
-        var count = entities.Count;
+        // Resolved per frame rather than cached at initialisation, so swapping the scene or the
+        // camera does not leave the overlay drawing against the ones it started with
+        var scene = SceneInstance.GetCurrent(context)?.RootScene;
+        var camera = context.Tags.Get(GraphicsCompositor.Current)?.Cameras[0]?.Camera;
 
-        if (count == 0) return;
+        if (scene is null || camera is null || scene.Entities.Count == 0) return;
 
-        // ViewProjection transforms a world-space position into clip space (pre-perspective divide)
-        var viewProjection = _camera.ViewProjectionMatrix;
+        var viewport = drawContext.CommandList.Viewport;
+        var screenSize = new Vector2(viewport.Width, viewport.Height);
+
+        if (screenSize.X <= 0 || screenSize.Y <= 0) return;
+
+        var viewProjection = camera.ViewProjectionMatrix;
+        var cameraPosition = camera.Entity?.Transform.WorldMatrix.TranslationVector ?? Vector3.Zero;
 
         _spriteBatch.Begin(drawContext.GraphicsContext,
             sortMode: SpriteSortMode.Deferred,
@@ -84,55 +81,117 @@ public class EntityDebugSceneRenderer : SceneRendererBase
             samplerState: null,
             depthStencilState: DepthStencilStates.None);
 
-        for (int i = 0; i < count; i++)
+        foreach (var entity in scene.Entities)
         {
-            var entity = entities[i];
-            var worldPos = entity.Transform.Position;
-
-            // Transform to clip space
-            var clipPosition = Vector4.Transform(new Vector4(worldPos, 1f), viewProjection);
-            if (clipPosition.W <= 0f)
-                continue; // behind the camera
-
-            // Perspective divide -> Normalized Device Coordinates (NDC)
-            var inverseW = 1f / clipPosition.W;
-            var normalizedDeviceCoordinatesX = clipPosition.X * inverseW;
-            var normalizedDeviceCoordinatesY = clipPosition.Y * inverseW;
-            var normalizedDeviceCoordinatesZ = clipPosition.Z * inverseW;
-
-            // Clip test in NDC: x and y in [-1,1], z in [0,1]
-            var outsideNdc = normalizedDeviceCoordinatesZ < 0f || normalizedDeviceCoordinatesZ > 1f || normalizedDeviceCoordinatesX < -1f || normalizedDeviceCoordinatesX > 1f || normalizedDeviceCoordinatesY < -1f || normalizedDeviceCoordinatesY > 1f;
-
-            // culled
-            if (outsideNdc) continue;
-
-            // Convert to screen-space using engine helper
-            var screenPosition = _camera.WorldToScreenPoint(ref worldPos, GraphicsDevice);
-            var finalPosition = screenPosition + _options.Offset;
-
-            var textDisplay = GetDisplayText(entity);
-
-            if (string.IsNullOrWhiteSpace(textDisplay)) continue;
-
-            DrawTextBackground(textDisplay, finalPosition);
-
-            _spriteBatch.DrawString(
-                _font,
-                textDisplay,
-                _options.FontSize,
-                finalPosition,
-                _options.FontColor);
+            DrawEntity(entity, ref viewProjection, cameraPosition, screenSize);
         }
 
         _spriteBatch.End();
     }
 
     /// <summary>
-    /// Builds the debug text for a given entity based on the renderer's options.
+    /// Labels one entity and, when enabled, everything nested beneath it.
     /// </summary>
-    /// <param name="entity">The entity for which to generate debug text.</param>
-    /// <returns>Debug text for the entity, or an empty string if nothing should be displayed.</returns>
-    private string GetDisplayText(Entity entity)
+    private void DrawEntity(Entity entity, ref Matrix viewProjection, Vector3 cameraPosition, Vector2 screenSize)
+    {
+        if (_options.EntityFilter?.Invoke(entity) != false)
+        {
+            DrawLabel(entity, ref viewProjection, cameraPosition, screenSize);
+        }
+
+        if (!_options.IncludeChildEntities) return;
+
+        foreach (var child in entity.Transform.Children)
+        {
+            DrawEntity(child.Entity, ref viewProjection, cameraPosition, screenSize);
+        }
+    }
+
+    private void DrawLabel(Entity entity, ref Matrix viewProjection, Vector3 cameraPosition, Vector2 screenSize)
+    {
+        // The world matrix, not Transform.Position: for a nested entity, Position is relative to its
+        // parent, so labelling a child by it would place the text somewhere else entirely
+        var worldPosition = entity.Transform.WorldMatrix.TranslationVector;
+
+        if (_options.MaxDistance is { } limit && Vector3.Distance(cameraPosition, worldPosition) > limit)
+        {
+            return;
+        }
+
+        if (!ScreenTextDrawer.TryProject(worldPosition, ref viewProjection, screenSize, out var screenPosition))
+        {
+            return;
+        }
+
+        var position = screenPosition + _options.Offset;
+
+        // With a separate colour the two parts have to be drawn separately, so they are stacked
+        // instead of chained along one line - see EntityDebugSceneRendererOptions.PositionColor
+        if (_options.PositionColor is { } positionColor && _options.ShowEntityPosition)
+        {
+            var name = _options.ShowEntityName ? entity.Name : null;
+            var nameSize = Vector2.Zero;
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                nameSize = _spriteBatch!.MeasureString(_font, name, _options.FontSize);
+
+                Draw(name, position, nameSize, _options.FontColor);
+            }
+
+            var coordinates = FormatPosition(worldPosition);
+
+            Draw(coordinates, position + new Vector2(0, nameSize.Y), Measure(coordinates), positionColor);
+
+            return;
+        }
+
+        var text = GetDisplayText(entity, worldPosition);
+
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        Draw(text, position, Measure(text), _options.FontColor);
+    }
+
+    private Vector2 Measure(string text) => _spriteBatch!.MeasureString(_font, text, _options.FontSize);
+
+    /// <summary>
+    /// Draws one line of debug text through the shared drawer.
+    /// </summary>
+    /// <remarks>
+    /// The size is measured once by the caller and passed in. The previous version measured for the
+    /// background and then let <c>DrawString</c> measure again internally, which for a position
+    /// readout - a string that changes every frame and so can never be cached - was twice the work
+    /// for every labelled entity.
+    /// </remarks>
+    private void Draw(string text, Vector2 position, Vector2 textSize, Color color)
+    {
+        var style = new ScreenTextStyle
+        {
+            Font = _font!,
+            FontSize = _options.FontSize,
+            Color = color,
+            Anchor = _options.Anchor,
+            Alignment = TextAlignment.Left,
+            Scale = 1f,
+            Rotation = 0f,
+            Opacity = 1f,
+            LayerDepth = 0f,
+            EnableShadow = _options.EnableShadow,
+            ShadowColor = _options.ShadowColor,
+            ShadowOffset = _options.ShadowOffset,
+            EnableBackground = _options.EnableBackground,
+            BackgroundColor = _options.BackgroundColor ?? RendererDefaults.DefaultDebugBackground,
+            Padding = _options.Padding,
+        };
+
+        ScreenTextDrawer.Draw(_spriteBatch!, _backgroundTexture, text, position, textSize, style);
+    }
+
+    /// <summary>
+    /// Builds the combined debug text for an entity.
+    /// </summary>
+    private string GetDisplayText(Entity entity, Vector3 worldPosition)
     {
         _stringBuilder.Clear();
 
@@ -145,41 +204,25 @@ public class EntityDebugSceneRenderer : SceneRendererBase
         {
             if (_stringBuilder.Length > 0) _stringBuilder.Append(": ");
 
-            var p = entity.Transform.Position;
-            _stringBuilder.Append(CultureInfo.InvariantCulture, $"({p.X:F1}, {p.Y:F1}, {p.Z:F1})");
+            AppendPosition(_stringBuilder, worldPosition);
         }
 
         return _stringBuilder.ToString();
     }
 
-    /// <summary>
-    /// Draws a background rectangle behind the text to improve readability (when enabled).
-    /// </summary>
-    /// <param name="text">The text for which the background size is computed.</param>
-    /// <param name="finalPosition">Screen-space position where the text is drawn.</param>
-    private void DrawTextBackground(string text, Vector2 finalPosition)
+    private string FormatPosition(Vector3 worldPosition)
     {
-        if (!_options.EnableBackground)
-            return;
+        _stringBuilder.Clear();
 
-        var textDimensions = _spriteBatch!.MeasureString(_font, text, _options.FontSize);
+        AppendPosition(_stringBuilder, worldPosition);
 
-        var backgroundRectangle = new RectangleF(
-            finalPosition.X - _options.Padding,
-            finalPosition.Y - _options.Padding,
-            textDimensions.X + _options.Padding * 2,
-            textDimensions.Y + _options.Padding * 2);
-
-        var bgColor = _options.BackgroundColor ?? RendererDefaults.DefaultBackground;
-        if (bgColor.A <= 0f)
-            return; // fully transparent, skip draw
-
-        _spriteBatch.Draw(_backgroundTexture, backgroundRectangle, bgColor);
+        return _stringBuilder.ToString();
     }
 
-    /// <summary>
-    /// Disposes resources used by the renderer.
-    /// </summary>
+    private static void AppendPosition(StringBuilder builder, Vector3 worldPosition)
+        => builder.Append(CultureInfo.InvariantCulture, $"({worldPosition.X:F1}, {worldPosition.Y:F1}, {worldPosition.Z:F1})");
+
+    /// <inheritdoc />
     protected override void Destroy()
     {
         base.Destroy();

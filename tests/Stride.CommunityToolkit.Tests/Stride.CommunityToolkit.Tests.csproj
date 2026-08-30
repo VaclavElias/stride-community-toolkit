@@ -5,9 +5,9 @@
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
         <PackageReference Include="xunit" Version="2.9.3" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+        <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -19,5 +19,13 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Bepu\Stride.CommunityToolkit.Bepu.csproj" />
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <!--
+            Cubicle Calamity keeps its rules in plain, scene-free classes precisely so they can be
+            tested here. Referencing an example project from tests is unusual, and is done because the
+            alternative is game logic with no coverage at all.
+        -->
+        <ProjectReference Include="..\..\examples\code-only\Example_CubicleCalamity\Example_CubicleCalamity.csproj" />
     </ItemGroup>
 </Project>

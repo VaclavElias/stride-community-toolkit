@@ -9,9 +9,14 @@ namespace Stride.CommunityToolkit.Engine;
 public static class TransformExtensions
 {
     /// <summary>
-    /// The default world up vector. The default is <see cref="Vector3.UnitY"/>.
+    /// The world up vector used by the <c>LookAt</c> overloads that do not take an explicit up vector.
+    /// The default is <see cref="Vector3.UnitY"/>; set it once at start-up for projects that use a different up axis (for example Z-up).
     /// </summary>
-    private static Vector3 _worldUp = Vector3.UnitY;
+    /// <remarks>
+    /// Not synchronised. Set it during start-up, before the game loop runs; like the transform APIs it feeds,
+    /// it is intended for the update thread. Overloads that take an explicit up vector ignore this value.
+    /// </remarks>
+    public static Vector3 WorldUp { get; set; } = Vector3.UnitY;
 
     /// <summary>
     /// Updates the <see cref="TransformComponent.Position"/>, <see cref="TransformComponent.Rotation"/> and <see cref="TransformComponent.Scale"/> members of the given <see cref="TransformComponent"/>.
@@ -517,7 +522,7 @@ public static class TransformExtensions
 
     /// <summary>
     /// Sets the transforms rotation so it's forward vector points at the <paramref name="target"/>.
-    /// The world up vector use is defined by <see cref="_worldUp"/>.
+    /// The world up vector used is defined by <see cref="WorldUp"/>.
     /// </summary>
     /// <param name="transform">The <see cref="TransformComponent"/> to update.</param>
     /// <param name="target">The target to point towards</param>
@@ -529,7 +534,8 @@ public static class TransformExtensions
     /// </remarks>
     public static void LookAt(this TransformComponent transform, TransformComponent target, float smooth = 1.0f)
     {
-        transform.LookAt(target, ref _worldUp, smooth);
+        var worldUp = WorldUp;
+        transform.LookAt(target, ref worldUp, smooth);
     }
 
     /// <summary>
@@ -570,21 +576,28 @@ public static class TransformExtensions
 
         MathUtilEx.LookRotation(ref localEye, ref localTarget, ref localUp, out var lookRotation);
 
+        // A backstop rather than the fix. MathUtilEx.LookRotation no longer returns a non-finite
+        // rotation for any input, but this check stays because of how far the damage travels if one
+        // ever gets through: the rotation poisons the world matrix, and anything that integrates a
+        // position through that matrix afterwards is NaN too, which cannot be undone by further
+        // relative movement. The guard used to sit on the smooth path alone, so the default
+        // smooth == 1 assigned straight through it.
+        if (!IsFinite(lookRotation)) return;
+
         if (smooth == 1.0f)
         {
             transform.Rotation = lookRotation;
         }
+        else if (IsFinite(transform.Rotation))
+        {
+            Quaternion.Slerp(ref transform.Rotation, ref lookRotation, smooth, out transform.Rotation);
+        }
         else
         {
-            // Prevents crash caused by NaN values due to entities being directly behind each other.
-            // This does mean that there is an angle where the entity will not rotate.
-            var angle = Quaternion.AngleBetween(transform.Rotation, lookRotation);
-            if (!float.IsNaN(angle))
-            {
-                Quaternion.Slerp(ref transform.Rotation, ref lookRotation, smooth, out transform.Rotation);
-            }
+            // There is nothing sensible to interpolate away from, so snap. Slerping out of a broken
+            // rotation would leave it broken forever, which is worse than ignoring the smoothing once.
+            transform.Rotation = lookRotation;
         }
-
 
         transform.UpdateWorldMatrix();
     }
@@ -608,7 +621,7 @@ public static class TransformExtensions
 
     /// <summary>
     /// Sets the transforms rotation so it's forward vector points at the <paramref name="target"/>.
-    /// The world up vector use is defined by <see cref="_worldUp"/>.
+    /// The world up vector use is defined by <see cref="WorldUp"/>.
     /// </summary>
     /// <param name="transform">The <see cref="TransformComponent"/> to update.</param>
     /// <param name="target">The target to point towards</param>
@@ -620,12 +633,13 @@ public static class TransformExtensions
     /// </remarks>
     public static void LookAt(this TransformComponent transform, ref Vector3 target, float smooth = 1.0f)
     {
-        transform.LookAt(ref target, ref _worldUp, smooth);
+        var worldUp = WorldUp;
+        transform.LookAt(ref target, ref worldUp, smooth);
     }
 
     /// <summary>
     /// Sets the transforms rotation so it's forward vector points at the <paramref name="target"/>.
-    /// The world up vector use is defined by <see cref="_worldUp"/>.
+    /// The world up vector use is defined by <see cref="WorldUp"/>.
     /// </summary>
     /// <param name="transform">The <see cref="TransformComponent"/> to update.</param>
     /// <param name="target">The target to point towards</param>
@@ -637,6 +651,16 @@ public static class TransformExtensions
     /// </remarks>
     public static void LookAt(this TransformComponent transform, Vector3 target, float smooth = 1.0f)
     {
-        transform.LookAt(ref target, ref _worldUp, smooth);
+        var worldUp = WorldUp;
+        transform.LookAt(ref target, ref worldUp, smooth);
     }
+
+    /// <summary>
+    /// Returns whether every component of the rotation is a real number.
+    /// </summary>
+    private static bool IsFinite(in Quaternion rotation)
+        => float.IsFinite(rotation.X)
+        && float.IsFinite(rotation.Y)
+        && float.IsFinite(rotation.Z)
+        && float.IsFinite(rotation.W);
 }

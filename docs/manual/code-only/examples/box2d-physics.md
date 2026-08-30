@@ -8,8 +8,6 @@ This example shows how to:
 - Create bodies and shapes
 - Synchronize entity transforms from physics bodies
 
-[!INCLUDE [note-additional-packages](../../../includes/manual/examples/note-additional-packages.md)]
-
 > [!NOTE]
 > This example requires also an additional NuGet package `Box2D.NET`. Make sure to install it before running the code.
 
@@ -17,4 +15,4 @@ This example shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example18_Box2DPhysics).
 
-[!code-csharp[](../../../../examples/code-only/Example18_Box2DPhysics/Program.cs)]
+[!code-csharp[](../../../../examples/code-only/Example18_Box2DPhysics/Program.cs?start=1&end=72)]

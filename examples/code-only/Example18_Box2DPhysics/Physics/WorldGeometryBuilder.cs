@@ -23,13 +23,13 @@ public static class WorldGeometryBuilder
         def.name = GameConfig.WallName;
         def.type = B2BodyType.b2_staticBody;
 
-        var groundId = b2CreateBody(worldId, ref def);
+        var groundId = b2CreateBody(worldId, in def);
         var groundBox = b2MakeBox(groundSize.X, groundSize.Y);
         var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
 
         shapeDef.material.friction = 0.6f;
 
-        b2CreatePolygonShape(groundId, ref shapeDef, ref groundBox);
+        b2CreatePolygonShape(groundId, in shapeDef, in groundBox);
 
         return groundId;
     }
@@ -39,12 +39,12 @@ public static class WorldGeometryBuilder
         var walls = new List<B2BodyId>();
         var halfWidth = width / 2f;
         var halfHeight = height / 2f;
-        var configs = new[]
+        var configs = new WallSpec[]
         {
-            new { Position = new Vector2(-halfWidth, 0), Size = new Vector2(wallThickness, height) },
-            new { Position = new Vector2(halfWidth, 0), Size = new Vector2(wallThickness, height) },
-            new { Position = new Vector2(0, halfHeight), Size = new Vector2(width, wallThickness) },
-            new { Position = new Vector2(0, -halfHeight), Size = new Vector2(width, wallThickness) }
+            new(new Vector2(-halfWidth, 0), new Vector2(wallThickness, height)),
+            new(new Vector2(halfWidth, 0), new Vector2(wallThickness, height)),
+            new(new Vector2(0, halfHeight), new Vector2(width, wallThickness)),
+            new(new Vector2(0, -halfHeight), new Vector2(width, wallThickness))
         };
 
         foreach (var c in configs)
@@ -53,13 +53,15 @@ public static class WorldGeometryBuilder
             def.position = new B2Vec2(c.Position.X, c.Position.Y);
             def.type = B2BodyType.b2_staticBody;
             def.name = "Wall";
-            var bodyId = b2CreateBody(worldId, ref def);
+            var bodyId = b2CreateBody(worldId, in def);
             var box = b2MakeBox(c.Size.X, c.Size.Y);
             var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
-            b2CreatePolygonShape(bodyId, ref shapeDef, ref box);
+            b2CreatePolygonShape(bodyId, in shapeDef, in box);
             walls.Add(bodyId);
         }
 
         return walls;
     }
+
+    private readonly record struct WallSpec(Vector2 Position, Vector2 Size);
 }

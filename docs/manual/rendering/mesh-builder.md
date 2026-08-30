@@ -96,9 +96,15 @@ meshBuilder.SetElement(color, Color.Blue);
 ## Indices
 Next we need to tell the `MeshBuilder` how we want to connect the vertices.
 We configured indexing for our builder so we need to do this explicitly.
-For a simple example like this you could also completely skip the indexing part and use `IndexingType.None` instead.
+For a simple example like this you could also completely skip the indexing part and use
+`IndexingType.None` instead: the vertices are then drawn in the order they were added, three per
+triangle, at the cost of repeating any vertex that two triangles share.
 
-The winding order in Stride is counter-clockwise so we use these indices.
+Front faces in Stride wind **clockwise** as seen by the camera - the Direct3D convention
+(`RasterizerStateDescription.DefaultFrontFaceCounterClockwise` is `false`) - so these indices order
+the corners clockwise when viewed from the front. Wind a triangle the other way and it is not drawn
+wrong, it is not drawn at all: back-face culling removes it, which shows up as geometry that is
+invisible from one side or, on a closed shape, as looking *into* a hollow shell.
 
 ```csharp
 meshBuilder.AddIndex(0);
@@ -137,6 +143,57 @@ var model = new Model
 ```
 
 Congrats 🥳 you got a triangle.
+
+## Who owns the buffers
+
+`ToMeshDraw` creates two GPU buffers - vertex and, when indexing is configured, index - and hands
+them to you. **No content manager tracks them**, so if you rebuild a mesh (an animated shape rebuilt
+per frame, say) you must dispose the previous draw's buffers yourself, or each rebuild leaks GPU
+memory:
+
+```csharp
+foreach (var vertexBuffer in mesh.Draw.VertexBuffers)
+    vertexBuffer.Buffer.Dispose();
+
+mesh.Draw.IndexBuffer?.Buffer.Dispose();
+```
+
+The Procedural Geometry example shows this pattern on its animated circle.
+
+## Extruded shapes and 3D letters
+
+`AddExtrudedPolygon` turns any simple 2D outline - convex or concave - into a solid: front cap,
+back cap and crisp flat-shaded side walls, triangulated internally by ear clipping
+(`EarClipping.Triangulate`, which is public and usable on its own):
+
+```csharp
+var position = meshBuilder.WithPosition<Vector3>();
+var normal = meshBuilder.WithNormal<Vector3>();
+
+meshBuilder.AddExtrudedPolygon(outline, depth: 0.25f, position, normal);
+```
+
+Built on top of it, `LetterMeshFactory` produces solid 3D lettering from glyph outlines authored in
+code - real geometry that is lit and shadowed, unlike the font-based `EntityTextComponent` and
+`WorldTextComponent`:
+
+```csharp
+var draw = LetterMeshFactory.CreateTextMeshDraw(graphicsDevice, "XYZ");
+```
+
+Only the characters in `LetterMeshFactory.SupportedCharacters` exist; each new glyph is a small
+hand-authored polygon, which is the price of staying cross-platform - extracting real font outlines
+at runtime would require DirectWrite, which is Windows-only.
+
+## Custom pixel formats
+
+Every `With*` method infers the GPU format from `T` - `Vector3` becomes `R32G32B32_Float`, `Color`
+becomes `R8G8B8A8_UNorm`, and so on. For a type the inference does not know, or to store data in a
+different format than the CLR type suggests, pass the format explicitly:
+
+```csharp
+var position = meshBuilder.WithPosition<Vector3>(pixelFormat: PixelFormat.R32G32B32A32_Float);
+```
 
 ## Example
 

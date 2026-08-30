@@ -11,33 +11,30 @@
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
     </ItemGroup>
 
-    <!-- Link discovery code from Examples project -->
+    <!--
+        Manifest reading is shared with the console runner. The files are linked rather than split into
+        a library because both launchers are single-project tools and a third project to hold four types
+        would cost more than it saves.
+    -->
     <ItemGroup>
         <Compile Include="..\Stride.CommunityToolkit.Examples\Core\Constants.cs" Link="Core\Constants.cs" />
-        <Compile Include="..\Stride.CommunityToolkit.Examples\Core\ExampleProjectMeta.cs" Link="Core\ExampleProjectMeta.cs" />
-        <Compile Include="..\Stride.CommunityToolkit.Examples\Core\ExampleProvider.cs" Link="Core\ExampleProvider.cs" />
-        <Compile Include="..\Stride.CommunityToolkit.Examples\Core\Example.cs" Link="Core\Example.cs" />
-        <Compile Include="..\Stride.CommunityToolkit.Examples\Core\ColorHelper.cs" Link="Core\ColorHelper.cs" />
-        <Compile Include="..\Stride.CommunityToolkit.Examples\Core\ProjectFileHelper.cs" Link="Core\ProjectFileHelper.cs" />
+        <Compile Include="..\Stride.CommunityToolkit.Examples\Core\ExampleManifest.cs" Link="Core\ExampleManifest.cs" />
+        <Compile Include="..\Stride.CommunityToolkit.Examples\Core\ExampleEntry.cs" Link="Core\ExampleEntry.cs" />
+        <Compile Include="..\Stride.CommunityToolkit.Examples\Core\ManifestLoader.cs" Link="Core\ManifestLoader.cs" />
     </ItemGroup>
 
-    <!-- Generate examples metadata manifest before build -->
-    <Target Name="GenerateExamplesManifest" BeforeTargets="BeforeBuild">
-        <PropertyGroup>
-            <ExamplesRoot>$(MSBuildProjectDirectory)\..\..\examples\code-only</ExamplesRoot>
-            <ManifestOutput>$(MSBuildProjectDirectory)\examples-manifest.json</ManifestOutput>
-            <GeneratorProject>$(MSBuildProjectDirectory)\..\Stride.CommunityToolkit.Examples.MetadataGenerator\Stride.CommunityToolkit.Examples.MetadataGenerator.csproj</GeneratorProject>
-        </PropertyGroup>
+    <!--
+        A build-order dependency, not a code one: ReferenceOutputAssembly="false" keeps the generator's
+        assembly out of this project entirely. It is here so MSBuild builds the generator once, before
+        this project, rather than leaving the pre-build hook to build it - see ExamplesManifest.targets.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Stride.CommunityToolkit.Examples.MetadataGenerator\Stride.CommunityToolkit.Examples.MetadataGenerator.csproj"
+                          ReferenceOutputAssembly="false"
+                          Private="false" />
+    </ItemGroup>
 
-        <Message Text="Generating examples metadata manifest..." Importance="high" />
-        <Message Text="Executing: dotnet run --project &quot;$(GeneratorProject)&quot; --configuration $(Configuration) -- generate &quot;$(ExamplesRoot)&quot; --output &quot;$(ManifestOutput)&quot;" Importance="high" />
-
-        <Exec Command="dotnet run --project &quot;$(GeneratorProject)&quot; --configuration $(Configuration) -- generate &quot;$(ExamplesRoot)&quot; --output &quot;$(ManifestOutput)&quot;" ContinueOnError="WarnAndContinue" />
-
-        <!-- Include generated manifest in output -->
-        <ItemGroup>
-            <None Include="examples-manifest.json" CopyToOutputDirectory="PreserveNewest" />
-        </ItemGroup>
-    </Target>
+    <!-- Generates examples-manifest.json before the build and copies it to the output. -->
+    <Import Project="..\ExamplesManifest.targets" />
 
 </Project>
