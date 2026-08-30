@@ -17,7 +17,7 @@ public class Inspector : BaseWindow
 {
     /// <summary>Array of all possible <see cref="Filter"/> values</summary>
     static readonly Filter[] FILTER_VALUES = Enum.GetValues<Filter>();
-    const float DUMMY_WIDTH = 19;
+    internal const float DUMMY_WIDTH = 19;
     const float INDENTATION2 = DUMMY_WIDTH + 8;
 
     /// <summary>A UI handler function to draw and modify values</summary>
@@ -73,9 +73,7 @@ public class Inspector : BaseWindow
     }
 
 
-    // Cache to handle dictionary add() commands
-    WeakReference<object?> _dicAddCommandTarget = new(null);
-    (object? key, object? value) _dicAddCommandData;
+    readonly InspectorCollectionsView _collectionsView;
 
     /// <summary>
     /// Creates a new inspector window and registers it with the game's systems. Prefer <see cref="FindFreeInspector"/> to reuse an open window that is not <see cref="Locked"/>.
@@ -83,6 +81,7 @@ public class Inspector : BaseWindow
     /// <param name="services">The game's service registry, which must already contain an <see cref="ImGuiSystem"/>.</param>
     public Inspector(IServiceRegistry services) : base(services)
     {
+        _collectionsView = new InspectorCollectionsView(this);
         _inspectors.Add(this);
     }
 
@@ -161,37 +160,7 @@ public class Inspector : BaseWindow
         {
             foreach (var member in members)
             {
-                object? value;
-                bool readOnly;
-                { // Get value
-                    try
-                    {
-                        if (member is FieldInfo fi)
-                        {
-                            value = fi.GetValue(target);
-                            readOnly = fi.IsInitOnly;
-                        }
-                        else if (member is PropertyInfo pi && pi.CanRead)
-                        {
-                            value = pi.GetValue(target);
-                            readOnly = !pi.CanWrite;
-                        }
-                        else if (member is Type asType)
-                        {
-                            value = asType;
-                            readOnly = true;
-                        }
-                        else
-                        {
-                            throw new NotImplementedException($"UI handler for type {member.GetType()} not implemented");
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        value = $"x Exception: {e.Message}";
-                        readOnly = true;
-                    }
-                }
+                GetMemberValue(member, target, out object? value, out bool readOnly);
 
                 if (XMLDocumentation.TryGetSummary(member, out var summary))
                 {
@@ -210,23 +179,11 @@ public class Inspector : BaseWindow
                 if (changed && !readOnly)
                 {
                     hasChanged = true;
-                    try
-                    {
-                        if (member is FieldInfo fi)
-                            fi.SetValue(target, value);
-                        else if (member is PropertyInfo pi)
-                            pi?.SetValue(target, value);
-                        else
-                            throw new NotImplementedException();
-                    }
-                    catch (Exception e)
-                    {
-                        Console.Out?.WriteLine(e);
-                    }
+                    SetMemberValue(member, target, value);
                 }
             }
             if (EnumerableView && target is IEnumerable ienum)
-                DrawIEnumTypes(target, ienum, hashcodeSource);
+                _collectionsView.Draw(target, ienum, hashcodeSource);
         }
 
         // structs have to bubble up their changes since the object
@@ -234,7 +191,55 @@ public class Inspector : BaseWindow
         return hasChanged && target.GetType().IsValueType;
     }
 
-    bool DrawValue(string constantName, ref object? value, bool readOnly, int hashcodeSource)
+    static void GetMemberValue(MemberInfo member, object target, out object? value, out bool readOnly)
+    {
+        try
+        {
+            if (member is FieldInfo fi)
+            {
+                value = fi.GetValue(target);
+                readOnly = fi.IsInitOnly;
+            }
+            else if (member is PropertyInfo pi && pi.CanRead)
+            {
+                value = pi.GetValue(target);
+                readOnly = !pi.CanWrite;
+            }
+            else if (member is Type asType)
+            {
+                value = asType;
+                readOnly = true;
+            }
+            else
+            {
+                throw new NotImplementedException($"UI handler for type {member.GetType()} not implemented");
+            }
+        }
+        catch (Exception e)
+        {
+            value = $"x Exception: {e.Message}";
+            readOnly = true;
+        }
+    }
+
+    static void SetMemberValue(MemberInfo member, object target, object? value)
+    {
+        try
+        {
+            if (member is FieldInfo fi)
+                fi.SetValue(target, value);
+            else if (member is PropertyInfo pi)
+                pi?.SetValue(target, value);
+            else
+                throw new NotImplementedException();
+        }
+        catch (Exception e)
+        {
+            Console.Out?.WriteLine(e);
+        }
+    }
+
+    internal bool DrawValue(string constantName, ref object? value, bool readOnly, int hashcodeSource)
     {
         // Deterministic way to provide a hashcode in a hierarchic/recursive manner
         // The hashcode created here, properly create one specific code for this object at this place in the hierarchy
@@ -267,28 +272,14 @@ public class Inspector : BaseWindow
                 return valueChanged;
             }
 
-            bool recursable = Type.GetTypeCode(type) == TypeCode.Object;
-            recursable = recursable && (typeData.FilteredMembers.Length > 0 || ReadableIEnumerable(value));
+            bool recursable = IsRecursable(type, typeData, value);
 
             bool recurse = recursable && _openedId.Contains(memberInHierarchyId);
 
             using (UColumns(2))
             {
                 // Present button to recurse through value
-                if (recursable)
-                {
-                    if (ArrowButton("", recurse ? ImGuiDir.Down : ImGuiDir.Right))
-                    {
-                        if (recurse)
-                            _openedId.Remove(memberInHierarchyId);
-                        else
-                            _openedId.Add(memberInHierarchyId);
-                    }
-                }
-                else
-                {
-                    Dummy(new Vector2(DUMMY_WIDTH, 1));
-                }
+                DrawRecurseArrow(recursable, recurse, memberInHierarchyId);
 
                 SameLine();
                 TextUnformatted(constantName);
@@ -303,63 +294,18 @@ public class Inspector : BaseWindow
                     goto RECURSE;
                 }
                 // Basic value type: Present UI handler for values
-                else if (!readOnly)
+                else if (!readOnly && InspectorValueDrawers.TryDrawScalar(ref value, out valueChanged))
                 {
-                    switch (value)
-                    {
-                        // if(valueChanged) => to cast / generate garbage only when the value changed
-                        case bool v: valueChanged = Checkbox("", ref v); if (valueChanged) { value = v; } return valueChanged;
-                        case string v: valueChanged = InputText("", ref v, 99); if (valueChanged) { value = v; } return valueChanged;
-                        case float v: valueChanged = DragFloat("", ref v, RelativeDragSpeed(v)); if (valueChanged) { value = v; } return valueChanged;
-                        case double v: valueChanged = InputDouble("", ref v); if (valueChanged) { value = v; } return valueChanged;
-                        case int v: valueChanged = InputInt("", ref v); if (valueChanged) { value = v; } return valueChanged;
-                        // c = closest type that ImGui implements natively, manually cast it to the right type afterward
-                        case uint v: { int c = (int)v; valueChanged = InputInt("", ref c); if (valueChanged) { value = (uint)c; } return valueChanged; }
-                        case long v: { int c = (int)v; valueChanged = InputInt("", ref c); if (valueChanged) { value = (long)c; } return valueChanged; }
-                        case ulong v: { int c = (int)v; valueChanged = InputInt("", ref c); if (valueChanged) { value = (ulong)c; } return valueChanged; }
-                        case short v: { int c = (int)v; valueChanged = InputInt("", ref c); if (valueChanged) { value = (short)c; } return valueChanged; }
-                        case ushort v: { int c = (int)v; valueChanged = InputInt("", ref c); if (valueChanged) { value = (ushort)c; } return valueChanged; }
-                        case byte v: { int c = (int)v; valueChanged = InputInt("", ref c); if (valueChanged) { value = (byte)c; } return valueChanged; }
-                        case sbyte v: { int c = (int)v; valueChanged = InputInt("", ref c); if (valueChanged) { value = (sbyte)c; } return valueChanged; }
-                    }
+                    return valueChanged;
                 }
                 if (typeData.asEnum != null)
                 {
-                    (bool flags, Array values) = typeData.asEnum.Value;
-                    using (UCombo("", value.ToString() ?? string.Empty, out bool open))
-                    {
-                        if (open)
-                        {
-                            foreach (object o in values)
-                            {
-                                ulong fieldValue = GetEnumBits(value);
-                                ulong compValue = GetEnumBits(o);
-                                bool selected;
-                                if (flags)
-                                    selected = (fieldValue & compValue) == compValue;
-                                else
-                                    selected = fieldValue == compValue;
-
-                                if (Selectable(o.ToString(), selected))
-                                {
-                                    if (flags)
-                                    {
-                                        if (selected) // unselect this value
-                                            compValue = fieldValue & ~compValue;
-                                        else // select new value
-                                            compValue = fieldValue | compValue;
-                                    }
-                                    value = GetEnumValueFromBits(compValue, value.GetType());
-                                    valueChanged = true;
-                                }
-                            }
-                        }
-                        return valueChanged;
-                    }
+                    return InspectorValueDrawers.DrawEnum(typeData.asEnum.Value, ref value);
                 }
 
                 // Otherwise, present basic read-only text
-                TextUnformatted(value.ToString());
+                // value is only reassigned by TryDrawScalar, which never writes null; the compiler loses that across the ref.
+                TextUnformatted(value!.ToString());
             }
 
 RECURSE:
@@ -371,212 +317,31 @@ RECURSE:
         }
     }
 
-    void DrawIEnumTypes(object target, IEnumerable ienum, int hashcodeSource)
+    static bool IsRecursable(Type type, TypeCache typeData, object value)
     {
-        using (UIndent())
-        {
-            if (TryDrawAsIList(target, hashcodeSource))
-                return;
-
-            if (TryDrawAsIDictionary(target, hashcodeSource))
-                return;
-
-            Spacing();
-            TextDisabled("As Enumerable");
-            int index = 0;
-            try
-            {
-                foreach (object? o in ienum)
-                {
-                    object? o2 = o;
-                    using (UIndent())
-                        DrawValue("-", ref o2, true, (hashcodeSource, index).GetHashCode());
-                    index++;
-                }
-            }
-            catch (Exception e)
-            {
-                object? str = $"x Exception: {e.Message}";
-                using (UIndent())
-                    DrawValue("-", ref str, true, (hashcodeSource, index).GetHashCode());
-            }
-        }
-        Spacing();
+        bool recursable = Type.GetTypeCode(type) == TypeCode.Object;
+        return recursable && (typeData.FilteredMembers.Length > 0 || ReadableIEnumerable(value));
     }
 
-    bool TryDrawAsIDictionary(object target, int hashcodeSource)
+    void DrawRecurseArrow(bool recursable, bool recurse, int memberInHierarchyId)
     {
-        var typeData = GetTypeData(target.GetType());
-        if (typeData.AsDictionary == null)
-            return false;
-        var data = typeData.AsDictionary.Value;
-        Spacing();
-        TextDisabled("As Dictionary");
-        // Most of the management here is done through reflection
-        // as the type might not implement IDictionary but just IDictionary<T> ...
-        using (UIndent())
+        if (recursable)
         {
-            { // Show dictionary content
-              // IDictionary.Keys
-                var keys = (data.getKey?.Invoke(target, null) as IEnumerable)?.GetEnumerator();
-                // IDictionary.Values
-                var values = (data.getValue?.Invoke(target, null) as IEnumerable)?.GetEnumerator();
-                if (keys == null || values == null)
-                    return false;
-
-                bool removeKey = false;
-                object? keyToRemove = null;
-
-                bool changeKey = false;
-                object? keyToChange = null;
-                object? valueOfKeyToChange = null;
-
-                int index = 0;
-                while (keys.MoveNext() && values.MoveNext())
-                {
-                    var key = keys.Current;
-                    var value = values.Current;
-                    // hashcode with index: key is guaranteed to be unique and constant but not its ToString()
-                    int newHash = (hashcodeSource, index).GetHashCode();
-                    using (ID(newHash))
-                    {
-                        SetCursorPosX(GetCursorPosX() - DUMMY_WIDTH);
-                        if (Button("x"))
-                        {
-                            removeKey = true;
-                            keyToRemove = key;
-                        }
-                    }
-                    SameLine();
-                    if (DrawValue(key?.ToString() ?? "null", ref value, false, newHash))
-                    {
-                        changeKey = true;
-                        keyToChange = key;
-                        valueOfKeyToChange = value;
-                    }
-
-                    index++;
-                }
-
-                if (removeKey)
-                {
-                    target.GetType().GetMethod(nameof(IDictionary.Remove), [data.key])
-                        ?.Invoke(target, [keyToRemove]);
-                }
-
-                if (changeKey)
-                {
-                    // IDictionary[ keyToChange ] = valueOfKeyToChange
-                    var parameters = new[] { keyToChange, valueOfKeyToChange };
-                    target.GetType().GetProperty("Item", data.value, [data.key])?
-                        .SetMethod?.Invoke(target, parameters);
-                }
-            }
-
-            // Show upcoming key and value
-            if (_dicAddCommandTarget.TryGetTarget(out var addActionTarget) && addActionTarget == target)
+            if (ArrowButton("", recurse ? ImGuiDir.Down : ImGuiDir.Right))
             {
-                (object? key, object? value) = _dicAddCommandData;
-                DrawValue("Upcoming Key:", ref key, false, hashcodeSource);
-                DrawValue("Upcoming Value:", ref value, false, hashcodeSource);
-                _dicAddCommandData = (key, value);
-                if (Button("Cancel"))
-                {
-                    _dicAddCommandData = (null, null);
-                    _dicAddCommandTarget.SetTarget(null);
-                }
-                SameLine();
-                if (Button("Add"))
-                {
-                    var parameters = new[] { key, value };
-                    target.GetType().GetMethod(nameof(IDictionary.Add), [data.key, data.value])
-                        ?.Invoke(target, parameters);
-
-                    _dicAddCommandData = (null, null);
-                    _dicAddCommandTarget.SetTarget(null);
-                }
-            }
-            // Prepare an add to the dictionary: create an editable instance for key and value
-            else if (Button("+", new Vector2(GetContentRegionAvail().X, GetTextLineHeightWithSpacing())))
-            {
-                _dicAddCommandData = (GetTypeData(data.key).NewObject(), GetTypeData(data.value).NewObject());
-                _dicAddCommandTarget.SetTarget(target);
-            }
-        }
-
-        return true;
-    }
-
-    bool TryDrawAsIList(object target, int hashcodeSource)
-    {
-        var typeData = GetTypeData(target.GetType());
-        if (typeData.AsList == null)
-            return false;
-        Spacing();
-        TextDisabled("As List");
-        // Most of the management here is done through reflection
-        // as the type might not implement IList but just IList<T> ...
-        using (UIndent())
-        {
-            int i = 0;
-            int? indexToRemove = null;
-            int? indexToChange = null;
-            object? objectToAssign = null;
-            foreach (object? o in (IEnumerable)target)
-            {
-                object? o2 = o;
-                using (ID($"{o}{i}"))
-                {
-                    SetCursorPosX(GetCursorPosX() - DUMMY_WIDTH);
-                    if (Button("x"))
-                        indexToRemove = i;
-                }
-                SameLine();
-                if (DrawValue($"{i}:", ref o2, false, hashcodeSource))
-                {
-                    indexToChange = i;
-                    objectToAssign = o2;
-                }
-
-                i++;
-            }
-
-            // Calling 'this[int indexToChange] = objectToAssign'
-            if (indexToChange != null)
-            {
-                MethodInfo? listAccessor;
-                if (target.GetType().IsArray)
-                {
-                    listAccessor = target.GetType().GetMethod("SetValue", [typeof(object), typeof(int)]);
-                    listAccessor?.Invoke(target, [objectToAssign, indexToChange.Value]);
-                }
+                if (recurse)
+                    _openedId.Remove(memberInHierarchyId);
                 else
-                {
-                    listAccessor = target.GetType().GetProperty("Item", typeData.AsList, [typeof(int)])?.SetMethod;
-                    listAccessor?.Invoke(target, [indexToChange.Value, objectToAssign]);
-                }
-                if (listAccessor == null)
-                    System.Console.WriteLine($"Couldn't find {nameof(listAccessor)} for {target.GetType()}");
-            }
-            // Calling 'RemoveAt(int index)'
-            if (indexToRemove != null)
-            {
-                target.GetType().GetMethod(nameof(IList.RemoveAt), [typeof(int)])?.Invoke(target, [indexToRemove.Value]);
-            }
-
-            // Calling 'Add(ObjectType object)'
-            if (Button("+", new Vector2(GetContentRegionAvail().X, GetTextLineHeightWithSpacing())))
-            {
-                var valueType = typeData.AsList;
-                var value = GetTypeData(typeData.AsList).NewObject();
-                target.GetType().GetMethod(nameof(IList.Add), [valueType])?.Invoke(target, [value]);
+                    _openedId.Add(memberInHierarchyId);
             }
         }
-
-        return true;
+        else
+        {
+            Dummy(new Vector2(DUMMY_WIDTH, 1));
+        }
     }
 
-    TypeCache GetTypeData(Type t)
+    internal TypeCache GetTypeData(Type t)
     {
         if (_cachedTypeData.TryGetValue(t, out var output))
             return output;
@@ -595,49 +360,6 @@ RECURSE:
         }
 
         return false;
-    }
-
-    static ulong GetEnumBits(object enumValue)
-    {
-        var valueType = enumValue.GetType();
-        if (valueType.IsEnum)
-            valueType = Enum.GetUnderlyingType(valueType);
-
-        if (valueType == typeof(int)) return (ulong)(int)enumValue;
-        if (valueType == typeof(uint)) return (ulong)(uint)enumValue;
-        if (valueType == typeof(long)) return (ulong)(long)enumValue;
-        if (valueType == typeof(ulong)) return (ulong)enumValue;
-        if (valueType == typeof(short)) return (ulong)(short)enumValue;
-        if (valueType == typeof(ushort)) return (ulong)(ushort)enumValue;
-        if (valueType == typeof(byte)) return (ulong)(byte)enumValue;
-        if (valueType == typeof(sbyte)) return (ulong)(sbyte)enumValue;
-
-        throw new ArgumentException(valueType.ToString());
-    }
-
-    static object GetEnumValueFromBits(ulong bits, Type enumType)
-    {
-        if (enumType.IsEnum)
-        {
-            var valueType = Enum.GetUnderlyingType(enumType);
-            if (valueType == typeof(int)) return (int)bits;
-            if (valueType == typeof(uint)) return (uint)bits;
-            if (valueType == typeof(long)) return (long)bits;
-            if (valueType == typeof(ulong)) return bits;
-            if (valueType == typeof(short)) return (short)bits;
-            if (valueType == typeof(ushort)) return (ushort)bits;
-            if (valueType == typeof(byte)) return (byte)bits;
-            if (valueType == typeof(sbyte)) return (sbyte)bits;
-        }
-
-        throw new ArgumentException(enumType.ToString());
-    }
-
-    static float RelativeDragSpeed(in float currentValue)
-    {
-        float finalSpeed = currentValue < 0f ? -currentValue : currentValue;
-        finalSpeed *= 0.1f;
-        return finalSpeed < 0.001f ? 0.001f : finalSpeed;
     }
 
     /// <summary>
@@ -664,7 +386,7 @@ RECURSE:
         Inherited = Instance << 1,
     }
 
-    class TypeCache
+    internal class TypeCache
     {
         public readonly MemberInfo[] FilteredMembers;
         public readonly (Type key, Type value, MethodInfo? getKey, MethodInfo? getValue)? AsDictionary;

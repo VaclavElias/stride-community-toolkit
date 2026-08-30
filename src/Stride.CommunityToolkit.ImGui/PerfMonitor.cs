@@ -5,9 +5,9 @@ using Stride.Games;
 using Stride.Graphics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Threading.Channels;
 using static Hexa.NET.ImGui.ImGui;
 using static Stride.CommunityToolkit.ImGui.ImGuiExtension;
+using static Stride.CommunityToolkit.ImGui.PerfMonitorHelpers;
 using TimeSpan = System.TimeSpan;
 
 namespace Stride.CommunityToolkit.ImGui;
@@ -51,7 +51,6 @@ public class PerfMonitor : BaseWindow
     static PerfMonitor? _threadStaticMonitor;
 
     static readonly ProfilingEventType[] PROFILING_EVENT_TYPES = (ProfilingEventType[])System.Enum.GetValues(typeof(ProfilingEventType));
-    static readonly ProfilingKey _dummyKey = new("dummy");
 
     // Work agnostic data
     readonly Dictionary<Thread, ThreadSampleCollection> _cpuSamples = [];
@@ -208,6 +207,18 @@ public class PerfMonitor : BaseWindow
     {
         if (collapsed)
             return;
+
+        DrawControls();
+        DrawFrameTimeGraph();
+        DrawMemoryAndDrawCallGraphs();
+        DrawFrameSection();
+
+        // Leave it as dynamic after first set
+        _windowSize = null;
+    }
+
+    void DrawControls()
+    {
         using (UColumns(2))
         {
             Checkbox("Pause", ref PauseEval);
@@ -220,7 +231,10 @@ public class PerfMonitor : BaseWindow
         InputInt("Sample Size", ref sampleSize);
         if (sampleSize != _graph.Length)
             SetGraphSize(sampleSize);
+    }
 
+    void DrawFrameTimeGraph()
+    {
         {
             // Draw and update frame-time graph
             float min = float.MaxValue, max = float.MinValue;
@@ -241,7 +255,10 @@ public class PerfMonitor : BaseWindow
             SameLine();
             TextUnformatted($"-{S(max)}\n({S(max - min)})\n-{S(min)}");
         }
+    }
 
+    void DrawMemoryAndDrawCallGraphs()
+    {
         using (UColumns(2))
         {
             if (CollapsingHeader("Managed Memory"))
@@ -296,7 +313,10 @@ public class PerfMonitor : BaseWindow
                     stride: GraphPoint.SizeOf);
             }
         }
+    }
 
+    void DrawFrameSection()
+    {
         if (CollapsingHeader("Frame", ImGuiTreeNodeFlags.DefaultOpen))
         {
             using (Child())
@@ -357,72 +377,6 @@ public class PerfMonitor : BaseWindow
                 }
             }
         }
-
-        // Leave it as dynamic after first set
-        _windowSize = null;
-    }
-
-    static async void StartProcessingMarkers(List<EventWrapper> _sortedList, CancellationToken token)
-    {
-        ChannelReader<ProfilingEvent> events = Profiler.Subscribe();
-        try
-        {
-            while (token.IsCancellationRequested == false)
-            {
-                ProfilingEvent perfEvent = await events.ReadAsync(token);
-                EventWrapper begin = new(perfEvent, true, perfEvent.TimeStamp);
-                EventWrapper end = new(perfEvent, false, perfEvent.TimeStamp + perfEvent.ElapsedTime);
-                lock (_sortedList)
-                {
-                    var index = _sortedList.BinarySearch(begin);
-                    if (index < 0)
-                        _sortedList.Insert(~index, begin);
-                    else
-                        _sortedList.Insert(index, begin);
-                    var index2 = _sortedList.BinarySearch(end);
-                    if (index2 < 0)
-                        _sortedList.Insert(~index2, end);
-                    else
-                        _sortedList.Insert(index2, end);
-                }
-            }
-        }
-        finally
-        {
-            Profiler.Unsubscribe(events);
-        }
-    }
-
-    private static void DrawSample(Vector2 corner, float maxWidth, SampleInstance sample, TimeSpan start, double duration)
-    {
-        const float MIN_SIZE = 2f;
-        float height = GetTextLineHeightWithSpacing();
-        // Get ratio of this sample compared to total frame duration
-        float size = (float)(sample.Duration / duration);
-        size *= maxWidth; // Fit ratio to window
-        size = size < MIN_SIZE ? MIN_SIZE : size;
-        // Compute offset from the window's edge
-        float pos = (float)(sample.Start - start).TotalMilliseconds;
-        pos /= (float)duration;
-        pos *= maxWidth;
-        // outside of view:left
-        if (pos + size < MIN_SIZE)
-            size += pos + size + MIN_SIZE;
-        // outside of view:right
-        if (pos > maxWidth - MIN_SIZE)
-            pos = maxWidth - MIN_SIZE;
-
-        SetCursorPos(corner + new Vector2(pos, sample.Depth * height));
-        Button(sample.Id, new Vector2(size, height));
-        if (IsItemHovered())
-        {
-            using (Tooltip())
-            {
-                TextUnformatted(sample.DeltaMemAlloc.HasValue
-                    ? $"{sample.Id}:\n{S(sample.Duration)}ms - {Ts(sample.DeltaMemAlloc)} byte(s)"
-                    : $"{sample.Id}:\n{S(sample.Duration)}ms");
-            }
-        }
     }
 
     void EndFrame()
@@ -438,46 +392,7 @@ public class PerfMonitor : BaseWindow
 
             using (Sample($"{nameof(PerfSampler)}:StrideProfilerParsing")) // Manage stride-specific profiler events
             {
-                if (PauseEval)
-                {
-                    lock (_sorter)
-                        _sorter.Clear();
-                }
-                else
-                {
-                    TimeSpan min = TimeSpan.MaxValue, max = TimeSpan.MinValue;
-
-                    _stride.samples.Clear();
-                    _gpu.samples.Clear();
-
-                    lock (_sorter)
-                    {
-                        foreach (var e in _sorter)
-                        {
-                            ref var data = ref e.Event.IsGPUEvent() ? ref _gpu : ref _stride;
-
-                            if (e.Begin)
-                            {
-                                data.depth++;
-                                continue;
-                            }
-
-                            var end = e.Event.TimeStamp + e.Event.ElapsedTime;
-                            min = min <= e.Event.TimeStamp ? min : e.Event.TimeStamp;
-                            max = max > end ? max : end;
-                            var sample = new SampleInstance(e.Event.Key.Name, data.depth, e.Event.TimeStamp, e.Event.ElapsedTime.TotalMilliseconds, null);
-                            data.samples.Add(sample);
-                            data.depth--;
-                        }
-                        _sorter.Clear();
-                    }
-
-                    if (_stride.samples.Count > 0)
-                        _stride = _stride with { start = min, duration = (max - min).TotalMilliseconds };
-
-                    if (_gpu.samples.Count > 0)
-                        _gpu = _gpu with { start = min, duration = (max - min).TotalMilliseconds };
-                }
+                ParseStrideProfilerEvents(_sorter, ref _gpu, ref _stride, PauseEval);
             }
 
             if (PauseEval)
@@ -493,66 +408,37 @@ public class PerfMonitor : BaseWindow
 
             _cpuFrame = (_timer.InitTime, _timer.Restart().TotalMilliseconds);
 
-            const double MB = (1 << 20);
-            GraphPoint newPoint = new()
-            {
-                FrameTime = (float)_cpuFrame.duration,
-                TotalManagedMB = (float)(System.GC.GetTotalMemory(false) / MB),
-                DrawCalls = GraphicsDevice.FrameDrawCalls,
-                BufferMemMB = (float)(GraphicsDevice.BuffersMemory / MB),
-                TexMemMB = (float)(GraphicsDevice.TextureMemory / MB)
-            };
-
-            if (PauseOnLargeDelta)
-            {
-                if (newPoint.FrameTime < Average.FrameTime * 0.5f || newPoint.FrameTime > Average.FrameTime * 1.5f)
-                    PauseEval = true;
-            }
-
-            // Use simple aggregate to avoid having to loop through the array to get the average
-            _graphAggregated -= _graph[0];
-            _graphAggregated += newPoint;
-
-            // Move each value to a lower position in the array, could be replaced by a mem copy ?
-            for (int i = 0; i < _graph.Length - 1; i++)
-                _graph[i] = _graph[i + 1];
-            // Push latest onto our plot
-            _graph[^1] = newPoint;
+            PushGraphPoint();
         }
     }
 
-    private static string S(float val, string? format = null)
+    void PushGraphPoint()
     {
-        return val.ToString(format ?? "F2", System.Globalization.CultureInfo.CurrentCulture);
-    }
-
-    private static string S(double val, string? format = null)
-    {
-        return val.ToString(format ?? "F2", System.Globalization.CultureInfo.CurrentCulture);
-    }
-
-    private static string Ts<T>(T val)
-    {
-        return val?.ToString() ?? string.Empty;
-    }
-
-    private static bool IsStrideProfilingAll()
-    {
-        Profiler.Disable(_dummyKey);
-        // With the given disabled key this function will return true if EnableAll is set
-        return Profiler.IsEnabled(_dummyKey);
-    }
-
-    /// <summary> Guarantees that this key exist and returns at least a default new() value </summary>
-    static TValue Guaranteed<TKey, TValue>(IDictionary<TKey, TValue> dictionary, TKey key) where TValue : new()
-    {
-        if (dictionary.TryGetValue(key, out var value) == false)
+        const double MB = (1 << 20);
+        GraphPoint newPoint = new()
         {
-            value = new TValue();
-            dictionary.Add(key, value);
+            FrameTime = (float)_cpuFrame.duration,
+            TotalManagedMB = (float)(System.GC.GetTotalMemory(false) / MB),
+            DrawCalls = GraphicsDevice.FrameDrawCalls,
+            BufferMemMB = (float)(GraphicsDevice.BuffersMemory / MB),
+            TexMemMB = (float)(GraphicsDevice.TextureMemory / MB)
+        };
+
+        if (PauseOnLargeDelta)
+        {
+            if (newPoint.FrameTime < Average.FrameTime * 0.5f || newPoint.FrameTime > Average.FrameTime * 1.5f)
+                PauseEval = true;
         }
 
-        return value;
+        // Use simple aggregate to avoid having to loop through the array to get the average
+        _graphAggregated -= _graph[0];
+        _graphAggregated += newPoint;
+
+        // Move each value to a lower position in the array, could be replaced by a mem copy ?
+        for (int i = 0; i < _graph.Length - 1; i++)
+            _graph[i] = _graph[i + 1];
+        // Push latest onto our plot
+        _graph[^1] = newPoint;
     }
 
     /// <summary>
@@ -640,22 +526,19 @@ public class PerfMonitor : BaseWindow
         #region OPERATOR
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static GraphPoint operator +(in GraphPoint a, in GraphPoint b)
+        public static GraphPoint operator +(GraphPoint a, GraphPoint b)
         {
             unsafe
             {
                 GraphPoint dest = a;
                 float* pDest = (float*)&dest;
-                fixed (GraphPoint* pSrcTmp = &b)
+                float* pSrc = (float*)&b;
+                var remaining = Count;
+                while (remaining-- > 0)
                 {
-                    float* pSrc = (float*)pSrcTmp;
-                    var remaining = Count;
-                    while (remaining-- > 0)
-                    {
-                        *pDest += *pSrc;
-                        pSrc++;
-                        pDest++;
-                    }
+                    *pDest += *pSrc;
+                    pSrc++;
+                    pDest++;
                 }
 
                 return dest;
@@ -665,22 +548,19 @@ public class PerfMonitor : BaseWindow
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static GraphPoint operator -(in GraphPoint a, in GraphPoint b)
+        public static GraphPoint operator -(GraphPoint a, GraphPoint b)
         {
             unsafe
             {
                 GraphPoint dest = a;
                 float* pDest = (float*)&dest;
-                fixed (GraphPoint* pSrcTmp = &b)
+                float* pSrc = (float*)&b;
+                var remaining = Count;
+                while (remaining-- > 0)
                 {
-                    float* pSrc = (float*)pSrcTmp;
-                    var remaining = Count;
-                    while (remaining-- > 0)
-                    {
-                        *pDest -= *pSrc;
-                        pSrc++;
-                        pDest++;
-                    }
+                    *pDest -= *pSrc;
+                    pSrc++;
+                    pDest++;
                 }
 
                 return dest;
@@ -690,7 +570,7 @@ public class PerfMonitor : BaseWindow
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static GraphPoint operator /(in GraphPoint a, in float v)
+        public static GraphPoint operator /(GraphPoint a, float v)
         {
             unsafe
             {
@@ -710,7 +590,7 @@ public class PerfMonitor : BaseWindow
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static GraphPoint operator *(in GraphPoint a, in float v)
+        public static GraphPoint operator *(GraphPoint a, float v)
         {
             unsafe
             {
@@ -731,13 +611,13 @@ public class PerfMonitor : BaseWindow
 
     }
 
-    readonly record struct EventWrapper(ProfilingEvent Event, bool Begin, TimeSpan Stamp) : System.IComparable<EventWrapper>
+    internal readonly record struct EventWrapper(ProfilingEvent Event, bool Begin, TimeSpan Stamp) : System.IComparable<EventWrapper>
     {
         public int CompareTo(EventWrapper other) => Stamp.CompareTo(other.Stamp);
     }
 
     /// <summary> Object containing a sample's data </summary>
-    readonly struct SampleInstance(string id, int depth, TimeSpan start, double duration, long? deltaMemAlloc)
+    internal readonly struct SampleInstance(string id, int depth, TimeSpan start, double duration, long? deltaMemAlloc)
     {
         public readonly string Id = id;
         public readonly int Depth = depth;

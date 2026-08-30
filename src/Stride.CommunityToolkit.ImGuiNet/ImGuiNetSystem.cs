@@ -24,7 +24,7 @@ public class ImGuiNetSystem : GameSystemBase
     // GameSystemBase.Game is nullable; resolve it once so every later access is a plain dereference.
     private readonly GameBase _game;
 
-    private readonly List<DrawCommand> _drawCommands = [];
+    private readonly ImGuiNetTextOverlay _textOverlay = new();
     private bool _showUI = true;
     private bool _initialized = false;
 
@@ -123,13 +123,7 @@ public class ImGuiNetSystem : GameSystemBase
     {
         if (!_showUI || !_initialized) return;
 
-        _drawCommands.Add(new DrawCommand
-        {
-            Type = DrawCommandType.ScreenText,
-            ScreenPosition = new Vector2(x, y),
-            Message = message,
-            Color = color ?? new Vector4(0.9f, 0.9f, 0.9f, 1.0f)
-        });
+        _textOverlay.AddScreenText(x, y, message, color);
     }
 
     /// <summary>
@@ -142,13 +136,7 @@ public class ImGuiNetSystem : GameSystemBase
     {
         if (!_showUI || !_initialized) return;
 
-        _drawCommands.Add(new DrawCommand
-        {
-            Type = DrawCommandType.WorldText,
-            WorldPosition = worldPosition,
-            Message = message,
-            Color = color ?? new Vector4(0.9f, 0.9f, 0.9f, 1.0f)
-        });
+        _textOverlay.AddWorldText(worldPosition, message, color);
     }
 
     /// <summary>
@@ -420,7 +408,7 @@ public class ImGuiNetSystem : GameSystemBase
         // Handle input if available
         if (_inputManager != null)
         {
-            UpdateInput();
+            ImGuiNetInputMapper.Update(_inputManager);
         }
 
         // An update that never reached a draw left a frame open. Close it before starting the next one,
@@ -435,7 +423,7 @@ public class ImGuiNetSystem : GameSystemBase
         _frameBegun = true;
 
         // Process draw commands
-        ProcessDrawCommands();
+        _textOverlay.Draw(_showUI, _camera, GraphicsDevice);
     }
 
     /// <inheritdoc/>
@@ -544,86 +532,6 @@ public class ImGuiNetSystem : GameSystemBase
         }
     }
 
-    private void UpdateInput()
-    {
-        if (_inputManager == null) return;
-
-        var io = ImGui.GetIO();
-
-        // Update mouse position
-        if (_inputManager.HasMouse && !_inputManager.IsMousePositionLocked)
-        {
-            var mousePos = _inputManager.AbsoluteMousePosition;
-            io.MousePos = new Vector2(mousePos.X, mousePos.Y);
-
-            // Mouse buttons
-            io.MouseDown[0] = _inputManager.IsMouseButtonDown(MouseButton.Left);
-            io.MouseDown[1] = _inputManager.IsMouseButtonDown(MouseButton.Right);
-            io.MouseDown[2] = _inputManager.IsMouseButtonDown(MouseButton.Middle);
-        }
-
-        // Handle input events
-        foreach (var inputEvent in _inputManager.Events)
-        {
-            switch (inputEvent)
-            {
-                case TextInputEvent textEvent:
-                    if (textEvent.Text != "\t")
-                        ImGui.GetIO().AddInputCharactersUTF8(textEvent.Text);
-                    break;
-
-                case MouseWheelEvent wheelEvent:
-                    io.MouseWheel += wheelEvent.WheelDelta;
-                    break;
-            }
-        }
-
-        // Modifier keys
-        io.KeyAlt = _inputManager.IsKeyDown(Keys.LeftAlt) || _inputManager.IsKeyDown(Keys.RightAlt);
-        io.KeyShift = _inputManager.IsKeyDown(Keys.LeftShift) || _inputManager.IsKeyDown(Keys.RightShift);
-        io.KeyCtrl = _inputManager.IsKeyDown(Keys.LeftCtrl) || _inputManager.IsKeyDown(Keys.RightCtrl);
-        io.KeySuper = _inputManager.IsKeyDown(Keys.LeftWin) || _inputManager.IsKeyDown(Keys.RightWin);
-    }
-
-    private void ProcessDrawCommands()
-    {
-        if (!_showUI || _drawCommands.Count == 0) return;
-
-        // Create a single, fullscreen transparent overlay window and place all items into it
-        var io = ImGui.GetIO();
-        ImGui.SetNextWindowPos(Vector2.Zero);
-        ImGui.SetNextWindowSize(io.DisplaySize);
-        ImGui.SetNextWindowBgAlpha(0.0f); // no background without needing NoBackground flag
-
-        ImGui.Begin("Overlay",
-            ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoInputs |
-            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings);
-
-        foreach (var command in _drawCommands)
-        {
-            Vector2 screenPos = command.Type == DrawCommandType.ScreenText
-                ? command.ScreenPosition
-                : WorldToScreen(command.WorldPosition);
-
-            ImGui.SetCursorPos(screenPos);
-            ImGui.TextColored(command.Color, command.Message);
-        }
-
-        ImGui.End();
-
-        // Clear commands for next frame
-        _drawCommands.Clear();
-    }
-
-    private Vector2 WorldToScreen(Vector3 worldPosition)
-    {
-        if (_camera is null) return Vector2.Zero;
-
-        var result = _camera.WorldToScreenPoint(ref worldPosition, GraphicsDevice);
-
-        return result;
-    }
-
     /// <inheritdoc/>
     protected override void Destroy()
     {
@@ -640,18 +548,4 @@ public class ImGuiNetSystem : GameSystemBase
         base.Destroy();
     }
 
-    private enum DrawCommandType
-    {
-        ScreenText,
-        WorldText
-    }
-
-    private readonly record struct DrawCommand
-    {
-        internal DrawCommandType Type { get; init; }
-        internal Vector2 ScreenPosition { get; init; }
-        internal Vector3 WorldPosition { get; init; }
-        internal required string Message { get; init; }
-        internal Vector4 Color { get; init; }
-    }
 }

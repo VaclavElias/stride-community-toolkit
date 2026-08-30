@@ -193,8 +193,6 @@ internal sealed class DebugPrimitiveRenderer
     internal void DrawPrimitives(RenderDrawContext context, RenderView renderView, ref Primitives offsets, ref Primitives counts, bool depthTest, FillMode fillMode, bool hasTransparency)
     {
         var commandList = context.CommandList;
-        var geometry = _geometry!;
-        var store = _store!;
 
         // bind buffers
         commandList.SetVertexBuffer(0, _vertexBuffer, 0, VertexPositionTexture.Layout.VertexStride);
@@ -210,92 +208,103 @@ internal sealed class DebugPrimitiveRenderer
         _primitiveEffect.UpdateEffect(context.GraphicsDevice);
         _primitiveEffect.Apply(context.GraphicsContext);
 
-        // spheres
-        if (counts.Spheres > 0)
+        // one pass per pipeline configuration: spheres draw single-sided on their own, quads,
+        // circles and half spheres share a double-sided pass, the remaining volumes a single-sided
+        // one, and lines use their own effect and vertex buffer.
+        DrawSpheres(context, ref offsets, ref counts, depthTest, fillMode, hasTransparency);
+        DrawDoubleSidedPrimitives(context, ref offsets, ref counts, depthTest, fillMode, hasTransparency);
+        DrawSingleSidedPrimitives(context, ref offsets, ref counts, depthTest, fillMode, hasTransparency);
+        DrawLines(context, renderView, ref offsets, ref counts, depthTest, hasTransparency);
+    }
+
+    private void DrawSpheres(RenderDrawContext context, ref Primitives offsets, ref Primitives counts, bool depthTest, FillMode fillMode, bool hasTransparency)
+    {
+        if (counts.Spheres <= 0) return;
+
+        var geometry = _geometry!;
+        _pipeline!.ConfigurePrimitivePipeline(context.CommandList, depthTest, fillMode, isDoubleSided: false, hasTransparency);
+        context.CommandList.SetPipelineState(_pipelineState!.CurrentState);
+
+        DrawInstanced(context, offsets.Spheres, counts.Spheres, geometry.SphereIndexCount, geometry.IndexOffsets.Spheres, geometry.VertexOffsets.Spheres);
+    }
+
+    private void DrawDoubleSidedPrimitives(RenderDrawContext context, ref Primitives offsets, ref Primitives counts, bool depthTest, FillMode fillMode, bool hasTransparency)
+    {
+        if (counts.Quads <= 0 && counts.Circles <= 0 && counts.HalfSpheres <= 0) return;
+
+        var geometry = _geometry!;
+        _pipeline!.ConfigurePrimitivePipeline(context.CommandList, depthTest, fillMode, isDoubleSided: true, hasTransparency);
+        context.CommandList.SetPipelineState(_pipelineState!.CurrentState);
+
+        if (counts.Quads > 0)
         {
-            _pipeline!.ConfigurePrimitivePipeline(commandList, depthTest, fillMode, isDoubleSided: false, hasTransparency);
-            commandList.SetPipelineState(_pipelineState.CurrentState);
-            _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, offsets.Spheres);
-            _primitiveEffect.Apply(context.GraphicsContext);
-            commandList.DrawIndexedInstanced(geometry.SphereIndexCount, counts.Spheres, geometry.IndexOffsets.Spheres, geometry.VertexOffsets.Spheres);
+            DrawInstanced(context, offsets.Quads, counts.Quads, geometry.QuadIndexCount, geometry.IndexOffsets.Quads, geometry.VertexOffsets.Quads);
         }
 
-        // quads / circles / half spheres (double-sided)
-        if (counts.Quads > 0 || counts.Circles > 0 || counts.HalfSpheres > 0)
+        if (counts.Circles > 0)
         {
-            _pipeline!.ConfigurePrimitivePipeline(commandList, depthTest, fillMode, isDoubleSided: true, hasTransparency);
-            commandList.SetPipelineState(_pipelineState.CurrentState);
-
-            if (counts.Quads > 0)
-            {
-                _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, offsets.Quads);
-                _primitiveEffect.Apply(context.GraphicsContext);
-                commandList.DrawIndexedInstanced(geometry.QuadIndexCount, counts.Quads, geometry.IndexOffsets.Quads, geometry.VertexOffsets.Quads);
-            }
-
-            if (counts.Circles > 0)
-            {
-                _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, offsets.Circles);
-                _primitiveEffect.Apply(context.GraphicsContext);
-                commandList.DrawIndexedInstanced(geometry.CircleIndexCount, counts.Circles, geometry.IndexOffsets.Circles, geometry.VertexOffsets.Circles);
-            }
-
-            if (counts.HalfSpheres > 0)
-            {
-                _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, offsets.HalfSpheres);
-                _primitiveEffect.Apply(context.GraphicsContext);
-                commandList.DrawIndexedInstanced(geometry.HalfSphereIndexCount, counts.HalfSpheres, geometry.IndexOffsets.HalfSpheres, geometry.VertexOffsets.HalfSpheres);
-            }
+            DrawInstanced(context, offsets.Circles, counts.Circles, geometry.CircleIndexCount, geometry.IndexOffsets.Circles, geometry.VertexOffsets.Circles);
         }
 
-        // cubes / capsules / cylinders / cones (single-sided)
-        if (counts.Cubes > 0 || counts.Capsules > 0 || counts.Cylinders > 0 || counts.Cones > 0)
+        if (counts.HalfSpheres > 0)
         {
-            _pipeline!.ConfigurePrimitivePipeline(commandList, depthTest, fillMode, isDoubleSided: false, hasTransparency);
-            commandList.SetPipelineState(_pipelineState.CurrentState);
+            DrawInstanced(context, offsets.HalfSpheres, counts.HalfSpheres, geometry.HalfSphereIndexCount, geometry.IndexOffsets.HalfSpheres, geometry.VertexOffsets.HalfSpheres);
+        }
+    }
 
-            if (counts.Cubes > 0)
-            {
-                _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, offsets.Cubes);
-                _primitiveEffect.Apply(context.GraphicsContext);
-                commandList.DrawIndexedInstanced(geometry.CubeIndexCount, counts.Cubes, geometry.IndexOffsets.Cubes, geometry.VertexOffsets.Cubes);
-            }
+    private void DrawSingleSidedPrimitives(RenderDrawContext context, ref Primitives offsets, ref Primitives counts, bool depthTest, FillMode fillMode, bool hasTransparency)
+    {
+        if (counts.Cubes <= 0 && counts.Capsules <= 0 && counts.Cylinders <= 0 && counts.Cones <= 0) return;
 
-            if (counts.Capsules > 0)
-            {
-                _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, offsets.Capsules);
-                _primitiveEffect.Apply(context.GraphicsContext);
-                commandList.DrawIndexedInstanced(geometry.CapsuleIndexCount, counts.Capsules, geometry.IndexOffsets.Capsules, geometry.VertexOffsets.Capsules);
-            }
+        var geometry = _geometry!;
+        _pipeline!.ConfigurePrimitivePipeline(context.CommandList, depthTest, fillMode, isDoubleSided: false, hasTransparency);
+        context.CommandList.SetPipelineState(_pipelineState!.CurrentState);
 
-            if (counts.Cylinders > 0)
-            {
-                _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, offsets.Cylinders);
-                _primitiveEffect.Apply(context.GraphicsContext);
-                commandList.DrawIndexedInstanced(geometry.CylinderIndexCount, counts.Cylinders, geometry.IndexOffsets.Cylinders, geometry.VertexOffsets.Cylinders);
-            }
-
-            if (counts.Cones > 0)
-            {
-                _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, offsets.Cones);
-                _primitiveEffect.Apply(context.GraphicsContext);
-                commandList.DrawIndexedInstanced(geometry.ConeIndexCount, counts.Cones, geometry.IndexOffsets.Cones, geometry.VertexOffsets.Cones);
-            }
+        if (counts.Cubes > 0)
+        {
+            DrawInstanced(context, offsets.Cubes, counts.Cubes, geometry.CubeIndexCount, geometry.IndexOffsets.Cubes, geometry.VertexOffsets.Cubes);
         }
 
-        // lines
-        if (counts.Lines > 0)
+        if (counts.Capsules > 0)
         {
-            _pipeline!.ConfigureLinePipeline(commandList, depthTest, hasTransparency);
-            commandList.SetVertexBuffer(0, _lineVertexBuffer, 0, LineVertex.Layout.VertexStride);
-            commandList.SetPipelineState(_pipelineState.CurrentState);
-
-            _lineEffect!.Parameters.Set(LinePrimitiveShaderKeys.ViewProjection, renderView.ViewProjection);
-            _lineEffect.UpdateEffect(context.GraphicsDevice);
-            _lineEffect.Apply(context.GraphicsContext);
-
-            commandList.Draw(counts.Lines * 2, offsets.Lines);
+            DrawInstanced(context, offsets.Capsules, counts.Capsules, geometry.CapsuleIndexCount, geometry.IndexOffsets.Capsules, geometry.VertexOffsets.Capsules);
         }
+
+        if (counts.Cylinders > 0)
+        {
+            DrawInstanced(context, offsets.Cylinders, counts.Cylinders, geometry.CylinderIndexCount, geometry.IndexOffsets.Cylinders, geometry.VertexOffsets.Cylinders);
+        }
+
+        if (counts.Cones > 0)
+        {
+            DrawInstanced(context, offsets.Cones, counts.Cones, geometry.ConeIndexCount, geometry.IndexOffsets.Cones, geometry.VertexOffsets.Cones);
+        }
+    }
+
+    /// <summary>
+    /// Sets the instance offset, applies the effect and issues one instanced draw.
+    /// </summary>
+    private void DrawInstanced(RenderDrawContext context, int instanceOffset, int instanceCount, int indexCount, int indexStart, int vertexOffset)
+    {
+        _primitiveEffect!.Parameters.Set(PrimitiveShaderKeys.InstanceOffset, instanceOffset);
+        _primitiveEffect.Apply(context.GraphicsContext);
+        context.CommandList.DrawIndexedInstanced(indexCount, instanceCount, indexStart, vertexOffset);
+    }
+
+    private void DrawLines(RenderDrawContext context, RenderView renderView, ref Primitives offsets, ref Primitives counts, bool depthTest, bool hasTransparency)
+    {
+        if (counts.Lines <= 0) return;
+
+        var commandList = context.CommandList;
+        _pipeline!.ConfigureLinePipeline(commandList, depthTest, hasTransparency);
+        commandList.SetVertexBuffer(0, _lineVertexBuffer, 0, LineVertex.Layout.VertexStride);
+        commandList.SetPipelineState(_pipelineState!.CurrentState);
+
+        _lineEffect!.Parameters.Set(LinePrimitiveShaderKeys.ViewProjection, renderView.ViewProjection);
+        _lineEffect.UpdateEffect(context.GraphicsDevice);
+        _lineEffect.Apply(context.GraphicsContext);
+
+        commandList.Draw(counts.Lines * 2, offsets.Lines);
     }
 
     /// <summary>
