@@ -2,9 +2,23 @@
 
 This article walks you through the initial steps to use the packages in the Stride Community Toolkit.
 
+## 🔗 Which version for which Stride
+
+Each toolkit release is built against one Stride release and will not work with another, because the
+engine's own packages change between them. Match the two:
+
+| Stride | Toolkit packages |
+|---|---|
+| 4.4.0-beta5 | `1.0.0-preview.63` (not released yet - build from source until then) |
+| 4.3 | `1.0.0-preview.62` |
+| 4.2 | `1.0.0-preview.61` |
+
+`dotnet add package ... --prerelease` always takes the newest preview, so on an older Stride pin the
+version explicitly, for example `dotnet add package Stride.CommunityToolkit --version 1.0.0-preview.62`.
+
 ## 🛠️ Prerequisites
 
-Ensure the following are installed. If you're on Stride **4.3+**, these should already be present.
+Ensure the following are installed. If you already have Stride **4.4** installed, they are present.
 
 1. Microsoft Visual C++ v14 Redistributable (x64)
    - [vc_redist.x64.exe](https://aka.ms/vc14/vc_redist.x64.exe) (~19 MB)

@@ -12,3 +12,5 @@
   - Enhances code-only projects by adding skybox functionality.
 - [Stride.CommunityToolkit.Windows](https://github.com/stride3d/stride-community-toolkit/tree/main/src/Stride.CommunityToolkit.Windows)
   - This library contains Windows-specific [dependencies](https://github.com/stride3d/stride-community-toolkit/blob/main/src/Stride.CommunityToolkit.Windows/Stride.CommunityToolkit.Windows.csproj) required for code-only approach (package reference `Stride.AssetCompiler`).
+- [Stride.CommunityToolkit.Linux](https://github.com/stride3d/stride-community-toolkit/tree/main/src/Stride.CommunityToolkit.Linux)
+  - The Linux counterpart of the Windows package: brings in `Stride.AssetCompiler` and the native libraries a code-only project needs to build and run on Linux.
