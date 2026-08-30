@@ -91,7 +91,7 @@ public class SDFPerimeterOutline2DShaderRenderFeature : RootRenderFeature
     /// </summary>
     private static int GetVerticesHashCode(Vector2[] vertices)
     {
-        var hash = vertices.Length.GetHashCode();
+        var hash = vertices.Length;
         foreach (var vertex in vertices)
         {
             hash = HashCode.Combine(hash, vertex.GetHashCode());
@@ -129,7 +129,7 @@ public class SDFPerimeterOutline2DShaderRenderFeature : RootRenderFeature
                 outlineScript = component.Entity.Get<MeshOutlineComponent>();
             }
 
-            if (outlineScript is null || !outlineScript.Enabled)
+            if (outlineScript?.Enabled != true)
             {
                 continue;
             }
@@ -178,13 +178,13 @@ public class SDFPerimeterOutline2DShaderRenderFeature : RootRenderFeature
             _pipelineState.State.Output.CaptureState(context.CommandList);
             _pipelineState.Update();
 
-            context.CommandList.SetIndexBuffer(drawData.IndexBuffer.Buffer, drawData.IndexBuffer.Offset, drawData.IndexBuffer.Is32Bit);
             context.CommandList.SetPipelineState(_pipelineState.CurrentState);
 
             _shader.Apply(context.GraphicsContext);
 
             if (drawData.IndexBuffer != null)
             {
+                context.CommandList.SetIndexBuffer(drawData.IndexBuffer.Buffer, drawData.IndexBuffer.Offset, drawData.IndexBuffer.Is32Bit);
                 context.CommandList.DrawIndexed(drawData.DrawCount, drawData.StartLocation);
             }
             else

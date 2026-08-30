@@ -84,7 +84,7 @@ public class OuterOutline2DShaderRenderFeature : RootRenderFeature
                 outlineScript = component.Entity.Get<MeshOutlineComponent>();
             }
 
-            if (outlineScript is null || !outlineScript.Enabled)
+            if (outlineScript?.Enabled != true)
             {
                 continue;
             }
@@ -110,13 +110,13 @@ public class OuterOutline2DShaderRenderFeature : RootRenderFeature
             _pipelineState.State.Output.CaptureState(context.CommandList);
             _pipelineState.Update();
 
-            context.CommandList.SetIndexBuffer(drawData.IndexBuffer.Buffer, drawData.IndexBuffer.Offset, drawData.IndexBuffer.Is32Bit);
             context.CommandList.SetPipelineState(_pipelineState.CurrentState);
 
             _shader.Apply(context.GraphicsContext);
 
             if (drawData.IndexBuffer != null)
             {
+                context.CommandList.SetIndexBuffer(drawData.IndexBuffer.Buffer, drawData.IndexBuffer.Offset, drawData.IndexBuffer.Is32Bit);
                 context.CommandList.DrawIndexed(drawData.DrawCount, drawData.StartLocation);
             }
             else
