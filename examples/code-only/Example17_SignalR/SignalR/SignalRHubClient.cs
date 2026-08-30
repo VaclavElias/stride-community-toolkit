@@ -18,6 +18,7 @@ public sealed class SignalRHubClient : IAsyncDisposable
     private readonly List<IDisposable> _subscriptions = [];
     private readonly List<IStoppable> _sendQueues = [];
     private readonly ILogger<SignalRHubClient>? _logger;
+    private readonly string _hubUrl;
 
     /// <summary>
     /// Active SignalR hub connection.
@@ -45,6 +46,8 @@ public sealed class SignalRHubClient : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(options);
         if (string.IsNullOrWhiteSpace(options.HubUrl)) throw new ArgumentException("HubUrl must be provided", nameof(options));
+
+        _hubUrl = options.HubUrl;
 
         _logger = logger;
 
@@ -116,7 +119,7 @@ public sealed class SignalRHubClient : IAsyncDisposable
         {
             if (Connection.State == HubConnectionState.Disconnected)
             {
-                _logger?.LogInformation("Starting SignalR connection to {Url}...", Connection?.GetType() != null ? Connection?.ToString() : "<unknown>");
+                _logger?.LogInformation("Starting SignalR connection to {Url}...", _hubUrl);
 
                 await Connection!.StartAsync(ct).ConfigureAwait(false);
 

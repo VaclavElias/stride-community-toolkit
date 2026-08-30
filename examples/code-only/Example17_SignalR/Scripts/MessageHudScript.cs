@@ -16,7 +16,7 @@ public sealed class MessageHudScript : AsyncScript
     {
         _printer = new MessagePrinter(DebugText);
 
-        var messageReceiver = new EventReceiver<MessageDto>(GlobalEvents.MessageReceivedEventKey);
+        using var messageReceiver = new EventReceiver<MessageDto>(GlobalEvents.MessageReceivedEventKey);
 
         while (Game.IsRunning)
         {

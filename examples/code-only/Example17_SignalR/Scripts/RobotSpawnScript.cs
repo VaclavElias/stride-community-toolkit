@@ -29,7 +29,7 @@ public sealed class RobotSpawnScript : AsyncScript
         _materialManager = new MaterialManager(new MaterialBuilder(Game.GraphicsDevice));
         _robotBuilder = new RobotBuilder(Game);
 
-        var countReceiver = new EventReceiver<CountDto>(GlobalEvents.CountReceivedEventKey);
+        using var countReceiver = new EventReceiver<CountDto>(GlobalEvents.CountReceivedEventKey);
 
         while (Game.IsRunning)
         {
