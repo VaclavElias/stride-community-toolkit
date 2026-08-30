@@ -648,7 +648,110 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2101$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2102$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2103$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2104$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Types with source files stored in the same directory, should be declared in the same namespace</Name>
+// <Id>ND2104:TypesWithSourceFilesStoredInTheSameDirectoryShouldBeDeclaredInTheSameNamespace</Id>
+
+warnif count > 0 
+
+// Group JustMyCode types in a lookup 
+// where groups are keyed with directories that contain the types' source file(s).
+// Note that a type can be contained in several groups 
+// if it is declared in several source files stored in different directories.
+// Stride Community Toolkit tweak: ignore types in the global namespace. Every code-only example is a
+// top-level-statements Program.cs (compiler-generated Program class in the global namespace) sitting
+// next to the example's own namespaced files - the layout the C# template produces, not a smell.
+let lookup = JustMyCode.Types.Where(t => t.SourceFileDeclAvailable && t.ParentNamespace.Name.Length > 0)
+            .ToMultiKeyLookup(
+               t => t.SourceDecls.Select(
+                          decl => decl.SourceFile.FilePath.ParentDirectoryPath).Distinct()
+            )
+
+from groupOfTypes in lookup
+let parentNamespaces = groupOfTypes.ParentNamespaces()
+
+// Select group of types (with source files stored in the same directory) …
+// … but contained in several namespaces
+where parentNamespaces.Count() > 1
+
+// mainNamespaces is the namespace that contains many types 
+// declared in the directory groupOfTypes .key
+let mainNamespace  = groupOfTypes
+                     .ToLookup(t => t.ParentNamespace)
+                     .OrderByDescending(g => g.Count()).First().Key
+
+// Select types with source files stored in the same directory,
+// but contained in namespaces different than mainNamespace.
+let typesOutOfMainNamespace = groupOfTypes
+                              .Where(t => t.ParentNamespace != mainNamespace &&
+                                          t.ParentAssembly == mainNamespace.ParentAssembly)
+
+                              // Filter types declared on several source files that contain generated methods 
+                              // because typically such type contains one or several partial definitions generated.
+                              // These partially generated types would be false positive for the present rule.
+                              .Where(t => t.SourceDecls.Count() == 1 ||
+                                          t.Methods.Count(m => JustMyCode.Contains(m)) == 0)
+where typesOutOfMainNamespace.Count() > 0
+
+let typesInMainNamespace = groupOfTypes.Where(t => t.ParentNamespace == mainNamespace)
+
+select new { 
+   mainNamespace, 
+   typesOutOfMainNamespace,
+   typesInMainNamespace,
+   Debt = (2+5*typesOutOfMainNamespace.Count()).ToMinutes().ToDebt(),
+   Severity = Severity.High
+}
+
+//<Expl>
+// The source file{2?:s} that contain the declaration{2?:s} of the *{0}* 
+// {2?is:are} located in a directory that also contains the *{1}* declared 
+// in {1?a:} different namespace{1?:s}.
+// {1?Concerning this type:For each of these types}, either change
+// its namespace or its source file's directory.
+//</Expl>
+
+//<Desc>
+// To maintain a robust code structure and organization, 
+// it is advisable to synchronize the namespaces hierarchy with 
+// the directory hierarchy that contains the source files.
+//
+// Following this practice is a widely accepted convention, 
+// and failing to adhere to it can result in source code that 
+// is less maintainable and harder to navigate.
+//
+// Respecting this convention means that types with source files 
+// stored in the same directory, 
+// should be declared in the same namespace.
+//
+// For each directory that contains several source files, where most types are declared 
+// in a namespace (what we call the **main namespace**) and a few types are declared 
+// out of the *main namespace*, this code rule matches:
+//
+// • The *main namespace*
+//
+// • **typesOutOfMainNamespace**: Types declared in source files in the *main namespace*'s directory
+// but that are not in the *main namespace*.
+//
+// • *typesInMainNamespace*: And for informational purposes, types declared in source files in the 
+// *main namespace*'s directory, and that are in the *main namespace*.
+//</Desc>
+
+//<HowToFix>
+// Violations of this rule are types in the *typesOutOfMainNamespace* column.
+// Typically such type …
+//
+// •  … is contained in the wrong namespace but its source file is stored in the right directory.
+//    In such situation the type should be contained in *main namespace*.
+//
+// •  … is contained in the right namespace but its source file is stored in the wrong directory
+//    In such situation the source file of the type must be moved to the proper parent namespace directory.
+//
+// •  … is declared in multiple source files, stored in different directories.
+//    In such situation it is preferable that all source files are stored in a single directory.
+//
+// The estimated Debt, which means the effort to fix such issue,
+// is equal to 2 minutes plus 5 minutes per type in *typesOutOfMainNamespace*.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2105$]]></Query>
     </Group>
     <Group Name=".NET Framework Usage" Active="True" ShownInReport="False">
