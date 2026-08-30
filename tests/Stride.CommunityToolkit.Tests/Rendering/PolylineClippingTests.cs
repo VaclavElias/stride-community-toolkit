@@ -134,12 +134,11 @@ public class PolylineClippingTests
 
         Assert.Equal(5, runs.Count);
 
-        foreach (var run in runs)
+        // Each break is a genuine pole crossing: the branch ends far on one side of zero and the next
+        // begins far on the other. Steep same-sign segments inside a branch stay connected.
+        for (var i = 0; i < runs.Count - 1; i++)
         {
-            for (var i = 1; i < run.Length; i++)
-            {
-                Assert.True(MathF.Abs(run[i].Y - run[i - 1].Y) <= 8f);
-            }
+            Assert.True(MathF.Sign(runs[i][^1].Y) != MathF.Sign(runs[i + 1][0].Y));
         }
     }
 
@@ -191,5 +190,23 @@ public class PolylineClippingTests
         var hit = PolylineClipping.ClipSegment(new Vector3(-10, 6, 0), new Vector3(10, 6, 0), -5, 5, -5, 5, out _, out _);
 
         Assert.False(hit);
+    }
+
+    [Fact]
+    public void SplitAtJumps_WithExtendEnds_MakesBranchesReachPastTheJump()
+    {
+        var points = PolylineSampling.Function(MathF.Tan, -5, 5, 400);
+
+        var runs = PolylineClipping.SplitAtJumps(points, maxJump: 8f, extendEnds: true);
+
+        Assert.Equal(5, runs.Count);
+
+        // Every branch cut by an asymptote is extended well past the jump threshold, so clipping to a
+        // chart cuts it at the edge instead of wherever the sampling gave up
+        for (var i = 0; i < runs.Count - 1; i++)
+        {
+            Assert.True(MathF.Abs(runs[i][^1].Y) > 8f, $"run {i} ends at {runs[i][^1].Y}");
+            Assert.True(MathF.Abs(runs[i + 1][0].Y) > 8f, $"run {i + 1} starts at {runs[i + 1][0].Y}");
+        }
     }
 }

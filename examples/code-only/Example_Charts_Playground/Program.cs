@@ -36,6 +36,12 @@ WindowsDpiManager.EnablePerMonitorV2();
 // dead code to the compiler
 var use3DScene = args.Any(a => a.Equals("--3d", StringComparison.OrdinalIgnoreCase));
 
+// "--zoom 61" starts zoomed out to that view height - handy for checking how the view-driven chart
+// adapts its tick step, sampling density and line widths at a given zoom level
+var zoomArg = 0f;
+var zoomIndex = Array.FindIndex(args, a => a.Equals("--zoom", StringComparison.OrdinalIgnoreCase));
+if (zoomIndex >= 0 && zoomIndex + 1 < args.Length) _ = float.TryParse(args[zoomIndex + 1], out zoomArg);
+
 using var game = new Game();
 
 Chart? chart = null;
@@ -81,6 +87,12 @@ void Start(Scene rootScene)
 
         // The view-driven chart invites zooming far out
         controller.MaxOrthographicSize = 500f;
+
+        if (zoomArg > 0f)
+        {
+            var camera2D = rootScene.Entities.Select(e => e.Get<CameraComponent>()).FirstOrDefault(c => c != null);
+            if (camera2D is not null) camera2D.OrthographicSize = zoomArg;
+        }
     }
 
     var options = use3DScene ? ChartOptions.Glow3D() : ChartOptions.Light2D();

@@ -28,6 +28,10 @@ public sealed class Chart
     private readonly List<ModelComponent> _gridModels = [];
     private readonly List<ChartSeries> _series = [];
 
+    // The view height the chart was created with; ViewScale compares the current height against it
+    private readonly float _referenceHeight;
+    private readonly float _referencePixelHeight;
+
     /// <summary>The entity every part of the chart is parented to. Add it to a scene and move it to place the chart.</summary>
     public Entity Root { get; }
 
@@ -52,6 +56,8 @@ public sealed class Chart
     {
         _game = game;
         Options = options;
+        _referenceHeight = options.YMax - options.YMin;
+        _referencePixelHeight = game.GraphicsDevice.Presenter.BackBuffer.Height;
         Root = new Entity(name);
 
         BuildAxes();
@@ -93,8 +99,8 @@ public sealed class Chart
     /// <summary>
     /// Plots <c>y = f(x)</c> across the chart's <c>x</c> range. Samples outside the <c>y</c> range are clipped
     /// to the chart edge, samples that are not finite (a function outside its domain) break the curve, and so
-    /// does a jump larger than the chart's height between two samples - the asymptotes of <c>tan(x)</c> or
-    /// <c>1/x</c> - which would otherwise draw a false vertical line.
+    /// does a zero-crossing jump larger than a quarter of the chart's height between two samples - the
+    /// asymptotes of <c>tan(x)</c> or <c>1/x</c> - where the branches are instead extended to the chart edge.
     /// </summary>
     /// <param name="f">The function to plot.</param>
     /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
@@ -107,7 +113,7 @@ public sealed class Chart
         ArgumentNullException.ThrowIfNull(f);
 
         var points = PolylineSampling.Function(f, Options.XMin, Options.XMax, samples);
-        var branches = PolylineClipping.SplitAtJumps(points, Options.YMax - Options.YMin);
+        var branches = PolylineClipping.SplitAtJumps(points, (Options.YMax - Options.YMin) * 0.25f, extendEnds: true);
 
         var runs = new List<IReadOnlyList<Vector3>>();
         foreach (var branch in branches)
@@ -120,6 +126,7 @@ public sealed class Chart
         // Remembered so a view-driven chart can re-sample the curve when the visible range changes
         series.Function = f;
         series.SampleCount = samples;
+        series.SampleDensity = samples / (Options.XMax - Options.XMin);
 
         return series;
     }
@@ -319,16 +326,16 @@ public sealed class Chart
         var o = Options;
 
         _legendRoot = new Entity("Legend");
-        _legendRoot.Transform.Position = new Vector3(o.XMin + 0.4f, o.YMax - 0.5f, 3f * LayerStep);
+        _legendRoot.Transform.Position = new Vector3(o.XMin + 0.4f * ViewScale, o.YMax - 0.5f * ViewScale, 3f * LayerStep);
 
         for (var i = 0; i < _series.Count; i++)
         {
             var series = _series[i];
-            var y = -i * LegendRowStep;
+            var y = -i * LegendRowStep * ViewScale;
 
             var swatch = _game.CreatePolyline(
-                [new Vector3(0f, y, 0f), new Vector3(0.45f, y, 0f)],
-                new PolylineOptions { Width = o.CurveWidth, Color = series.Color, EmissiveIntensity = series.Options.EmissiveIntensity },
+                [new Vector3(0f, y, 0f), new Vector3(0.45f * ViewScale, y, 0f)],
+                new PolylineOptions { Width = o.CurveWidth * ViewScale, Color = series.Color, EmissiveIntensity = series.Options.EmissiveIntensity },
                 $"Legend swatch {series.Name}");
             _legendRoot.AddChild(swatch);
 
@@ -358,7 +365,7 @@ public sealed class Chart
                 });
             }
 
-            label.Transform.Position = new Vector3(0.6f, y, 0f);
+            label.Transform.Position = new Vector3(0.6f * ViewScale, y, 0f);
             _legendRoot.AddChild(label);
         }
 
@@ -480,6 +487,29 @@ public sealed class Chart
         return nice * magnitude;
     }
 
+    /// <summary>
+    /// How much taller the current view is than the one the chart was created with. Ribbon widths, tick
+    /// lengths and the legend layout are multiplied by this whenever they are rebuilt, so a view-driven
+    /// chart keeps its lines the same thickness on screen at every zoom level - until the screen-space
+    /// width shader replaces the trick. Static geometry (parametric curves, trajectories) is not rebuilt
+    /// and keeps its world-unit width.
+    /// </summary>
+    internal float ViewScale => (Options.YMax - Options.YMin) / _referenceHeight
+        * (_referencePixelHeight / MathF.Max(1f, _game.GraphicsDevice.Presenter.BackBuffer.Height));
+
+    /// <summary>
+    /// A copy of <paramref name="options"/> with the width scaled for the current view; the original is
+    /// untouched so re-plots always scale from the intended base width.
+    /// </summary>
+    private PolylineOptions ScaledOptions(PolylineOptions options) => ViewScale == 1f ? options : new PolylineOptions
+    {
+        Width = options.Width * ViewScale,
+        Color = options.Color,
+        EmissiveIntensity = options.EmissiveIntensity,
+        Normal = options.Normal,
+        Closed = options.Closed,
+    };
+
     private void TeardownScaffolding()
     {
         foreach (var entity in _scaffolding)
@@ -510,8 +540,14 @@ public sealed class Chart
         if (series.Function is null || series.IsDisposed)
             return;
 
-        var points = PolylineSampling.Function(series.Function, Options.XMin, Options.XMax, series.SampleCount);
-        var branches = PolylineClipping.SplitAtJumps(points, Options.YMax - Options.YMin);
+        // The sample density per world unit is what the plot was created with, so zooming out keeps the
+        // same detail per unit instead of stretching a fixed count across a wider range; the cap bounds
+        // the rebuild cost at deep zoom-out
+        var width = Options.XMax - Options.XMin;
+        var samples = Math.Clamp((int)(series.SampleDensity * width), series.SampleCount, 8000);
+        var points = PolylineSampling.Function(series.Function, Options.XMin, Options.XMax, samples);
+
+        var branches = PolylineClipping.SplitAtJumps(points, (Options.YMax - Options.YMin) * 0.25f, extendEnds: true);
 
         var runs = new List<IReadOnlyList<Vector3>>();
         foreach (var branch in branches)
@@ -535,8 +571,9 @@ public sealed class Chart
         if (runs.Count == 0)
             return;
 
-        var newMesh = PolylineMeshBuilder.BuildMany(_game.GraphicsDevice, runs, series.Options);
-        series.Entity.Add(PolylineExtensions.CreateModel(_game, newMesh, series.Options));
+        var effective = ScaledOptions(series.Options);
+        var newMesh = PolylineMeshBuilder.BuildMany(_game.GraphicsDevice, runs, effective);
+        series.Entity.Add(PolylineExtensions.CreateModel(_game, newMesh, effective));
     }
 
     private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
@@ -554,11 +591,13 @@ public sealed class Chart
         };
 
         // Nothing inside the chart: an empty entity keeps the series usable and the palette in step
+        var effective = ScaledOptions(options);
+
         var entity = runs.Count switch
         {
             0 => new Entity(name),
-            1 when closed => _game.CreatePolyline(runs[0], options, name),
-            _ => _game.CreatePolylines(runs, options, name),
+            1 when closed => _game.CreatePolyline(runs[0], effective, name),
+            _ => _game.CreatePolylines(runs, effective, name),
         };
 
         entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
@@ -581,12 +620,12 @@ public sealed class Chart
 
         AddScaffold(_game.CreatePolyline(
             [new Vector3(o.XMin, axisY, 0f), new Vector3(o.XMax, axisY, 0f)],
-            new PolylineOptions { Width = o.AxisWidth, Color = o.XAxisColor },
+            new PolylineOptions { Width = o.AxisWidth * ViewScale, Color = o.XAxisColor },
             "X axis"));
 
         AddScaffold(_game.CreatePolyline(
             [new Vector3(axisX, o.YMin, 0f), new Vector3(axisX, o.YMax, 0f)],
-            new PolylineOptions { Width = o.AxisWidth, Color = o.YAxisColor },
+            new PolylineOptions { Width = o.AxisWidth * ViewScale, Color = o.YAxisColor },
             "Y axis"));
     }
 
@@ -595,7 +634,7 @@ public sealed class Chart
         var o = Options;
         var axisY = Math.Clamp(0f, o.YMin, o.YMax);
         var axisX = Math.Clamp(0f, o.XMin, o.XMax);
-        var half = o.TickLength * 0.5f;
+        var half = o.TickLength * ViewScale * 0.5f;
 
         var xTicks = new List<(Vector3, Vector3)>();
         foreach (var x in TickValues(o.XMin, o.XMax, o.TickStep))
@@ -611,14 +650,14 @@ public sealed class Chart
 
         if (xTicks.Count > 0)
         {
-            var ticks = _game.CreateSegments(xTicks, new PolylineOptions { Width = o.TickWidth, Color = o.XAxisColor }, "X ticks");
+            var ticks = _game.CreateSegments(xTicks, new PolylineOptions { Width = o.TickWidth * ViewScale, Color = o.XAxisColor }, "X ticks");
             ticks.Transform.Position = new Vector3(0f, 0f, LayerStep);
             AddScaffold(ticks);
         }
 
         if (yTicks.Count > 0)
         {
-            var ticks = _game.CreateSegments(yTicks, new PolylineOptions { Width = o.TickWidth, Color = o.YAxisColor }, "Y ticks");
+            var ticks = _game.CreateSegments(yTicks, new PolylineOptions { Width = o.TickWidth * ViewScale, Color = o.YAxisColor }, "Y ticks");
             ticks.Transform.Position = new Vector3(0f, 0f, LayerStep);
             AddScaffold(ticks);
         }
@@ -632,10 +671,10 @@ public sealed class Chart
         if (o.MinorDivisions > 1)
         {
             var minorStep = o.TickStep / o.MinorDivisions;
-            AddGrid(GridLines(minorStep, skipMultiplesOf: o.TickStep), o.MinorGridWidth, o.MinorGridColor, "Minor grid", -2f * LayerStep);
+            AddGrid(GridLines(minorStep, skipMultiplesOf: o.TickStep), o.MinorGridWidth * ViewScale, o.MinorGridColor, "Minor grid", -2f * LayerStep);
         }
 
-        AddGrid(GridLines(o.TickStep, skipMultiplesOf: null), o.GridWidth, o.GridColor, "Grid", -LayerStep);
+        AddGrid(GridLines(o.TickStep, skipMultiplesOf: null), o.GridWidth * ViewScale, o.GridColor, "Grid", -LayerStep);
     }
 
     private List<(Vector3, Vector3)> GridLines(float step, float? skipMultiplesOf)
@@ -681,7 +720,7 @@ public sealed class Chart
         var o = Options;
         var axisY = Math.Clamp(0f, o.YMin, o.YMax);
         var axisX = Math.Clamp(0f, o.XMin, o.XMax);
-        var gap = o.TickLength * 0.5f + (o.LabelMode == ChartLabelMode.World ? o.LabelHeight * 0.25f : 0f);
+        var gap = o.TickLength * ViewScale * 0.5f + (o.LabelMode == ChartLabelMode.World ? o.LabelHeight * 0.25f : 0f);
 
         foreach (var x in TickValues(o.XMin, o.XMax, o.TickStep))
         {

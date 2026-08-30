@@ -113,7 +113,10 @@ public static class PolylineClipping
 
     /// <summary>
     /// Breaks <paramref name="points"/> between two consecutive points whose vertical distance exceeds
-    /// <paramref name="maxJump"/>, and at points that are not finite. Runs shorter than two points are dropped.
+    /// <paramref name="maxJump"/> while jumping across zero - the signature of an odd asymptote like those
+    /// of <c>tan(x)</c> or <c>1/x</c> - and at points that are not finite. A big jump that stays on one side
+    /// of zero is a genuinely steep stretch of the same branch and is kept connected. Runs shorter than two
+    /// points are dropped.
     /// </summary>
     /// <remarks>
     /// A sampled function cannot tell an asymptote from a steep slope; all it sees is a big jump between two
@@ -123,10 +126,15 @@ public static class PolylineClipping
     /// </remarks>
     /// <param name="points">The polyline, in order.</param>
     /// <param name="maxJump">The largest <c>|Δy|</c> between consecutive points that is still drawn as a segment.</param>
+    /// <param name="extendEnds">
+    /// When <see langword="true"/>, the branch before a jump is extended past it and the branch after it
+    /// starts before it, both at the midpoint <c>x</c> - so once the runs are clipped to a chart, branches
+    /// cut by an asymptote reach the chart edge instead of stopping at the last sample.
+    /// </param>
     /// <returns>Zero or more runs, each with at least two finite points, in the original order.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="maxJump"/> is negative.</exception>
-    public static List<Vector3[]> SplitAtJumps(IReadOnlyList<Vector3> points, float maxJump)
+    public static List<Vector3[]> SplitAtJumps(IReadOnlyList<Vector3> points, float maxJump, bool extendEnds = false)
     {
         ArgumentNullException.ThrowIfNull(points);
         ArgumentOutOfRangeException.ThrowIfNegative(maxJump);
@@ -142,9 +150,27 @@ public static class PolylineClipping
                 continue;
             }
 
-            if (run.Count > 0 && MathF.Abs(point.Y - run[^1].Y) > maxJump)
+            if (run.Count > 0 && MathF.Abs(point.Y - run[^1].Y) > maxJump && MathF.Sign(point.Y) != MathF.Sign(run[^1].Y))
             {
+                // A jump this size is an asymptote the samples straddle. Optionally extend the ending
+                // branch and the starting one vertically towards it, far enough that clipping to the
+                // chart cuts them at the edge - so the branches of tan(x) or 1/x always span the full
+                // view, however sparse the sampling near the pole happens to be.
+                var previous = run[^1];
+                var jumpSign = MathF.Sign(point.Y - previous.Y);
+                var midX = (previous.X + point.X) * 0.5f;
+
+                if (extendEnds)
+                {
+                    Append(run, new Vector3(midX, previous.Y - jumpSign * 2f * maxJump, previous.Z));
+                }
+
                 Flush(runs, run);
+
+                if (extendEnds)
+                {
+                    Append(run, new Vector3(midX, point.Y + jumpSign * 2f * maxJump, point.Z));
+                }
             }
 
             Append(run, point);

@@ -120,6 +120,10 @@ public sealed class ChartCursor
 
         Position = local;
 
+        // The ring is world geometry; scaling it with the view keeps it the same size on screen
+        var scale = _chart.ViewScale;
+        _marker.Transform.Scale = new Vector3(scale, scale, 1f);
+
         var position = new Vector3(local.X, local.Y, 3f * Chart.LayerStep);
         _marker.Transform.Position = position;
         _labelEntity.Transform.Position = position;

@@ -23,6 +23,7 @@ public sealed class ChartViewFollower
     private readonly Game _game;
     private readonly Chart _chart;
     private Vector4? _lastRange;
+    private float _lastPixelHeight;
 
     internal ChartViewFollower(Game game, Chart chart)
     {
@@ -45,6 +46,7 @@ public sealed class ChartViewFollower
 
         var backBuffer = _game.GraphicsDevice.Presenter.BackBuffer;
         var aspect = (float)backBuffer.Width / backBuffer.Height;
+        var pixelHeight = (float)backBuffer.Height;
 
         // The camera's position in chart space; the chart root may be moved
         var world = _chart.Root.Transform.WorldMatrix;
@@ -61,7 +63,7 @@ public sealed class ChartViewFollower
             centre.Y + height * 0.5f);
 
         // Rebuilding the scaffolding is not free; ignore camera jitter below half a percent of the view
-        if (_lastRange is { } last)
+        if (_lastRange is { } last && pixelHeight == _lastPixelHeight)
         {
             var threshold = height * 0.005f;
 
@@ -73,6 +75,7 @@ public sealed class ChartViewFollower
         }
 
         _lastRange = range;
+        _lastPixelHeight = pixelHeight;
 
         // One square grid step for both axes, refined or coarsened with the zoom; minors split a step of
         // 2 into quarters and steps of 1 and 5 into fifths, so minor lines land on readable values

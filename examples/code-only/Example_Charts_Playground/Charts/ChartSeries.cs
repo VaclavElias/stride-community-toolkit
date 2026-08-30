@@ -42,6 +42,7 @@ public class ChartSeries : IDisposable
     // Set for y = f(x) plots so a view-driven chart can re-sample the curve when the range changes
     internal Func<float, float>? Function;
     internal int SampleCount;
+    internal float SampleDensity;
 
     internal ChartSeries(string name, Entity entity, PolylineOptions options, bool isEmpty)
     {
