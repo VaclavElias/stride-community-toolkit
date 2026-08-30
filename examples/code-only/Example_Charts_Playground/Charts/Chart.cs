@@ -29,14 +29,12 @@ public sealed class Chart
     internal const float LayerStep = 0.005f;
 
     private readonly Game _game;
-    private readonly List<ModelComponent> _gridModels = [];
     private readonly List<ChartSeries> _series = [];
 
     // The view height the chart was created with; ViewScale compares the current height against it
     private readonly float _referenceHeight;
     private readonly float _referencePixelHeight;
-    private Entity? _majorGridPlane;
-    private Entity? _minorGridPlane;
+    private readonly List<GridPlaneEntry> _gridPlanes = [];
 
     /// <summary>The entity every part of the chart is parented to. Add it to a scene and move it to place the chart.</summary>
     public Entity Root { get; }
@@ -44,18 +42,21 @@ public sealed class Chart
     /// <summary>The settings the chart was created with.</summary>
     public ChartOptions Options { get; }
 
+    /// <summary>Whether the chart has a real Z extent - axes, clipping and grids gain the third dimension.</summary>
+    public bool Is3D => Options.ZMax > Options.ZMin;
+
     /// <summary>The curves on the chart, in the order they were added.</summary>
     public IReadOnlyList<ChartSeries> Series => _series;
 
     /// <summary>Shows or hides the major and minor grid. Cheap to toggle every frame; the meshes are built once.</summary>
     public bool GridVisible
     {
-        get => _gridModels.Count > 0 && _gridModels[0].Enabled;
+        get => _gridPlanes.Count > 0 && _gridPlanes[0].Model.Enabled;
         set
         {
-            for (var i = 0; i < _gridModels.Count; i++)
+            foreach (var entry in _gridPlanes)
             {
-                _gridModels[i].Enabled = value && (i == 0 || Options.MinorDivisions > 1);
+                entry.Model.Enabled = value && (!entry.IsMinor || Options.MinorDivisions > 1);
             }
         }
     }
@@ -442,7 +443,7 @@ public sealed class Chart
         o.YMax = yMax;
 
         // The grid's on/off state survives the rebuild
-        var gridOn = _gridModels.Count > 0 ? _gridModels[0].Enabled : o.GridVisible;
+        var gridOn = _gridPlanes.Count > 0 ? _gridPlanes[0].Model.Enabled : o.GridVisible;
 
         TeardownScaffolding();
 
@@ -638,7 +639,9 @@ public sealed class Chart
     }
 
     private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
-        => PolylineClipping.Clip(points, Options.XMin, Options.XMax, Options.YMin, Options.YMax);
+        => Is3D
+            ? PolylineClipping.Clip(points, Options.XMin, Options.XMax, Options.YMin, Options.YMax, Options.ZMin, Options.ZMax)
+            : PolylineClipping.Clip(points, Options.XMin, Options.XMax, Options.YMin, Options.YMax);
 
     private ChartSeries AddSeries(IReadOnlyList<IReadOnlyList<Vector3>> runs, PolylineOptions? options, string name, bool closed)
     {
@@ -688,6 +691,16 @@ public sealed class Chart
             [new Vector3(axisX, o.YMin, 0f), new Vector3(axisX, o.YMax, 0f)],
             new PolylineOptions { Width = o.AxisWidth * ViewScale, Color = o.YAxisColor },
             "Y axis"));
+
+        if (Is3D)
+        {
+            // The Z axis ribbon cannot lie in the chart plane (its direction is that plane's normal),
+            // so its ribbon lies in the XZ plane instead
+            AddScaffold(_game.CreatePolyline(
+                [new Vector3(axisX, axisY, o.ZMin), new Vector3(axisX, axisY, o.ZMax)],
+                new PolylineOptions { Width = o.AxisWidth * ViewScale, Color = o.ZAxisColor, Normal = Vector3.UnitY },
+                "Z axis"));
+        }
     }
 
     private void BuildTicks()
@@ -722,6 +735,22 @@ public sealed class Chart
             ticks.Transform.Position = new Vector3(0f, 0f, LayerStep);
             AddScaffold(ticks);
         }
+
+        if (Is3D)
+        {
+            var zTicks = new List<(Vector3, Vector3)>();
+
+            foreach (var z in TickValues(o.ZMin, o.ZMax, o.TickStep))
+            {
+                zTicks.Add((new Vector3(axisX - half, axisY, z), new Vector3(axisX + half, axisY, z)));
+            }
+
+            if (zTicks.Count > 0)
+            {
+                var ticks = _game.CreateSegments(zTicks, new PolylineOptions { Width = o.TickWidth * ViewScale, Color = o.ZAxisColor, Normal = Vector3.UnitY }, "Z ticks");
+                AddScaffold(ticks);
+            }
+        }
     }
 
     private void CreateGridPlanes()
@@ -729,23 +758,25 @@ public sealed class Chart
         var device = _game.GraphicsDevice;
         var texture = ChartGridTexture.Create(device);
 
-        _majorGridPlane = CreateGridPlane(device, texture, Options.GridColor, "Major grid", -LayerStep);
-        _minorGridPlane = CreateGridPlane(device, texture, Options.MinorGridColor, "Minor grid", -2f * LayerStep);
+        // A flat chart draws only the chart plane; a 3D one draws whichever planes were asked for, one
+        // major and one minor plane each - the editor's grid gizmo runs up to three grids the same way
+        var planes = Is3D ? Options.GridPlanes : Options.GridPlanes & ChartGridPlanes.XY;
 
-        foreach (var plane in new[] { _majorGridPlane, _minorGridPlane })
+        foreach (var plane in new[] { ChartGridPlanes.XY, ChartGridPlanes.XZ, ChartGridPlanes.YZ })
         {
-            var model = plane.Get<ModelComponent>()!;
-            model.Enabled = Options.GridVisible;
-            _gridModels.Add(model);
-            Root.AddChild(plane);
+            if ((planes & plane) == 0)
+                continue;
+
+            AddGridPlane(device, texture, plane, isMinor: false, Options.GridColor, -LayerStep);
+            AddGridPlane(device, texture, plane, isMinor: true, Options.MinorGridColor, -2f * LayerStep);
         }
     }
 
-    private static Entity CreateGridPlane(GraphicsDevice device, Texture texture, Color color, string name, float z)
+    private void AddGridPlane(GraphicsDevice device, Texture texture, ChartGridPlanes plane, bool isMinor, Color color, float offset)
     {
         var material = ChartGridTexture.CreateMaterial(device, texture, color);
 
-        var entity = new Entity(name)
+        var entity = new Entity($"{plane} {(isMinor ? "minor" : "major")} grid")
         {
             new ModelComponent
             {
@@ -757,42 +788,59 @@ public sealed class Chart
             },
         };
 
-        entity.Transform.Position = new Vector3(0f, 0f, z);
+        // The plane primitive lies in XY; rotate it onto the other coordinate planes
+        entity.Transform.Rotation = plane switch
+        {
+            ChartGridPlanes.XZ => Quaternion.RotationX(MathUtil.PiOverTwo),
+            ChartGridPlanes.YZ => Quaternion.RotationY(MathUtil.PiOverTwo),
+            _ => Quaternion.Identity,
+        };
 
-        return entity;
+        var model = entity.Get<ModelComponent>()!;
+        model.Enabled = Options.GridVisible && (!isMinor || Options.MinorDivisions > 1);
+
+        _gridPlanes.Add(new GridPlaneEntry(entity, model, plane, isMinor, offset));
+        Root.AddChild(entity);
     }
 
     /// <summary>
-    /// Points the two grid planes at the current ranges: each is scaled so one texture cell equals its
-    /// step and snapped to a cell multiple near the view centre, so the grid appears infinite and its
-    /// lines land exactly on the tick values. This is the scene editor's grid technique - the lines live
-    /// in a mip-mapped texture filtered by the GPU sampler, so they are stable at every zoom, and a range
-    /// change only moves two transforms instead of rebuilding geometry.
+    /// Points every grid plane at the current ranges: each is scaled so one texture cell equals its step
+    /// and snapped to a cell multiple near the view centre, so the grid appears infinite and its lines
+    /// land exactly on the tick values. This is the scene editor's grid technique - the lines live in a
+    /// mip-mapped texture filtered by the GPU sampler, so they are stable at every zoom, and a range
+    /// change only moves transforms instead of rebuilding geometry.
     /// </summary>
     private void UpdateGridPlanes()
     {
         var o = Options;
-        var centre = new Vector2((o.XMin + o.XMax) * 0.5f, (o.YMin + o.YMax) * 0.5f);
+        var centre = new Vector3((o.XMin + o.XMax) * 0.5f, (o.YMin + o.YMax) * 0.5f, (o.ZMin + o.ZMax) * 0.5f);
+        var anchor = new Vector3(
+            Math.Clamp(0f, o.XMin, o.XMax),
+            Math.Clamp(0f, o.YMin, o.YMax),
+            Is3D ? Math.Clamp(0f, o.ZMin, o.ZMax) : 0f);
 
-        Place(_majorGridPlane!, o.TickStep);
+        var visible = _gridPlanes.Count > 0 && _gridPlanes[0].Model.Enabled;
 
-        var hasMinor = o.MinorDivisions > 1;
-        _minorGridPlane!.Get<ModelComponent>()!.Enabled = hasMinor && _gridModels[0].Enabled;
-
-        if (hasMinor)
+        foreach (var entry in _gridPlanes)
         {
-            Place(_minorGridPlane!, o.TickStep / o.MinorDivisions);
+            var cell = entry.IsMinor ? o.TickStep / Math.Max(1, o.MinorDivisions) : o.TickStep;
+
+            entry.Model.Enabled = visible && (!entry.IsMinor || o.MinorDivisions > 1);
+            entry.Entity.Transform.Scale = new Vector3(cell, cell, 1f);
+
+            // Snap the two spanned coordinates to cell multiples; hold the third on its axis
+            entry.Entity.Transform.Position = entry.Plane switch
+            {
+                ChartGridPlanes.XZ => new Vector3(Snap(centre.X, cell), anchor.Y + entry.Offset, Snap(centre.Z, cell)),
+                ChartGridPlanes.YZ => new Vector3(anchor.X + entry.Offset, Snap(centre.Y, cell), Snap(centre.Z, cell)),
+                _ => new Vector3(Snap(centre.X, cell), Snap(centre.Y, cell), anchor.Z + entry.Offset),
+            };
         }
 
-        void Place(Entity plane, float cell)
-        {
-            plane.Transform.Scale = new Vector3(cell, cell, 1f);
-            plane.Transform.Position = new Vector3(
-                MathF.Round(centre.X / cell) * cell,
-                MathF.Round(centre.Y / cell) * cell,
-                plane.Transform.Position.Z);
-        }
+        static float Snap(float value, float cell) => MathF.Round(value / cell) * cell;
     }
+
+    private sealed record GridPlaneEntry(Entity Entity, ModelComponent Model, ChartGridPlanes Plane, bool IsMinor, float Offset);
 
     private void BuildLabels()
     {
@@ -813,6 +861,18 @@ public sealed class Chart
         foreach (var y in TickValues(o.YMin, o.YMax, o.TickStep))
         {
             AddLabel(y, new Vector3(axisX - gap, y, 0f), TextAnchor.MiddleRight);
+        }
+
+        if (Is3D)
+        {
+            foreach (var z in TickValues(o.ZMin, o.ZMax, o.TickStep))
+            {
+                // The origin is already labelled by the y axis
+                if (IsZero(z) && IsZero(axisY))
+                    continue;
+
+                AddLabel(z, new Vector3(axisX - gap, axisY, z), TextAnchor.MiddleRight);
+            }
         }
     }
 

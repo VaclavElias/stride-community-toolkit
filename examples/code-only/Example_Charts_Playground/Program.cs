@@ -1,11 +1,9 @@
-using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Charts;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.Lines;
 using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
-using Stride.CommunityToolkit.Skyboxes;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -70,8 +68,9 @@ void Start(Scene rootScene)
 
     if (use3DScene)
     {
-        game.SetupBase3DScene();
-        game.AddSkybox();
+        game.SetupBase3D();
+        game.Add3DCameraController();
+        //game.AddSkybox();
     }
     else
     {
@@ -101,6 +100,15 @@ void Start(Scene rootScene)
     options.YMin = -4f;
     options.YMax = 4f;
 
+    if (use3DScene)
+    {
+        // The 3D chart gets a real Z extent and a floor grid; curves that stay at z = 0 draw exactly
+        // as they do on the flat chart
+        options.ZMin = -3f;
+        options.ZMax = 3f;
+        options.GridPlanes = ChartGridPlanes.XY | ChartGridPlanes.XZ;
+    }
+
     chart = Chart.Create(game, options);
 
     // In 3D the chart stands in the XY plane, lifted so most of it is above the ground; in 2D the
@@ -123,6 +131,16 @@ void Start(Scene rootScene)
         new PolylineOptions { Width = options.CurveWidth, Color = options.CurvePalette[4], EmissiveIntensity = options.CurveEmissiveIntensity, Closed = true },
         samples: 96,
         name: "circle");
+
+    if (use3DScene)
+    {
+        // A helix - a curve only a 3D chart can hold: x and y trace a circle while z advances
+        chart.PlotParametric(
+            t => new Vector3(2.5f * MathF.Cos(t), 2.5f * MathF.Sin(t), t / MathUtil.TwoPi - 2f),
+            0f, 5f * MathUtil.TwoPi,
+            samples: 400,
+            name: "helix");
+    }
 
     // The analytic flight path, thin and faint, so the recorded trail can be seen landing exactly on
     // the curve the equations predict: y = y0 + (vy/vx)(x - x0) - g (x - x0)^2 / (2 vx^2)
@@ -283,6 +301,7 @@ concepts:
   - "Clipping a polyline to a rectangle (Liang-Barsky) and splitting it at NaN and at asymptotes"
   - "A growing trajectory: pre-allocated Default-usage buffers updated in place, no per-frame allocations"
   - "A view-driven chart: ranges follow the camera, with 1-2-5 tick steps picked per zoom level"
+  - "3D charts: a Z axis, box clipping and grid planes on the floor and walls, opt-in via ZMin/ZMax"
   - Comparing a simulated flight path with the analytic ballistic curve on the same chart
   - "A mouse readout: intersecting the pick ray with the chart plane, no Stride UI needed"
   - A legend rebuilt from the live series list, with its ribbon buffers freed on every rebuild

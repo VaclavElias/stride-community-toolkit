@@ -209,4 +209,53 @@ public class PolylineClippingTests
             Assert.True(MathF.Abs(runs[i + 1][0].Y) > 8f, $"run {i + 1} starts at {runs[i + 1][0].Y}");
         }
     }
+
+    [Fact]
+    public void Clip3D_KeepsALineInsideTheBox_Unchanged()
+    {
+        Vector3[] points = [new(-1, -1, -1), new(1, 1, 1)];
+
+        var runs = PolylineClipping.Clip(points, -5, 5, -5, 5, -5, 5);
+
+        var run = Assert.Single(runs);
+        Assert.Equal(points, run);
+    }
+
+    [Fact]
+    public void Clip3D_EndsARunOnTheZFace_WhenTheLineLeaves()
+    {
+        // Climbs out of the far face z = 1 halfway along
+        Vector3[] points = [new(0, 0, 0), new(2, 0, 2)];
+
+        var runs = PolylineClipping.Clip(points, -5, 5, -5, 5, -1, 1);
+
+        var run = Assert.Single(runs);
+        Assert.Equal(1f, run[^1].Z, Tolerance);
+        Assert.Equal(1f, run[^1].X, Tolerance);
+    }
+
+    [Fact]
+    public void Clip3D_DropsALineEntirelyOutsideTheZRange()
+    {
+        Vector3[] points = [new(-1, 0, 5), new(1, 0, 5)];
+
+        var runs = PolylineClipping.Clip(points, -5, 5, -5, 5, -1, 1);
+
+        Assert.Empty(runs);
+    }
+
+    [Fact]
+    public void ClipSegment3D_MatchesThe2DOverload_WhenZIsUnbounded()
+    {
+        var a = new Vector3(-10, 0, 42);
+        var b = new Vector3(10, 0, -17);
+
+        var hit2D = PolylineClipping.ClipSegment(a, b, -5, 5, -5, 5, out var t0In2D, out var t1In2D);
+        var hit3D = PolylineClipping.ClipSegment(a, b, -5, 5, -5, 5, -1e30f, 1e30f, out var t0In3D, out var t1In3D);
+
+        Assert.True(hit2D);
+        Assert.True(hit3D);
+        Assert.Equal(t0In2D, t0In3D, Tolerance);
+        Assert.Equal(t1In2D, t1In3D, Tolerance);
+    }
 }

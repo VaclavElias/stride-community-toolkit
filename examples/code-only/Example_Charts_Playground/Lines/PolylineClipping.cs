@@ -206,6 +206,91 @@ public static class PolylineClipping
     }
 
     /// <summary>
+    /// The runs of <paramref name="points"/> that lie inside the box
+    /// [<paramref name="xMin"/>, <paramref name="xMax"/>] × [<paramref name="yMin"/>, <paramref name="yMax"/>]
+    /// × [<paramref name="zMin"/>, <paramref name="zMax"/>] - the 3D counterpart of the rectangle overload,
+    /// for charts whose Z range is not degenerate. Points that are not finite break the line; runs shorter
+    /// than two points are dropped.
+    /// </summary>
+    /// <param name="points">The polyline, in order.</param>
+    /// <param name="xMin">The left face.</param>
+    /// <param name="xMax">The right face.</param>
+    /// <param name="yMin">The bottom face.</param>
+    /// <param name="yMax">The top face.</param>
+    /// <param name="zMin">The near face.</param>
+    /// <param name="zMax">The far face.</param>
+    /// <returns>Zero or more runs, each with at least two points, in the original order.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">If a maximum is smaller than its minimum.</exception>
+    public static List<Vector3[]> Clip(IReadOnlyList<Vector3> points, float xMin, float xMax, float yMin, float yMax, float zMin, float zMax)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+
+        if (xMax < xMin || yMax < yMin || zMax < zMin)
+        {
+            throw new ArgumentException("The box's maximum must not be smaller than its minimum.");
+        }
+
+        var runs = new List<Vector3[]>();
+        var run = new List<Vector3>();
+
+        for (var i = 0; i + 1 < points.Count; i++)
+        {
+            var a = points[i];
+            var b = points[i + 1];
+
+            if (!IsFinite(a) || !IsFinite(b) || !ClipSegment(a, b, xMin, xMax, yMin, yMax, zMin, zMax, out var t0, out var t1))
+            {
+                Flush(runs, run);
+                continue;
+            }
+
+            if (t0 > 0f)
+            {
+                Flush(runs, run);
+            }
+
+            if (run.Count == 0)
+            {
+                run.Add(Vector3.Lerp(a, b, t0));
+            }
+
+            Append(run, Vector3.Lerp(a, b, t1));
+
+            if (t1 < 1f)
+            {
+                Flush(runs, run);
+            }
+        }
+
+        Flush(runs, run);
+
+        return runs;
+    }
+
+    /// <summary>
+    /// Liang-Barsky against a box: the parametric range [<paramref name="t0"/>, <paramref name="t1"/>] of
+    /// the segment <paramref name="a"/>-<paramref name="b"/> that lies inside it, or <see langword="false"/>
+    /// when the segment misses it. The rectangle overload is this with unbounded Z.
+    /// </summary>
+    public static bool ClipSegment(Vector3 a, Vector3 b, float xMin, float xMax, float yMin, float yMax, float zMin, float zMax, out float t0, out float t1)
+    {
+        t0 = 0f;
+        t1 = 1f;
+
+        var dx = b.X - a.X;
+        var dy = b.Y - a.Y;
+        var dz = b.Z - a.Z;
+
+        return Narrow(-dx, a.X - xMin, ref t0, ref t1)
+            && Narrow(dx, xMax - a.X, ref t0, ref t1)
+            && Narrow(-dy, a.Y - yMin, ref t0, ref t1)
+            && Narrow(dy, yMax - a.Y, ref t0, ref t1)
+            && Narrow(-dz, a.Z - zMin, ref t0, ref t1)
+            && Narrow(dz, zMax - a.Z, ref t0, ref t1);
+    }
+
+    /// <summary>
     /// Liang-Barsky: the parametric range [<paramref name="t0"/>, <paramref name="t1"/>] of the segment
     /// <paramref name="a"/>-<paramref name="b"/> that lies inside the rectangle, or <see langword="false"/>
     /// when the segment misses it.

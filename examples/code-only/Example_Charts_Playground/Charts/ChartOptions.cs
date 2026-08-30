@@ -42,7 +42,16 @@ public sealed class ChartOptions
     /// <summary>The largest <c>y</c> shown. Defaults to <c>5</c>.</summary>
     public float YMax { get; set; } = 5f;
 
-    /// <summary>Spacing between tick marks, major grid lines and labels on both axes. Defaults to <c>1</c>.</summary>
+    /// <summary>
+    /// The smallest <c>z</c> shown. Defaults to <c>0</c>; leave both Z bounds equal for a flat chart, or
+    /// spread them apart to get a 3D chart with a Z axis and box clipping.
+    /// </summary>
+    public float ZMin { get; set; }
+
+    /// <summary>The largest <c>z</c> shown. Defaults to <c>0</c> - see <see cref="ZMin"/>.</summary>
+    public float ZMax { get; set; }
+
+    /// <summary>Spacing between tick marks, major grid lines and labels on all axes. Defaults to <c>1</c>.</summary>
     public float TickStep { get; set; } = 1f;
 
     /// <summary>
@@ -56,6 +65,9 @@ public sealed class ChartOptions
 
     /// <summary>Colour of the <c>y</c> axis. Defaults to lime green.</summary>
     public Color YAxisColor { get; set; } = Color.LimeGreen;
+
+    /// <summary>Colour of the <c>z</c> axis of a 3D chart. Defaults to the editor's axis blue.</summary>
+    public Color ZAxisColor { get; set; } = new(0x2F, 0x6A, 0xE1);
 
     /// <summary>Ribbon width of the axes. Defaults to <c>0.03</c>.</summary>
     public float AxisWidth { get; set; } = 0.03f;
@@ -77,6 +89,9 @@ public sealed class ChartOptions
 
     /// <summary>Ribbon width of the minor grid lines. Defaults to <c>0.008</c>.</summary>
     public float MinorGridWidth { get; set; } = 0.008f;
+
+    /// <summary>Which coordinate planes carry a grid. Defaults to <see cref="ChartGridPlanes.XY"/>; a flat chart ignores the other planes.</summary>
+    public ChartGridPlanes GridPlanes { get; set; } = ChartGridPlanes.XY;
 
     /// <summary>Whether the grid is shown when the chart is created. Defaults to <see langword="false"/>; toggle later with <see cref="Chart.GridVisible"/>.</summary>
     public bool GridVisible { get; set; }

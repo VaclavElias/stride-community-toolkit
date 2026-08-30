@@ -56,7 +56,8 @@ public sealed class ChartTrajectory : ChartSeries
         if (previous is null)
         {
             // No segment to draw yet; a lone inside point becomes the start of the first one
-            if (point.X >= o.XMin && point.X <= o.XMax && point.Y >= o.YMin && point.Y <= o.YMax)
+            if (point.X >= o.XMin && point.X <= o.XMax && point.Y >= o.YMin && point.Y <= o.YMax
+                && (o.ZMax <= o.ZMin || (point.Z >= o.ZMin && point.Z <= o.ZMax)))
             {
                 _line.Add(point);
                 _tipOnLine = true;
@@ -65,7 +66,11 @@ public sealed class ChartTrajectory : ChartSeries
             return;
         }
 
-        if (!PolylineClipping.ClipSegment(previous.Value, point, o.XMin, o.XMax, o.YMin, o.YMax, out var t0, out var t1))
+        var hit = o.ZMax > o.ZMin
+            ? PolylineClipping.ClipSegment(previous.Value, point, o.XMin, o.XMax, o.YMin, o.YMax, o.ZMin, o.ZMax, out var t0, out var t1)
+            : PolylineClipping.ClipSegment(previous.Value, point, o.XMin, o.XMax, o.YMin, o.YMax, out t0, out t1);
+
+        if (!hit)
         {
             _line.Break();
             _tipOnLine = false;
