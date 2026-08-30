@@ -12,9 +12,10 @@ namespace Stride.CommunityToolkit.Charts;
 /// <remarks>
 /// A ribbon's vertex and index buffers are created by <see cref="PolylineMeshBuilder"/> and tracked by
 /// nothing else, so a curve that is merely dropped from the scene keeps its GPU memory until the game exits.
-/// The series is the handle that knows what to free.
+/// The series is the handle that knows what to free. <see cref="ChartTrajectory"/> derives from this for
+/// curves that grow while the game runs.
 /// </remarks>
-public sealed class ChartSeries : IDisposable
+public class ChartSeries : IDisposable
 {
     /// <summary>The name given when the curve was plotted; also the entity's name.</summary>
     public string Name { get; }
@@ -47,7 +48,7 @@ public sealed class ChartSeries : IDisposable
     }
 
     /// <summary>
-    /// Releases the ribbon's GPU buffers and removes its model, so the entity draws nothing. The entity is
+    /// Releases the curve's GPU buffers and removes its model, so the entity draws nothing. The entity is
     /// left where it is; <see cref="Chart.Remove"/> is what detaches it from the chart.
     /// </summary>
     public void Dispose()
@@ -57,6 +58,20 @@ public sealed class ChartSeries : IDisposable
 
         IsDisposed = true;
 
+        ReleaseResources();
+
+        if (Entity.Get<ModelComponent>() is { } model)
+        {
+            Entity.Remove(model);
+        }
+    }
+
+    /// <summary>
+    /// Frees whatever GPU resources back the curve. The base implementation releases the buffers of every
+    /// mesh in the entity's model; <see cref="ChartTrajectory"/> disposes its growing buffers instead.
+    /// </summary>
+    private protected virtual void ReleaseResources()
+    {
         var model = Entity.Get<ModelComponent>();
 
         if (model?.Model is null)
@@ -66,7 +81,5 @@ public sealed class ChartSeries : IDisposable
         {
             PolylineMeshBuilder.Release(mesh);
         }
-
-        Entity.Remove(model);
     }
 }

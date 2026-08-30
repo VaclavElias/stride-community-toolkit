@@ -152,7 +152,7 @@ public static class PolylineMeshBuilder
         draw.IndexBuffer?.Buffer?.Dispose();
     }
 
-    private static Vector3 NormalOf(PolylineOptions options)
+    internal static Vector3 NormalOf(PolylineOptions options)
     {
         var normal = options.Normal;
 
@@ -169,7 +169,7 @@ public static class PolylineMeshBuilder
     /// <summary>
     /// Appends the ribbon for one polyline to the shared vertex and index lists.
     /// </summary>
-    private static void AppendRibbon(List<VertexPositionNormalTexture> vertices, List<int> indices, IReadOnlyList<Vector3> points, Vector3 normal, float halfWidth, bool closed)
+    internal static void AppendRibbon(List<VertexPositionNormalTexture> vertices, List<int> indices, IReadOnlyList<Vector3> points, Vector3 normal, float halfWidth, bool closed)
     {
         var count = points.Count;
         var segmentCount = closed ? count : count - 1;

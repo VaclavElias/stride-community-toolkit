@@ -23,9 +23,9 @@ using Stride.Input;
 //              it) and a paper-like clear colour, and skip the physics ground a chart does not need.
 //   glow 3D  - the default 3D scene with skybox and bloom; emissive intensity above 1 makes lines glow.
 //
-// Controls: G toggles the grid, T removes or restores the tan curve. The keys are listed in the
-// DebugOverlay section so they share one screen block with the camera help (F2 collapses it, F3 moves
-// it, F4 hides it).
+// Controls: G toggles the grid, T removes or restores the tan curve, Space throws the ball whose
+// flight the trajectory records live. The keys are listed in the DebugOverlay section so they share
+// one screen block with the camera help (F2 collapses it, F3 moves it, F4 hides it).
 
 // Without this a scaled-up 4K desktop hands the game a scaled, blurred window. A no-op off Windows.
 WindowsDpiManager.EnablePerMonitorV2();
@@ -38,6 +38,17 @@ using var game = new Game();
 
 Chart? chart = null;
 ChartSeries? tangent = null;
+ChartTrajectory? trail = null;
+Entity? ball = null;
+
+// The thrown ball: launched from the lower left corner, integrated by hand each frame - the point of
+// the demo is watching the trajectory series record a moving body, not the integrator
+var launchPosition = new Vector2(-4.5f, -3.5f);
+var launchVelocity = new Vector2(4f, 7f);
+const float Gravity = 9.81f;
+var ballPosition = Vector2.Zero;
+var ballVelocity = Vector2.Zero;
+var ballFlying = false;
 
 game.Run(start: Start, update: Update);
 
@@ -88,8 +99,33 @@ void Start(Scene rootScene)
         samples: 96,
         name: "circle");
 
+    // The analytic flight path, thin and faint, so the recorded trail can be seen landing exactly on
+    // the curve the equations predict: y = y0 + (vy/vx)(x - x0) - g (x - x0)^2 / (2 vx^2)
+    chart.Plot(
+        x => launchPosition.Y + launchVelocity.Y / launchVelocity.X * (x - launchPosition.X)
+            - Gravity * (x - launchPosition.X) * (x - launchPosition.X) / (2f * launchVelocity.X * launchVelocity.X),
+        new PolylineOptions
+        {
+            Width = options.CurveWidth * 0.5f,
+            Color = use3DScene ? new Color(140, 140, 140) : new Color(180, 180, 180),
+            EmissiveIntensity = 1f,
+        },
+        name: "ballistic");
+
+    // The live trail the flying ball leaves behind; one point is appended per frame in Update
+    trail = chart.AddTrajectory(capacity: 900, name: "throw");
+
+    // The ball itself is a small closed ribbon circle moved along the flight path
+    ball = game.CreatePolyline(
+        PolylineSampling.Parametric(t => new Vector3(0.12f * MathF.Cos(t), 0.12f * MathF.Sin(t), 0f), 0f, MathUtil.TwoPi, 20),
+        new PolylineOptions { Width = 0.05f, Color = use3DScene ? Color.White : new Color(40, 40, 40), Closed = true, EmissiveIntensity = use3DScene ? 2.5f : 1f },
+        "ball");
+    chart.Root.AddChild(ball);
+
+    ThrowBall();
+
     // The overlay draws itself and is shared with the camera controller's help; the lambda is read
-    // every frame, so the grid and series state it shows is always current
+    // every frame, so the grid, series and trail state it shows is always current
     var overlay = DebugOverlay.GetOrCreate(game);
 
     // Debug text is 16 pixels tall at scale 1, which is tiny on a high-DPI display. Scale the whole
@@ -110,6 +146,7 @@ void Start(Scene rootScene)
         new("CHART"),
         new($"Press G to toggle the grid ({(chart.GridVisible ? "on" : "off")})", Color.Yellow),
         new($"Press T to {(tangent is null ? "restore" : "remove")} the tan curve", Color.Yellow),
+        new($"Press Space to throw the ball (trail: {trail.Count}/{trail.Capacity} points)", Color.Yellow),
         new($"{chart.Series.Count} series: {string.Join(", ", chart.Series.Select(s => s.Name))}"),
     ]);
 }
@@ -137,6 +174,37 @@ void Update(Scene scene, GameTime time)
             tangent = null;
         }
     }
+
+    if (game.Input.IsKeyPressed(Keys.Space))
+    {
+        ThrowBall();
+    }
+
+    if (!ballFlying || trail is null || ball is null) return;
+
+    // Semi-implicit Euler; capped so a stall (a dragged window) cannot teleport the ball
+    var dt = MathF.Min((float)time.Elapsed.TotalSeconds, 0.1f);
+
+    ballVelocity.Y -= Gravity * dt;
+    ballPosition += ballVelocity * dt;
+
+    ball.Transform.Position = new Vector3(ballPosition.X, ballPosition.Y, 0.05f);
+
+    // The trajectory clips to the chart's ranges by itself; the trail simply ends at the edge
+    trail.Add(new Vector3(ballPosition.X, ballPosition.Y, 0f));
+
+    if (ballPosition.Y < chart.Options.YMin - 1f || ballPosition.X > chart.Options.XMax + 1f)
+    {
+        ballFlying = false;
+    }
+}
+
+void ThrowBall()
+{
+    trail?.Clear();
+    ballPosition = launchPosition;
+    ballVelocity = launchVelocity;
+    ballFlying = true;
 }
 
 /*
@@ -156,12 +224,15 @@ description:
     3D chart in a lit scene with bloom. Hardware lines are one pixel wide, so each line is a ribbon
     mesh built by PolylineMeshBuilder from sampled points. Curves are clipped to the chart, broken
     where a function is undefined or jumps across an asymptote, and can be removed again with their
-    GPU buffers freed. The helpers live in their final toolkit namespaces and will move into the
-    library once their shape settles.
+    GPU buffers freed. A thrown ball records its flight into a growing trajectory that lands exactly
+    on the plotted analytic curve. The helpers live in their final toolkit namespaces and will move
+    into the library once their shape settles.
 concepts:
   - Building a ribbon mesh from a list of points, and one mesh from many segments or runs
   - Sampling y = f(x) and parametric curves into points
   - "Clipping a polyline to a rectangle (Liang-Barsky) and splitting it at NaN and at asymptotes"
+  - "A growing trajectory: pre-allocated Default-usage buffers updated in place, no per-frame allocations"
+  - Comparing a simulated flight path with the analytic ballistic curve on the same chart
   - "Emissive intensity above 1 plus bloom: glowing lines"
   - Why thin geometry flickers without MSAA, and enabling it on the 2D compositor
   - Screen-sized tick labels with EntityTextComponent versus world-sized ones with WorldTextComponent
@@ -176,6 +247,7 @@ tags:
   - Mesh
   - Line
   - Chart
+  - Physics
   - MSAA
   - Emissive
   - Bloom

@@ -184,7 +184,7 @@ public static class PolylineClipping
     /// <paramref name="a"/>-<paramref name="b"/> that lies inside the rectangle, or <see langword="false"/>
     /// when the segment misses it.
     /// </summary>
-    private static bool ClipSegment(Vector3 a, Vector3 b, float xMin, float xMax, float yMin, float yMax, out float t0, out float t1)
+    public static bool ClipSegment(Vector3 a, Vector3 b, float xMin, float xMax, float yMin, float yMax, out float t0, out float t1)
     {
         t0 = 0f;
         t1 = 1f;

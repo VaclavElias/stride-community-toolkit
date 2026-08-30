@@ -80,6 +80,26 @@ public static class PolylineExtensions
         return ToEntity(game, mesh, options, name ?? "Polylines");
     }
 
+    /// <summary>
+    /// Creates an entity drawing an already built polyline mesh with the usual emissive, double-sided
+    /// material - the path a <see cref="GrowingPolyline"/> takes, whose mesh exists before its points do.
+    /// </summary>
+    /// <param name="game">The game whose graphics device the material is created on.</param>
+    /// <param name="mesh">The mesh to draw; its buffers stay owned by whoever built them.</param>
+    /// <param name="options">Colour and glow; <see langword="null"/> for the defaults.</param>
+    /// <param name="name">The entity name, or <c>"Polyline"</c>.</param>
+    /// <returns>An entity holding a <see cref="ModelComponent"/>; add it to a scene or parent it to another entity.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="game"/> or <paramref name="mesh"/> is <see langword="null"/>.</exception>
+    public static Entity CreatePolylineEntity(this IGame game, Mesh mesh, PolylineOptions? options = null, string? name = null)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(mesh);
+
+        options ??= new PolylineOptions();
+
+        return ToEntity(game, mesh, options, name ?? "Polyline");
+    }
+
     private static Entity ToEntity(IGame game, Mesh mesh, PolylineOptions options, string name)
     {
         var material = GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, options.Color, options.EmissiveIntensity);

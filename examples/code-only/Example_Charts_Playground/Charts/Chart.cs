@@ -204,6 +204,52 @@ public sealed class Chart
         _series.Clear();
     }
 
+    /// <summary>
+    /// Adds an empty trajectory: a curve that grows one point at a time - the path of a moving body, drawn
+    /// while it moves. Feed it from your update loop with <see cref="ChartTrajectory.Add"/>; points are
+    /// clipped to the chart's ranges the same way <see cref="Plot"/> clips a function.
+    /// </summary>
+    /// <param name="capacity">The most points the trail can hold; the GPU buffers are allocated once, for this many.</param>
+    /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
+    /// <param name="name">The series and entity name.</param>
+    /// <param name="rollOver">What a full trail does with the next point: <see langword="false"/> ignores it, <see langword="true"/> drops the oldest - an oscilloscope trace.</param>
+    /// <returns>The trajectory, already on the chart and empty; it is also in <see cref="Series"/> and removed like any other curve.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="capacity"/> is less than two.</exception>
+    public ChartTrajectory AddTrajectory(int capacity = 1000, PolylineOptions? options = null, string? name = null, bool rollOver = false)
+    {
+        options ??= DefaultCurveOptions();
+
+        // The trail is clipped to the ranges, so the mesh bounds can be pinned once instead of growing
+        var margin = options.Width;
+        var bounds = new BoundingBox(
+            new Vector3(Options.XMin - margin, Options.YMin - margin, -1f),
+            new Vector3(Options.XMax + margin, Options.YMax + margin, 1f));
+
+        var line = new GrowingPolyline(_game, capacity, options, bounds) { RollOver = rollOver };
+
+        var seriesName = name ?? $"Trajectory {_series.Count + 1}";
+        var entity = _game.CreatePolylineEntity(line.Mesh, options, seriesName);
+        entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
+        Root.AddChild(entity);
+
+        var series = new ChartTrajectory(seriesName, entity, options, line, Options);
+        _series.Add(series);
+
+        return series;
+    }
+
+    private PolylineOptions DefaultCurveOptions()
+    {
+        var palette = Options.CurvePalette;
+
+        return new PolylineOptions
+        {
+            Width = Options.CurveWidth,
+            EmissiveIntensity = Options.CurveEmissiveIntensity,
+            Color = palette.Length > 0 ? palette[_series.Count % palette.Length] : Color.White,
+        };
+    }
+
     private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
         => PolylineClipping.Clip(points, Options.XMin, Options.XMax, Options.YMin, Options.YMax);
 

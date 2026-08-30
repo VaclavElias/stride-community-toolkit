@@ -164,4 +164,32 @@ public class PolylineClippingTests
         var run = Assert.Single(runs);
         Assert.Equal(2, run.Length);
     }
+
+    [Fact]
+    public void ClipSegment_ReturnsTheInteriorParameterRange()
+    {
+        var hit = PolylineClipping.ClipSegment(new Vector3(-10, 0, 0), new Vector3(10, 0, 0), -5, 5, -5, 5, out var t0, out var t1);
+
+        Assert.True(hit);
+        Assert.Equal(0.25f, t0, Tolerance);
+        Assert.Equal(0.75f, t1, Tolerance);
+    }
+
+    [Fact]
+    public void ClipSegment_KeepsTheFullRange_WhenEntirelyInside()
+    {
+        var hit = PolylineClipping.ClipSegment(new Vector3(-1, 0, 0), new Vector3(1, 0, 0), -5, 5, -5, 5, out var t0, out var t1);
+
+        Assert.True(hit);
+        Assert.Equal(0f, t0, Tolerance);
+        Assert.Equal(1f, t1, Tolerance);
+    }
+
+    [Fact]
+    public void ClipSegment_ReturnsFalse_WhenTheSegmentMisses()
+    {
+        var hit = PolylineClipping.ClipSegment(new Vector3(-10, 6, 0), new Vector3(10, 6, 0), -5, 5, -5, 5, out _, out _);
+
+        Assert.False(hit);
+    }
 }
