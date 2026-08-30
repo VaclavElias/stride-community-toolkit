@@ -2,7 +2,13 @@
 
     <PropertyGroup>
         <Title>Stride Community Toolkit - Windows</Title>
-        <Description>This library serves to simplify the setup for Stride code-only projects by automatically including the `Stride.AssetCompiler` package. This eliminates the need for boilerplate code, making it easier to demonstrate and develop simple Stride projects without additional configuration.$(StrideVersionNote)</Description>
+        <Description>The Windows package for code-only Stride projects: reference it instead of hand-writing the project boilerplate.
+
+What's inside:
+- Brings in Stride.AssetCompiler as a build-only dependency. A code-only project has no assets, but the engine's shaders and default font still have to be compiled into its data folder, and this is the package that makes that happen
+- WindowsDpiManager: opt the process into per-monitor DPI awareness from code, no app.manifest needed, and read a monitor's DPI and scale factor to size UI and debug text correctly on high-DPI displays
+
+Use Stride.CommunityToolkit.Linux on Linux.$(StrideVersionNote)</Description>
         <!-- LibraryImport (NativeMethods.cs) generates marshalling code that uses pointers. -->
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
