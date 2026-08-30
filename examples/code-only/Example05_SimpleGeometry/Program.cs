@@ -140,13 +140,13 @@ public class QuadPrimitiveModel : PrimitiveProceduralModelBase
         vertices[3] = new VertexPositionNormalTexture(new Vector3(0.5f, -0.5f, 0) * Size, normal, new Vector2(1, 1));
 
         // Capture positions for external use (labels)
-        Vertices = new[]
-        {
+        Vertices =
+        [
             vertices[0].Position,
             vertices[1].Position,
             vertices[2].Position,
             vertices[3].Position
-        };
+        ];
 
         // Create custom indices
         indices[0] = 0;
