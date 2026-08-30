@@ -33,7 +33,7 @@ public class SDFPerimeterOutline2DShaderRenderFeature : RootRenderFeature
     /// </summary>
     [DataMember(10)]
     [DataMemberRange(0.0f, 0.1f, 0.001f, 0.002f, 4)]
-    public float ScaleAdjust = 0.001f;
+    public float ScaleAdjust { get; set; } = 0.001f;
 
     /// <inheritdoc/>
     public override Type SupportedRenderObjectType => typeof(RenderMesh);

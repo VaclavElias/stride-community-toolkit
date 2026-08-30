@@ -716,7 +716,104 @@ select new {
 // This way, the field value is *safely changeable* without the need to 
 // recompile client assemblies.
 //</HowToFix>]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1805$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Fields should be declared as private or protected</Name>
+// <Id>ND1805:FieldsShouldBeDeclaredAsPrivate</Id>
+
+warnif count > 0 
+let isUnityProject = ThirdParty.Assemblies.Any(a => a.Name.StartsWith("UnityEngine"))
+from f in JustMyCode.Fields where
+ // In Unity projects often there is no properties for high-performance reasons 
+ // and public fields are used instead.
+ !isUnityProject && 
+
+ // Stride Community Toolkit tweaks, in the same spirit as the Unity carve-out above:
+ // - value types here are blittable GPU/interop structs (vertex layouts, an explicit-layout union,
+ //   per-instance data). Properties cannot carry [FieldOffset], and Stride's own math structs
+ //   (Vector3.X, ...) expose public fields for the same data-oriented reasons.
+ !f.ParentType.IsValueType &&
+ // - EntityComponent-derived types expose editor-visible state as public fields; that is the
+ //   Stride serializer/editor idiom, exactly the Unity situation the rule already excuses.
+ !f.ParentType.DeriveFrom("Stride.Engine.EntityComponent".AllowNoMatch()) &&
+ // - ImGui windows bind fields by ref into the immediate-mode API (Checkbox("Pause", ref PauseEval));
+ //   a property cannot be passed by ref.
+ !f.ParentType.DeriveFrom("Stride.CommunityToolkit.ImGui.BaseWindow".AllowNoMatch()) &&
+ // - F# closure classes (name carries '@') are compiler-generated but not attributed as such.
+ !f.ParentType.Name.Contains("@") &&
+ 
+ // Valid encapsulation level
+ !f.IsPrivate && !f.IsProtected && !f.IsProtectedAndInternal &&
+
+ // These conditions filter cases where fields 
+ // doesn't represent state that should be encapsulated. 
+ !f.IsGeneratedByCompiler && 
+ !f.IsSpecialName && 
+ !f.IsInitOnly && 
+ !f.IsLiteral && 
+ !f.IsEnumValue &&
+ !f.HasAttribute("System.Xml.Serialization.XmlAttributeAttribute".AllowNoMatch()) &&
+ !f.HasAttribute("System.Runtime.Serialization.DataMemberAttribute".AllowNoMatch()) &&
+ !f.HasAttribute("System.Runtime.CompilerServices.FixedBufferAttribute".AllowNoMatch())
+
+// A non-private field used from outside its class,
+// usually leads to complicated field state management.
+let outsideMethodsUsingMe = 
+   f.MethodsUsingMe.Where(m => m.ParentType != f.ParentType)
+
+// Don't report fields assigned from outside its parent type
+// since this situation is handled by the rule
+// 'A field must not be assigned from outside its parent hierarchy types'
+where !f.MethodsAssigningMe.Intersect(outsideMethodsUsingMe).Any()
+
+select new { 
+   f, 
+   f.Visibility, 
+   outsideMethodsUsingMe,
+   
+   Debt = (60+20*outsideMethodsUsingMe .Count()).ToSeconds().ToDebt(),
+   // The cost to leave such issue unfixed is higher if the field is publicly visible!
+   AnnualInterest = Severity.Medium.AnnualInterestThreshold() * (f.IsPubliclyVisible ? 3 : 1)
+}
+
+//<Expl>
+// The *{0}* is used outside its parent type by the *{2}*.
+// A field should be an encapsulated *implementation detail*.
+// Consider making it *private* or refactor it as a property
+// whose read-write accesses can be better controlled at debug-time.
+//</Expl>
+
+//<Desc>
+// This rule matches **mutable fields non-private, non-protected**.
+// *Mutable* means that the field value can be modified.
+// Typically mutable fields are *non-constant*, 
+// *non-readonly* fields.
+//
+// Fields should be considered as **implementation details**
+// and as a consequence they should be declared as private,
+// or protected if it makes sense for derived classes to use it.
+//
+// If something goes wrong with a *non-private field*, 
+// the culprit can be anywhere, and so in order to track down 
+// the bug, you may have to look at quite a lot of code.
+//
+// A private field, by contrast, can only be assigned from 
+// inside the same class, so if something goes wrong with that, 
+// there is usually only one source file to look at.
+//
+// Issues of this rule are fast to get fixed, and they have
+// a debt proportional to the number of methods assigning 
+// the field.
+//</Desc>
+
+//<HowToFix>
+// Consider declaring a matched mutable field as *private* or 
+// marking it as *readonly*. If possible, refactor the code outside 
+// its parent type to eliminate its usage.
+//
+// Alternatively, if external code requires access to the field, 
+//consider encapsulating the field accesses within a property. 
+// Using a property allows you to set debug breakpoints on the accessors, 
+// simplifying the tracking of read-write accesses in case of issues.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1806$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1807$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1808$]]></Query>
