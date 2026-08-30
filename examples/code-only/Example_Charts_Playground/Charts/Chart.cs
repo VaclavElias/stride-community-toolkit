@@ -26,13 +26,16 @@ public sealed class Chart
 
     private readonly Game _game;
     private readonly List<ModelComponent> _gridModels = [];
-    private int _plotCount;
+    private readonly List<ChartSeries> _series = [];
 
     /// <summary>The entity every part of the chart is parented to. Add it to a scene and move it to place the chart.</summary>
     public Entity Root { get; }
 
     /// <summary>The settings the chart was created with.</summary>
     public ChartOptions Options { get; }
+
+    /// <summary>The curves on the chart, in the order they were added.</summary>
+    public IReadOnlyList<ChartSeries> Series => _series;
 
     /// <summary>Shows or hides the major and minor grid. Cheap to toggle every frame; the meshes are built once.</summary>
     public bool GridVisible
@@ -88,71 +91,148 @@ public sealed class Chart
     }
 
     /// <summary>
-    /// Plots <c>y = f(x)</c> across the chart's <c>x</c> range.
+    /// Plots <c>y = f(x)</c> across the chart's <c>x</c> range. Samples outside the <c>y</c> range are clipped
+    /// to the chart edge, samples that are not finite (a function outside its domain) break the curve, and so
+    /// does a jump larger than the chart's height between two samples - the asymptotes of <c>tan(x)</c> or
+    /// <c>1/x</c> - which would otherwise draw a false vertical line.
     /// </summary>
     /// <param name="f">The function to plot.</param>
     /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
     /// <param name="samples">How many points to sample; more is smoother.</param>
-    /// <param name="name">The curve entity's name.</param>
-    /// <returns>The curve entity, already parented to <see cref="Root"/>.</returns>
+    /// <param name="name">The series and entity name.</param>
+    /// <returns>The series, already on the chart; keep it to <see cref="Remove"/> the curve later.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="f"/> is <see langword="null"/>.</exception>
-    public Entity Plot(Func<float, float> f, PolylineOptions? options = null, int samples = 200, string? name = null)
+    public ChartSeries Plot(Func<float, float> f, PolylineOptions? options = null, int samples = 200, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(f);
 
         var points = PolylineSampling.Function(f, Options.XMin, Options.XMax, samples);
+        var branches = PolylineClipping.SplitAtJumps(points, Options.YMax - Options.YMin);
 
-        return AddLine(points, options, name ?? $"Plot {_plotCount + 1}");
+        var runs = new List<IReadOnlyList<Vector3>>();
+        foreach (var branch in branches)
+        {
+            runs.AddRange(Clip(branch));
+        }
+
+        return AddSeries(runs, options, name ?? $"Plot {_series.Count + 1}", closed: false);
     }
 
     /// <summary>
-    /// Plots a parametric curve <c>p(t)</c>.
+    /// Plots a parametric curve <c>p(t)</c>, clipped to the chart's ranges.
     /// </summary>
     /// <param name="p">The curve; its <c>z</c> is kept, so the curve may leave the chart plane.</param>
     /// <param name="from">The first <c>t</c>.</param>
     /// <param name="to">The last <c>t</c>.</param>
     /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
     /// <param name="samples">How many points to sample; more is smoother.</param>
-    /// <param name="name">The curve entity's name.</param>
-    /// <returns>The curve entity, already parented to <see cref="Root"/>.</returns>
+    /// <param name="name">The series and entity name.</param>
+    /// <returns>The series, already on the chart; keep it to <see cref="Remove"/> the curve later.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="p"/> is <see langword="null"/>.</exception>
-    public Entity PlotParametric(Func<float, Vector3> p, float from, float to, PolylineOptions? options = null, int samples = 200, string? name = null)
+    public ChartSeries PlotParametric(Func<float, Vector3> p, float from, float to, PolylineOptions? options = null, int samples = 200, string? name = null)
     {
         ArgumentNullException.ThrowIfNull(p);
 
         var points = PolylineSampling.Parametric(p, from, to, samples);
 
-        return AddLine(points, options, name ?? $"Plot {_plotCount + 1}");
+        return AddLine(points, options, name ?? $"Plot {_series.Count + 1}");
     }
 
     /// <summary>
     /// Adds a line through arbitrary points - measured data, a trajectory, a hand-drawn shape.
     /// </summary>
-    /// <param name="points">The points, in chart units. At least two.</param>
+    /// <param name="points">The points, in chart units.</param>
     /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
-    /// <param name="name">The line entity's name.</param>
-    /// <returns>The line entity, already parented to <see cref="Root"/>.</returns>
+    /// <param name="name">The series and entity name.</param>
+    /// <param name="clip">
+    /// Whether to cut the line to the chart's ranges. <see langword="true"/> (the default) also breaks the line at
+    /// points that are not finite; <see langword="false"/> only does the latter and lets the line leave the chart.
+    /// </param>
+    /// <returns>The series, already on the chart; keep it to <see cref="Remove"/> the line later.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
-    public Entity AddLine(IReadOnlyList<Vector3> points, PolylineOptions? options = null, string? name = null)
+    public ChartSeries AddLine(IReadOnlyList<Vector3> points, PolylineOptions? options = null, string? name = null, bool clip = true)
     {
         ArgumentNullException.ThrowIfNull(points);
 
+        var closed = options?.Closed == true && points.Count > 1;
+
+        // A closed shape is clipped as an open one that returns to its start; if nothing was cut it is drawn
+        // closed after all, so the seam gets a proper mitred join
+        IReadOnlyList<Vector3> source = closed ? [.. points, points[0]] : points;
+
+        var runs = clip ? Clip(source) : PolylineClipping.SplitAtNonFinite(source);
+
+        var keepClosed = closed && runs.Count == 1 && runs[0].Length == source.Count
+            && runs[0][0] == source[0] && runs[0][^1] == source[^1];
+
+        return keepClosed
+            ? AddSeries([points], options, name ?? $"Line {_series.Count + 1}", closed: true)
+            : AddSeries(runs, options, name ?? $"Line {_series.Count + 1}", closed: false);
+    }
+
+    /// <summary>
+    /// Takes a curve off the chart: detaches its entity and frees its GPU buffers. Does nothing if the series
+    /// is not on this chart.
+    /// </summary>
+    /// <param name="series">The series returned by <see cref="Plot"/>, <see cref="PlotParametric"/> or <see cref="AddLine"/>.</param>
+    /// <returns><see langword="true"/> if the series was on the chart and has been removed.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="series"/> is <see langword="null"/>.</exception>
+    public bool Remove(ChartSeries series)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+
+        if (!_series.Remove(series))
+            return false;
+
+        Root.RemoveChild(series.Entity);
+        series.Dispose();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Takes every curve off the chart, freeing their GPU buffers. Axes, ticks, grid and labels stay.
+    /// </summary>
+    public void Clear()
+    {
+        foreach (var series in _series)
+        {
+            Root.RemoveChild(series.Entity);
+            series.Dispose();
+        }
+
+        _series.Clear();
+    }
+
+    private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
+        => PolylineClipping.Clip(points, Options.XMin, Options.XMax, Options.YMin, Options.YMax);
+
+    private ChartSeries AddSeries(IReadOnlyList<IReadOnlyList<Vector3>> runs, PolylineOptions? options, string name, bool closed)
+    {
         var palette = Options.CurvePalette;
 
         options ??= new PolylineOptions
         {
             Width = Options.CurveWidth,
             EmissiveIntensity = Options.CurveEmissiveIntensity,
-            Color = palette.Length > 0 ? palette[_plotCount % palette.Length] : Color.White,
+            Color = palette.Length > 0 ? palette[_series.Count % palette.Length] : Color.White,
         };
 
-        _plotCount++;
+        // Nothing inside the chart: an empty entity keeps the series usable and the palette in step
+        var entity = runs.Count switch
+        {
+            0 => new Entity(name),
+            1 when closed => _game.CreatePolyline(runs[0], options, name),
+            _ => _game.CreatePolylines(runs, options, name),
+        };
 
-        var line = _game.CreatePolyline(points, options, name ?? $"Line {_plotCount}");
-        line.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
-        Root.AddChild(line);
+        entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
+        Root.AddChild(entity);
 
-        return line;
+        var series = new ChartSeries(name, entity, options, isEmpty: runs.Count == 0);
+        _series.Add(series);
+
+        return series;
     }
 
     private void BuildAxes()

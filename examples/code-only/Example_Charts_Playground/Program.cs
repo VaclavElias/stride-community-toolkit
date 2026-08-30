@@ -23,8 +23,9 @@ using Stride.Input;
 //              it) and a paper-like clear colour, and skip the physics ground a chart does not need.
 //   glow 3D  - the default 3D scene with skybox and bloom; emissive intensity above 1 makes lines glow.
 //
-// Controls: G toggles the grid. The key is listed in the DebugOverlay section so it shares one
-// screen block with the camera help (F2 collapses it, F3 moves it, F4 hides it).
+// Controls: G toggles the grid, T removes or restores the tan curve. The keys are listed in the
+// DebugOverlay section so they share one screen block with the camera help (F2 collapses it, F3 moves
+// it, F4 hides it).
 
 // Without this a scaled-up 4K desktop hands the game a scaled, blurred window. A no-op off Windows.
 WindowsDpiManager.EnablePerMonitorV2();
@@ -36,6 +37,7 @@ var use3DScene = args.Any(a => a.Equals("--3d", StringComparison.OrdinalIgnoreCa
 using var game = new Game();
 
 Chart? chart = null;
+ChartSeries? tangent = null;
 
 game.Run(start: Start, update: Update);
 
@@ -73,14 +75,21 @@ void Start(Scene rootScene)
     // Curves added without options take the preset's width, glow and next palette colour
     chart.Plot(x => 2f * MathF.Sin(x), name: "sin");
     chart.Plot(x => 0.15f * x * x - 3f, name: "parabola");
+
+    // The awkward ones: ln(x) is NaN left of zero, so the curve simply starts at the y axis; tan(x)
+    // shoots past the chart's top and bottom and jumps across each asymptote, and is clipped to the
+    // edges and cut into its branches rather than joined by a false vertical line
+    chart.Plot(x => MathF.Log(x), name: "ln");
+    tangent = chart.Plot(MathF.Tan, samples: 600, name: "tan");
+
     chart.PlotParametric(
         t => new Vector3(1.5f * MathF.Cos(t), 1.5f * MathF.Sin(t), 0f), 0f, MathUtil.TwoPi,
-        new PolylineOptions { Width = options.CurveWidth, Color = options.CurvePalette[2], EmissiveIntensity = options.CurveEmissiveIntensity, Closed = true },
+        new PolylineOptions { Width = options.CurveWidth, Color = options.CurvePalette[4], EmissiveIntensity = options.CurveEmissiveIntensity, Closed = true },
         samples: 96,
         name: "circle");
 
     // The overlay draws itself and is shared with the camera controller's help; the lambda is read
-    // every frame, so the grid state it shows is always current
+    // every frame, so the grid and series state it shows is always current
     var overlay = DebugOverlay.GetOrCreate(game);
 
     // Debug text is 16 pixels tall at scale 1, which is tiny on a high-DPI display. Scale the whole
@@ -100,14 +109,33 @@ void Start(Scene rootScene)
     [
         new("CHART"),
         new($"Press G to toggle the grid ({(chart.GridVisible ? "on" : "off")})", Color.Yellow),
+        new($"Press T to {(tangent is null ? "restore" : "remove")} the tan curve", Color.Yellow),
+        new($"{chart.Series.Count} series: {string.Join(", ", chart.Series.Select(s => s.Name))}"),
     ]);
 }
 
 void Update(Scene scene, GameTime time)
 {
-    if (chart != null && game.Input.IsKeyPressed(Keys.G))
+    if (chart is null) return;
+
+    if (game.Input.IsKeyPressed(Keys.G))
     {
         chart.GridVisible = !chart.GridVisible;
+    }
+
+    // Remove frees the ribbon's GPU buffers; plotting again builds new ones. Cheap enough to do on a
+    // key press, and the pattern a live re-plot (a parameter slider, say) would use every change
+    if (game.Input.IsKeyPressed(Keys.T))
+    {
+        if (tangent is null)
+        {
+            tangent = chart.Plot(MathF.Tan, samples: 600, name: "tan");
+        }
+        else
+        {
+            chart.Remove(tangent);
+            tangent = null;
+        }
     }
 }
 
@@ -126,15 +154,19 @@ description:
     grid, and function curves drawn as lines with real thickness. Two presets share one API - a flat,
     paper-like 2D chart under an orthographic camera with MSAA and pixel-sized labels, and a glowing
     3D chart in a lit scene with bloom. Hardware lines are one pixel wide, so each line is a ribbon
-    mesh built by PolylineMeshBuilder from sampled points. The helpers live in their final toolkit
-    namespaces and will move into the library once their shape settles.
+    mesh built by PolylineMeshBuilder from sampled points. Curves are clipped to the chart, broken
+    where a function is undefined or jumps across an asymptote, and can be removed again with their
+    GPU buffers freed. The helpers live in their final toolkit namespaces and will move into the
+    library once their shape settles.
 concepts:
-  - Building a ribbon mesh from a list of points, and one mesh from many segments
+  - Building a ribbon mesh from a list of points, and one mesh from many segments or runs
   - Sampling y = f(x) and parametric curves into points
+  - "Clipping a polyline to a rectangle (Liang-Barsky) and splitting it at NaN and at asymptotes"
   - "Emissive intensity above 1 plus bloom: glowing lines"
   - Why thin geometry flickers without MSAA, and enabling it on the 2D compositor
   - Screen-sized tick labels with EntityTextComponent versus world-sized ones with WorldTextComponent
   - Composing a 2D scene by hand instead of SetupBase2DScene
+  - Removing a curve and disposing the vertex and index buffers nothing else tracks
   - Toggling a ModelComponent with a key listed in a DebugOverlay section
   - "Using helpers: Add2DGraphicsCompositor, Add2DCamera, Add2DCameraController, SetupBase3DScene, AddSkybox, DebugOverlay"
 tags:

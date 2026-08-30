@@ -58,6 +58,28 @@ public static class PolylineExtensions
         return ToEntity(game, mesh, options, name ?? "Segments");
     }
 
+    /// <summary>
+    /// Creates an entity drawing several open polylines as one ribbon mesh with one material - the pieces a
+    /// clipped curve is cut into, or lines that belong together.
+    /// </summary>
+    /// <param name="game">The game whose graphics device the mesh is created on.</param>
+    /// <param name="polylines">The polylines; each needs at least two points, and at least one polyline is required.</param>
+    /// <param name="options">Width, colour, glow and plane; <see langword="null"/> for the defaults. <see cref="PolylineOptions.Closed"/> is ignored.</param>
+    /// <param name="name">The entity name, or <c>"Polylines"</c>.</param>
+    /// <returns>An entity holding a <see cref="ModelComponent"/>; add it to a scene or parent it to another entity.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="game"/> or <paramref name="polylines"/> is <see langword="null"/>.</exception>
+    public static Entity CreatePolylines(this IGame game, IReadOnlyList<IReadOnlyList<Vector3>> polylines, PolylineOptions? options = null, string? name = null)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(polylines);
+
+        options ??= new PolylineOptions();
+
+        var mesh = PolylineMeshBuilder.BuildMany(game.GraphicsDevice, polylines, options);
+
+        return ToEntity(game, mesh, options, name ?? "Polylines");
+    }
+
     private static Entity ToEntity(IGame game, Mesh mesh, PolylineOptions options, string name)
     {
         var material = GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, options.Color, options.EmissiveIntensity);
