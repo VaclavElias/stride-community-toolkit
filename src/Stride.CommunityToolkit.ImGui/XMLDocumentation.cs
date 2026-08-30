@@ -29,23 +29,16 @@ internal static class XMLDocumentation
                 {
                     filepath = filepath.Substring(LOCAL_PREFIX.Length);
                     filepath = Path.ChangeExtension(filepath, ".xml");
-                    TextReader? streamReader;
                     try
                     {
-                        streamReader = new StreamReader(filepath);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        streamReader = null;
-                    }
-
-                    if (streamReader != null)
-                    {
+                        using var streamReader = new StreamReader(filepath);
                         document = new XmlDocument();
                         document.Load(streamReader);
                     }
-                    else
+                    catch (FileNotFoundException)
+                    {
                         document = null;
+                    }
                 }
                 else
                 {
@@ -64,14 +57,7 @@ internal static class XMLDocumentation
                 switch (member)
                 {
                     case MethodInfo methodInfo:
-                        var parameters = "";
-                        foreach (var parameterInfo in methodInfo.GetParameters())
-                        {
-                            if (parameters.Length > 0)
-                                parameters += ",";
-
-                            parameters += parameterInfo.ParameterType.FullName;
-                        }
+                        var parameters = string.Join(",", methodInfo.GetParameters().Select(p => p.ParameterType.FullName));
 
                         if (parameters.Length > 0)
                             parameters = $"({parameters})";
@@ -159,17 +145,7 @@ internal static class XMLDocumentation
             rawString = rawString.Replace("<see cref=", "").Replace("/>", "");
 
             // cleanup tabs and spaces on new line
-            string final = "";
-            foreach (string lines in rawString.Split(new[] { '\n' }, StringSplitOptions.None))
-            {
-                string cleanedLine = lines.Trim();
-                if (final != "")
-                    final += $"\n{cleanedLine}";
-                else
-                    final += cleanedLine;
-            }
-
-            return final;
+            return string.Join('\n', rawString.Split('\n').Select(line => line.Trim()).SkipWhile(line => line.Length == 0));
         }
     }
 }

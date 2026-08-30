@@ -77,9 +77,9 @@ public static class TextureExtensions
             Texture offlineTarget = Texture.New2D(GraphicsDevice, width, height,
                 pixelFormat, TextureFlags.ShaderResource |
                 TextureFlags.RenderTarget);
-            Texture depthBuffer = Texture.New2D(GraphicsDevice, width, height,
+            using Texture depthBuffer = Texture.New2D(GraphicsDevice, width, height,
                 PixelFormat.D24_UNorm_S8_UInt, TextureFlags.DepthStencil);
-            SpriteBatch spriteBatch = new SpriteBatch(GraphicsDevice);
+            using SpriteBatch spriteBatch = new(GraphicsDevice);
 
             // render into texture
             graphicsContext.CommandList.Clear(offlineTarget, new Color4(0, 0, 0, 0));
