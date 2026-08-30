@@ -152,7 +152,85 @@
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1302$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1303$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1304$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1305$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid namespaces with few types</Name>
+// <Id>ND1305:AvoidNamespacesWithFewTypes</Id>
+
+warnif count > 0 
+
+// Common infrastructure namespace names not matched by the rule.
+// Complete this list to your need.
+let infraNamespaceNames = new HashSet<string>() {
+      "Services","Exceptions","Logging", "Domain",
+      "Identity", "Migrations", "Controllers",
+      "Specifications", "Interfaces", "Components",
+      "Bus", "Models", "EventHandlers", "Mappings",
+      "ViewModels", "ViewComponents", "Notifications",
+      "Configurations", "Extensions", "Events",
+      "Context", "Data", "EventSourcing", "Repository",
+      "IoC", "Manage", "Commands", "CommandHandlers",
+      "Validations", "EventStoreSQL", "Authorization",
+      "Formatters", "Xml", "Json", "Enums",
+      "Abstractions", "BaseClasses", "Settings",
+      "Helpers", "Validators", "Entities", "Pages"
+}
+
+// Only warn for namespaces with few types declared in assemblies with more than 15 types.
+// This way the rule avoids matching namespace with few types in assemblies with few types.
+from a in JustMyCode.Assemblies
+where a.NbTypes >= 15
+   // Stride Community Toolkit tweak: shipped libraries only. Examples and tools are teaching code,
+   // organised for reading rather than for consumers writing using lines, so a namespace holding
+   // one or two types is the point there, not a smell.
+   && a.Name.StartsWith("Stride.CommunityToolkit") && !a.Name.StartsWith("Stride.CommunityToolkit.Examples")
+
+from n in a.ChildNamespaces 
+where n.Name.Length > 0 // Don't match anonymous namespaces
+ && !infraNamespaceNames.Contains(n.SimpleName)  // Don't match common infrastructure namespaces
+ && !n.ParentNamespaces.Any(pn => infraNamespaceNames.Contains(pn.SimpleName)) // Don't match children of common infrastructure namespaces
+ &&  n.Name != n.ParentAssembly.Name  // Don't warn on namespace named as assembly to avoid warning on new VS projects
+let types = n.ChildTypes.Where(t => !t.IsGeneratedByCompiler).ToArray()
+where 
+  types.Length > 0 &&  // Don't match namespaces that contain only types GeneratedByCompiler
+  types.Length < 5 &&
+  // Only match namespaces that have all types in JustMyCode
+  types.All(t => JustMyCode.Contains(t))
+  orderby types.Length ascending
+select new { 
+   n, 
+   types,
+   Debt = 5.ToMinutes().ToDebt(),
+   Severity = Severity.Low
+} 
+
+//<Expl>The *{0}* contains only the *{1}*. To prevent an excessive number of *using* clauses in client code, refrain from segregating classes into numerous small namespaces.</Expl>
+
+//<Desc>
+// This rule warns about namespaces other than the global namespace 
+// that contain less than five types.
+//
+// Make sure that each of your namespaces has a logical organization
+// and that a valid reason exists to put types in a sparsely 
+// populated namespace. Because creating numerous detailed namespaces  
+// leads to the need for many *using* clauses in client code.
+// 
+// Namespaces should contain types that are used together in most 
+// scenarios. When their applications are mutually exclusive, 
+// types should be located in separate namespaces.
+//
+// Careful namespace organization can also be helpful because 
+// it increases the discoverability of a feature. By examining the 
+// namespace hierarchy, library consumers should be able to locate
+// the types that implement a feature.
+//
+// Notice that this rule source code contains a list of common
+// infrastructure namespace names that you can complete.
+// Namespaces with ending name component in this list are not matched.
+//</Desc>
+
+//<HowToFix>
+// To fix a violation of this rule, try to combine namespaces 
+// that contain just a few types into a single namespace.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1306$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Declare types in namespaces</Name>
 // <Id>ND1307:DeclareTypesInNamespaces</Id>
