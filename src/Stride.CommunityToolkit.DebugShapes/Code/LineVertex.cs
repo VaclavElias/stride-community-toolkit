@@ -14,4 +14,10 @@ internal struct LineVertex
 
     public Vector3 Position;
     public Color Color;
+
+    internal LineVertex(Vector3 position, Color color)
+    {
+        Position = position;
+        Color = color;
+    }
 }

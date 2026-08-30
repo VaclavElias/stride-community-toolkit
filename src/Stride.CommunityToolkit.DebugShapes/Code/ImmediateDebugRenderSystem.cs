@@ -99,7 +99,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     public void DrawLine(Vector3 start, Vector3 end, Color color = default, float duration = 0.0f, bool depthTest = true)
     {
         var cmd = new Line { Start = start, End = end, Color = color == default ? PrimitiveColor : color };
-        var msg = new DebugRenderable(ref cmd, depthTest ? DebugRenderableFlags.DepthTest : 0) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, depthTest ? DebugRenderableFlags.DepthTest : 0, duration);
         PushMessage(ref msg);
     }
 
@@ -164,7 +164,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     {
         var cmd = new Sphere { Position = position, Radius = radius, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
         PushMessage(ref msg);
     }
 
@@ -182,7 +182,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     {
         var cmd = new HalfSphere { Position = position, Radius = radius, Rotation = rotation == default ? Quaternion.Identity : rotation, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
         PushMessage(ref msg);
     }
 
@@ -200,7 +200,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     {
         var cmd = new Cube { Start = start + ((end - start) / 2), End = end + ((end - start) / 2), Rotation = rotation == default ? Quaternion.Identity : rotation, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
         PushMessage(ref msg);
     }
 
@@ -224,7 +224,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     {
         var cmd = new Cube { Start = start, End = start + size, Rotation = rotation == default ? Quaternion.Identity : rotation, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
 
         PushMessage(ref msg);
     }
@@ -245,7 +245,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
         // FIXME: height is divided by two here but can probably be solved more elegantly elsewhere yes
         var cmd = new Capsule { Position = position, Height = height / 2.0f, Radius = radius, Rotation = rotation == default ? Quaternion.Identity : rotation, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
         PushMessage(ref msg);
     }
 
@@ -264,7 +264,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     {
         var cmd = new Cylinder { Position = position, Height = height, Radius = radius, Rotation = rotation == default ? Quaternion.Identity : rotation, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
         PushMessage(ref msg);
     }
 
@@ -283,7 +283,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     {
         var cmd = new Cone { Position = position, Height = height, Radius = radius, Rotation = rotation == default ? Quaternion.Identity : rotation, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
         PushMessage(ref msg);
     }
 
@@ -301,7 +301,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     {
         var cmd = new Quad { Position = position, Size = size, Rotation = rotation == default ? Quaternion.Identity : rotation, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
         PushMessage(ref msg);
     }
 
@@ -319,7 +319,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     {
         var cmd = new Circle { Position = position, Radius = radius, Rotation = rotation == default ? Quaternion.Identity : rotation, Color = color == default ? PrimitiveColor : color };
         var renderFlags = (depthTest ? DebugRenderableFlags.DepthTest : 0) | (solid ? DebugRenderableFlags.Solid : DebugRenderableFlags.Wireframe);
-        var msg = new DebugRenderable(ref cmd, renderFlags) { Lifetime = duration };
+        var msg = new DebugRenderable(ref cmd, renderFlags, duration);
         PushMessage(ref msg);
     }
 
