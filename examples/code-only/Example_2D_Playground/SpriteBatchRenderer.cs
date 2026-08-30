@@ -11,10 +11,11 @@ public class SpriteBatchRenderer : SyncScript
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _font;
     private Texture? _texture;
+    private Texture? _colorTexture;
     private float _fontSize = 25;
     private string _text = "This text is in Arial 20 with anti-alias\nand multiline...";
-    private DelegateSceneRenderer _sceneRenderer;
-    private RenderDrawContext _ctx;
+    private DelegateSceneRenderer? _sceneRenderer;
+    private RenderDrawContext? _ctx;
 
     public override void Start()
     {
@@ -22,32 +23,43 @@ public class SpriteBatchRenderer : SyncScript
         _font = Content.Load<SpriteFont>("/Stride.Engine/StrideDefaultFont");
         _sceneRenderer = new DelegateSceneRenderer(Draw);
         _ctx = new RenderDrawContext(Services, RenderContext.GetShared(Services), Game.GraphicsContext);
+        _colorTexture = Texture.New2D(GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, [Color.White]);
 
         //_texture = Content.Load<Texture>("Path to your texture asset");
     }
 
+    public override void Cancel()
+    {
+        _spriteBatch?.Dispose();
+        _spriteBatch = null;
+        _colorTexture?.Dispose();
+        _colorTexture = null;
+    }
+
     public override void Update()
     {
-        var spriteBatch = new SpriteBatch(GraphicsDevice);
+        if (_spriteBatch is null || _font is null || _colorTexture is null || _sceneRenderer is null || _ctx is null) return;
 
         // don't forget the begin
-        spriteBatch.Begin(Game.GraphicsContext);
+        _spriteBatch.Begin(Game.GraphicsContext);
 
         // draw the text "Helloworld!" in red from the center of the screen
-        spriteBatch.DrawString(_font, "Helloworld!", new Vector2(0.5f, 0.5f), Color.Red);
+        _spriteBatch.DrawString(_font, "Helloworld!", new Vector2(0.5f, 0.5f), Color.Red);
 
         // don't forget the end
-        spriteBatch.End();
+        _spriteBatch.End();
 
         _sceneRenderer.Draw(_ctx);
 
-        var _cameraComponent = Entity.Scene.Entities.FirstOrDefault(x => x.Get<CameraComponent>() != null)?.Get<CameraComponent>();
+        var cameraComponent = Entity.Scene.Entities.FirstOrDefault(x => x.Get<CameraComponent>() != null)?.Get<CameraComponent>();
+
+        if (cameraComponent is null) return;
+
         //var text = "Your Text Here";
-        var viewMatrix = _cameraComponent.ViewMatrix;
-        var projectionMatrix = _cameraComponent.ProjectionMatrix;
+        var viewMatrix = cameraComponent.ViewMatrix;
+        var projectionMatrix = cameraComponent.ProjectionMatrix;
         var textureToWorldSpace = Matrix.RotationX(MathUtil.Pi) * Matrix.Translation(0, 0, 0.25f);
         var textScale = 1.0f;
-        var colorTexture = Texture.New2D(GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.White });
 
         //_spriteBatch.Begin(
         //    Game.GraphicsContext,
@@ -64,7 +76,7 @@ public class SpriteBatchRenderer : SyncScript
 
         int x = 20, y = 20;
 
-        _spriteBatch.Draw(colorTexture, new Rectangle(x, y, (int)dim.X, (int)dim.Y), Color.Green);
+        _spriteBatch.Draw(_colorTexture, new Rectangle(x, y, (int)dim.X, (int)dim.Y), Color.Green);
         _font.PreGenerateGlyphs(_text, _font.Size * Vector2.One);
         _spriteBatch.DrawString(_font, _text, new Vector2(x, y), Color.White);
 
@@ -77,15 +89,15 @@ public class SpriteBatchRenderer : SyncScript
 
     private void Draw(RenderDrawContext ctx)
     {
-        var spriteBatch = new SpriteBatch(GraphicsDevice);
+        if (_spriteBatch is null || _font is null) return;
 
         // don't forget the begin
-        spriteBatch.Begin(Game.GraphicsContext);
+        _spriteBatch.Begin(Game.GraphicsContext);
 
         // draw the text "Helloworld!" in red from the center of the screen
-        spriteBatch.DrawString(_font, "Helloworld!", new Vector2(0.5f, 0.5f), Color.Red);
+        _spriteBatch.DrawString(_font, "Helloworld!", new Vector2(0.5f, 0.5f), Color.Red);
 
         // don't forget the end
-        spriteBatch.End();
+        _spriteBatch.End();
     }
 }
