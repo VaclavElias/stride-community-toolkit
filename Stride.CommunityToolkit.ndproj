@@ -754,7 +754,100 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2009$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2010$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2011$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2012$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[// <Name>Avoid having different types with same name</Name>
+// <Id>ND2012:AvoidHavingDifferentTypesWithSameName</Id>
+
+warnif count > 0
+
+// Special type names for which multiple types with such name are allowed.
+let nonReportedTypeName = new [] { 
+   "Program", "NamespaceDoc", "Initial", "Startup", "SwaggerConfig", "Constants", "MainWindow",
+   "App", "Index", "Create", "Read", "Update", "Delete", "Edit", "Details", "View",
+   // Stride Community Toolkit tweak: every Stride assembly carries its own internal Module class
+   // (the [ModuleInitializer] AssemblyRegistry registration), so the recurring name is engine convention.
+   "Module" }
+
+// Special type name suffixes for which multiple types with such suffix are allowed.
+let nonReportedTypeNameSuffix = new [] { 
+   "Service", "Model", "Controller", "Page", "Pages" }
+
+// This rule matches also collisions between 
+// application and third-party types sharing a same name.
+let groups = JustMyCode.Types.Union(ThirdParty.Types)
+                 // Discard nested types, whose name is
+                 // prefixed with the parent type name.
+                 .Where(t => !t.IsNested && 
+                             !nonReportedTypeName.Contains(t.Name) &&
+                             !t.Name.EndsWithAny(nonReportedTypeNameSuffix))
+                 
+                 // Group types by name.
+                 .GroupBy(t => t.Name)
+
+from @group in groups 
+   where @group.Count() > 1
+
+   // Let's see if types with the same name are declared
+   // in different namespaces.
+   // (t.FullName is {namespaceName}.{typeName} )
+   let groupsFullName = @group.GroupBy(t => t.FullName)
+   where groupsFullName.Count() > 1
+
+   // If several types with same name are declared in different namespaces
+   // eliminate the case where all types are declared in third-party assemblies.
+   let types= groupsFullName.SelectMany(g => g)
+   // Stride Community Toolkit tweak: shipped libraries only. Examples are standalone teaching apps that
+   // never reference each other, and several mirror Stride/Bepu type names on purpose to teach the analogy.
+   where types.Any(t => !t.IsThirdParty && t.ParentAssembly.Name.StartsWith("Stride.CommunityToolkit") && !t.ParentAssembly.Name.StartsWith("Stride.CommunityToolkit.Examples"))
+        // Uncomment this line, to only gets naming collision involving
+        // both application and third-party types.
+        //         && types.Any(t => t.IsThirdParty)
+
+orderby types.Count() descending
+
+// Don't match types containing extension methods whose name is less relevant
+// Stride Community Toolkit tweak: decide on application types only. A third-party twin is analysed
+// surface-level, so its extension methods are invisible and the stock .All() test can never pass
+// (e.g. System.Collections.Generic.CollectionExtensions); a holder's name is never written at call sites.
+where !types.Where(t => !t.IsThirdParty).All(t => t.IsStatic && t.Methods.Any(m => m.IsExtensionMethod))
+
+// Order types by parent namespace and assembly name,this  way we always get the same type across sessions.
+// Without this astute, the same issue would be seen as added/removed when the first type choosen in the group
+// was not always the same, a situation that actually happens.
+// Also make sure that the chosen type is not a third-party one.
+let tMatched = types.OrderBy(t => (t.IsThirdParty ? "1" : "0") + t.ParentNamespace.Name + t.ParentAssembly.Name).First()
+
+select new { 
+
+   t = tMatched,
+   
+   // In the 'types' column, make sure to group matched types 
+   // by parent assemblies and parent namespaces, to get a result
+   // more readable.
+   types,
+   
+   namespaces = types.Except(tMatched).Select(t => t.ParentNamespace).Distinct(n => n.Name),
+   
+   Debt = 10.ToMinutes().ToDebt(),
+   Severity = Severity.High
+}
+
+//<Expl>
+// {2?A type:Several types} with the same name as the *{0}* {2?is:are} defined in the *{2}*.
+// This leads to confusion and also naming collision.
+//</Expl>
+
+//<Desc>
+// This rule warns about multiple types with same name,
+// that are defined in different *application* or  
+// *third-party* namespaces or assemblies.
+//
+// Such practice leads confusion and also naming collision
+// in source files that use different types with same name.
+//</Desc>
+
+//<HowToFix>
+// To fix a violation of this rule, rename concerned types.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2013$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2014$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2015$]]></Query>
