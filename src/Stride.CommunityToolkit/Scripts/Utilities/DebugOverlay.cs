@@ -599,16 +599,6 @@ public sealed class DebugOverlay : GameSystemBase
         }
     }
 
-    /// <summary>
-    /// Produces a readable name for a key, so <see cref="Keys.D2"/> shows as "2" rather than "D2".
-    /// </summary>
-    private static string DescribeKey(Keys key) => key switch
-    {
-        >= Keys.D0 and <= Keys.D9 => ((char)('0' + (key - Keys.D0))).ToString(),
-        >= Keys.NumPad0 and <= Keys.NumPad9 => ((char)('0' + (key - Keys.NumPad0))).ToString(),
-        _ => key.ToString()
-    };
-
     private List<TextElement> CollectLines()
     {
         var lines = new List<TextElement>();
@@ -631,7 +621,7 @@ public sealed class DebugOverlay : GameSystemBase
             {
                 var marker = section.Collapsed ? CollapsedMarker : ExpandedMarker;
 
-                lines.Add(new($"{DescribeKey(section.ToggleKey!.Value)} - {section.Title} {marker}", TitleColor));
+                lines.Add(new($"{KeyNames.Describe(section.ToggleKey!.Value)} - {section.Title} {marker}", TitleColor));
             }
             else if (!string.IsNullOrEmpty(section.Title))
             {
