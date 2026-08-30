@@ -14,7 +14,7 @@ public class LightDirectionalGizmo
     /// <summary>
     /// The tessellation value for the gizmo, which defines the level of detail for its geometry.
     /// </summary>
-    protected const int GizmoTessellation = 64;
+    private const int GizmoTessellation = 64;
 
     private const float BodyLength = 0.4f;
     private const float ConeHeight = BodyLength / 5;

@@ -29,7 +29,7 @@ public static partial class HeightmapExtensions
     /// or float heightmaps HeightMultiplier=10000.0f (based on a short -32,768 to 32,767,
     /// sum yields 65,535 levels for much smoother maps).
     /// </summary>
-    public const float HeightMultiplier = 255.0f;
+    public static readonly float HeightMultiplier = 255.0f;
 
     //ToDo: Needs refactoring
     //Example of picking a Heightmap, and its extension
