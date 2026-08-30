@@ -50,7 +50,6 @@ public class PerfMonitor : BaseWindow
     /// <summary> Owner of <see cref="_threadStaticCollection"/> </summary>
     static PerfMonitor? _threadStaticMonitor;
 
-    static readonly ProfilingEventType[] PROFILING_EVENT_TYPES = (ProfilingEventType[])System.Enum.GetValues(typeof(ProfilingEventType));
 
     // Work agnostic data
     readonly Dictionary<Thread, ThreadSampleCollection> _cpuSamples = [];
@@ -66,7 +65,7 @@ public class PerfMonitor : BaseWindow
     GraphPoint[] _graph = new GraphPoint[256];
     GraphPoint Average => _graphAggregated / _graph.Length;
 
-    Vector2? _windowSize = new Vector2(420f, 240f);
+    bool _windowSizeApplied;
     PerfSampler? _frame;
 
     PerfMonitorAutoSampler? _autoSampler;
@@ -99,7 +98,7 @@ public class PerfMonitor : BaseWindow
     protected override Vector2? WindowPos => new Vector2(1f, 1f);
 
     /// <inheritdoc />
-    protected override Vector2? WindowSize => _windowSize;
+    protected override Vector2? WindowSize => _windowSizeApplied ? null : new Vector2(420f, 240f);
 
     Vector2 GetGraphSize() => new(MaxWidth(), GraphHeight * Scale);
 
@@ -214,7 +213,7 @@ public class PerfMonitor : BaseWindow
         DrawFrameSection();
 
         // Leave it as dynamic after first set
-        _windowSize = null;
+        _windowSizeApplied = true;
     }
 
     void DrawControls()
@@ -321,9 +320,17 @@ public class PerfMonitor : BaseWindow
         {
             using (Child())
             {
-                // CPU
-                foreach (var data in _cpuSamples)
-                {
+                DrawCpuSampleStrips();
+                DrawProfilingToggle();
+                DrawProfilerSampleStrips();            }
+        }
+    }
+
+    void DrawCpuSampleStrips()
+    {
+        // CPU
+        foreach (var data in _cpuSamples)
+        {
                     var thread = data.Key;
                     var samples = data.Value.Displayed;
                     if (CollapsingHeader(thread.Name ?? "unnamed") == false)
@@ -334,8 +341,11 @@ public class PerfMonitor : BaseWindow
                         for (int i = 0; i < samples.Count; i++)
                             DrawSample(default, MaxWidth(), samples[i], _cpuFrame.start, _cpuFrame.duration);
                     }
-                }
+        }
+    }
 
+    void DrawProfilingToggle()
+    {
                 var buttonSize = new Vector2(GetContentRegionAvail().X, GetTextLineHeightWithSpacing());
                 bool profiling = IsStrideProfilingAll();
                 if (Button(profiling ? "Stop Profiling" : "Profile Stride", buttonSize))
@@ -351,9 +361,10 @@ public class PerfMonitor : BaseWindow
                         StartProcessingMarkers(_sorter, _stopProfiling.Token);
                         Profiler.EnableAll();
                     }
-                }
+                }    }
 
-
+    void DrawProfilerSampleStrips()
+    {
                 // GPU
                 if (CollapsingHeader(_gpu.samples.Count != 0 ? "GPU" : "GPU (profiling is off)"))
                 {
@@ -374,10 +385,7 @@ public class PerfMonitor : BaseWindow
                         foreach (var data in _stride.samples)
                             DrawSample(default, MaxWidth(), data, _stride.start, _stride.duration);
                     }
-                }
-            }
-        }
-    }
+                }    }
 
     void EndFrame()
     {
@@ -385,7 +393,7 @@ public class PerfMonitor : BaseWindow
         {
             _threadStaticMonitor ??= this;
             if (_frame == null)
-                Guaranteed(_cpuSamples, Thread.CurrentThread).Depth++;
+                _ = Guaranteed(_cpuSamples, Thread.CurrentThread).EnterScope();
             else
                 _frame?.Dispose();
             _frame = new PerfSampler("Frame", this, 0);
@@ -415,14 +423,12 @@ public class PerfMonitor : BaseWindow
     void PushGraphPoint()
     {
         const double MB = (1 << 20);
-        GraphPoint newPoint = new()
-        {
-            FrameTime = (float)_cpuFrame.duration,
-            TotalManagedMB = (float)(System.GC.GetTotalMemory(false) / MB),
-            DrawCalls = GraphicsDevice.FrameDrawCalls,
-            BufferMemMB = (float)(GraphicsDevice.BuffersMemory / MB),
-            TexMemMB = (float)(GraphicsDevice.TextureMemory / MB)
-        };
+        var newPoint = new GraphPoint(
+            (float)_cpuFrame.duration,
+            (float)(System.GC.GetTotalMemory(false) / MB),
+            GraphicsDevice.FrameDrawCalls,
+            (float)(GraphicsDevice.BuffersMemory / MB),
+            (float)(GraphicsDevice.TextureMemory / MB));
 
         if (PauseOnLargeDelta)
         {
@@ -477,8 +483,7 @@ public class PerfMonitor : BaseWindow
             }
             else
             {
-                _depth = _target.Depth;
-                _target.Depth++;
+                _depth = _target.EnterScope();
             }
 
             _timer = LightweightTimer.StartNew();
@@ -504,7 +509,7 @@ public class PerfMonitor : BaseWindow
                 deltaMem = System.GC.GetAllocatedBytesForCurrentThread() - _mem.Value;
             var sampleInstance = new SampleInstance(_id, _depth, start, ms, deltaMem);
             if (_customDepth == false)
-                _target.Depth--;
+                _target.ExitScope();
             _target.Add(sampleInstance);
         }
     }
@@ -519,6 +524,15 @@ public class PerfMonitor : BaseWindow
         public static readonly int Count = SizeOf / 4;
 
         public float FrameTime, TotalManagedMB, DrawCalls, BufferMemMB, TexMemMB;
+
+        internal GraphPoint(float frameTime, float totalManagedMB, float drawCalls, float bufferMemMB, float texMemMB)
+        {
+            FrameTime = frameTime;
+            TotalManagedMB = totalManagedMB;
+            DrawCalls = drawCalls;
+            BufferMemMB = bufferMemMB;
+            TexMemMB = texMemMB;
+        }
 
         // Math operations are made in bulk, the struct is read as an array of floats, applies the operation
         // over each elements and outputs the result of those operations as a new instance.
@@ -587,26 +601,6 @@ public class PerfMonitor : BaseWindow
             }
         }
 
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static GraphPoint operator *(GraphPoint a, float v)
-        {
-            unsafe
-            {
-                GraphPoint dest = a;
-                float* pDest = (float*)&dest;
-                var remaining = Count;
-                while (remaining-- > 0)
-                {
-                    *pDest *= v;
-                    pDest++;
-                }
-
-                return dest;
-            }
-        }
-
         #endregion
 
     }
@@ -617,13 +611,22 @@ public class PerfMonitor : BaseWindow
     }
 
     /// <summary> Object containing a sample's data </summary>
-    internal readonly struct SampleInstance(string id, int depth, TimeSpan start, double duration, long? deltaMemAlloc)
+    internal readonly struct SampleInstance
     {
-        public readonly string Id = id;
-        public readonly int Depth = depth;
-        public readonly TimeSpan Start = start;
-        public readonly double Duration = duration;
-        public readonly long? DeltaMemAlloc = deltaMemAlloc;
+        public readonly string Id;
+        public readonly int Depth;
+        public readonly TimeSpan Start;
+        public readonly double Duration;
+        public readonly long? DeltaMemAlloc;
+
+        internal SampleInstance(string id, int depth, TimeSpan start, double duration, long? deltaMemAlloc)
+        {
+            Id = id;
+            Depth = depth;
+            Start = start;
+            Duration = duration;
+            DeltaMemAlloc = deltaMemAlloc;
+        }
     }
 
     /// <summary>
@@ -631,26 +634,31 @@ public class PerfMonitor : BaseWindow
     /// samples are aggregated and once <see cref="SetReady"/> called,
     /// will be pushed to <see cref="Displayed"/>.
     /// </summary>
-    class ThreadSampleCollection
+    sealed class ThreadSampleCollection
     {
         /// <summary>
-        /// Current depth (sample within sample) of this thread,
-        /// should be incremented when starting and decremented
-        /// when ending a sample by the <see cref="PerfSampler"/>.
+        /// Current depth (sample within sample) of this thread: deepened when a sample opens,
+        /// restored when it closes.
         /// </summary>
-        public int Depth;
+        private int _depth;
+
+        /// <summary>Opens a nested sample scope: returns the row for the new sample and deepens the nesting.</summary>
+        internal int EnterScope() => _depth++;
+
+        /// <summary>Closes the innermost sample scope.</summary>
+        internal void ExitScope() => _depth--;
 
         /// <summary>
         /// Display-ready samples: samples that have ended before the end of the frame.
         /// </summary>
-        public IReadOnlyList<SampleInstance> Displayed => _displayed;
+        internal IReadOnlyList<SampleInstance> Displayed => _displayed;
 
         readonly object _bufferLock = new();
         List<SampleInstance> _buffered = [];
         List<SampleInstance> _displayed = [];
 
         /// <summary> We received all of the data for this frame, set it has ready </summary>
-        public void SetReady()
+        internal void SetReady()
         {
             lock (_bufferLock)
             {
@@ -660,25 +668,25 @@ public class PerfMonitor : BaseWindow
         }
 
         /// <summary> The given sample has finished and is ready to be displayed </summary>
-        public void Add(SampleInstance sampleInstance)
+        internal void Add(SampleInstance sampleInstance)
         {
             lock (_bufferLock)
                 _buffered.Add(sampleInstance);
         }
 
         /// <summary> Clear any samples buffered </summary>
-        public void ClearBuffered()
+        internal void ClearBuffered()
         {
             lock (_bufferLock)
                 _buffered.Clear();
         }
     }
 
-    class PerfMonitorAutoSampler : GameSystem
+    sealed class PerfMonitorAutoSampler : GameSystem
     {
         readonly PerfMonitor _monitor;
 
-        public PerfMonitorAutoSampler(PerfMonitor monitor) : base(monitor.Services)
+        internal PerfMonitorAutoSampler(PerfMonitor monitor) : base(monitor.Services)
         {
             Game.GameSystems.Add(this);
             Enabled = true;

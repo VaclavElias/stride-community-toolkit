@@ -19,7 +19,7 @@ public abstract class BaseWindow : GameSystem
     /// </summary>
     public float Scale => _imGui?.Scale ?? 1f;
 
-    private static Dictionary<string, uint> _windowId = new Dictionary<string, uint>();
+    private static readonly Dictionary<string, uint> _windowId = new Dictionary<string, uint>();
 
     /// <summary>
     /// Bound to the window's close button. Set it to <see langword="false"/> to close the window; once closed the

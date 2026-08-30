@@ -14,10 +14,13 @@ internal static class XMLDocumentation
     static readonly ConcurrentDictionary<Assembly, XmlDocument?> _documents = new();
     static readonly ConcurrentDictionary<MemberInfo, CachedDocumentation?> _documentation = new();
 
+    // Two-level cache: one xml document per assembly, one parsed entry per member. A member without
+    // documentation is cached as null so the file is not searched again.
     static bool TryGetDocumentation(MemberInfo member, [NotNullWhen(true)] out CachedDocumentation? documentation)
     {
         if (!_documentation.TryGetValue(member, out documentation))
         {
+            // Load and cache the xml documentation file sitting next to the member's assembly.
             var assembly = member.Module.Assembly;
 
             if (!_documents.TryGetValue(assembly, out XmlDocument? document))
@@ -55,6 +58,7 @@ internal static class XMLDocumentation
             }
             else
             {
+                // Build the doc-comment id the compiler writes: M:Type.Method(Params), T:Type, P:/F: for the rest.
                 string fullName;
                 switch (member)
                 {
@@ -74,6 +78,7 @@ internal static class XMLDocumentation
                         break;
                 }
 
+                // A member without an entry is cached as null so the document is not searched again.
                 if (document["doc"]?["members"]?.SelectSingleNode($"member[@name='{fullName}']") is XmlElement element)
                     documentation = new CachedDocumentation(element);
                 else
@@ -87,20 +92,7 @@ internal static class XMLDocumentation
     }
 
     /// <summary> Returns false if the documentation file wasn't found </summary>
-    public static bool TryGetDocumentation(MemberInfo member, [NotNullWhen(true)] out XmlElement? elementOut)
-    {
-        if (TryGetDocumentation(member, out CachedDocumentation? docu))
-        {
-            elementOut = docu.Element;
-            return true;
-        }
-
-        elementOut = null;
-        return false;
-    }
-
-    /// <summary> Returns false if the documentation file wasn't found </summary>
-    public static bool TryGetSummary(MemberInfo member, [NotNullWhen(true)] out string? summary)
+    internal static bool TryGetSummary(MemberInfo member, [NotNullWhen(true)] out string? summary)
     {
         if (TryGetDocumentation(member, out CachedDocumentation? doc))
         {
@@ -112,11 +104,11 @@ internal static class XMLDocumentation
         return false;
     }
 
-    public class CachedDocumentation
+    private sealed class CachedDocumentation
     {
-        public XmlElement Element { get; }
+        private XmlElement Element { get; }
 
-        public string CleanSummary
+        internal string CleanSummary
         {
             get
             {
@@ -131,7 +123,7 @@ internal static class XMLDocumentation
 
         readonly object _lock = new();
 
-        public CachedDocumentation(XmlElement elem)
+        internal CachedDocumentation(XmlElement elem)
         {
             Element = elem;
         }

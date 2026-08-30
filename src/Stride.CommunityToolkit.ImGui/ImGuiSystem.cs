@@ -47,7 +47,7 @@ public class ImGuiSystem : GameSystemBase
     private ImGuiPlatformIOPtr _platform;
 
     // dependencies
-    private readonly IGame _game;
+    private readonly GameBase _game;
     private readonly InputManager input;
     private readonly GraphicsDevice device;
     private readonly GraphicsDeviceManager deviceManager;
@@ -172,18 +172,18 @@ public class ImGuiSystem : GameSystemBase
         _keys.Add(Keys.Y, ImGuiKey.Y);
         _keys.Add(Keys.Z, ImGuiKey.Z);
 
-        setClipboardFn = SetClipboard;
-        getClipboardFn = GetClipboard;
+        _setClipboardFn = SetClipboard;
+        _getClipboardFn = GetClipboard;
 
-        _platform.PlatformSetClipboardTextFn = (void*)Marshal.GetFunctionPointerForDelegate(setClipboardFn);
-        _platform.PlatformGetClipboardTextFn = (void*)Marshal.GetFunctionPointerForDelegate(getClipboardFn);
+        _platform.PlatformSetClipboardTextFn = (void*)Marshal.GetFunctionPointerForDelegate(_setClipboardFn);
+        _platform.PlatformGetClipboardTextFn = (void*)Marshal.GetFunctionPointerForDelegate(_getClipboardFn);
     }
 
     [FixedAddressValueType]
-    static SetClipboardDelegate? setClipboardFn;
+    static SetClipboardDelegate? _setClipboardFn;
 
     [FixedAddressValueType]
-    static GetClipboardDelegate? getClipboardFn;
+    static GetClipboardDelegate? _getClipboardFn;
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     unsafe delegate void SetClipboardDelegate(ImGuiContextPtr ctx, byte* text);
@@ -191,7 +191,7 @@ public class ImGuiSystem : GameSystemBase
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     unsafe delegate byte* GetClipboardDelegate(ImGuiContextPtr ctx);
 
-    unsafe void SetClipboard(ImGuiContextPtr ctx, byte* text)
+    static unsafe void SetClipboard(ImGuiContextPtr ctx, byte* text)
     {
     }
 
@@ -273,6 +273,26 @@ public class ImGuiSystem : GameSystemBase
         _io.DisplaySize = new System.Numerics.Vector2(surfaceSize.Width, surfaceSize.Height);
         _io.DeltaTime = deltaTime;
 
+        FeedInput();
+
+        // An update that never reached a draw left a frame open. Close it before starting the next one,
+        // discarding its draw data - the frame it belonged to is not being presented anyway.
+        if (_frameBegun)
+        {
+            Hexa.NET.ImGui.ImGui.EndFrame();
+        }
+
+        Hexa.NET.ImGui.ImGui.NewFrame();
+        _frameBegun = true;
+    }
+
+
+    /// <summary>
+    /// Feeds one frame of Stride input into ImGui: mouse position and buttons, text, keys, wheel and
+    /// modifiers. Skipped while the mouse is position-locked, matching the previous inline behaviour.
+    /// </summary>
+    void FeedInput()
+    {
         if (input.HasMouse == false || input.IsMousePositionLocked == false)
         {
             var mousePos = input.AbsoluteMousePosition;
@@ -287,43 +307,46 @@ public class ImGuiSystem : GameSystemBase
                 input.TextInput.DisableTextInput();
             }
 
-            // handle input events
-            foreach (InputEvent ev in input.Events)
-            {
-                switch (ev)
-                {
-                    case TextInputEvent tev:
-                        if (tev.Text == "\t") continue;
-                        _io.AddInputCharactersUTF8(tev.Text);
-                        break;
-                    case KeyEvent kev:
-                        if (_keys.TryGetValue(kev.Key, out var imGuiKey))
-                            _io.AddKeyEvent(imGuiKey, input.IsKeyDown(kev.Key));
-                        break;
-                    case MouseWheelEvent mw:
-                        _io.AddMouseWheelEvent(0, mw.WheelDelta);
-                        break;
-                }
-            }
-
-            _io.AddMouseButtonEvent(0, input.IsMouseButtonDown(MouseButton.Left));
-            _io.AddMouseButtonEvent(1, input.IsMouseButtonDown(MouseButton.Right));
-            _io.AddMouseButtonEvent(2, input.IsMouseButtonDown(MouseButton.Middle));
-
-            _io.AddKeyEvent(ImGuiKey.ModAlt, input.IsKeyDown(Keys.LeftAlt) || input.IsKeyDown(Keys.RightAlt));
-            _io.AddKeyEvent(ImGuiKey.ModShift, input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift));
-            _io.AddKeyEvent(ImGuiKey.ModCtrl, input.IsKeyDown(Keys.LeftCtrl) || input.IsKeyDown(Keys.RightCtrl));
-            _io.AddKeyEvent(ImGuiKey.ModSuper, input.IsKeyDown(Keys.LeftWin) || input.IsKeyDown(Keys.RightWin));
+            ForwardInputEvents();
+            ForwardMouseButtonsAndModifiers();
         }
-        // An update that never reached a draw left a frame open. Close it before starting the next one,
-        // discarding its draw data - the frame it belonged to is not being presented anyway.
-        if (_frameBegun)
+    }
+
+
+    /// <summary>Forwards this frame's text, key and wheel events to ImGui.</summary>
+    void ForwardInputEvents()
+    {
+        // handle input events
+        foreach (InputEvent ev in input.Events)
         {
-            Hexa.NET.ImGui.ImGui.EndFrame();
+            switch (ev)
+            {
+            case TextInputEvent tev:
+                if (tev.Text == "\t") continue;
+                _io.AddInputCharactersUTF8(tev.Text);
+                break;
+            case KeyEvent kev:
+                if (_keys.TryGetValue(kev.Key, out var imGuiKey))
+                    _io.AddKeyEvent(imGuiKey, input.IsKeyDown(kev.Key));
+                break;
+            case MouseWheelEvent mw:
+                _io.AddMouseWheelEvent(0, mw.WheelDelta);
+                break;
+            }
         }
+    }
 
-        Hexa.NET.ImGui.ImGui.NewFrame();
-        _frameBegun = true;
+    /// <summary>Forwards the mouse button and modifier key states to ImGui.</summary>
+    void ForwardMouseButtonsAndModifiers()
+    {
+        _io.AddMouseButtonEvent(0, input.IsMouseButtonDown(MouseButton.Left));
+        _io.AddMouseButtonEvent(1, input.IsMouseButtonDown(MouseButton.Right));
+        _io.AddMouseButtonEvent(2, input.IsMouseButtonDown(MouseButton.Middle));
+
+        _io.AddKeyEvent(ImGuiKey.ModAlt, input.IsKeyDown(Keys.LeftAlt) || input.IsKeyDown(Keys.RightAlt));
+        _io.AddKeyEvent(ImGuiKey.ModShift, input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift));
+        _io.AddKeyEvent(ImGuiKey.ModCtrl, input.IsKeyDown(Keys.LeftCtrl) || input.IsKeyDown(Keys.RightCtrl));
+        _io.AddKeyEvent(ImGuiKey.ModSuper, input.IsKeyDown(Keys.LeftWin) || input.IsKeyDown(Keys.RightWin));
     }
 
     /// <summary>

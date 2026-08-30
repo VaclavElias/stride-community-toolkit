@@ -16,8 +16,8 @@ public class HierarchyView : BaseWindow
     /// <summary>
     /// Based on hashcodes, it doesn't have to be exact, we just don't want to keep references from being collected
     /// </summary>
-    HashSet<Guid> _recursingThrough = new HashSet<Guid>();
-    List<IIdentifiable> _searchResult = new List<IIdentifiable>();
+    readonly HashSet<Guid> _recursingThrough = new HashSet<Guid>();
+    readonly List<IIdentifiable> _searchResult = new List<IIdentifiable>();
     string _searchTerm = "";
 
     const float DUMMY_WIDTH = 19;
@@ -29,7 +29,7 @@ public class HierarchyView : BaseWindow
     /// <param name="service">The game's service registry, which must already contain an <see cref="ImGuiSystem"/>.</param>
     public HierarchyView(IServiceRegistry service) : base(service) { }
 
-    ///<inheritdoc />
+    /// <inheritdoc />
     protected override void OnDraw(bool collapsed)
     {
         if (collapsed)
@@ -38,7 +38,7 @@ public class HierarchyView : BaseWindow
         if (InputText("Search", ref _searchTerm, 64))
         {
             _searchResult.Clear();
-            if (string.IsNullOrWhiteSpace(_searchTerm) == false)
+            if (!string.IsNullOrWhiteSpace(_searchTerm))
                 RecursiveSearch(_searchResult, _searchTerm.ToLower(), Game.SceneSystem.SceneInstance.RootScene);
         }
 
@@ -60,7 +60,7 @@ public class HierarchyView : BaseWindow
         }
     }
 
-    void RecursiveSearch(List<IIdentifiable> result, string term, IIdentifiable source)
+    static void RecursiveSearch(List<IIdentifiable> result, string term, IIdentifiable source)
     {
         if (source == null)
             return;
@@ -82,13 +82,12 @@ public class HierarchyView : BaseWindow
             result.Add(source);
     }
 
-    ///<inheritdoc />
+    /// <inheritdoc />
     protected override void OnDestroy() { }
 
     void RecursiveDrawing(IIdentifiable source)
     {
-        if (source == null)
-            return;
+        if (source == null) return;
 
         string label;
         bool canRecurse;
@@ -103,7 +102,10 @@ public class HierarchyView : BaseWindow
                 label = scene.Name;
                 canRecurse = scene.Children.Count > 0 || scene.Entities.Count > 0;
             }
-            else return;
+            else
+            {
+                return;
+            }
         }
 
         using (ID(source.Id.GetHashCode()))
@@ -121,7 +123,10 @@ public class HierarchyView : BaseWindow
                 }
             }
             else
+            {
                 Dummy(new Vector2(DUMMY_WIDTH, 1));
+            }
+
             SameLine();
 
             if (Button(label))

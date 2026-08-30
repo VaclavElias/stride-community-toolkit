@@ -16,17 +16,17 @@ namespace Stride.CommunityToolkit.ImGui;
 public class Inspector : BaseWindow
 {
     /// <summary>Array of all possible <see cref="Filter"/> values</summary>
-    static readonly Filter[] FILTER_VALUES = Enum.GetValues<Filter>();
+    static readonly Filter[] _filterValues = Enum.GetValues<Filter>();
     internal const float DUMMY_WIDTH = 19;
     const float INDENTATION2 = DUMMY_WIDTH + 8;
 
     /// <summary>A UI handler function to draw and modify values</summary>
     public delegate bool ValueHandler(string label, ref object value);
     /// <summary>Add your drawing functions to explicitly override drawing for objects of the given type</summary>
-    public static ConcurrentDictionary<Type, ValueHandler> ValueDrawingHandlers = new ConcurrentDictionary<Type, ValueHandler>();
+    public static ConcurrentDictionary<Type, ValueHandler> ValueDrawingHandlers { get; } = new();
 
     /// <summary>Any live inspectors</summary>
-    static List<Inspector> _inspectors = [];
+    static readonly List<Inspector> _inspectors = [];
 
 
     Dictionary<Type, TypeCache> _cachedTypeData = [];
@@ -118,7 +118,7 @@ public class Inspector : BaseWindow
         {
             if (open)
             {
-                foreach (Filter o in FILTER_VALUES)
+                foreach (Filter o in _filterValues)
                 {
                     bool selected = (MemberFilter & o) == o;
                     if (Selectable(o.ToString(), selected))
@@ -212,7 +212,7 @@ public class Inspector : BaseWindow
             }
             else
             {
-                throw new NotImplementedException($"UI handler for type {member.GetType()} not implemented");
+                throw new NotSupportedException($"UI handler for type {member.GetType()} not implemented");
             }
         }
         catch (Exception e)
@@ -231,7 +231,7 @@ public class Inspector : BaseWindow
             else if (member is PropertyInfo pi)
                 pi?.SetValue(target, value);
             else
-                throw new NotImplementedException();
+                throw new NotSupportedException();
         }
         catch (Exception e)
         {
@@ -298,9 +298,9 @@ public class Inspector : BaseWindow
                 {
                     return valueChanged;
                 }
-                if (typeData.asEnum != null)
+                if (typeData.AsEnum != null)
                 {
-                    return InspectorValueDrawers.DrawEnum(typeData.asEnum.Value, ref value);
+                    return InspectorValueDrawers.DrawEnum(typeData.AsEnum.Value, ref value);
                 }
 
                 // Otherwise, present basic read-only text
@@ -386,16 +386,16 @@ RECURSE:
         Inherited = Instance << 1,
     }
 
-    internal class TypeCache
+    internal sealed class TypeCache
     {
-        public readonly MemberInfo[] FilteredMembers;
-        public readonly (Type key, Type value, MethodInfo? getKey, MethodInfo? getValue)? AsDictionary;
-        public readonly Type? AsList;
-        public readonly (bool flags, Array values)? asEnum;
+        internal readonly MemberInfo[] FilteredMembers;
+        internal readonly (Type key, Type value, MethodInfo? getKey, MethodInfo? getValue)? AsDictionary;
+        internal readonly Type? AsList;
+        internal readonly (bool flags, Array values)? AsEnum;
         readonly Type _type;
         readonly Filter _filter;
 
-        public TypeCache(Type t, Filter filter)
+        internal TypeCache(Type t, Filter filter)
         {
             _type = t;
             _filter = filter;
@@ -425,7 +425,7 @@ RECURSE:
 
             if (_type.IsEnum)
             {
-                asEnum = (_type.IsDefined(typeof(FlagsAttribute)), Enum.GetValues(_type));
+                AsEnum = (_type.IsDefined(typeof(FlagsAttribute)), Enum.GetValues(_type));
             }
         }
 
@@ -437,7 +437,7 @@ RECURSE:
             return t?.GenericTypeArguments;
         }
 
-        public object? NewObject()
+        internal object? NewObject()
         {
             if (_type == typeof(string))
                 return string.Empty;
@@ -449,6 +449,8 @@ RECURSE:
             if (!(m is FieldInfo || m is PropertyInfo || m is Type))
                 return false;
 
+            // Build the categories this member belongs to; it is shown only when the
+            // current filter includes every one of them.
             Filter memberFilter = 0;
 
             if (classType != m.DeclaringType)
@@ -503,6 +505,7 @@ RECURSE:
                     memberFilter |= Filter.NonPublic;
             }
 
+            // Every category of the member must be included in the active filter.
             return memberFilter != 0 && (memberFilter & _filter) == memberFilter;
         }
 

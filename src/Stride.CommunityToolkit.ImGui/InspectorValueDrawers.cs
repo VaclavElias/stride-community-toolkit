@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using static Hexa.NET.ImGui.ImGui;
 using static Stride.CommunityToolkit.ImGui.ImGuiExtension;
 
@@ -34,6 +35,8 @@ internal static class InspectorValueDrawers
     /// </summary>
     private static bool TryDrawIntegerScalar(ref object? value, out bool valueChanged)
     {
+        // Every case follows the same shape: edit through the closest type ImGui implements
+        // natively (int), then cast back so the boxed value keeps its original type.
         switch (value)
         {
             // c = closest type that ImGui implements natively, manually cast it to the right type afterward
@@ -105,6 +108,7 @@ internal static class InspectorValueDrawers
         throw new ArgumentException(valueType.ToString());
     }
 
+    [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "The method exists to box an arbitrary enum's underlying value; there is no single concrete return type.")]
     private static object GetEnumValueFromBits(ulong bits, Type enumType)
     {
         if (enumType.IsEnum)

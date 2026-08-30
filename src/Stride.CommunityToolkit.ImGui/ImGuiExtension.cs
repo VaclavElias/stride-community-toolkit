@@ -25,7 +25,7 @@ namespace Stride.CommunityToolkit.ImGui;
 /// </code>
 /// Each helper returns a struct whose <c>Dispose</c> calls the matching <c>End*</c>, so the pair cannot be mismatched.
 /// </remarks>
-public class ImGuiExtension
+public static class ImGuiExtension
 {
     // Dictionary to hold textures
     private static readonly List<Texture> _textureRegistry = [];
@@ -35,7 +35,7 @@ public class ImGuiExtension
     /// </summary>
     /// <param name="texture"></param>
     /// <returns></returns>
-    internal static ImTextureRef GetTextureKey(Texture texture)
+    private static ImTextureRef GetTextureKey(Texture texture)
     {
         _textureRegistry.Add(texture);
         ulong id = (ulong)_textureRegistry.Count;
@@ -245,9 +245,9 @@ public class ImGuiExtension
     /// <summary>
     /// Scope returned by <see cref="UIndent"/>: unindents on dispose.
     /// </summary>
-    public struct DisposableImGuiIndent : IDisposable
+    public readonly struct DisposableImGuiIndent : IDisposable
     {
-        float _size;
+        private readonly float _size;
 
         internal DisposableImGuiIndent(float size = 0f)
         {
@@ -267,10 +267,10 @@ public class ImGuiExtension
     /// <summary>
     /// Scope returned by the <c>Begin*</c> helpers of <see cref="ImGuiExtension"/>: calls the matching <c>End*</c> on dispose.
     /// </summary>
-    public struct DisposableImGui : IDisposable
+    public readonly struct DisposableImGui : IDisposable
     {
-        bool _dispose;
-        DisposableTypes _type;
+        private readonly bool _dispose;
+        private readonly DisposableTypes _type;
 
         internal DisposableImGui(bool dispose, DisposableTypes type)
         {

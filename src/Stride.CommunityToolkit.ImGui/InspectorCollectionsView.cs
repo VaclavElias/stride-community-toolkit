@@ -70,7 +70,17 @@ internal sealed class InspectorCollectionsView
         // as the type might not implement IDictionary but just IDictionary<T> ...
         using (UIndent())
         {
-            { // Show dictionary content
+            if (!DrawDictionaryEntries(target, data, hashcodeSource))
+                return false;
+
+            DrawDictionaryAddControls(target, data, hashcodeSource);
+        }
+
+        return true;
+    }
+
+    private bool DrawDictionaryEntries(object target, (Type key, Type value, MethodInfo? getKey, MethodInfo? getValue) data, int hashcodeSource)
+    {
               // IDictionary.Keys
                 var keys = (data.getKey?.Invoke(target, null) as IEnumerable)?.GetEnumerator();
                 // IDictionary.Values
@@ -125,9 +135,12 @@ internal sealed class InspectorCollectionsView
                     target.GetType().GetProperty("Item", data.value, [data.key])?
                         .SetMethod?.Invoke(target, parameters);
                 }
-            }
+        return true;
+    }
 
-            // Show upcoming key and value
+    private void DrawDictionaryAddControls(object target, (Type key, Type value, MethodInfo? getKey, MethodInfo? getValue) data, int hashcodeSource)
+    {
+        // Show upcoming key and value
             if (_dicAddCommandTarget.TryGetTarget(out var addActionTarget) && addActionTarget == target)
             {
                 (object? key, object? value) = _dicAddCommandData;
@@ -156,9 +169,6 @@ internal sealed class InspectorCollectionsView
                 _dicAddCommandData = (_inspector.GetTypeData(data.key).NewObject(), _inspector.GetTypeData(data.value).NewObject());
                 _dicAddCommandTarget.SetTarget(target);
             }
-        }
-
-        return true;
     }
 
     private bool TryDrawAsIList(object target, int hashcodeSource)

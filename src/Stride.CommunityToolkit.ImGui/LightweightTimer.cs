@@ -16,17 +16,17 @@ internal struct LightweightTimer
     /// <summary>
     /// Gets the initial timestamp when the timer was started.
     /// </summary>
-    public TimeSpan InitTime => Core.Utilities.ConvertRawToTimestamp(_ts);
+    internal TimeSpan InitTime => Core.Utilities.ConvertRawToTimestamp(_ts);
 
     /// <summary>
     /// Gets the elapsed time since the timer was started.
     /// </summary>
-    public TimeSpan Elapsed => Core.Utilities.ConvertRawToTimestamp(Stopwatch.GetTimestamp() - _ts);
+    internal TimeSpan Elapsed => Core.Utilities.ConvertRawToTimestamp(Stopwatch.GetTimestamp() - _ts);
 
     /// <summary>
     /// Starts or restarts the timer by recording the current timestamp.
     /// </summary>
-    public void Start()
+    private void Start()
     {
         _ts = Stopwatch.GetTimestamp();
     }
@@ -35,7 +35,7 @@ internal struct LightweightTimer
     /// Use this function and its return value when inside a loop instead of <see cref="Elapsed"/>
     /// as it guarantees that no time will be discarded
     /// </summary>
-    public TimeSpan Restart()
+    internal TimeSpan Restart()
     {
         long now = Stopwatch.GetTimestamp();
         var delta = Core.Utilities.ConvertRawToTimestamp(now - _ts);
@@ -48,7 +48,7 @@ internal struct LightweightTimer
     /// Creates and starts a new instance of the <see cref="LightweightTimer"/> class.
     /// </summary>
     /// <returns>A <see cref="LightweightTimer"/> instance that has been started and is ready to measure elapsed time.</returns>
-    public static LightweightTimer StartNew()
+    internal static LightweightTimer StartNew()
     {
         LightweightTimer lt = new();
 
