@@ -3,6 +3,7 @@ using Stride.CommunityToolkit.Charts;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.Lines;
+using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.CommunityToolkit.Windows;
@@ -41,6 +42,7 @@ Chart? chart = null;
 ChartSeries? tangent = null;
 ChartTrajectory? trail = null;
 ChartCursor? cursor = null;
+ChartViewFollower? follower = null;
 CameraComponent? camera = null;
 Entity? ball = null;
 
@@ -70,7 +72,15 @@ void Start(Scene rootScene)
         // What SetupBase2DScene does, minus the ground, plus MSAA and a light background
         game.Add2DGraphicsCompositor(clearColor: new Color(250, 250, 250), msaa: MultisampleCount.X4).AddUIStage();
         game.Add2DCamera();
-        game.Add2DCameraController();
+        var cameraEntity = game.Add2DCameraController();
+        var controller = cameraEntity.Get<Basic2DCameraController>()!;
+
+        // Left-drag pans like a canvas app; wheel zoom is cursor-anchored, and rolling the wheel while
+        // middle-dragging no longer zooms (both new controller behaviours)
+        controller.MouseDragButton = MouseButton.Left;
+
+        // The view-driven chart invites zooming far out
+        controller.MaxOrthographicSize = 500f;
     }
 
     var options = use3DScene ? ChartOptions.Glow3D() : ChartOptions.Light2D();
@@ -127,6 +137,13 @@ void Start(Scene rootScene)
 
     // The readout that follows the mouse; fed with the camera and cursor position every frame
     cursor = chart.AddCursor();
+
+    // 2D only: the chart follows the camera, so the grid always fills the window - pan and zoom and
+    // the axes, ticks, labels and curves re-target to whatever is visible (Desmos-style)
+    if (!use3DScene)
+    {
+        follower = chart.FollowCamera();
+    }
 
     ThrowBall();
 
@@ -197,6 +214,7 @@ void Update(Scene scene, GameTime time)
 
     if (camera is not null)
     {
+        follower?.Update(camera);
         cursor?.Update(camera, game.Input.MousePosition);
     }
 
@@ -252,6 +270,7 @@ concepts:
   - Sampling y = f(x) and parametric curves into points
   - "Clipping a polyline to a rectangle (Liang-Barsky) and splitting it at NaN and at asymptotes"
   - "A growing trajectory: pre-allocated Default-usage buffers updated in place, no per-frame allocations"
+  - "A view-driven chart: ranges follow the camera, with 1-2-5 tick steps picked per zoom level"
   - Comparing a simulated flight path with the analytic ballistic curve on the same chart
   - "A mouse readout: intersecting the pick ray with the chart plane, no Stride UI needed"
   - A legend rebuilt from the live series list, with its ribbon buffers freed on every rebuild

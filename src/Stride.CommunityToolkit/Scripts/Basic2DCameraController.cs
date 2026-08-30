@@ -73,6 +73,18 @@ public class Basic2DCameraController : SyncScript
     /// </summary>
     public float MaxOrthographicSize { get; set; } = 100.0f;
 
+    /// <summary>
+    /// Gets or sets whether zooming keeps the world point under the cursor fixed, the way map and canvas
+    /// applications do. Defaults to <see langword="true"/>; set to <see langword="false"/> for the old
+    /// behaviour of zooming about the centre of the screen.
+    /// </summary>
+    /// <remarks>
+    /// With smoothing enabled the position shift is applied to the smoothing target, so the anchor is
+    /// approximate while the zoom eases and exact once it settles.
+    /// </remarks>
+    public bool ZoomToCursor { get; set; } = true;
+
+
     // Screen Edge Movement Properties
     /// <summary>
     /// Gets or sets whether RTS-style screen edge panning is enabled.
@@ -413,12 +425,20 @@ public class Basic2DCameraController : SyncScript
     /// </summary>
     /// <remarks>
     /// <para>Scrolling the mouse wheel up decreases the orthographic size (zooms in), while scrolling down increases it (zooms out).
-    /// Each notch scales the size by <see cref="ZoomStep"/>; holding shift multiplies the notch count by <see cref="SpeedFactor"/>.</para>
+    /// Each notch scales the size by <see cref="ZoomStep"/>; holding shift multiplies the notch count by <see cref="SpeedFactor"/>.
+    /// With <see cref="ZoomToCursor"/> the point under the cursor stays fixed while zooming.</para>
+    /// <para>While the middle mouse button is both the drag-pan button and held down, wheel input is ignored:
+    /// pressing the wheel to pan almost always rolls it a notch too, which would zoom mid-drag.</para>
     /// <para>The orthographic size is clamped between <see cref="MinOrthographicSize"/> and <see cref="MaxOrthographicSize"/>
     /// to prevent excessive zoom levels. With <see cref="EnableSmoothing"/> the size eases towards the target, otherwise it is applied at once.</para>
     /// </remarks>
     private void ProcessCameraZoom()
     {
+        // Pressing the wheel to drag-pan almost always rolls it a notch too; while the middle button is
+        // both the drag button and held down, the wheel is a pan grip, not a zoom request
+        if (FollowTarget is null && EnableMouseDragPan && MouseDragButton == MouseButton.Middle && Input.IsMouseButtonDown(MouseButton.Middle))
+            return;
+
         var zoomDelta = Input.MouseWheelDelta;
 
         if (zoomDelta == 0) return;
@@ -432,9 +452,37 @@ public class Basic2DCameraController : SyncScript
         // Multiplicative, so every notch changes the visible area by the same fraction whether the
         // camera is zoomed far in or far out. Subtracting a constant is a nudge at size 100 and a wall
         // at size 1.
-        var newSize = _targetOrthographicSize * MathF.Pow(1f + ZoomStep, -zoomDelta);
+        var oldSize = _targetOrthographicSize;
+        var newSize = Math.Clamp(oldSize * MathF.Pow(1f + ZoomStep, -zoomDelta), MinOrthographicSize, MaxOrthographicSize);
 
-        _targetOrthographicSize = Math.Clamp(newSize, MinOrthographicSize, MaxOrthographicSize);
+        _targetOrthographicSize = newSize;
+
+        if (ZoomToCursor && newSize != oldSize)
+        {
+            var mouse = Input.MousePosition;
+
+            // A cursor outside the window (alt-tabbed, multi-monitor) falls back to centre zoom
+            if (mouse.X >= 0f && mouse.X <= 1f && mouse.Y >= 0f && mouse.Y <= 1f)
+            {
+                var backBuffer = Game.GraphicsDevice.Presenter.BackBuffer;
+                var aspect = (float)backBuffer.Width / backBuffer.Height;
+
+                // The cursor's offset from the view centre in world units at the old zoom; scaling the
+                // view scales that offset by newSize/oldSize, so shifting the camera by the difference
+                // keeps the world point under the cursor exactly where it is
+                var offset = new Vector3((mouse.X - 0.5f) * oldSize * aspect, (0.5f - mouse.Y) * oldSize, 0f);
+                var shift = offset * (1f - newSize / oldSize);
+
+                if (EnableSmoothing)
+                {
+                    _targetPosition += shift;
+                }
+                else
+                {
+                    Entity.Transform.Position += shift;
+                }
+            }
+        }
 
         if (!EnableSmoothing)
             _camera!.OrthographicSize = _targetOrthographicSize;

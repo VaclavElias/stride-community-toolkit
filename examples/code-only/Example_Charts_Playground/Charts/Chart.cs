@@ -115,7 +115,13 @@ public sealed class Chart
             runs.AddRange(Clip(branch));
         }
 
-        return AddSeries(runs, options, name ?? $"Plot {_series.Count + 1}", closed: false);
+        var series = AddSeries(runs, options, name ?? $"Plot {_series.Count + 1}", closed: false);
+
+        // Remembered so a view-driven chart can re-sample the curve when the visible range changes
+        series.Function = f;
+        series.SampleCount = samples;
+
+        return series;
     }
 
     /// <summary>
@@ -221,13 +227,9 @@ public sealed class Chart
     {
         options ??= DefaultCurveOptions();
 
-        // The trail is clipped to the ranges, so the mesh bounds can be pinned once instead of growing
-        var margin = options.Width;
-        var bounds = new BoundingBox(
-            new Vector3(Options.XMin - margin, Options.YMin - margin, -1f),
-            new Vector3(Options.XMax + margin, Options.YMax + margin, 1f));
-
-        var line = new GrowingPolyline(_game, capacity, options, bounds) { RollOver = rollOver };
+        // Bounds grow with the points: a view-driven chart can widen its ranges after the trail starts,
+        // so pinning them to the creation-time ranges could get the mesh wrongly culled
+        var line = new GrowingPolyline(_game, capacity, options) { RollOver = rollOver };
 
         var seriesName = name ?? $"Trajectory {_series.Count + 1}";
         var entity = _game.CreatePolylineEntity(line.Mesh, options, seriesName);
@@ -394,6 +396,149 @@ public sealed class Chart
             _game.AddWorldTextRenderer();
     }
 
+    // Everything rebuilt on a range change - axes, ticks, grids, labels - so it can be torn down again
+    private readonly List<Entity> _scaffolding = [];
+
+    /// <summary>
+    /// Turns the chart into a view-driven, Desmos-style one: feed the returned follower with the camera
+    /// every frame and the chart re-targets its ranges to whatever the camera sees, so the grid always
+    /// covers the whole screen and the tick step adapts to the zoom.
+    /// </summary>
+    /// <returns>The follower; call <see cref="ChartViewFollower.Update"/> from your update loop.</returns>
+    public ChartViewFollower FollowCamera() => new(_game, this);
+
+    /// <summary>
+    /// Re-targets the chart to a new visible range. Axes, ticks, grids, labels and the legend are torn down
+    /// and rebuilt with their ribbon buffers freed, and <c>y = f(x)</c> plots are re-sampled across the new
+    /// <c>x</c> range. Parametric curves, raw lines and trajectories keep their existing geometry.
+    /// </summary>
+    /// <param name="xMin">The new left edge.</param>
+    /// <param name="xMax">The new right edge.</param>
+    /// <param name="yMin">The new bottom edge.</param>
+    /// <param name="yMax">The new top edge.</param>
+    /// <exception cref="ArgumentException">If the range has no positive width or height.</exception>
+    public void SetVisibleRange(float xMin, float xMax, float yMin, float yMax)
+    {
+        if (!(xMax > xMin) || !(yMax > yMin))
+        {
+            throw new ArgumentException("The range must have positive width and height.");
+        }
+
+        var o = Options;
+        o.XMin = xMin;
+        o.XMax = xMax;
+        o.YMin = yMin;
+        o.YMax = yMax;
+
+        // The grid's on/off state survives the rebuild
+        var gridOn = _gridModels.Count > 0 ? _gridModels[0].Enabled : o.GridVisible;
+
+        TeardownScaffolding();
+
+        o.GridVisible = gridOn;
+
+        BuildAxes();
+        BuildTicks();
+        BuildGrids();
+
+        if (o.ShowLabels)
+        {
+            BuildLabels();
+        }
+
+        RebuildLegend();
+
+        foreach (var series in _series)
+        {
+            ReplotFunction(series);
+        }
+    }
+
+    /// <summary>
+    /// The 1-2-5 series step that divides <paramref name="range"/> into at most
+    /// <paramref name="targetLines"/> intervals: 10 → 1, 7 → 1, 20 → 2, 100 → 10, 0.7 → 0.1. What a
+    /// view-driven chart feeds into <see cref="ChartOptions.TickStep"/> as the zoom changes.
+    /// </summary>
+    /// <param name="range">The extent to divide - typically the visible height.</param>
+    /// <param name="targetLines">The most intervals the step may produce.</param>
+    /// <returns>The step, always a power of ten times 1, 2 or 5.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="range"/> is not a positive finite number, or <paramref name="targetLines"/> is less than one.</exception>
+    public static float NiceTickStep(float range, int targetLines = 10)
+    {
+        if (!float.IsFinite(range) || range <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(range), range, "The range must be a positive finite number.");
+        }
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(targetLines, 1);
+
+        var rough = range / targetLines;
+        var magnitude = MathF.Pow(10f, MathF.Floor(MathF.Log10(rough)));
+        var mantissa = rough / magnitude;
+        var nice = mantissa <= 1f ? 1f : mantissa <= 2f ? 2f : mantissa <= 5f ? 5f : 10f;
+
+        return nice * magnitude;
+    }
+
+    private void TeardownScaffolding()
+    {
+        foreach (var entity in _scaffolding)
+        {
+            if (entity.Get<ModelComponent>()?.Model is { } model)
+            {
+                foreach (var mesh in model.Meshes)
+                {
+                    PolylineMeshBuilder.Release(mesh);
+                }
+            }
+
+            Root.RemoveChild(entity);
+        }
+
+        _scaffolding.Clear();
+        _gridModels.Clear();
+    }
+
+    private void AddScaffold(Entity entity)
+    {
+        Root.AddChild(entity);
+        _scaffolding.Add(entity);
+    }
+
+    private void ReplotFunction(ChartSeries series)
+    {
+        if (series.Function is null || series.IsDisposed)
+            return;
+
+        var points = PolylineSampling.Function(series.Function, Options.XMin, Options.XMax, series.SampleCount);
+        var branches = PolylineClipping.SplitAtJumps(points, Options.YMax - Options.YMin);
+
+        var runs = new List<IReadOnlyList<Vector3>>();
+        foreach (var branch in branches)
+        {
+            runs.AddRange(Clip(branch));
+        }
+
+        if (series.Entity.Get<ModelComponent>() is { } old)
+        {
+            if (old.Model is { } model)
+            {
+                foreach (var mesh in model.Meshes)
+                {
+                    PolylineMeshBuilder.Release(mesh);
+                }
+            }
+
+            series.Entity.Remove(old);
+        }
+
+        if (runs.Count == 0)
+            return;
+
+        var newMesh = PolylineMeshBuilder.BuildMany(_game.GraphicsDevice, runs, series.Options);
+        series.Entity.Add(PolylineExtensions.CreateModel(_game, newMesh, series.Options));
+    }
+
     private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
         => PolylineClipping.Clip(points, Options.XMin, Options.XMax, Options.YMin, Options.YMax);
 
@@ -434,12 +579,12 @@ public sealed class Chart
         var axisY = Math.Clamp(0f, o.YMin, o.YMax);
         var axisX = Math.Clamp(0f, o.XMin, o.XMax);
 
-        Root.AddChild(_game.CreatePolyline(
+        AddScaffold(_game.CreatePolyline(
             [new Vector3(o.XMin, axisY, 0f), new Vector3(o.XMax, axisY, 0f)],
             new PolylineOptions { Width = o.AxisWidth, Color = o.XAxisColor },
             "X axis"));
 
-        Root.AddChild(_game.CreatePolyline(
+        AddScaffold(_game.CreatePolyline(
             [new Vector3(axisX, o.YMin, 0f), new Vector3(axisX, o.YMax, 0f)],
             new PolylineOptions { Width = o.AxisWidth, Color = o.YAxisColor },
             "Y axis"));
@@ -468,14 +613,14 @@ public sealed class Chart
         {
             var ticks = _game.CreateSegments(xTicks, new PolylineOptions { Width = o.TickWidth, Color = o.XAxisColor }, "X ticks");
             ticks.Transform.Position = new Vector3(0f, 0f, LayerStep);
-            Root.AddChild(ticks);
+            AddScaffold(ticks);
         }
 
         if (yTicks.Count > 0)
         {
             var ticks = _game.CreateSegments(yTicks, new PolylineOptions { Width = o.TickWidth, Color = o.YAxisColor }, "Y ticks");
             ticks.Transform.Position = new Vector3(0f, 0f, LayerStep);
-            Root.AddChild(ticks);
+            AddScaffold(ticks);
         }
     }
 
@@ -524,7 +669,7 @@ public sealed class Chart
 
         var grid = _game.CreateSegments(lines, new PolylineOptions { Width = width, Color = color }, name);
         grid.Transform.Position = new Vector3(0f, 0f, z);
-        Root.AddChild(grid);
+        AddScaffold(grid);
 
         var model = grid.Get<ModelComponent>()!;
         model.Enabled = Options.GridVisible;
@@ -587,7 +732,7 @@ public sealed class Chart
         }
 
         label.Transform.Position = position;
-        Root.AddChild(label);
+        AddScaffold(label);
     }
 
     /// <summary>

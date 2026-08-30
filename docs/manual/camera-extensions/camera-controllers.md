@@ -48,8 +48,8 @@ parameters rather than properties you set later.
 | Arrow keys | Move | `CameraMoveSpeed` (5 units/s) |
 | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | Move - **off by default**, see below | `EnableWasdMovement` |
 | Hold <kbd>Shift</kbd> | Move and zoom faster | `SpeedFactor` (×5) |
-| Mouse wheel | Zoom, 10 % of the view per notch | `ZoomStep` (0.1), `MinOrthographicSize` (0.1), `MaxOrthographicSize` (100) |
-| Middle mouse drag | Pan - the point under the cursor stays under the cursor | `EnableMouseDragPan` (on), `MouseDragButton` |
+| Mouse wheel | Zoom toward the cursor, 10 % of the view per notch | `ZoomStep` (0.1), `ZoomToCursor` (on), `MinOrthographicSize` (0.1), `MaxOrthographicSize` (100) |
+| Middle mouse drag | Pan - the point under the cursor stays under the cursor; wheel rolls are ignored while the wheel button is held | `EnableMouseDragPan` (on), `MouseDragButton` |
 | <kbd>H</kbd> | Reset to where the camera *started*, at `OrthographicSizeDefault` (10) | `OrthographicSizeDefault` |
 
 Three of those defaults are decisions rather than accidents:

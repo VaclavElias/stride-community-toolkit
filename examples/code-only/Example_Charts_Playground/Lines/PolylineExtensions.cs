@@ -100,13 +100,18 @@ public static class PolylineExtensions
         return ToEntity(game, mesh, options, name ?? "Polyline");
     }
 
-    private static Entity ToEntity(IGame game, Mesh mesh, PolylineOptions options, string name)
+    /// <summary>
+    /// Builds the usual emissive, double-sided polyline model for a mesh - what every entity factory here
+    /// wraps, and what a chart uses to swap the model on an existing entity when a curve is re-sampled.
+    /// </summary>
+    internal static ModelComponent CreateModel(IGame game, Mesh mesh, PolylineOptions options)
     {
         var material = GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, options.Color, options.EmissiveIntensity);
         material.Passes[0].CullMode = CullMode.None;
 
-        var model = new Model { mesh, material };
-
-        return new Entity(name) { new ModelComponent(model) };
+        return new ModelComponent(new Model { mesh, material });
     }
+
+    private static Entity ToEntity(IGame game, Mesh mesh, PolylineOptions options, string name)
+        => new(name) { CreateModel(game, mesh, options) };
 }
