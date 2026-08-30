@@ -116,7 +116,7 @@ meshBuilder.AddIndex(1);
 The only thing left is building the actual mesh. For this we use this method.
 It expects a graphics device as an argument. If you call this from a script this is usually available for you using the `GraphicsDevice` property of your script.
 ```csharp
-meshBuilder.ToMeshDraw(GraphicsDevice);
+var meshDraw = meshBuilder.ToMeshDraw(GraphicsDevice);
 ```
 
 ### Display
@@ -136,7 +136,7 @@ var model = new Model
         })
     },
     new Mesh {
-        Draw = meshBuilder.ToMeshDraw(graphicsDevice),
+        Draw = meshDraw,
         MaterialIndex = 0
     }
 }
