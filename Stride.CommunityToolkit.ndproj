@@ -231,7 +231,67 @@ select new {
 // To fix a violation of this rule, try to combine namespaces 
 // that contain just a few types into a single namespace.
 //</HowToFix>]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1306$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Nested types should not be visible</Name>
+// <Id>ND1306:NestedTypesShouldNotBeVisible</Id>
+
+warnif count > 0 from t in JustMyCode.Types where 
+  t.IsNested && 
+ !t.IsGeneratedByCompiler &&
+ // Stride Community Toolkit tweak: only externally visible nested types, which is what the rule's
+ // own description targets; internal nested types are a normal encapsulation tool here.
+ t.IsPubliclyVisible &&
+
+ // It is accepted that non-private nested types are declared inside Razor page classes.
+ !t.OutterTypes.Any(ot => ot.DeriveFrom("Microsoft.AspNetCore.Mvc.RazorPages.PageModel".AllowNoMatch()) ||
+                          ot.DeriveFrom("Microsoft.AspNetCore.Components.ComponentBase".AllowNoMatch()))
+                          
+let typesUser = t.TypesUsingMe.Where(t1 => t1 != t.ParentType && t1.ParentType != t.ParentType)
+select new { 
+   t, 
+   t.Visibility,
+   typesUser,
+   Debt = (2 + 4*typesUser.Count()).ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+} 
+
+//<Expl>
+// The *nested {0}* is declared as *{1}* and is accessed outside 
+// its parent type by the *{2}*. Typically, types are nested to 
+// encapsulate private implementation details.
+// Consider making it *private* or non-nested.
+//</Expl>
+
+//<Desc>
+// This rule warns about nested types not declared as private.
+//
+// A nested type is a type declared within the scope of another 
+// type. Nested types are useful for encapsulating private 
+// implementation details of the containing type. Used 
+// for this purpose, nested types should not be externally visible.
+//
+// Do not use externally visible nested types for logical 
+// grouping or to avoid name collisions; instead use namespaces.
+//
+// Nested types include the notion of member accessibility, 
+// which some programmers do not understand clearly.
+//
+// Nested types declared as protected can be used in subclasses.
+//</Desc>
+
+//<HowToFix>
+// If you do not intend the nested type to be externally visible,
+// change the type's accessibility. 
+//
+// Otherwise, remove the nested type from its parent and make it 
+// *non-nested*.
+//
+// If the purpose of the nesting is to group some nested types, 
+// use a namespace to create the hierarchy instead.
+//
+// The estimated Debt, which means the effort to fix such issue,
+// is 2 minutes per nested type plus 4 minutes per outer type
+// using such nesting type.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Declare types in namespaces</Name>
 // <Id>ND1307:DeclareTypesInNamespaces</Id>
 
@@ -281,7 +341,62 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1310$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1311$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1312$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1313$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Override equals and operator equals on value types</Name>
+// <Id>ND1313:OverrideEqualsAndOperatorEqualsOnValueTypes</Id>
+
+warnif count > 0
+from t in JustMyCode.Types where
+  t.IsStructure &&
+  // Stride Community Toolkit tweak: only the public API surface; internal plumbing structs are
+  // never compared.
+  t.IsPubliclyVisible &&
+  t.InstanceFields.Count() > 0
+let equalsMethod = t.InstanceMethods.Where(m0 => m0.Name == "Equals(Object)").SingleOrDefault()
+where equalsMethod == null
+
+where 
+   // Don't warn about structure with a fixed field that is not meant to be compared
+   !t.Fields.Any(f => f.HasAttribute("System.Runtime.CompilerServices.FixedBufferAttribute".AllowNoMatch())) &&
+
+    // Don't warn about InlineArrayAttribute's field
+   !t.HasAttribute("System.Runtime.CompilerServices.InlineArrayAttribute".AllowNoMatch())
+   
+select new {
+   t,
+   t.InstanceFields,
+   Debt = (12 + 2*t.InstanceFields.Count()).ToMinutes().ToDebt(),
+   Severity = Severity.High
+}
+
+//<Expl>
+// The *{0}* should override the *Equals()* and *GetHashCode()* methods.
+// Additionally, consider implementing the *==* and *!=* operators 
+// if you anticipate users comparing or sorting instances or using 
+// them as keys in hash tables.
+// Alternatively transform it into a *record struct*.
+//</Expl>
+
+//<Desc>
+// For value types, the inherited implementation of *Equals()* uses 
+// the *Reflection* library, and compares the contents of all instances
+// fields. Reflection is computationally expensive, and comparing 
+// every field for equality might be unnecessary.
+//
+// If you expect users to compare or sort instances, or use them 
+// as hash table keys, your value type should implement *Equals()*.
+// In C# and VB.NET, you should also provide an implementation of 
+// *GetHashCode()* and of the equality and inequality operators. 
+//</Desc>
+
+//<HowToFix>
+// To fix a violation of this rule, provide an implementation 
+// of *Equals()* and *GetHashCode()* and implement the equality 
+// and inequality operators. Alternatively transform it into 
+// a *record struct*.
+//
+// The estimated Debt, which means the effort to fix such issue,
+// is equal to 15 minutes plus 2 minutes per instance field.
+//</HowToFix>]]></Query>
       <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1314$]]></Query>
     </Group>
     <Group Name="Architecture" Active="True" ShownInReport="False">
@@ -668,8 +783,93 @@ select new {
     <Group Name="Visibility" Active="True" ShownInReport="False">
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1800$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1801$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1802$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1803$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Fields that could have a lower visibility</Name>
+// <Id>ND1802:FieldsThatCouldHaveALowerVisibility</Id>
+
+warnif count > 0 from f in JustMyCode.Fields where 
+  // Stride Community Toolkit tweak: fields of data-oriented structs are the type's surface (same
+  // reasoning as the ND1805 tweak); visibility fine-tuning there is noise.
+  !f.ParentType.IsValueType &&
+
+  f.Visibility != f.OptimalVisibility &&
+
+  // Eliminate public fields visible outside of their assembly
+  // because the rule cannot know if the developer left the field public 
+  // intentionally or not.
+ !f.IsPubliclyVisible &&
+ 
+  // Don't match potentially dead fields, candidate for removal
+  f.MethodsUsingMe.Any() &&
+
+ !f.HasAttribute("NDepend.Attributes.CannotDecreaseVisibilityAttribute".AllowNoMatch()) &&
+ !f.HasAttribute("NDepend.Attributes.IsNotDeadCodeAttribute".AllowNoMatch()) &&
+ !f.HasAttribute("JetBrains.Annotations.UsedImplicitlyAttribute".AllowNoMatch()) &&
+  // If you don't want to link NDepend.API.dll, you can use your own attributes
+  // and adapt the source code of this rule.
+  
+  // JSON and XML serialized fields must remain public.
+ !f.ParentType.TypesUsed.Any(t1 => t1.IsAttributeClass && 
+   (t1.ParentNamespace.Name == "Newtonsoft.Json" || t1.ParentNamespace.Name == "System.Text.Json")
+  ) &&
+ !f.HasAttribute("System.Xml.Serialization.XmlElementAttribute".AllowNoMatch()) && 
+ !f.HasAttribute("System.Xml.Serialization.XmlAttributeAttribute".AllowNoMatch()) &&
+ !f.HasAttribute("System.Xml.Serialization.XmlArrayAttribute".AllowNoMatch()) &&
+ !f.HasAttribute("System.Xml.Serialization.XmlArrayItemAttribute".AllowNoMatch()) &&
+ 
+  // Don't check for serialized fields visibility
+ !f.HasAttribute("System.Runtime.Serialization.DataMemberAttribute".AllowNoMatch()) &&
+ 
+  // Fields of classes that derive from Unity classes might be used implicitly by the Unity engine
+ !f.ParentType.BaseClasses.Any(bc => bc.ParentNamespace.Name.StartsWithAny("UnityEngine","UnityEditor"))
+
+select new { 
+   f, 
+   f.Visibility , 
+   CouldBeDeclared = f.OptimalVisibility,
+   f.MethodsUsingMe,
+
+   Debt = 30.ToSeconds().ToDebt(), // It is fast to change the field visibility
+   Severity = Severity.Medium
+}
+
+//<Expl>
+// In the context of analyzed code, the *{0}* can be declared as *{2}*.
+// Doing so **improves encapsulation** by constraining this field's accessibility 
+// to the smallest possible scope.
+//</Expl>
+
+//<Desc>
+// This rule warns about fields that can be declared with a lower visibility
+// without provoking any compilation error.
+// For example *private* is a visibility lower than *internal* 
+// which is lower than *public*.
+//
+// **Narrowing visibility** is a good practice because doing so **promotes encapsulation**.
+// The scope from which fields can be consumed is then reduced to a minimum. 
+//
+// By default, this rule doesn't match publicly visible fields that could have a 
+// lower visibility because it cannot know if the developer left the field public 
+// intentionally or not. Public fields matched are declared in non-public types.
+//
+// Notice that fields tagged with one of the attribute
+// *NDepend.Attributes.CannotDecreaseVisibilityAttribute* or
+// *NDepend.Attributes.IsNotDeadCodeAttribute*, found in *NDepend.API.dll*
+// are not matched. If you don't want to link *NDepend.API.dll* but still
+// wish to rely on this facility, you can declare these attributes in your code.
+//</Desc>
+
+//<HowToFix>
+// Declare each matched field with the specified *optimal visibility*
+// in the *CouldBeDeclared* rule result column.
+//
+// By default, this rule matches *public fields*. If you are publishing an API
+// some public fields matched should remain public. In such situation,
+// you can opt for the *coarse solution* to this problem by adding in the 
+// rule source code *&& !m.IsPubliclyVisible* or you can prefer the 
+// *finer solution* by tagging eah concerned field with 
+// *CannotDecreaseVisibilityAttribute*.
+//</HowToFix>]]></Query>
+      <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1803$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid publicly visible constant fields</Name>
 // <Id>ND1804:AvoidPubliclyVisibleConstantFields</Id>
 
@@ -825,7 +1025,71 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1900$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1901$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1902$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1903$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Structures should be immutable</Name>
+// <Id>ND1903:StructuresShouldBeImmutable</Id>
+
+warnif count > 0 from t in JustMyCode.Types where 
+   t.IsStructure && 
+   // Stride Community Toolkit tweak: only the public API surface; internal structs mutate by design
+   // (timers, accumulators, GPU staging).
+   t.IsPubliclyVisible && 
+  !t.IsImmutable &&
+  !t.IsRecord   // record struct with primary constructor is not immutable
+
+let mutableFields = t.Fields.Where(f => !f.IsImmutable)
+
+// Don't warn about structure with a fixed field that cannot be marked as readonly
+where !t.Fields.Any(f => f.HasAttribute("System.Runtime.CompilerServices.FixedBufferAttribute".AllowNoMatch()))
+
+select new {
+   t, 
+   t.NbLinesOfCode, 
+   mutableFields,
+   Debt = (3+2*mutableFields.Count()).ToMinutes().ToDebt(),
+   Severity = Severity.High
+}
+
+//<Expl>
+// The *{0}* should be declared as *readonly* because 
+// its instances are values, not objects.
+// Mutable values are unexpected by the users. 
+// Making it *readonly* ensures predictable behavior, 
+// thread safety and efficient copying.
+//</Expl>
+
+
+//<Desc>
+// An object is immutable if its state doesn’t change once the 
+// object has been created. Consequently, a structure or a class 
+// is immutable if its instances fields are only assigned inline
+// or from constructor(s).
+//
+// **Structures are value types**, which means that when you pass 
+// them as method arguments or assign them to new variables, 
+// you're working with copies of the original. 
+// This behavior is different from classes, where you work with references 
+// to the same object. Modifying copies of structures can lead 
+// to confusion and errors because developers are not accustomed 
+// to this behavior.
+// 
+// For more information, refer to this documentation:
+// https://blog.ndepend.com/class-vs-struct-in-c-making-informed-choices/
+//</Desc>
+
+//<HowToFix>
+// Make sure matched structures are immutable. This way, all 
+// automatic copies of an original instance, resulting from being 
+// *passed by value* will hold the same values and there will be 
+// no surprises.
+//
+// Note that since C#7.2 you can prefix a structure declaration
+// with the keyword readonly to enforce that it is an immutable 
+// structure.
+//
+// If your structure is immutable then if you want to change 
+// a value, you have to consciously do it by creating a new instance 
+// of the structure with the modified data.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1914$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1904$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1905$]]></Query>
@@ -839,8 +1103,159 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1913$]]></Query>
     </Group>
     <Group Name="Naming Conventions" Active="True" ShownInReport="False">
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2000$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2001$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Instance fields naming convention</Name>
+// <Id>ND2000:InstanceFieldsNamingConvention</Id>
+
+warnif count > 0 
+let isUnityProject = ThirdParty.Assemblies.Any(a => a.Name.StartsWith("UnityEngine"))
+from f in JustMyCode.Fields where 
+  !f.IsStatic && 
+  !f.IsLiteral && 
+  !f.IsGeneratedByCompiler  && 
+  !f.IsSpecialName && 
+  !f.IsEventDelegateObject &&
+  !( 
+    // Instance field name starting with a lower-case letter
+    (f.Name.Length >= 1 && char.IsLetter(f.Name[0]) && char.IsLower(f.Name[0])) ||
+
+    // Instance field name starting with "_" followed with a lower-case letter
+    (f.Name.Length >= 2 && f.Name.StartsWith("_") && char.IsLetter(f.Name[1]) && char.IsLower(f.Name[1])) ||
+
+    // Instance field name starting with "m_" followed with an upper-case letter
+    (f.Name.Length >= 3 && f.Name.StartsWith("m_") && char.IsLetter(f.Name[2]) && char.IsUpper(f.Name[2])) ||
+
+    // In Unity projects often there is no properties for high-performance reasons and fields are named like properties.
+    (isUnityProject && char.IsLetter(f.Name[0]) && char.IsUpper(f.Name[0]))
+
+     ||
+
+    // Stride Community Toolkit tweak: public and protected instance fields are PascalCase, per .NET
+    // conventions and this repo's data-oriented structs.
+    (!f.IsPrivate && !f.IsInternal && char.IsLetter(f.Name[0]) && char.IsUpper(f.Name[0]))
+
+     ||
+
+    // Stride Community Toolkit tweak: internal readonly fields may be PascalCase too - the pattern
+    // of internal data-holder classes (caches, cargo types) whose readonly fields are their surface.
+    ((f.IsInternal || f.IsProtectedAndInternal) && f.IsInitOnly && char.IsLetter(f.Name[0]) && char.IsUpper(f.Name[0]))
+
+  ) &&
+   // Don't check naming convention on serializable fields
+  !f.HasAttribute("System.Xml.Serialization.XmlAttributeAttribute".AllowNoMatch()) &&
+  !f.HasAttribute("System.Runtime.Serialization.DataMemberAttribute".AllowNoMatch()) &&
+  
+   // Don't warn if a method using the field is also calling a method that has 'ref' and 'out' parameters.
+   // This could lead to false positive. A field used in a 'ref' or 'out' parameter cannot be set as read-only.
+   f.MethodsUsingMe.SelectMany(m => m.MethodsCalled).FirstOrDefault(m => m.Name.Contains("&")) == null 
+  
+select new {
+   f,
+   f.SizeOfInst,
+   Debt = 3.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+} 
+
+//<Expl>
+// The *instance {0}* name does not adhere to usual .NET field naming conventions.
+// It does not start with a lowercase letter, 
+// an underscore character followed by a lowercase letter 
+// or an *m_* expression followed by an uppercase letter.
+//</Expl>
+
+//<Desc>
+// By default the presents rule supports the 3 most used naming
+// conventions for instance fields:
+//
+// • Instance field name starting with a lower-case letter
+//
+// • Instance field name starting with "_" followed with a lower-case letter
+//
+// • Instance field name starting with "m_" followed with an upper-case letter
+//
+// The rule can be easily adapted to your own company naming convention.
+//
+// In terms of behavior, a *static field* is something completely different
+// than an *instance field*, so it is interesting to differentiate them at 
+// a glance through a naming convetion.
+//
+// This is why it is advised to use a specific naming convention for instance 
+// field like name that starts with **m_**.
+//
+// Related discussion:
+// https://blog.ndepend.com/on-hungarian-notation-for-fields-in-csharp/
+//</Desc>
+
+//<HowToFix>
+// Once the rule has been adapted to your own naming convention
+// make sure to name all matched instance fields adequately.
+//</HowToFix>]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Static fields naming convention</Name>
+// <Id>ND2001:StaticFieldsNamingConvention</Id>
+
+warnif count > 0 
+from f in JustMyCode.Fields where 
+   f.IsStatic && 
+  !f.IsLiteral && 
+  !f.IsGeneratedByCompiler && 
+  !f.IsSpecialName && 
+  !f.IsEventDelegateObject &&
+  !( 
+    // Static field name starting with an upper-case letter
+    (f.Name.Length >= 1 && char.IsLetter(f.Name[0]) && char.IsUpper(f.Name[0])) ||
+
+    // Static field name starting with "_" followed with an upper-case letter
+    (f.Name.Length >= 2 && f.Name.StartsWith("_") && char.IsLetter(f.Name[1]) && char.IsUpper(f.Name[1])) ||
+
+    // Static field name starting with "s_" followed with an upper-case letter
+    (f.Name.Length >= 3 && f.Name.StartsWith("s_") && char.IsLetter(f.Name[2]) && char.IsUpper(f.Name[2])) 
+
+     ||
+
+    // Stride Community Toolkit tweak: private and internal static fields follow the same _camelCase
+    // convention as instance fields in this repo (.editorconfig).
+    ((f.IsPrivate || f.IsInternal) && f.Name.Length >= 2 && f.Name.StartsWith("_") && char.IsLetter(f.Name[1]) && char.IsLower(f.Name[1]))
+  )
+select new {
+   f,
+   f.SizeOfInst,
+   Debt = 3.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+}  
+
+//<Expl>
+// The *static {0}* name does not adhere to usual .NET field naming conventions.
+// It does not start with an uppercase letter, 
+// an underscore followed by an uppercase letter
+// or a *s_* expression followed by an uppercase letter.
+//</Expl>
+
+//<Desc>
+// By default the presents rule supports the 3 most used naming
+// conventions for static fields:
+//
+// • Static field name starting with an upper-case letter
+//
+// • Static field name starting with "_" followed with an upper-case letter
+//
+// • Static field name starting with "s_" followed with an upper-case letter
+//
+// The rule can be easily adapted to your own company naming convention.
+//
+// In terms of behavior, a *static field* is something completely different
+// than an *instance field*, so it is interesting to differentiate them at 
+// a glance through a naming convetion.
+//
+// This is why it is advised to use a specific naming convention for static 
+// field like name that starts with **s_**.
+//
+// Related discussion:
+// https://blog.ndepend.com/on-hungarian-notation-for-fields-in-csharp/
+//</Desc>
+
+//<HowToFix>
+// Once the rule has been adapted to your own naming convention
+// make sure to name all matched static fields adequately.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2002$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2003$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2004$]]></Query>
@@ -945,11 +1360,11 @@ select new {
 //<HowToFix>
 // To fix a violation of this rule, rename concerned types.
 //</HowToFix>]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2013$]]></Query>
+      <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2013$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2014$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2015$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2016$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2017$]]></Query>
+      <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2017$]]></Query>
       <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2018$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2019$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2020$]]></Query>
@@ -1247,6 +1662,11 @@ from t in Application.Types where
   (t.IsGeneratedByCompiler &&
    t.ParentNamespace.Name.Length == 0 &&
    t.Name.StartsWith("<>z__")) ||
+
+  // Stride Community Toolkit tweak: types whose every source declaration lives in a generated .g.cs
+  // file (e.g. the *ShaderKeys classes emitted by Stride's shader generator) are not user code.
+  (t.SourceFileDeclAvailable &&
+   t.SourceDecls.All(sd => sd.SourceFile.FileName.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase))) ||
 
   // Don't consider anonymous types as JustMyCode  
   // C# and VB.NET anonymous types generated by the compiler satisfies these conditions
