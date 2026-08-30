@@ -25,7 +25,7 @@ public static class TextureExtensions
         string? startupPath = Directory.GetParent(Assembly.
             GetExecutingAssembly().Location)?.Parent?.Parent?.Parent?.
             FullName;
-        DirectoryInfo dir = new DirectoryInfo(startupPath + workDir);
+        DirectoryInfo dir = new(startupPath + workDir);
         FileInfo[] Files = dir.GetFiles(urlName, SearchOption.AllDirectories);
 
         if (Files.Length == 0)
@@ -39,7 +39,7 @@ public static class TextureExtensions
         var lines = File.ReadAllLines(filename);
         string outFilename = "";
 
-        for (var i = 0; i < lines.Length; i += 1)
+        for (var i = 0; i < lines.Length; ++i)
         {
             string line = lines[i];
 

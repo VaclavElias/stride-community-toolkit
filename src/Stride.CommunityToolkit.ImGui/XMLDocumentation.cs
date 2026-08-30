@@ -16,11 +16,11 @@ internal static class XMLDocumentation
 
     static bool TryGetDocumentation(MemberInfo member, [NotNullWhen(true)] out CachedDocumentation? documentation)
     {
-        if (_documentation.TryGetValue(member, out documentation) == false)
+        if (!_documentation.TryGetValue(member, out documentation))
         {
             var assembly = member.Module.Assembly;
 
-            if (_documents.TryGetValue(assembly, out XmlDocument? document) == false)
+            if (!_documents.TryGetValue(assembly, out XmlDocument? document))
             {
                 var filepath = assembly.Location;
 
@@ -50,7 +50,9 @@ internal static class XMLDocumentation
             }
 
             if (document is null)
+            {
                 documentation = null;
+            }
             else
             {
                 string fullName;

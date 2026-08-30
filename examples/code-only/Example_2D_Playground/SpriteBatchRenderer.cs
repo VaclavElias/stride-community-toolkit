@@ -43,8 +43,8 @@ public class SpriteBatchRenderer : SyncScript
         // don't forget the begin
         _spriteBatch.Begin(Game.GraphicsContext);
 
-        // draw the text "Helloworld!" in red from the center of the screen
-        _spriteBatch.DrawString(_font, "Helloworld!", new Vector2(0.5f, 0.5f), Color.Red);
+        // draw the text "Hello World!" in red from the center of the screen
+        _spriteBatch.DrawString(_font, "Hello World!", new Vector2(0.5f, 0.5f), Color.Red);
 
         // don't forget the end
         _spriteBatch.End();
@@ -94,8 +94,8 @@ public class SpriteBatchRenderer : SyncScript
         // don't forget the begin
         _spriteBatch.Begin(Game.GraphicsContext);
 
-        // draw the text "Helloworld!" in red from the center of the screen
-        _spriteBatch.DrawString(_font, "Helloworld!", new Vector2(0.5f, 0.5f), Color.Red);
+        // draw the text "Hello World!" in red from the center of the screen
+        _spriteBatch.DrawString(_font, "Hello World!", new Vector2(0.5f, 0.5f), Color.Red);
 
         // don't forget the end
         _spriteBatch.End();
