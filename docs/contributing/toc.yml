@@ -20,6 +20,8 @@ items:
     href: toolkit/building.md
   - name: New library project
     href: toolkit/library-project.md
+  - name: Components in Game Studio
+    href: toolkit/game-studio-components.md
 - name: 💡Contribute to the examples
   expanded: false
   href: examples/index.md

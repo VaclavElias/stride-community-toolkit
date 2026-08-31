@@ -6,6 +6,8 @@
   href: components-and-scripts.md
 - name: Engine Patterns
   href: engine-patterns.md
+- name: Using the Toolkit in Game Studio
+  href: game-studio.md
 # - name: What's new in docs
 #   href: whats-new.md
 - name: Code-Only
