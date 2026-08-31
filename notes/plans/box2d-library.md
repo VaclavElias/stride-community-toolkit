@@ -93,10 +93,9 @@ measured roughly 15–25% faster on a 20k-box pile with both of those.
 **Debug drawing via `B2DebugDraw` / `B2DrawContext`** (originally item 7). Not the route taken.
 Rather than wrapping Box2D's own debug draw, the toolkit ports the testbed's `solid_polygon` SDF
 shader, which gives an outline that stays a constant few *pixels* wide at any zoom — something mesh
-geometry structurally cannot do. It outgrew Box2D entirely and was promoted into the core toolkit on
-2026-08-31 as `ShapeBatch` in
-[`src/Stride.CommunityToolkit/Rendering/Shapes`](../../src/Stride.CommunityToolkit/Rendering/Shapes),
-so it is no longer a Box2D concern at all. See
+geometry structurally cannot do. It outgrew Box2D entirely and became its own package on 2026-08-31,
+[`Stride.CommunityToolkit.Shapes`](../../src/Stride.CommunityToolkit.Shapes), so it is no longer a
+Box2D concern at all — the Box2D examples reference that package directly. See
 [`Example_Shapes_Playground`](../../examples/code-only/Example_Shapes_Playground).
 
 **Exposing `EnableContactEvents` / `EnableHitEvents` / `EnableSensorEvents` as properties.**

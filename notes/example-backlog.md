@@ -105,7 +105,8 @@ What has already been mined for ideas, so it is not searched twice.
 
 | Idea | Target level | Status | Source | Notes |
 |---|---|---|---|---|
-| Visualising colliders for debugging | Beginners | Idea | Bepu repo, `Stride.BepuPhysics.DebugRender` project | The toolkit already has `ShowColliders()`; an example showing when and why to use it would be small and useful. |
+| Vector shapes with pixel-constant outlines | Intermediate | **Done** | in-repo | Built as [`Example_Shapes_Playground`](../examples/code-only/Example_Shapes_Playground): seven toggleable demos of [`Stride.CommunityToolkit.Shapes`](../src/Stride.CommunityToolkit.Shapes) - ground discs, selection rings, decals, panels on a plane, thick and pixel-width 3D lines, billboards, and a receding corridor of rings that shows the outline holding its width with distance. Deliberately kept as one example rather than split. |
+| Visualising colliders for debugging | Beginners | Idea | Bepu repo, `Stride.BepuPhysics.DebugRender` project | The toolkit already has `ShowColliders()`; an example showing when and why to use it would be small and useful. Worth checking whether `ShapeBatch` (above) is the better renderer for it than a mesh-based one. |
 
 ### UI
 
