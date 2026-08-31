@@ -14,7 +14,7 @@ namespace Stride.CommunityToolkit.Charts;
 /// The chart itself is a façade over three parts, each with one responsibility: <see cref="ChartScaffold"/>
 /// (axes, ticks, labels, titles), <see cref="ChartGrid"/> (the textured grid planes) and
 /// <see cref="ChartLegend"/>. Every line is a ribbon mesh from <see cref="PolylineMeshBuilder"/>, so it has
-/// real thickness. Create a chart with <see cref="Create"/>, add its <see cref="Root"/> to a scene, then
+/// real thickness. Construct a chart, add its <see cref="Root"/> to a scene, then
 /// call <see cref="Plot"/> for each curve. <see cref="Dispose"/> frees everything the chart owns.
 /// </remarks>
 public sealed class Chart : IDisposable
@@ -28,6 +28,7 @@ public sealed class Chart : IDisposable
     private readonly ChartScaffold _scaffold;
     private readonly ChartLegend _legend;
     private readonly ChartGrid _grid;
+    private ChartViewFollower? _follower;
 
     // The view height the chart was created with; ViewScale compares the current height against it
     private readonly float _referenceHeight;
@@ -41,7 +42,7 @@ public sealed class Chart : IDisposable
     public ChartOptions Options { get; }
 
     /// <summary>Whether the chart has a real Z extent - axes, clipping and grids gain the third dimension.</summary>
-    public bool Is3D => Options.ZMax > Options.ZMin;
+    public bool Is3D => Options.Range.ZMax > Options.Range.ZMin;
 
     /// <summary>The curves on the chart, in the order they were added.</summary>
     public IReadOnlyList<ChartSeries> Series => _series;
@@ -55,7 +56,7 @@ public sealed class Chart : IDisposable
 
     /// <summary>
     /// Shows or hides the legend without rebuilding it. The legend itself appears only while
-    /// <see cref="ChartOptions.ShowLegend"/> is on and the chart has at least one series.
+    /// <see cref="ChartLegendOptions.Visible"/> is on and the chart has at least one series.
     /// </summary>
     public bool LegendVisible
     {
@@ -72,16 +73,32 @@ public sealed class Chart : IDisposable
     /// whenever they are rebuilt, so a view-driven chart keeps its lines the same thickness on screen at
     /// every zoom level. Static geometry that is never rebuilt keeps its world-unit width.
     /// </summary>
-    internal float ViewScale => (Options.YMax - Options.YMin) / _referenceHeight
+    internal float ViewScale => (Options.Range.YMax - Options.Range.YMin) / _referenceHeight
         * (_referencePixelHeight / MathF.Max(1f, Game.GraphicsDevice.Presenter.BackBuffer.Height));
 
-    private Chart(Game game, ChartOptions options, string name)
+    /// <summary>
+    /// Builds a chart. The <see cref="Root"/> is not added to a scene; do that where you want it.
+    /// </summary>
+    /// <param name="game">The game the chart is drawn in.</param>
+    /// <param name="options">What the chart shows and how it is drawn; <see langword="null"/> for <see cref="ChartOptions.Glow3D"/>.</param>
+    /// <param name="name">The root entity's name, or <c>"Chart"</c>.</param>
+    /// <exception cref="ArgumentNullException">If <paramref name="game"/> is <see langword="null"/>.</exception>
+    public Chart(Game game, ChartOptions? options = null, string? name = null)
     {
+        ArgumentNullException.ThrowIfNull(game);
+
+        options ??= ChartOptions.Glow3D();
+
+        if (options.Labels.Visible)
+        {
+            ChartScaffold.EnsureTextRenderer(game, options.Labels.Mode);
+        }
+
         Game = game;
         Options = options;
-        _referenceHeight = options.YMax - options.YMin;
+        _referenceHeight = options.Range.YMax - options.Range.YMin;
         _referencePixelHeight = game.GraphicsDevice.Presenter.BackBuffer.Height;
-        Root = new Entity(name);
+        Root = new Entity(name ?? "Chart");
 
         _scaffold = new ChartScaffold(game, this);
         _legend = new ChartLegend(game, this);
@@ -93,45 +110,24 @@ public sealed class Chart : IDisposable
     }
 
     /// <summary>
-    /// Builds a chart. The <see cref="Root"/> is not added to a scene; do that where you want it.
-    /// </summary>
-    /// <param name="game">The game the chart is drawn in.</param>
-    /// <param name="options">Ranges, ticks, grid, labels and curve defaults; <see langword="null"/> for <see cref="ChartOptions.Glow3D"/>.</param>
-    /// <param name="name">The root entity's name, or <c>"Chart"</c>.</param>
-    /// <returns>The chart, ready for <see cref="Plot"/> calls.</returns>
-    /// <exception cref="ArgumentNullException">If <paramref name="game"/> is <see langword="null"/>.</exception>
-    public static Chart Create(Game game, ChartOptions? options = null, string? name = null)
-    {
-        ArgumentNullException.ThrowIfNull(game);
-
-        options ??= ChartOptions.Glow3D();
-
-        if (options.ShowLabels)
-        {
-            ChartScaffold.EnsureTextRenderer(game, options.LabelMode);
-        }
-
-        return new Chart(game, options, name ?? "Chart");
-    }
-
-    /// <summary>
     /// Plots <c>y = f(x)</c> across the chart's <c>x</c> range. Samples outside the <c>y</c> range are clipped
     /// to the chart edge, samples that are not finite (a function outside its domain) break the curve, and so
     /// does a zero-crossing jump larger than a quarter of the chart's height between two samples - the
     /// asymptotes of <c>tan(x)</c> or <c>1/x</c> - where the branches are instead extended to the chart edge.
     /// </summary>
     /// <param name="f">The function to plot.</param>
-    /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
-    /// <param name="samples">How many points to sample; more is smoother.</param>
+    /// <param name="color">The curve's colour; <see langword="null"/> takes the next palette colour.</param>
     /// <param name="name">The series and entity name.</param>
-    /// <returns>The series, already on the chart; keep it to <see cref="Remove"/> the curve later.</returns>
+    /// <param name="samples">How many points to sample; more is smoother.</param>
+    /// <param name="style">Width and glow where they should differ from the chart's defaults.</param>
+    /// <returns>The curve, already on the chart; keep it to animate it with <see cref="ChartCurve.SetFunction"/> or to <see cref="Remove"/> it later.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="f"/> is <see langword="null"/>.</exception>
-    public ChartSeries Plot(Func<float, float> f, PolylineOptions? options = null, int samples = 200, string? name = null)
+    public ChartCurve Plot(Func<float, float> f, Color? color = null, string? name = null, int samples = 200, ChartSeriesStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(f);
 
-        var points = PolylineSampling.Function(f, Options.XMin, Options.XMax, samples);
-        var branches = PolylineClipping.SplitAtJumps(points, (Options.YMax - Options.YMin) * 0.25f, extendEnds: true);
+        var points = PolylineSampling.Function(f, Options.Range.XMin, Options.Range.XMax, samples);
+        var branches = PolylineClipping.SplitAtJumps(points, (Options.Range.YMax - Options.Range.YMin) * 0.25f, extendEnds: true);
 
         var runs = new List<IReadOnlyList<Vector3>>();
         foreach (var branch in branches)
@@ -139,14 +135,14 @@ public sealed class Chart : IDisposable
             runs.AddRange(Clip(branch));
         }
 
-        var series = AddSeries(runs, options, name ?? $"Plot {_series.Count + 1}", closed: false);
+        var seriesName = name ?? $"Plot {_series.Count + 1}";
+        var options = ResolveStyle(style, color, closed: false);
+        var entity = BuildSeriesEntity(runs, options, seriesName, closed: false);
 
-        // Remembered so a view-driven chart can re-sample the curve when the visible range changes
-        series.Function = f;
-        series.SampleCount = samples;
-        series.SampleDensity = samples / (Options.XMax - Options.XMin);
+        // The sample density is remembered so a view-driven chart can re-sample at the same detail per unit
+        var spec = new CurveSpec(f, samples, samples / (Options.Range.XMax - Options.Range.XMin));
 
-        return series;
+        return Register(new ChartCurve(this, seriesName, entity, options, runs.Count == 0, spec));
     }
 
     /// <summary>
@@ -155,45 +151,52 @@ public sealed class Chart : IDisposable
     /// <param name="p">The curve; its <c>z</c> is kept, so the curve may leave the chart plane.</param>
     /// <param name="from">The first <c>t</c>.</param>
     /// <param name="to">The last <c>t</c>.</param>
-    /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
-    /// <param name="samples">How many points to sample; more is smoother.</param>
+    /// <param name="color">The curve's colour; <see langword="null"/> takes the next palette colour.</param>
     /// <param name="name">The series and entity name.</param>
+    /// <param name="samples">How many points to sample; more is smoother.</param>
+    /// <param name="closed">Whether to join the last point back to the first - a circle, an ellipse, any loop.</param>
+    /// <param name="style">Width and glow where they should differ from the chart's defaults.</param>
     /// <returns>The series, already on the chart; keep it to <see cref="Remove"/> the curve later.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="p"/> is <see langword="null"/>.</exception>
-    public ChartSeries PlotParametric(Func<float, Vector3> p, float from, float to, PolylineOptions? options = null, int samples = 200, string? name = null)
+    public ChartSeries PlotParametric(Func<float, Vector3> p, float from, float to, Color? color = null, string? name = null, int samples = 200, bool closed = false, ChartSeriesStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(p);
 
         var points = PolylineSampling.Parametric(p, from, to, samples);
 
-        return AddLine(points, options, name ?? $"Plot {_series.Count + 1}");
+        return AddLine(points, color, name ?? $"Plot {_series.Count + 1}", closed, clip: true, style);
     }
 
     /// <summary>
     /// Adds a line through arbitrary points - measured data, a trajectory, a hand-drawn shape.
     /// </summary>
     /// <param name="points">The points, in chart units.</param>
-    /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
+    /// <param name="color">The line's colour; <see langword="null"/> takes the next palette colour.</param>
     /// <param name="name">The series and entity name.</param>
+    /// <param name="closed">Whether to join the last point back to the first.</param>
     /// <param name="clip">
     /// Whether to cut the line to the chart's ranges. <see langword="true"/> (the default) also breaks the line at
     /// points that are not finite; <see langword="false"/> only does the latter and lets the line leave the chart.
     /// </param>
+    /// <param name="style">Width and glow where they should differ from the chart's defaults.</param>
     /// <returns>The series, already on the chart; keep it to <see cref="Remove"/> the line later.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
-    public ChartSeries AddLine(IReadOnlyList<Vector3> points, PolylineOptions? options = null, string? name = null, bool clip = true)
+    public ChartSeries AddLine(IReadOnlyList<Vector3> points, Color? color = null, string? name = null, bool closed = false, bool clip = true, ChartSeriesStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(points);
 
-        var (runs, keepClosed) = ComputeLineRuns(points, options?.Closed == true, clip);
+        var (runs, keepClosed) = ComputeLineRuns(points, closed, clip);
 
-        var series = AddSeries(runs, options, name ?? $"Line {_series.Count + 1}", closed: keepClosed);
+        var seriesName = name ?? $"Line {_series.Count + 1}";
+        var options = ResolveStyle(style, color, keepClosed);
+        var entity = BuildSeriesEntity(runs, options, seriesName, keepClosed);
 
         // Remembered so a view-driven chart can re-clip the line when the visible range changes
-        series.SourcePoints = points;
-        series.ClipSource = clip;
-
-        return series;
+        return Register(new ChartSeries(seriesName, entity, options, runs.Count == 0)
+        {
+            SourcePoints = points,
+            ClipSource = clip,
+        });
     }
 
     /// <summary>
@@ -202,14 +205,15 @@ public sealed class Chart : IDisposable
     /// clipped to the chart's ranges the same way <see cref="Plot"/> clips a function.
     /// </summary>
     /// <param name="capacity">The most points the trail can hold; the GPU buffers are allocated once, for this many.</param>
-    /// <param name="options">Width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
+    /// <param name="color">The trail's colour; <see langword="null"/> takes the next palette colour.</param>
     /// <param name="name">The series and entity name.</param>
     /// <param name="rollOver">What a full trail does with the next point: <see langword="false"/> ignores it, <see langword="true"/> drops the oldest - an oscilloscope trace.</param>
+    /// <param name="style">Width and glow where they should differ from the chart's defaults.</param>
     /// <returns>The trajectory, already on the chart and empty; it is also in <see cref="Series"/> and removed like any other curve.</returns>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="capacity"/> is less than two.</exception>
-    public ChartTrajectory AddTrajectory(int capacity = 1000, PolylineOptions? options = null, string? name = null, bool rollOver = false)
+    public ChartTrajectory AddTrajectory(int capacity = 1000, Color? color = null, string? name = null, bool rollOver = false, ChartSeriesStyle? style = null)
     {
-        options ??= DefaultCurveOptions();
+        var options = ResolveStyle(style, color, closed: false);
 
         // Bounds grow with the points: a view-driven chart can widen its ranges after the trail starts,
         // so pinning them to the creation-time ranges could get the mesh wrongly culled
@@ -220,11 +224,7 @@ public sealed class Chart : IDisposable
         entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
         Root.AddChild(entity);
 
-        var series = new ChartTrajectory(seriesName, entity, options, line, Options);
-        _series.Add(series);
-        _legend.Rebuild();
-
-        return series;
+        return Register(new ChartTrajectory(seriesName, entity, options, line, Options));
     }
 
     /// <summary>
@@ -233,19 +233,21 @@ public sealed class Chart : IDisposable
     /// re-filtered when the range changes.
     /// </summary>
     /// <param name="points">The data points, in chart units.</param>
-    /// <param name="size">The marker's diagonal extent in chart units at the creation-time view.</param>
-    /// <param name="options">Ribbon width, colour and glow; <see langword="null"/> for the chart's curve defaults and the next palette colour.</param>
+    /// <param name="color">The markers' colour; <see langword="null"/> takes the next palette colour.</param>
     /// <param name="name">The series and entity name.</param>
+    /// <param name="size">The marker's diagonal extent in chart units; <see langword="null"/> takes <see cref="ChartSeriesOptions.MarkerSize"/>.</param>
+    /// <param name="style">Ribbon width and glow where they should differ from the chart's defaults.</param>
     /// <returns>The series, already on the chart; remove it like any other.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="size"/> is not positive.</exception>
-    public ChartSeries AddMarkers(IReadOnlyList<Vector3> points, float size = 0.14f, PolylineOptions? options = null, string? name = null)
+    public ChartSeries AddMarkers(IReadOnlyList<Vector3> points, Color? color = null, string? name = null, float? size = null, ChartSeriesStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(points);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size);
 
-        options ??= DefaultCurveOptions();
+        var markerSize = size ?? Options.Series.MarkerSize;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(markerSize);
 
+        var options = ResolveStyle(style, color, closed: false);
         var seriesName = name ?? $"Markers {_series.Count + 1}";
         var entity = new Entity(seriesName);
         entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
@@ -254,7 +256,7 @@ public sealed class Chart : IDisposable
         var series = new ChartSeries(seriesName, entity, options, isEmpty: false)
         {
             MarkerPoints = points,
-            MarkerSize = size,
+            MarkerSize = markerSize,
         };
 
         _series.Add(series);
@@ -272,7 +274,7 @@ public sealed class Chart : IDisposable
     /// <param name="from">The first <c>x</c> of the stretch.</param>
     /// <param name="to">The last <c>x</c> of the stretch.</param>
     /// <param name="baseline">The <c>y</c> the region is measured from. Defaults to <c>0</c>, the x axis.</param>
-    /// <param name="color">The fill colour; <see langword="null"/> takes the next palette colour at <see cref="ChartOptions.AreaOpacity"/>.</param>
+    /// <param name="color">The fill colour; <see langword="null"/> takes the next palette colour at <see cref="ChartSeriesOptions.AreaOpacity"/>.</param>
     /// <param name="name">The series and entity name.</param>
     /// <param name="samples">How many columns the region is built from; more follows a wiggly curve more closely.</param>
     /// <returns>The region, already on the chart; remove it like any other series.</returns>
@@ -294,7 +296,7 @@ public sealed class Chart : IDisposable
     /// <param name="lower">The other; the two may cross, and the region simply narrows to nothing there.</param>
     /// <param name="from">The first <c>x</c> of the stretch.</param>
     /// <param name="to">The last <c>x</c> of the stretch.</param>
-    /// <param name="color">The fill colour; <see langword="null"/> takes the next palette colour at <see cref="ChartOptions.AreaOpacity"/>.</param>
+    /// <param name="color">The fill colour; <see langword="null"/> takes the next palette colour at <see cref="ChartSeriesOptions.AreaOpacity"/>.</param>
     /// <param name="name">The series and entity name.</param>
     /// <param name="samples">How many columns the region is built from.</param>
     /// <returns>The region, already on the chart; remove it like any other series.</returns>
@@ -313,11 +315,11 @@ public sealed class Chart : IDisposable
         }
 
         // The swatch keeps the solid colour so the legend stays legible; only the fill is translucent
-        var solid = color ?? DefaultCurveOptions().Color;
-        var fill = new Color(solid.R, solid.G, solid.B, (byte)Math.Clamp((int)(Options.AreaOpacity * 255f), 0, 255));
+        var solid = ResolveStyle(null, color, closed: false).Color;
+        var fill = new Color(solid.R, solid.G, solid.B, (byte)Math.Clamp((int)(Options.Series.AreaOpacity * 255f), 0, 255));
 
-        var areaOptions = new AreaOptions { Color = fill, EmissiveIntensity = Options.CurveEmissiveIntensity };
-        var legendOptions = new PolylineOptions { Width = Options.CurveWidth, Color = solid, EmissiveIntensity = Options.CurveEmissiveIntensity };
+        var areaOptions = new AreaOptions { Color = fill, EmissiveIntensity = Options.Series.EmissiveIntensity };
+        var legendOptions = ResolveStyle(null, solid, closed: false);
 
         var seriesName = name ?? $"Area {_series.Count + 1}";
         var entity = new Entity(seriesName);
@@ -335,34 +337,8 @@ public sealed class Chart : IDisposable
         return series;
     }
 
-    /// <summary>
-    /// Swaps the function behind a plotted curve and rebuilds just that curve, in place: the series keeps
-    /// its name, colour and legend row, and no entity is created or destroyed. This is how a curve is
-    /// animated - a parameter changing every frame - without the churn of removing and re-plotting it.
-    /// </summary>
-    /// <param name="series">A series returned by <see cref="Plot"/>.</param>
-    /// <param name="f">The new function, sampled with the density the series was created with.</param>
-    /// <returns><see langword="true"/> if the series is on this chart and has been rebuilt.</returns>
-    /// <exception cref="ArgumentNullException">If <paramref name="series"/> or <paramref name="f"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">If <paramref name="series"/> is not a <c>y = f(x)</c> plot.</exception>
-    public bool Replot(ChartSeries series, Func<float, float> f)
-    {
-        ArgumentNullException.ThrowIfNull(series);
-        ArgumentNullException.ThrowIfNull(f);
-
-        if (series.Function is null)
-        {
-            throw new ArgumentException("Only a curve plotted from a function can be re-plotted from one.", nameof(series));
-        }
-
-        if (!_series.Contains(series))
-            return false;
-
-        series.Function = f;
-        ReplotSeries(series);
-
-        return true;
-    }
+    /// <summary>Rebuilds one series in place for the current ranges - what <see cref="ChartCurve.SetFunction"/> calls.</summary>
+    internal void Rebuild(ChartSeries series) => ReplotSeries(series);
 
     /// <summary>
     /// Takes a curve off the chart: detaches its entity and frees its GPU buffers. Does nothing if the series
@@ -408,7 +384,7 @@ public sealed class Chart : IDisposable
     /// <returns>The cursor, already parented to the chart and hidden until its first update.</returns>
     public ChartCursor AddCursor()
     {
-        ChartScaffold.EnsureTextRenderer(Game, Options.LabelMode);
+        ChartScaffold.EnsureTextRenderer(Game, Options.Labels.Mode);
 
         var cursor = new ChartCursor(Game, this);
         _cursors.Add(cursor);
@@ -421,13 +397,36 @@ public sealed class Chart : IDisposable
     /// every frame and the chart re-targets its ranges to whatever the camera sees, so the grid always
     /// covers the whole screen and the tick step adapts to the zoom.
     /// </summary>
-    /// <returns>The follower; call <see cref="ChartViewFollower.Update"/> from your update loop.</returns>
+    /// <returns>The follower, which <see cref="Update"/> then pumps for you.</returns>
     public ChartViewFollower FollowCamera()
     {
         // A view-driven chart needs the endless grid; a figure keeps the bounded one
         _grid.SetInfinite();
 
-        return new ChartViewFollower(Game, this);
+        return _follower = new ChartViewFollower(Game, this);
+    }
+
+    /// <summary>
+    /// Drives everything on the chart that depends on the camera: the view-driven follower from
+    /// <see cref="FollowCamera"/>, and every cursor from <see cref="AddCursor"/>, which is fed the current
+    /// mouse position. Call it once a frame from your update loop; a chart with neither does nothing here.
+    /// </summary>
+    /// <remarks>
+    /// The camera is a parameter rather than something the chart finds for itself, because a scene can hold
+    /// several: pass the one that looks at this chart, and two charts can follow two different cameras.
+    /// </remarks>
+    /// <param name="camera">The camera looking at this chart.</param>
+    /// <exception cref="ArgumentNullException">If <paramref name="camera"/> is <see langword="null"/>.</exception>
+    public void Update(CameraComponent camera)
+    {
+        ArgumentNullException.ThrowIfNull(camera);
+
+        _follower?.Update(camera);
+
+        foreach (var cursor in _cursors)
+        {
+            cursor.Update(camera, Game.Input.MousePosition);
+        }
     }
 
     /// <summary>
@@ -448,13 +447,13 @@ public sealed class Chart : IDisposable
         }
 
         var o = Options;
-        o.XMin = xMin;
-        o.XMax = xMax;
-        o.YMin = yMin;
-        o.YMax = yMax;
+        o.Range.XMin = xMin;
+        o.Range.XMax = xMax;
+        o.Range.YMin = yMin;
+        o.Range.YMax = yMax;
 
         // The grid's on/off state survives the rebuild, and Options stays in sync for anyone reading it
-        o.GridVisible = _grid.Visible;
+        o.Grid.Visible = _grid.Visible;
 
         _scaffold.Teardown();
         _scaffold.Build();
@@ -487,8 +486,8 @@ public sealed class Chart : IDisposable
 
         // The chart's box in world space: the local ranges through the root's world matrix
         Root.Transform.UpdateWorldMatrix();
-        var localMin = new Vector3(Options.XMin, Options.YMin, Is3D ? Options.ZMin : 0f);
-        var localMax = new Vector3(Options.XMax, Options.YMax, Is3D ? Options.ZMax : 0f);
+        var localMin = new Vector3(Options.Range.XMin, Options.Range.YMin, Is3D ? Options.Range.ZMin : 0f);
+        var localMax = new Vector3(Options.Range.XMax, Options.Range.YMax, Is3D ? Options.Range.ZMax : 0f);
         var box = ChartFraming.TransformBox(localMin, localMax, in Root.Transform.WorldMatrix);
         var centre = (box.Minimum + box.Maximum) * 0.5f;
         var size = Vector3.Max(box.Maximum - box.Minimum, new Vector3(1e-3f));
@@ -522,32 +521,6 @@ public sealed class Chart : IDisposable
         var fov = MathUtil.DegreesToRadians(camera.VerticalFieldOfView);
         var distance = ChartFraming.PerspectiveDistance(in box, right, up, forward, aspect, fov, padding);
         transform.Position = centre - forward * distance;
-    }
-
-    /// <summary>
-    /// The 1-2-5 series step that divides <paramref name="range"/> into at most
-    /// <paramref name="targetLines"/> intervals: 10 → 1, 7 → 1, 20 → 2, 100 → 10, 0.7 → 0.1. What a
-    /// view-driven chart feeds into <see cref="ChartOptions.TickStep"/> as the zoom changes.
-    /// </summary>
-    /// <param name="range">The extent to divide - typically the visible height.</param>
-    /// <param name="targetLines">The most intervals the step may produce.</param>
-    /// <returns>The step, always a power of ten times 1, 2 or 5.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="range"/> is not a positive finite number, or <paramref name="targetLines"/> is less than one.</exception>
-    public static float NiceTickStep(float range, int targetLines = 10)
-    {
-        if (!float.IsFinite(range) || range <= 0f)
-        {
-            throw new ArgumentOutOfRangeException(nameof(range), range, "The range must be a positive finite number.");
-        }
-
-        ArgumentOutOfRangeException.ThrowIfLessThan(targetLines, 1);
-
-        var rough = range / targetLines;
-        var magnitude = MathF.Pow(10f, MathF.Floor(MathF.Log10(rough)));
-        var mantissa = rough / magnitude;
-        var nice = mantissa <= 1f ? 1f : mantissa <= 2f ? 2f : mantissa <= 5f ? 5f : 10f;
-
-        return nice * magnitude;
     }
 
     /// <summary>
@@ -587,16 +560,32 @@ public sealed class Chart : IDisposable
         Closed = options.Closed,
     };
 
-    private PolylineOptions DefaultCurveOptions()
+    /// <summary>
+    /// Turns a style and an optional colour into the ribbon options a series is drawn with: anything the
+    /// caller left unset comes from <see cref="ChartOptions.Series"/>, and an explicit colour wins over the
+    /// style's. The plane normal is the chart's own, which is why a series style has no say in it.
+    /// </summary>
+    private PolylineOptions ResolveStyle(ChartSeriesStyle? style, Color? color, bool closed)
     {
-        var palette = Options.CurvePalette;
+        var palette = Options.Series.Palette;
+        var next = palette.Count > 0 ? palette[_series.Count % palette.Count] : Color.White;
 
         return new PolylineOptions
         {
-            Width = Options.CurveWidth,
-            EmissiveIntensity = Options.CurveEmissiveIntensity,
-            Color = palette.Count > 0 ? palette[_series.Count % palette.Count] : Color.White,
+            Width = style?.Width ?? Options.Series.CurveWidth,
+            EmissiveIntensity = style?.EmissiveIntensity ?? Options.Series.EmissiveIntensity,
+            Color = color ?? style?.Color ?? next,
+            Closed = closed,
         };
+    }
+
+    /// <summary>Adds a finished series to the chart and refreshes the legend.</summary>
+    private T Register<T>(T series) where T : ChartSeries
+    {
+        _series.Add(series);
+        _legend.Rebuild();
+
+        return series;
     }
 
     /// <summary>
@@ -630,15 +619,15 @@ public sealed class Chart : IDisposable
         List<IReadOnlyList<Vector3>> runs;
         var keepClosed = false;
 
-        if (series.Function is not null)
+        if (series is ChartCurve curve)
         {
             // The sample density per world unit is what the plot was created with, so zooming out keeps
             // the same detail per unit instead of stretching a fixed count across a wider range; the cap
             // bounds the rebuild cost at deep zoom-out
-            var width = Options.XMax - Options.XMin;
-            var samples = Math.Clamp((int)(series.SampleDensity * width), series.SampleCount, 8000);
-            var points = PolylineSampling.Function(series.Function, Options.XMin, Options.XMax, samples);
-            var branches = PolylineClipping.SplitAtJumps(points, (Options.YMax - Options.YMin) * 0.25f, extendEnds: true);
+            var width = Options.Range.XMax - Options.Range.XMin;
+            var samples = Math.Clamp((int)(curve.SampleDensity * width), curve.SampleCount, 8000);
+            var points = PolylineSampling.Function(curve.Function, Options.Range.XMin, Options.Range.XMax, samples);
+            var branches = PolylineClipping.SplitAtJumps(points, (Options.Range.YMax - Options.Range.YMin) * 0.25f, extendEnds: true);
 
             runs = [];
             foreach (var branch in branches)
@@ -701,14 +690,15 @@ public sealed class Chart : IDisposable
 
     private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
         => Is3D
-            ? PolylineClipping.Clip(points, Options.XMin, Options.XMax, Options.YMin, Options.YMax, Options.ZMin, Options.ZMax)
-            : PolylineClipping.Clip(points, Options.XMin, Options.XMax, Options.YMin, Options.YMax);
+            ? PolylineClipping.Clip(points, Options.Range.XMin, Options.Range.XMax, Options.Range.YMin, Options.Range.YMax, Options.Range.ZMin, Options.Range.ZMax)
+            : PolylineClipping.Clip(points, Options.Range.XMin, Options.Range.XMax, Options.Range.YMin, Options.Range.YMax);
 
-    private ChartSeries AddSeries(List<IReadOnlyList<Vector3>> runs, PolylineOptions? options, string name, bool closed)
+    /// <summary>
+    /// Builds the entity that draws one series' runs, parented to the chart. Nothing inside the chart gives
+    /// an empty entity, which keeps the series usable and the palette in step.
+    /// </summary>
+    private Entity BuildSeriesEntity(List<IReadOnlyList<Vector3>> runs, PolylineOptions options, string name, bool closed)
     {
-        options ??= DefaultCurveOptions();
-
-        // Nothing inside the chart: an empty entity keeps the series usable and the palette in step
         var effective = ScaledOptions(options);
 
         var entity = runs.Count switch
@@ -721,10 +711,6 @@ public sealed class Chart : IDisposable
         entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
         Root.AddChild(entity);
 
-        var series = new ChartSeries(name, entity, options, isEmpty: runs.Count == 0);
-        _series.Add(series);
-        _legend.Rebuild();
-
-        return series;
+        return entity;
     }
 }

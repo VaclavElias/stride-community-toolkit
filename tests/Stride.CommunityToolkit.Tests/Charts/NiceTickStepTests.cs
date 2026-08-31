@@ -4,7 +4,7 @@ using Xunit;
 namespace Stride.CommunityToolkit.Tests.Charts;
 
 /// <summary>
-/// Pins <see cref="Chart.NiceTickStep"/>: the 1-2-5 series step a view-driven chart uses so grid lines land
+/// Pins <see cref="ChartFraming.NiceTickStep"/>: the 1-2-5 series step a view-driven chart uses so grid lines land
 /// on readable values at every zoom level.
 /// </summary>
 public class NiceTickStepTests
@@ -22,7 +22,7 @@ public class NiceTickStepTests
     [InlineData(0.09f, 0.01f)]
     public void ReturnsTheExpectedStep(float range, float expected)
     {
-        Assert.Equal(expected, Chart.NiceTickStep(range), Tolerance);
+        Assert.Equal(expected, ChartFraming.NiceTickStep(range), Tolerance);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class NiceTickStepTests
         // Sweep four decades of zoom; the invariant is what the chart relies on
         for (var range = 0.05f; range < 500f; range *= 1.37f)
         {
-            var step = Chart.NiceTickStep(range, targetLines: 10);
+            var step = ChartFraming.NiceTickStep(range, targetLines: 10);
 
             Assert.True(range / step <= 10f + Tolerance, $"range {range} gave step {step} = {range / step} lines");
         }
@@ -42,7 +42,7 @@ public class NiceTickStepTests
     {
         for (var range = 0.05f; range < 500f; range *= 1.37f)
         {
-            var step = Chart.NiceTickStep(range);
+            var step = ChartFraming.NiceTickStep(range);
             var magnitude = MathF.Pow(10f, MathF.Floor(MathF.Log10(step)));
             var mantissa = step / magnitude;
 
@@ -54,8 +54,8 @@ public class NiceTickStepTests
     [Fact]
     public void RejectsNonPositiveRanges()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Chart.NiceTickStep(0f));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Chart.NiceTickStep(-1f));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Chart.NiceTickStep(float.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChartFraming.NiceTickStep(0f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChartFraming.NiceTickStep(-1f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChartFraming.NiceTickStep(float.NaN));
     }
 }

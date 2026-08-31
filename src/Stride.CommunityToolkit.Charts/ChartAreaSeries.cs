@@ -41,15 +41,15 @@ public sealed class ChartAreaSeries : ChartSeries
         ReleaseModel();
 
         var o = chart.Options;
-        var from = MathF.Max(_spec.From, o.XMin);
-        var to = MathF.Min(_spec.To, o.XMax);
+        var from = MathF.Max(_spec.From, o.Range.XMin);
+        var to = MathF.Min(_spec.To, o.Range.XMax);
 
         if (to <= from)
             return;
 
         var upper = PolylineSampling.Function(_spec.Upper, from, to, _spec.Samples);
         var lower = PolylineSampling.Function(_spec.Lower, from, to, _spec.Samples);
-        var runs = AreaMeshBuilder.Columns(upper, lower, o.YMin, o.YMax);
+        var runs = AreaMeshBuilder.Columns(upper, lower, o.Range.YMin, o.Range.YMax);
 
         if (runs.Count == 0)
             return;

@@ -43,7 +43,7 @@ internal sealed class ChartGrid : IDisposable
         {
             foreach (var entry in _planes)
             {
-                entry.Model.Enabled = value && (!entry.IsMinor || _chart.Options.MinorDivisions > 1);
+                entry.Model.Enabled = value && (!entry.IsMinor || _chart.Options.Range.MinorDivisions > 1);
             }
         }
     }
@@ -57,15 +57,15 @@ internal sealed class ChartGrid : IDisposable
     {
         _texture ??= ChartGridTexture.Create(_game.GraphicsDevice);
 
-        var planes = _chart.Is3D ? _chart.Options.GridPlanes : _chart.Options.GridPlanes & ChartGridPlanes.XY;
+        var planes = _chart.Is3D ? _chart.Options.Grid.Planes : _chart.Options.Grid.Planes & ChartGridPlanes.XY;
 
         foreach (var plane in new[] { ChartGridPlanes.XY, ChartGridPlanes.XZ, ChartGridPlanes.YZ })
         {
             if ((planes & plane) == 0)
                 continue;
 
-            Add(plane, isMinor: false, _chart.Options.GridColor, -Chart.LayerStep);
-            Add(plane, isMinor: true, _chart.Options.MinorGridColor, -2f * Chart.LayerStep);
+            Add(plane, isMinor: false, _chart.Options.Grid.Color, -Chart.LayerStep);
+            Add(plane, isMinor: true, _chart.Options.Grid.MinorColor, -2f * Chart.LayerStep);
         }
     }
 
@@ -95,20 +95,20 @@ internal sealed class ChartGrid : IDisposable
     internal void Update()
     {
         var o = _chart.Options;
-        var centre = new Vector3((o.XMin + o.XMax) * 0.5f, (o.YMin + o.YMax) * 0.5f, (o.ZMin + o.ZMax) * 0.5f);
+        var centre = new Vector3((o.Range.XMin + o.Range.XMax) * 0.5f, (o.Range.YMin + o.Range.YMax) * 0.5f, (o.Range.ZMin + o.Range.ZMax) * 0.5f);
         var anchor = new Vector3(
-            Math.Clamp(0f, o.XMin, o.XMax),
-            Math.Clamp(0f, o.YMin, o.YMax),
-            _chart.Is3D ? Math.Clamp(0f, o.ZMin, o.ZMax) : 0f);
-        var range = new Vector3(o.XMax - o.XMin, o.YMax - o.YMin, o.ZMax - o.ZMin);
+            Math.Clamp(0f, o.Range.XMin, o.Range.XMax),
+            Math.Clamp(0f, o.Range.YMin, o.Range.YMax),
+            _chart.Is3D ? Math.Clamp(0f, o.Range.ZMin, o.Range.ZMax) : 0f);
+        var range = new Vector3(o.Range.XMax - o.Range.XMin, o.Range.YMax - o.Range.YMin, o.Range.ZMax - o.Range.ZMin);
 
         var visible = Visible;
 
         foreach (var entry in _planes)
         {
-            var cell = entry.IsMinor ? o.TickStep / Math.Max(1, o.MinorDivisions) : o.TickStep;
+            var cell = entry.IsMinor ? o.Range.TickStep / Math.Max(1, o.Range.MinorDivisions) : o.Range.TickStep;
 
-            entry.Model.Enabled = visible && (!entry.IsMinor || o.MinorDivisions > 1);
+            entry.Model.Enabled = visible && (!entry.IsMinor || o.Range.MinorDivisions > 1);
 
             if (_infinite)
             {
@@ -173,7 +173,7 @@ internal sealed class ChartGrid : IDisposable
     {
         var device = _game.GraphicsDevice;
         var o = _chart.Options;
-        var cell = isMinor ? o.TickStep / Math.Max(1, o.MinorDivisions) : o.TickStep;
+        var cell = isMinor ? o.Range.TickStep / Math.Max(1, o.Range.MinorDivisions) : o.Range.TickStep;
 
         // Bounded planes are unit quads scaled to the ranges, with as many texture cells baked into the
         // material as steps fit the ranges; infinite ones carry a fixed cell count and get scaled so one
@@ -190,9 +190,9 @@ internal sealed class ChartGrid : IDisposable
         {
             var spans = plane switch
             {
-                ChartGridPlanes.XZ => new Vector2(o.XMax - o.XMin, o.ZMax - o.ZMin),
-                ChartGridPlanes.YZ => new Vector2(o.ZMax - o.ZMin, o.YMax - o.YMin),
-                _ => new Vector2(o.XMax - o.XMin, o.YMax - o.YMin),
+                ChartGridPlanes.XZ => new Vector2(o.Range.XMax - o.Range.XMin, o.Range.ZMax - o.Range.ZMin),
+                ChartGridPlanes.YZ => new Vector2(o.Range.ZMax - o.Range.ZMin, o.Range.YMax - o.Range.YMin),
+                _ => new Vector2(o.Range.XMax - o.Range.XMin, o.Range.YMax - o.Range.YMin),
             };
 
             tiles = new Vector2(MathF.Max(1f, MathF.Round(spans.X / cell)), MathF.Max(1f, MathF.Round(spans.Y / cell)));
@@ -222,7 +222,7 @@ internal sealed class ChartGrid : IDisposable
         };
 
         var model = entity.Get<ModelComponent>()!;
-        model.Enabled = _chart.Options.GridVisible && (!isMinor || _chart.Options.MinorDivisions > 1);
+        model.Enabled = _chart.Options.Grid.Visible && (!isMinor || _chart.Options.Range.MinorDivisions > 1);
 
         _planes.Add(new Entry(entity, model, plane, isMinor, offset));
         _chart.Root.AddChild(entity);

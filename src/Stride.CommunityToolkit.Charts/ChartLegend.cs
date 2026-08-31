@@ -45,17 +45,17 @@ internal sealed class ChartLegend : IDisposable
 
         var o = _chart.Options;
 
-        if (!o.ShowLegend || _chart.Series.Count == 0)
+        if (!o.Legend.Visible || _chart.Series.Count == 0)
             return;
 
-        ChartScaffold.EnsureTextRenderer(_game, o.LabelMode);
+        ChartScaffold.EnsureTextRenderer(_game, o.Labels.Mode);
 
         // The whole legend hangs off one entity in the chart's top left corner; the view scale keeps its
         // apparent size constant while a view-driven chart zooms
         var scale = _chart.ViewScale;
 
         _root = new Entity("Legend");
-        _root.Transform.Position = new Vector3(o.XMin + 0.4f * scale, o.YMax - 0.5f * scale, 3f * Chart.LayerStep);
+        _root.Transform.Position = new Vector3(o.Range.XMin + 0.4f * scale, o.Range.YMax - 0.5f * scale, 3f * Chart.LayerStep);
 
         for (var i = 0; i < _chart.Series.Count; i++)
         {
@@ -65,19 +65,19 @@ internal sealed class ChartLegend : IDisposable
             // A short ribbon in the series colour, followed by its name in the chart's label style
             var swatch = _game.CreatePolyline(
                 [new Vector3(0f, y, 0f), new Vector3(0.45f * scale, y, 0f)],
-                new PolylineOptions { Width = o.CurveWidth * scale, Color = series.Color, EmissiveIntensity = series.Options.EmissiveIntensity },
+                new PolylineOptions { Width = o.Series.CurveWidth * scale, Color = series.Color, EmissiveIntensity = series.Options.EmissiveIntensity },
                 $"Legend swatch {series.Name}");
             _root.AddChild(swatch);
 
             var label = new Entity($"Legend label {series.Name}");
 
-            if (o.LabelMode == ChartLabelMode.Screen)
+            if (o.Labels.Mode == ChartLabelMode.Screen)
             {
                 label.Add(new EntityTextComponent
                 {
                     Text = series.Name,
-                    FontSize = o.LabelFontSize,
-                    TextColor = o.LabelColor,
+                    FontSize = o.Labels.FontSize,
+                    TextColor = o.Labels.Color,
                     Anchor = TextAnchor.MiddleLeft,
                     Offset = new Vector2(6f, 0f),
                 });
@@ -87,8 +87,8 @@ internal sealed class ChartLegend : IDisposable
                 label.Add(new WorldTextComponent
                 {
                     Text = series.Name,
-                    Height = o.LabelHeight,
-                    TextColor = o.LabelColor,
+                    Height = o.Labels.Height,
+                    TextColor = o.Labels.Color,
                     Anchor = TextAnchor.MiddleLeft,
                     Billboard = true,
                     KeepUpright = true,

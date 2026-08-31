@@ -132,15 +132,15 @@ public sealed class ChartTrajectory : ChartSeries
         var o = _chartOptions;
 
         return new BoundingBox(
-            new Vector3(o.XMin, o.YMin, o.ZMax > o.ZMin ? o.ZMin : -PolylineClipping.UnboundedZ),
-            new Vector3(o.XMax, o.YMax, o.ZMax > o.ZMin ? o.ZMax : PolylineClipping.UnboundedZ));
+            new Vector3(o.Range.XMin, o.Range.YMin, o.Range.ZMax > o.Range.ZMin ? o.Range.ZMin : -PolylineClipping.UnboundedZ),
+            new Vector3(o.Range.XMax, o.Range.YMax, o.Range.ZMax > o.Range.ZMin ? o.Range.ZMax : PolylineClipping.UnboundedZ));
     }
 
     private bool IsInside(Vector3 point)
     {
         var o = _chartOptions;
 
-        return point.X >= o.XMin && point.X <= o.XMax && point.Y >= o.YMin && point.Y <= o.YMax
-            && (o.ZMax <= o.ZMin || (point.Z >= o.ZMin && point.Z <= o.ZMax));
+        return point.X >= o.Range.XMin && point.X <= o.Range.XMax && point.Y >= o.Range.YMin && point.Y <= o.Range.YMax
+            && (o.Range.ZMax <= o.Range.ZMin || (point.Z >= o.Range.ZMin && point.Z <= o.Range.ZMax));
     }
 }

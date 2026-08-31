@@ -23,8 +23,8 @@ public class ChartSeries : IDisposable
     /// <summary>The entity drawing the curve, parented to the chart's <see cref="Chart.Root"/>.</summary>
     public Entity Entity { get; }
 
-    /// <summary>Width, colour and glow the curve was drawn with.</summary>
-    public PolylineOptions Options { get; }
+    /// <summary>Width, colour and glow the curve was drawn with, resolved from the style and the chart's defaults.</summary>
+    internal PolylineOptions Options { get; }
 
     /// <summary>The curve's colour - what a legend would show next to <see cref="Name"/>.</summary>
     public Color Color => Options.Color;
@@ -38,15 +38,6 @@ public class ChartSeries : IDisposable
 
     /// <summary>Whether <see cref="Dispose()"/> has run.</summary>
     public bool IsDisposed { get; private set; }
-
-    /// <summary>Set for <c>y = f(x)</c> plots so a view-driven chart can re-sample the curve when the range changes.</summary>
-    internal Func<float, float>? Function { get; set; }
-
-    /// <summary>The sample count the plot was created with; re-sampling never goes below it.</summary>
-    internal int SampleCount { get; set; }
-
-    /// <summary>Samples per world unit at creation time, so re-sampling keeps the same detail per unit.</summary>
-    internal float SampleDensity { get; set; }
 
     /// <summary>Set for lines and parametric curves so a view-driven chart can re-clip them when the range changes.</summary>
     internal IReadOnlyList<Vector3>? SourcePoints { get; set; }
@@ -160,10 +151,10 @@ public class ChartSeries : IDisposable
             if (!float.IsFinite(p.X) || !float.IsFinite(p.Y) || !float.IsFinite(p.Z))
                 continue;
 
-            if (p.X < o.XMin || p.X > o.XMax || p.Y < o.YMin || p.Y > o.YMax)
+            if (p.X < o.Range.XMin || p.X > o.Range.XMax || p.Y < o.Range.YMin || p.Y > o.Range.YMax)
                 continue;
 
-            if (is3D && (p.Z < o.ZMin || p.Z > o.ZMax))
+            if (is3D && (p.Z < o.Range.ZMin || p.Z > o.Range.ZMax))
                 continue;
 
             segments.Add((new Vector3(p.X - half, p.Y - half, p.Z), new Vector3(p.X + half, p.Y + half, p.Z)));

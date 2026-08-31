@@ -21,149 +21,55 @@ public enum ChartLabelMode
 }
 
 /// <summary>
-/// Ranges, ticks, grid, label and curve settings for a <see cref="Chart"/>. Distances are in the chart's own
-/// units; scale the chart's root entity to change its size in the world.
+/// Everything a <see cref="Chart"/> is built from, in eight groups: what it shows (<see cref="Range"/>),
+/// how it is drawn (<see cref="Axes"/>, <see cref="Grid"/>, <see cref="Labels"/>, <see cref="Legend"/>,
+/// <see cref="Title"/>, <see cref="Cursor"/>) and the defaults new series take (<see cref="Series"/>).
 /// </summary>
 /// <remarks>
+/// <para>
 /// Start from a preset - <see cref="Light2D"/> for a flat, paper-like chart under an orthographic camera,
-/// <see cref="Glow3D"/> for glowing lines in a lit 3D scene - and change what you need.
+/// <see cref="Glow3D"/> for glowing lines in a lit 3D scene - and change what you need:
+/// </para>
+/// <code>
+/// var options = ChartOptions.Light2D();
+/// options.Range.XMin = -8f;
+/// options.Range.XMax = 8f;
+/// options.Title.Text = "Trajectories";
+/// </code>
+/// <para>
+/// Distances are in the chart's own units; scale the chart's root entity to change its size in the world.
+/// </para>
 /// </remarks>
 public sealed class ChartOptions
 {
-    /// <summary>The smallest <c>x</c> shown. Defaults to <c>-5</c>.</summary>
-    public float XMin { get; set; } = -5f;
+    /// <summary>What the chart shows: the bounds of each axis and the spacing of its ticks.</summary>
+    public ChartRangeOptions Range { get; set; } = new();
 
-    /// <summary>The largest <c>x</c> shown. Defaults to <c>5</c>.</summary>
-    public float XMax { get; set; } = 5f;
+    /// <summary>How the axes and their tick marks are drawn, and what the axes are called.</summary>
+    public ChartAxesOptions Axes { get; set; } = new();
 
-    /// <summary>The smallest <c>y</c> shown. Defaults to <c>-5</c>.</summary>
-    public float YMin { get; set; } = -5f;
+    /// <summary>How the grid is drawn, and which coordinate planes carry one.</summary>
+    public ChartGridOptions Grid { get; set; } = new();
 
-    /// <summary>The largest <c>y</c> shown. Defaults to <c>5</c>.</summary>
-    public float YMax { get; set; } = 5f;
+    /// <summary>How the tick labels are drawn.</summary>
+    public ChartLabelOptions Labels { get; set; } = new();
 
-    /// <summary>
-    /// The smallest <c>z</c> shown. Defaults to <c>0</c>; leave both Z bounds equal for a flat chart, or
-    /// spread them apart to get a 3D chart with a Z axis and box clipping.
-    /// </summary>
-    public float ZMin { get; set; }
+    /// <summary>The legend that names each series.</summary>
+    public ChartLegendOptions Legend { get; set; } = new();
 
-    /// <summary>The largest <c>z</c> shown. Defaults to <c>0</c> - see <see cref="ZMin"/>.</summary>
-    public float ZMax { get; set; }
+    /// <summary>The chart's own title, above its top edge.</summary>
+    public ChartTitleOptions Title { get; set; } = new();
 
-    /// <summary>Spacing between tick marks, major grid lines and labels on all axes. Defaults to <c>1</c>.</summary>
-    public float TickStep { get; set; } = 1f;
+    /// <summary>The defaults a series takes when it is added without a style of its own.</summary>
+    public ChartSeriesOptions Series { get; set; } = new();
 
-    /// <summary>
-    /// How many minor grid cells fit in one <see cref="TickStep"/>; <c>0</c> or <c>1</c> means no minor grid.
-    /// Defaults to <c>0</c>.
-    /// </summary>
-    public int MinorDivisions { get; set; }
-
-    /// <summary>Colour of the <c>x</c> axis. Defaults to red.</summary>
-    public Color XAxisColor { get; set; } = Color.Red;
-
-    /// <summary>Colour of the <c>y</c> axis. Defaults to lime green.</summary>
-    public Color YAxisColor { get; set; } = Color.LimeGreen;
-
-    /// <summary>Colour of the <c>z</c> axis of a 3D chart. Defaults to the editor's axis blue.</summary>
-    public Color ZAxisColor { get; set; } = new(0x2F, 0x6A, 0xE1);
-
-    /// <summary>Ribbon width of the axes. Defaults to <c>0.03</c>.</summary>
-    public float AxisWidth { get; set; } = 0.03f;
-
-    /// <summary>Length of each tick mark, centred on its axis. Defaults to <c>0.15</c>.</summary>
-    public float TickLength { get; set; } = 0.15f;
-
-    /// <summary>Ribbon width of the tick marks. Defaults to <c>0.02</c>.</summary>
-    public float TickWidth { get; set; } = 0.02f;
-
-    /// <summary>Colour of the major grid lines. Defaults to a dim grey so curves stand out against it.</summary>
-    public Color GridColor { get; set; } = new(90, 90, 110);
-
-    /// <summary>Ribbon width of the major grid lines. Defaults to <c>0.012</c>.</summary>
-    public float GridWidth { get; set; } = 0.012f;
-
-    /// <summary>Colour of the minor grid lines. Defaults to a fainter grey than <see cref="GridColor"/>.</summary>
-    public Color MinorGridColor { get; set; } = new(60, 60, 75);
-
-    /// <summary>Ribbon width of the minor grid lines. Defaults to <c>0.008</c>.</summary>
-    public float MinorGridWidth { get; set; } = 0.008f;
-
-    /// <summary>Which coordinate planes carry a grid. Defaults to <see cref="ChartGridPlanes.XY"/>; a flat chart ignores the other planes.</summary>
-    public ChartGridPlanes GridPlanes { get; set; } = ChartGridPlanes.XY;
-
-    /// <summary>Whether the grid is shown when the chart is created. Defaults to <see langword="false"/>; toggle later with <see cref="Chart.GridVisible"/>.</summary>
-    public bool GridVisible { get; set; }
-
-    /// <summary>Whether tick labels are created. Defaults to <see langword="true"/>.</summary>
-    public bool ShowLabels { get; set; } = true;
-
-    /// <summary>Whether labels scale with the chart or keep a pixel size. Defaults to <see cref="ChartLabelMode.World"/>.</summary>
-    public ChartLabelMode LabelMode { get; set; } = ChartLabelMode.World;
-
-    /// <summary>Height of the tick labels in chart units, used in <see cref="ChartLabelMode.World"/>. Defaults to <c>0.3</c>.</summary>
-    public float LabelHeight { get; set; } = 0.3f;
-
-    /// <summary>Font size of the tick labels in pixels, used in <see cref="ChartLabelMode.Screen"/>. Defaults to <c>16</c>.</summary>
-    public float LabelFontSize { get; set; } = 16f;
-
-    /// <summary>Colour of the tick labels. Defaults to white.</summary>
-    public Color LabelColor { get; set; } = Color.White;
-
-    /// <summary>Numeric format for the tick labels. Defaults to <c>"0.##"</c>.</summary>
-    public string LabelFormat { get; set; } = "0.##";
+    /// <summary>The mouse readout added by <see cref="Chart.AddCursor"/>.</summary>
+    public ChartCursorOptions Cursor { get; set; } = new();
 
     /// <summary>
-    /// Whether a legend - a colour swatch and name per series, stacked in the chart's top left corner - is
-    /// built and kept in step with the series. Defaults to <see langword="true"/>; hide and show it at
-    /// runtime with <see cref="Chart.LegendVisible"/>.
-    /// </summary>
-    public bool ShowLegend { get; set; } = true;
-
-    /// <summary>Numeric format of the <see cref="ChartCursor"/> readout. Defaults to <c>"0.00"</c>.</summary>
-    public string CursorFormat { get; set; } = "0.00";
-
-    /// <summary>The chart's title, drawn above the top edge in the label style. <see langword="null"/> or empty for none.</summary>
-    public string? Title { get; set; }
-
-    /// <summary>The x axis title, drawn at the axis's right end. <see langword="null"/> or empty for none.</summary>
-    public string? XTitle { get; set; }
-
-    /// <summary>The y axis title, drawn at the axis's top end. <see langword="null"/> or empty for none.</summary>
-    public string? YTitle { get; set; }
-
-    /// <summary>The z axis title of a 3D chart, drawn at the axis's far end. <see langword="null"/> or empty for none.</summary>
-    public string? ZTitle { get; set; }
-
-    /// <summary>Font size of <see cref="Title"/> in pixels, used in <see cref="ChartLabelMode.Screen"/>. Defaults to <c>22</c>.</summary>
-    public float TitleFontSize { get; set; } = 22f;
-
-    /// <summary>Height of <see cref="Title"/> in chart units, used in <see cref="ChartLabelMode.World"/>. Defaults to <c>0.5</c>.</summary>
-    public float TitleHeight { get; set; } = 0.5f;
-
-
-    /// <summary>Ribbon width used for curves added without explicit options. Defaults to <c>0.06</c>.</summary>
-    public float CurveWidth { get; set; } = 0.06f;
-
-    /// <summary>Emissive intensity used for curves added without explicit options; above <c>1</c> glows when bloom is on. Defaults to <c>2.5</c>.</summary>
-    public float CurveEmissiveIntensity { get; set; } = 2.5f;
-
-    /// <summary>
-    /// How opaque a shaded region from <see cref="Chart.AddArea(Func{float, float}, float, float, float, Color?, string?, int)"/>
-    /// is when no colour is given, from <c>0</c> to <c>1</c>. Defaults to <c>0.25</c> - enough to read as a
-    /// region, faint enough to see the grid and curves through it.
-    /// </summary>
-    public float AreaOpacity { get; set; } = 0.25f;
-
-    /// <summary>Colours handed out in turn to curves added without explicit options.</summary>
-    public IReadOnlyList<Color> CurvePalette { get; set; } =
-    [
-        Color.Cyan, Color.Orange, Color.Magenta, Color.Yellow, Color.LightGreen, Color.HotPink, Color.DeepSkyBlue,
-    ];
-
-    /// <summary>
-    /// Glowing lines on a dark, lit 3D scene: the defaults of every property, listed here so the two presets read side by side.
+    /// Glowing lines on a dark, lit 3D scene: the defaults of every group, named here so the two presets read
+    /// side by side. Give <see cref="ChartRangeOptions.ZMin"/> and <see cref="ChartRangeOptions.ZMax"/> a
+    /// spread to turn the chart 3D.
     /// </summary>
     public static ChartOptions Glow3D() => new();
 
@@ -174,30 +80,42 @@ public sealed class ChartOptions
     /// </summary>
     public static ChartOptions Light2D() => new()
     {
-        XAxisColor = new Color(40, 40, 40),
-        YAxisColor = new Color(40, 40, 40),
-        AxisWidth = 0.035f,
-        TickLength = 0.18f,
-        TickWidth = 0.025f,
-        GridColor = new Color(190, 190, 190),
-        GridWidth = 0.02f,
-        MinorGridColor = new Color(228, 228, 228),
-        MinorGridWidth = 0.015f,
-        MinorDivisions = 5,
-        GridVisible = true,
-        LabelMode = ChartLabelMode.Screen,
-        LabelFontSize = 16f,
-        LabelColor = new Color(60, 60, 60),
-        CurveWidth = 0.045f,
-        CurveEmissiveIntensity = 1f,
-        CurvePalette =
-        [
-            new Color(45, 112, 179),   // blue
-            new Color(199, 68, 64),    // red
-            new Color(56, 140, 70),    // green
-            new Color(96, 66, 166),    // purple
-            new Color(250, 126, 25),   // orange
-            new Color(0, 0, 0),        // black
-        ],
+        Range = new ChartRangeOptions { MinorDivisions = 5 },
+        Axes = new ChartAxesOptions
+        {
+            XColor = new Color(40, 40, 40),
+            YColor = new Color(40, 40, 40),
+            Width = 0.035f,
+            TickLength = 0.18f,
+            TickWidth = 0.025f,
+        },
+        Grid = new ChartGridOptions
+        {
+            Visible = true,
+            Color = new Color(190, 190, 190),
+            Width = 0.02f,
+            MinorColor = new Color(228, 228, 228),
+            MinorWidth = 0.015f,
+        },
+        Labels = new ChartLabelOptions
+        {
+            Mode = ChartLabelMode.Screen,
+            FontSize = 16f,
+            Color = new Color(60, 60, 60),
+        },
+        Series = new ChartSeriesOptions
+        {
+            CurveWidth = 0.045f,
+            EmissiveIntensity = 1f,
+            Palette =
+            [
+                new Color(45, 112, 179),   // blue
+                new Color(199, 68, 64),    // red
+                new Color(56, 140, 70),    // green
+                new Color(96, 66, 166),    // purple
+                new Color(250, 126, 25),   // orange
+                new Color(0, 0, 0),        // black
+            ],
+        },
     };
 }

@@ -16,7 +16,7 @@ namespace Stride.CommunityToolkit.Charts;
 /// <remarks>
 /// The readout is built from the same pieces as the rest of the chart - a ribbon ring for the marker and
 /// <see cref="EntityTextComponent"/> or <see cref="WorldTextComponent"/> for the label, following
-/// <see cref="ChartOptions.LabelMode"/> - so it needs no UI page or font asset and looks right in both
+/// <see cref="ChartLabelOptions.Mode"/> - so it needs no UI page or font asset and looks right in both
 /// presets. The mouse ray is intersected with the chart's plane, so it works with the orthographic 2D
 /// camera and a free 3D camera alike, and respects the chart root's position, rotation and scale.
 /// </remarks>
@@ -43,7 +43,7 @@ public sealed class ChartCursor : IDisposable
 
         _marker = game.CreatePolyline(
             PolylineSampling.Parametric(t => new Vector3(0.09f * MathF.Cos(t), 0.09f * MathF.Sin(t), 0f), 0f, MathUtil.TwoPi, 20),
-            new PolylineOptions { Width = 0.03f, Color = o.LabelColor, Closed = true, EmissiveIntensity = o.CurveEmissiveIntensity },
+            new PolylineOptions { Width = 0.03f, Color = o.Labels.Color, Closed = true, EmissiveIntensity = o.Series.EmissiveIntensity },
             "Cursor marker");
         _markerModel = _marker.Get<ModelComponent>()!;
         _markerModel.Enabled = false;
@@ -51,13 +51,13 @@ public sealed class ChartCursor : IDisposable
 
         _labelEntity = new Entity("Cursor readout");
 
-        if (o.LabelMode == ChartLabelMode.Screen)
+        if (o.Labels.Mode == ChartLabelMode.Screen)
         {
             _screenText = new EntityTextComponent
             {
                 Text = string.Empty,
-                FontSize = o.LabelFontSize,
-                TextColor = o.LabelColor,
+                FontSize = o.Labels.FontSize,
+                TextColor = o.Labels.Color,
                 Anchor = TextAnchor.BottomLeft,
                 Offset = new Vector2(10f, -10f),
                 IsVisible = false,
@@ -69,8 +69,8 @@ public sealed class ChartCursor : IDisposable
             _worldText = new WorldTextComponent
             {
                 Text = string.Empty,
-                Height = o.LabelHeight,
-                TextColor = o.LabelColor,
+                Height = o.Labels.Height,
+                TextColor = o.Labels.Color,
                 Anchor = TextAnchor.BottomLeft,
                 Offset = new Vector3(0.15f, 0.15f, 0f),
                 Billboard = true,
@@ -113,7 +113,7 @@ public sealed class ChartCursor : IDisposable
 
         var o = _chart.Options;
 
-        if (local.X < o.XMin || local.X > o.XMax || local.Y < o.YMin || local.Y > o.YMax)
+        if (local.X < o.Range.XMin || local.X > o.Range.XMax || local.Y < o.Range.YMin || local.Y > o.Range.YMax)
         {
             Hide();
             return;
@@ -130,7 +130,7 @@ public sealed class ChartCursor : IDisposable
         _labelEntity.Transform.Position = position;
         _markerModel.Enabled = true;
 
-        var text = $"x = {local.X.ToString(o.CursorFormat, CultureInfo.InvariantCulture)}  y = {local.Y.ToString(o.CursorFormat, CultureInfo.InvariantCulture)}";
+        var text = $"x = {local.X.ToString(o.Cursor.Format, CultureInfo.InvariantCulture)}  y = {local.Y.ToString(o.Cursor.Format, CultureInfo.InvariantCulture)}";
 
         if (_screenText is not null)
         {

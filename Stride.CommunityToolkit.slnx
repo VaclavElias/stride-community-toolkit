@@ -69,9 +69,10 @@
     <Project Path="examples/code-only/Example20_BepuFirstPersonCharacter/Example20_BepuFirstPersonCharacter.csproj" />
     <Project Path="examples/code-only/Example21_Instancing/Example21_Instancing.csproj" />
     <Project Path="examples/code-only/Example22_Instancing_EntityTransform/Example22_Instancing_EntityTransform.csproj" />
+    <Project Path="examples/code-only/Example23_Charts2D/Example23_Charts2D.csproj" />
+    <Project Path="examples/code-only/Example23_Charts3D/Example23_Charts3D.csproj" />
     <Project Path="examples/code-only/Example_2D_Playground/Example_2D_Playground.csproj" />
     <Project Path="examples/code-only/Example_Bepu_Playground/Example_Bepu_Playground.csproj" />
-    <Project Path="examples/code-only/Example_Charts_Playground/Example_Charts_Playground.csproj" />
     <Project Path="examples/code-only/Example_Shapes_Playground/Example_Shapes_Playground.csproj" />
     <Project Path="examples/code-only/Example_CubicleCalamity/Example_CubicleCalamity.csproj" />
   </Folder>

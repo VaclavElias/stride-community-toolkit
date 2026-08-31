@@ -13,7 +13,7 @@ namespace Stride.CommunityToolkit.Charts;
 /// <remarks>
 /// The follower only reads the camera - position and orthographic size - and never writes to it, so it
 /// works with <c>Basic2DCameraController</c>, any other controller, or a camera animated by hand. On each
-/// meaningful view change it picks a 1-2-5 tick step for the zoom level (<see cref="Chart.NiceTickStep"/>)
+/// meaningful view change it picks a 1-2-5 tick step for the zoom level (<see cref="ChartFraming.NiceTickStep"/>)
 /// and calls <see cref="Chart.SetVisibleRange"/>, which rebuilds the scaffolding and re-samples the
 /// function plots. Changes smaller than half a percent of the view are ignored, so an idle camera costs
 /// nothing.
@@ -79,13 +79,13 @@ public sealed class ChartViewFollower
 
         // One square grid step for both axes, refined or coarsened with the zoom; minors split a step of
         // 2 into quarters and steps of 1 and 5 into fifths, so minor lines land on readable values
-        var step = Chart.NiceTickStep(height);
+        var step = ChartFraming.NiceTickStep(height);
         var magnitude = MathF.Pow(10f, MathF.Floor(MathF.Log10(step)));
         var mantissa = step / magnitude;
 
         var o = _chart.Options;
-        o.TickStep = step;
-        o.MinorDivisions = mantissa is > 1.5f and < 3f ? 4 : 5;
+        o.Range.TickStep = step;
+        o.Range.MinorDivisions = mantissa is > 1.5f and < 3f ? 4 : 5;
 
         _chart.SetVisibleRange(range.X, range.Y, range.Z, range.W);
     }

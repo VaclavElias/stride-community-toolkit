@@ -76,7 +76,7 @@ sharp at every one of them. Two properties control it:
 
 - **`Scale`** multiplies everything - text, line spacing, margins, padding - so the block keeps its
   layout. Set it from the display's DPI factor and the overlay reads the same on a 4K screen at 200%
-  as on a 1080p one. This is `Example_Charts_Playground`:
+  as on a 1080p one. This is `Example23_Charts2D`:
 
   ```csharp
   overlay.Scale = MathF.Max(1f, WindowsDpiManager.GetPrimaryScale() ?? 1f);
@@ -170,7 +170,7 @@ unscaled pixels overrides the calculation entirely.
 
 ## Where it is used in the toolkit
 
-| Piece | In `Example_Charts_Playground` | Concept |
+| Piece | In `Example23_Charts2D` | Concept |
 |---|---|---|
 | `DebugOverlay.GetOrCreate(game)` | `Program.cs`, `Start` | one shared instance, registered as a service |
 | `overlay.Scale = ... GetPrimaryScale()` | `Program.cs` | DPI-independent size |

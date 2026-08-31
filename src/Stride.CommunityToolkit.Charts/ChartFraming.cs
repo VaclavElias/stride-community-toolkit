@@ -10,6 +10,32 @@ namespace Stride.CommunityToolkit.Charts;
 public static class ChartFraming
 {
     /// <summary>
+    /// The 1-2-5 series step that divides <paramref name="range"/> into at most
+    /// <paramref name="targetLines"/> intervals: 10 -> 1, 7 -> 1, 20 -> 2, 100 -> 10, 0.7 -> 0.1. What a
+    /// view-driven chart feeds into <see cref="ChartRangeOptions.TickStep"/> as the zoom changes.
+    /// </summary>
+    /// <param name="range">The extent to divide - typically the visible height.</param>
+    /// <param name="targetLines">The most intervals the step may produce.</param>
+    /// <returns>The step, always a power of ten times 1, 2 or 5.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="range"/> is not a positive finite number, or <paramref name="targetLines"/> is less than one.</exception>
+    public static float NiceTickStep(float range, int targetLines = 10)
+    {
+        if (!float.IsFinite(range) || range <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(range), range, "The range must be a positive finite number.");
+        }
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(targetLines, 1);
+
+        var rough = range / targetLines;
+        var magnitude = MathF.Pow(10f, MathF.Floor(MathF.Log10(rough)));
+        var mantissa = rough / magnitude;
+        var nice = mantissa <= 1f ? 1f : mantissa <= 2f ? 2f : mantissa <= 5f ? 5f : 10f;
+
+        return nice * magnitude;
+    }
+
+    /// <summary>
     /// The orthographic size (the visible world height) at which a <paramref name="width"/> ×
     /// <paramref name="height"/> rectangle fits a window of the given <paramref name="aspectRatio"/> with
     /// <paramref name="padding"/> of extra room on every side.
