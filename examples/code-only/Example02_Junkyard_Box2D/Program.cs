@@ -7,6 +7,7 @@ using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Extensions;
 using Stride.Games;
+using Stride.Graphics;
 using Stride.Graphics.GeometricPrimitives;
 using Stride.Rendering;
 using static Box2D.NET.B2Bodies;
@@ -24,6 +25,11 @@ using static Box2D.NET.B2Shapes;
 // salmon, sleeping ones gray, on the testbed's dark gray background. The border sits inside the
 // collider outline and the look is baked into each Model as an outline polygon behind an inset
 // fill, so the rocks still render as a single instanced draw per state.
+//
+// The testbed's SDF shader keeps borders a constant couple of PIXELS wide at any zoom. Baked meshes
+// cannot do that per-fragment, so the example does the next best thing: it watches the camera zoom
+// and rebuilds the models (cached per zoom bucket) with the border thickness that currently equals
+// about two pixels on screen.
 
 // --- the sample's numbers, verbatim
 const float GridSize = 1.0f;
@@ -41,6 +47,14 @@ const byte StateSleeping = 2;
 // their extent in one step. Approximated here as speed > 0.5 * radius / timestep.
 const float FastSpeed = 0.5f * Radius * 60f;
 
+// How many pixels wide a border should appear on screen, whatever the zoom - the testbed look
+const float BorderPixels = 2f;
+
+// The zoom buckets models are pre-built for: 1.5^-23 (extreme zoom-in on a tiny window) up to
+// 1.5^0 = 1 world unit (extreme zoom-out). Everything outside clamps to the nearest bucket.
+const int MinBucket = -23;
+const int MaxBucket = 0;
+
 // --- the testbed palette (b2HexColor values used by b2World_Draw, and the samples' GL clear colour)
 var paleGreen = new Color(0x98, 0xFB, 0x98);
 var pink = new Color(0xFF, 0xC0, 0xCB);
@@ -51,6 +65,7 @@ var background = new Color(0.2f, 0.2f, 0.2f);
 
 Box2DSimulation? simulation = null;
 Scene? scene = null;
+CameraComponent? camera = null;
 
 // One master per rock draw state; a rock is registered with exactly one at a time
 BufferedEntityInstancing?[] rockInstancings = new BufferedEntityInstancing?[3];
@@ -60,6 +75,12 @@ Entity?[] rockMasters = new Entity?[3];
 List<Entity> rocks = [];
 List<B2BodyId> rockIds = [];
 List<byte> rockStates = [];
+
+// Every outlined visual in the scene, so their models can be rebuilt when the zoom changes enough
+// for the border to need a different world-space thickness
+List<OutlinedVisual> outlinedVisuals = [];
+Model[][] prebuiltModels = [];
+int borderBucket = int.MinValue;
 
 // The five-sided rock outline: the sample places five points on a circle by the Fibonacci sphere
 // algorithm and takes their convex hull. The hull sorts them; the mesh needs them sorted too.
@@ -86,8 +107,9 @@ void Start(Scene rootScene)
     game.AddProfiler();
 
     // The sample's viewport: camera centered on (8, 25), zoom 60 - which in the testbed means the
-    // visible world is 60 units tall
-    var camera = rootScene.GetCamera() ?? throw new InvalidOperationException("Camera not found in scene");
+    // visible world is 60 units tall. The camera controller adopts this size and scales it when the
+    // mouse wheel zooms.
+    camera = rootScene.GetCamera() ?? throw new InvalidOperationException("Camera not found in scene");
     camera.Entity.Transform.Position = new Vector3(8, 25, 50);
     camera.OrthographicSize = 60;
 
@@ -102,38 +124,42 @@ void Start(Scene rootScene)
     SetupRockInstancing();
     SpawnRocks();
     CreatePusher();
+
+    // Every zoom bucket is pre-built up front: models created mid-frame proved unreliable (their
+    // meshes sometimes drew in the wrong order), and 24 buckets of a few dozen vertices cost
+    // milliseconds. Zooming then only ever swaps Start-built models in.
+    PrebuildBorderModels();
+    UpdateBorderModels();
 }
 
 /// <summary>
 /// One static body carrying every floor and wall shape: 161 slightly overlapping squares across the
 /// bottom and 50 up each side wall at x = -80 and x = +80, exactly as the sample builds them.
 /// </summary>
+/// <remarks>
+/// The squares alternate between two z layers. With a single layer, each square's inset border is
+/// buried under the overlapping neighbour's fill (all instances of one master share a depth) and the
+/// rows read as long solid blocks; alternating layers put a border above every joint, so the rows
+/// read as many small boxes like the testbed.
+/// </remarks>
 void CreateGround()
 {
     var groundId = simulation!.CreateStaticBody(Vector3.Zero);
     var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
 
-    // The floor squares are 1.1 wide x 1.0 tall and the wall squares 1.0 x 1.1, so neighbours
-    // overlap - and because each square keeps its own inset border, the seams between them stay
-    // visible: the rows read as many small boxes like the testbed, not as long solid blocks
-    var floorModel = CreateOutlinedModel(RectangleVertices(0.55f * GridSize, 0.5f * GridSize), paleGreen, 0.06f, 0f);
-    var wallModel = CreateOutlinedModel(RectangleVertices(0.5f * GridSize, 0.55f * GridSize), paleGreen, 0.06f, 0f);
+    var floorVertices = RectangleVertices(0.55f * GridSize, 0.5f * GridSize);
+    var wallVertices = RectangleVertices(0.5f * GridSize, 0.55f * GridSize);
 
-    var floorInstancing = new EntityInstancing();
-    var floorMaster = new Entity("FloorMaster")
+    var floorLayers = new[]
     {
-        new ModelComponent(floorModel),
-        new InstancingComponent { Type = floorInstancing }
+        CreateStaticMaster("FloorEven", floorVertices, 0f),
+        CreateStaticMaster("FloorOdd", floorVertices, 0.05f),
     };
-    floorMaster.Scene = scene;
-
-    var wallInstancing = new EntityInstancing();
-    var wallMaster = new Entity("WallMaster")
+    var wallLayers = new[]
     {
-        new ModelComponent(wallModel),
-        new InstancingComponent { Type = wallInstancing }
+        CreateStaticMaster("WallEven", wallVertices, 0f),
+        CreateStaticMaster("WallOdd", wallVertices, 0.05f),
     };
-    wallMaster.Scene = scene;
 
     var y = 0.0f;
     var x = -80.0f * GridSize;
@@ -142,7 +168,7 @@ void CreateGround()
     {
         var box = b2MakeOffsetBox(0.55f * GridSize, 0.5f * GridSize, new B2Vec2(x, y), b2Rot_identity);
         b2CreatePolygonShape(groundId, in shapeDef, in box);
-        AddStaticVisual(floorInstancing, x, y);
+        AddStaticVisual(floorLayers[i % 2], x, y);
         x += GridSize;
     }
 
@@ -153,7 +179,7 @@ void CreateGround()
     {
         var box = b2MakeOffsetBox(0.5f * GridSize, 0.55f * GridSize, new B2Vec2(x, y), b2Rot_identity);
         b2CreatePolygonShape(groundId, in shapeDef, in box);
-        AddStaticVisual(wallInstancing, x, y);
+        AddStaticVisual(wallLayers[i % 2], x, y);
         y += GridSize;
     }
 
@@ -164,9 +190,25 @@ void CreateGround()
     {
         var box = b2MakeOffsetBox(0.5f * GridSize, 0.55f * GridSize, new B2Vec2(x, y), b2Rot_identity);
         b2CreatePolygonShape(groundId, in shapeDef, in box);
-        AddStaticVisual(wallInstancing, x, y);
+        AddStaticVisual(wallLayers[i % 2], x, y);
         y += GridSize;
     }
+}
+
+EntityInstancing CreateStaticMaster(string name, Vector2[] vertices, float zOffset)
+{
+    var instancing = new EntityInstancing();
+    var component = new ModelComponent();
+    var master = new Entity(name)
+    {
+        component,
+        new InstancingComponent { Type = instancing }
+    };
+    master.Scene = scene;
+
+    RegisterOutlinedVisual(component, vertices, paleGreen, zOffset, 0.2f);
+
+    return instancing;
 }
 
 void AddStaticVisual(EntityInstancing instancing, float x, float y)
@@ -192,15 +234,19 @@ void SetupRockInstancing()
     for (var state = 0; state < 3; state++)
     {
         var instancing = new BufferedEntityInstancing(new Box2DEntityInstancing());
+        var component = new ModelComponent();
         var master = new Entity($"{stateNames[state]}Master")
         {
-            new ModelComponent(CreateOutlinedModel(pentagon, stateColors[state], 0.04f, 0.2f)),
+            component,
             new InstancingComponent { Type = instancing }
         };
         master.Scene = scene;
 
         // Registers with the graphics compositor, not the scene, so it outlives anything in the scene
         game.AddInstancingBufferUpload(instancing);
+
+        // A rock is small, so its border may take at most about a third of its radius
+        RegisterOutlinedVisual(component, pentagon, stateColors[state], 0.2f, 0.35f * Radius);
 
         rockInstancings[state] = instancing;
         rockMasters[state] = master;
@@ -261,12 +307,12 @@ void CreatePusher()
 
     // The visual is a child at the shape's offset, so the synced body transform carries it along;
     // its model sits at z 0.4, in front of the rocks, like the last-created shape in the testbed
-    var visual = new Entity("PusherVisual")
-    {
-        new ModelComponent(CreateOutlinedModel(RectangleVertices(2.0f, 4.0f), royalBlue, 0.1f, 0.4f))
-    };
+    var component = new ModelComponent();
+    var visual = new Entity("PusherVisual") { component };
     visual.Transform.Position = new Vector3(0, 4, 0);
     pusherEntity.AddChild(visual);
+
+    RegisterOutlinedVisual(component, RectangleVertices(2.0f, 4.0f), royalBlue, 0.4f, 0.6f);
 
     pusherEntity.Scene = scene;
 
@@ -280,6 +326,7 @@ void Update(Scene rootScene, GameTime time)
     simulation?.Update(time.Elapsed);
 
     UpdateRockTint();
+    UpdateBorderModels();
 }
 
 /// <summary>
@@ -325,58 +372,166 @@ void UpdateRockTint()
 }
 
 /// <summary>
-/// Builds a flat two-mesh model matching the testbed's solid-shape shader: a full-colour polygon at
-/// the exact outline behind a fill inset by the border thickness. Keeping the border inside the
-/// collider means touching shapes stay visually separated instead of their borders merging. The
-/// fill is the shader's 60% alpha composited over the scene background.
+/// Keeps borders a near-constant width on screen, like the testbed's pixel-space shader: when the
+/// zoom leaves the current bucket, every outlined visual gets a model rebuilt with the world-space
+/// thickness that now equals about <see cref="BorderPixels"/> pixels. Models are cached per bucket,
+/// so wheeling the zoom back and forth costs nothing after the first visit.
 /// </summary>
-Model CreateOutlinedModel(Vector2[] vertices, Color color, float borderThickness, float zOffset)
+void UpdateBorderModels()
 {
-    var centroid = Vector2.Zero;
+    if (camera == null) return;
 
-    foreach (var vertex in vertices) centroid += vertex;
+    // OrthographicSize is the visible world height, so this is what one pixel covers in the world
+    var worldPerPixel = camera.OrthographicSize / game.GraphicsDevice.Presenter.BackBuffer.Height;
+    var thickness = BorderPixels * worldPerPixel;
 
-    centroid /= vertices.Length;
+    // Quantized in x1.5 steps so models only swap when the zoom changed meaningfully
+    var bucket = Math.Clamp((int)MathF.Round(MathF.Log(thickness) / MathF.Log(1.5f)), MinBucket, MaxBucket);
 
-    // Pull every corner inward from the centroid by the border thickness
-    var fillVertices = new Vector2[vertices.Length];
+    if (bucket == borderBucket) return;
 
-    for (var i = 0; i < vertices.Length; i++)
+    borderBucket = bucket;
+
+    for (var i = 0; i < outlinedVisuals.Count; i++)
     {
-        var direction = vertices[i] - centroid;
-        var length = direction.Length();
-        fillVertices[i] = centroid + direction * ((length - borderThickness) / length);
+        outlinedVisuals[i].Component.Model = prebuiltModels[i][bucket - MinBucket];
     }
+}
 
-    var borderData = PolygonProceduralModel.New(vertices);
-    var fillData = PolygonProceduralModel.New(fillVertices);
+/// <summary>
+/// Builds every visual's model for every zoom bucket, all during Start.
+/// </summary>
+void PrebuildBorderModels()
+{
+    prebuiltModels = new Model[outlinedVisuals.Count][];
 
-    for (var i = 0; i < borderData.Vertices.Length; i++)
+    for (var i = 0; i < outlinedVisuals.Count; i++)
     {
-        borderData.Vertices[i].Position.Z += zOffset;
-    }
+        var visual = outlinedVisuals[i];
+        prebuiltModels[i] = new Model[MaxBucket - MinBucket + 1];
 
-    // The fill sits slightly in front of its own border so the two never z-fight
-    for (var i = 0; i < fillData.Vertices.Length; i++)
-    {
-        fillData.Vertices[i].Position.Z += zOffset + 0.05f;
+        for (var bucket = MinBucket; bucket <= MaxBucket; bucket++)
+        {
+            var thickness = MathF.Min(MathF.Pow(1.5f, bucket), visual.MaxBorder);
+            prebuiltModels[i][bucket - MinBucket] = CreateOutlinedModel(visual, thickness);
+        }
     }
+}
 
+OutlinedVisual RegisterOutlinedVisual(ModelComponent component, Vector2[] vertices, Color color, float zOffset, float maxBorder)
+{
     // solid_polygon.fs fills at 60% alpha; composited over the flat background that becomes:
     var fillColor = new Color(
         (byte)(color.R * 0.6f + background.R * 0.4f),
         (byte)(color.G * 0.6f + background.G * 0.4f),
         (byte)(color.B * 0.6f + background.B * 0.4f));
 
+    var visual = new OutlinedVisual(component, vertices, game.CreateFlatMaterial(color), game.CreateFlatMaterial(fillColor), zOffset, maxBorder);
+
+    outlinedVisuals.Add(visual);
+
+    return visual;
+}
+
+/// <summary>
+/// Builds a flat two-mesh model matching the testbed's solid-shape shader: a full-colour polygon at
+/// the exact outline behind a fill inset by the border thickness. Keeping the border inside the
+/// collider means touching shapes stay visually separated instead of their borders merging. The
+/// fill is the shader's 60% alpha composited over the scene background.
+/// </summary>
+Model CreateOutlinedModel(OutlinedVisual visual, float borderThickness)
+{
+    var vertices = visual.Vertices;
+    var zOffset = visual.ZOffset;
+
+    // True polygon inset: each vertex slides along its angle bisector so every edge moves inward
+    // by exactly the border thickness. (Scaling toward the centroid skews any shape whose centroid
+    // is off-centre - the Fibonacci pentagon's is - leaving the ring fat on one side and inverted
+    // on the other.) Vertices must run counter-clockwise.
+    var fillVertices = new Vector2[vertices.Length];
+
+    for (var i = 0; i < vertices.Length; i++)
+    {
+        var previous = vertices[(i - 1 + vertices.Length) % vertices.Length];
+        var current = vertices[i];
+        var next = vertices[(i + 1) % vertices.Length];
+
+        var edge1 = Vector2.Normalize(current - previous);
+        var edge2 = Vector2.Normalize(next - current);
+        var normal1 = new Vector2(-edge1.Y, edge1.X);
+        var normal2 = new Vector2(-edge2.Y, edge2.X);
+
+        fillVertices[i] = current + (normal1 + normal2) / (1 + Vector2.Dot(normal1, normal2)) * borderThickness;
+    }
+
+    // The border is a RING between the outline and the inset - it does not overlap the fill by a
+    // single pixel, so no depth trickery or draw-order luck is involved in which one shows. (A
+    // full-size border polygon underneath the fill rendered in whatever order the opaque stage
+    // happened to pick, and half the models came out solid.)
+    var borderData = BuildRingMesh(vertices, fillVertices, zOffset);
+    var fillData = PolygonProceduralModel.New(fillVertices);
+
+    for (var i = 0; i < fillData.Vertices.Length; i++)
+    {
+        fillData.Vertices[i].Position.Z += zOffset;
+    }
+
+    // An explicit bounding box per mesh: manually assembled meshes have none, and an empty box is
+    // an invitation for the culler to discard them
+    var max = Vector2.Zero;
+
+    foreach (var vertex in vertices)
+    {
+        max = Vector2.Max(max, new Vector2(MathF.Abs(vertex.X), MathF.Abs(vertex.Y)));
+    }
+
+    var bounds = new BoundingBox(new Vector3(-max.X, -max.Y, zOffset - 0.01f), new Vector3(max.X, max.Y, zOffset + 0.01f));
+
     var model = new Model();
-    model.Meshes.Add(new Mesh { Draw = new GeometricPrimitive(game.GraphicsDevice, borderData).ToMeshDraw(), MaterialIndex = 0 });
-    model.Meshes.Add(new Mesh { Draw = new GeometricPrimitive(game.GraphicsDevice, fillData).ToMeshDraw(), MaterialIndex = 1 });
-    model.Materials.Add(game.CreateFlatMaterial(color));
-    model.Materials.Add(game.CreateFlatMaterial(fillColor));
+    model.Meshes.Add(new Mesh { Draw = new GeometricPrimitive(game.GraphicsDevice, borderData).ToMeshDraw(), MaterialIndex = 0, BoundingBox = bounds });
+    model.Meshes.Add(new Mesh { Draw = new GeometricPrimitive(game.GraphicsDevice, fillData).ToMeshDraw(), MaterialIndex = 1, BoundingBox = bounds });
+    model.Materials.Add(visual.BorderMaterial);
+    model.Materials.Add(visual.FillMaterial);
+    model.BoundingBox = bounds;
 
     return model;
 }
 
+/// <summary>
+/// Builds the border ring: a triangle strip between the shape outline and the inset fill outline,
+/// wound the same way as the fill mesh so both faces the camera together.
+/// </summary>
+static GeometricMeshData<VertexPositionNormalTexture> BuildRingMesh(Vector2[] outer, Vector2[] inner, float zOffset)
+{
+    var count = outer.Length;
+    var vertices = new VertexPositionNormalTexture[count * 2];
+
+    for (var i = 0; i < count; i++)
+    {
+        vertices[i] = new VertexPositionNormalTexture(new Vector3(outer[i].X, outer[i].Y, zOffset), Vector3.UnitZ, Vector2.Zero);
+        vertices[count + i] = new VertexPositionNormalTexture(new Vector3(inner[i].X, inner[i].Y, zOffset), Vector3.UnitZ, Vector2.Zero);
+    }
+
+    var indices = new int[count * 6];
+    var index = 0;
+
+    for (var i = 0; i < count; i++)
+    {
+        var next = (i + 1) % count;
+
+        // Two clockwise triangles per edge segment - Direct3D front faces are clockwise, and the
+        // counter-clockwise variant came out backface-culled
+        indices[index++] = i;
+        indices[index++] = count + next;
+        indices[index++] = next;
+
+        indices[index++] = i;
+        indices[index++] = count + i;
+        indices[index++] = count + next;
+    }
+
+    return new GeometricMeshData<VertexPositionNormalTexture>(vertices, indices, false);
+}
 static Vector2[] RectangleVertices(float halfWidth, float halfHeight) =>
 [
     new(-halfWidth, -halfHeight),
@@ -430,6 +585,18 @@ public sealed class PusherDriver : IBox2DSimulationUpdate
     }
 }
 
+/// <summary>
+/// One outlined shape on screen: where its model is assigned, its outline and colour, the depth
+/// layer its meshes bake in, and the widest border its size can absorb.
+/// </summary>
+/// <param name="Component">The model component the rebuilt models are assigned to.</param>
+/// <param name="Vertices">The shape outline, which is also its collider outline.</param>
+/// <param name="BorderMaterial">Flat material of the border, created once - rebuilds reuse it.</param>
+/// <param name="FillMaterial">Flat material of the fill, created once - rebuilds reuse it.</param>
+/// <param name="ZOffset">Depth layer baked into the meshes, emulating the testbed's draw order.</param>
+/// <param name="MaxBorder">Upper limit for the border thickness, so small shapes keep some fill.</param>
+public sealed record OutlinedVisual(ModelComponent Component, Vector2[] Vertices, Material BorderMaterial, Material FillMaterial, float ZOffset, float MaxBorder);
+
 /*
 ---example-metadata
 slug: junkyard-box2d
@@ -447,12 +614,14 @@ description:
     target transform once per fixed step. The visuals copy the Box2D testbed's debug draw - pale
     green statics, pink awake bodies, salmon fast-movers, gray sleepers, a royal blue pusher - with
     the border-and-fill shape style baked into two-mesh models so the rocks still render as one
-    instanced draw per state.
+    instanced draw per state, and the border thickness rebuilt per zoom bucket to stay a constant
+    couple of pixels on screen, like the testbed's SDF shader.
   cs: |-
     Věrná replika ukázky BenchmarkJunkyard z Box2D.NET: 8 000 malých pětiúhelníkových kamenů prší
     do ohrazeného dvora a kinematická radlice se prohrnuje hromadou tam a zpět. Vizuál kopíruje
     debug draw z Box2D testbedu - světle zelená statika, růžová bdící tělesa, lososová rychlá,
-    šedá spící, královsky modrá radlice.
+    šedá spící, královsky modrá radlice - a tloušťka okrajů se přepočítává podle přiblížení, aby
+    na obrazovce zůstala stále stejná.
 concepts:
   - Replicating a Box2D testbed benchmark scene in Stride
   - Driving a kinematic body with SetTargetTransform once per fixed step
@@ -460,6 +629,7 @@ concepts:
   - One static body carrying hundreds of fixtures, drawn instanced
   - Custom convex polygon fixtures from the same vertices as the rendered mesh
   - Baking the testbed border-and-fill look into a two-mesh Model, instancing-friendly
+  - Keeping borders pixel-constant by rebuilding cached models per zoom bucket
   - Colour-coding awake, fast and sleeping bodies across three instanced masters
 tags:
   - 2D
