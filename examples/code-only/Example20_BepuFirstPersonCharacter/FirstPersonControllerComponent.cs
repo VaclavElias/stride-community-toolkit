@@ -13,29 +13,34 @@ namespace Example20_BepuFirstPersonCharacter;
 //
 // The component goes on the CAMERA entity and drives the linked CharacterComponent (walk mode)
 // or the camera transform directly (fly mode).
+//
+// Everything is a property rather than a public field: the processor is a separate type, so the
+// state it mutates has to be accessible from outside this class, and properties keep that access
+// behind something you can breakpoint. Stride's serializer treats public properties with a setter
+// exactly as it would public fields.
 [DataContract]
 [DefaultEntityComponentProcessor(typeof(FirstPersonControllerProcessor), ExecutionMode = ExecutionMode.Runtime)]
 public class FirstPersonControllerComponent : EntityComponent
 {
     // The Bepu physics body this camera drives (wired in code at startup).
-    [DataMemberIgnore] public CharacterComponent? Character;
+    [DataMemberIgnore] public CharacterComponent? Character { get; set; }
 
     // Tunables.
-    public float MouseSensitivity = 1.5f;
-    public float EyeHeight = 0.7f;        // camera height above the capsule entity's origin
-    public float SprintMultiplier = 1.7f; // Shift speed factor (MoveVector treats vector length as a speed factor)
-    public float FlySpeed = 15f;          // metres/sec in fly mode
-    public float FlyBoost = 5f;           // Shift multiplier in fly mode
+    public float MouseSensitivity { get; set; } = 1.5f;
+    public float EyeHeight { get; set; } = 0.7f;        // camera height above the capsule entity's origin
+    public float SprintMultiplier { get; set; } = 1.7f; // Shift speed factor (MoveVector treats vector length as a speed factor)
+    public float FlySpeed { get; set; } = 15f;          // metres/sec in fly mode
+    public float FlyBoost { get; set; } = 5f;           // Shift multiplier in fly mode
 
     // Runtime state, mutated by the processor.
-    [DataMemberIgnore] public float Yaw;
-    [DataMemberIgnore] public float Pitch;
-    [DataMemberIgnore] public bool Fly;
-    [DataMemberIgnore] public Vector3 FlyPosition;
-    [DataMemberIgnore] public bool GravityApplied;
-    [DataMemberIgnore] public bool Initialized;
-    [DataMemberIgnore] public bool MouseLocked;
+    [DataMemberIgnore] public float Yaw { get; set; }
+    [DataMemberIgnore] public float Pitch { get; set; }
+    [DataMemberIgnore] public bool Fly { get; set; }
+    [DataMemberIgnore] public Vector3 FlyPosition { get; set; }
+    [DataMemberIgnore] public bool GravityApplied { get; set; }
+    [DataMemberIgnore] public bool Initialized { get; set; }
+    [DataMemberIgnore] public bool MouseLocked { get; set; }
 
     // Jump buffering: seconds left in which a pressed jump keeps re-arming (see the processor).
-    [DataMemberIgnore] public float JumpBuffer;
+    [DataMemberIgnore] public float JumpBuffer { get; set; }
 }
