@@ -2,8 +2,6 @@ using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Shapes;
-using Stride.CommunityToolkit.Rendering.Text;
-using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -63,9 +61,11 @@ game.Run(start: Start, update: Update);
 
 void Start(Scene rootScene)
 {
-    game.AddGraphicsCompositor();
-    game.Add3DCamera().Add3DCameraController(displayPosition: DisplayPosition.BottomRight);
-    game.AddDirectionalLight();
+    game.Window.AllowUserResizing = true;
+    game.Window.Title = "Shapes Playground - Stride Community Toolkit";
+
+    game.SetupBase3D();
+    game.Add3DCameraController();
     game.AddSkybox();
     game.AddProfiler();
 
