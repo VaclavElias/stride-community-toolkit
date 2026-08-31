@@ -3,7 +3,7 @@ using Stride.Graphics;
 using Stride.Rendering;
 using Buffer = Stride.Graphics.Buffer;
 
-namespace Stride.CommunityToolkit.Rendering.Lines;
+namespace Stride.CommunityToolkit.Charts.Lines;
 
 /// <summary>
 /// Builds the filled region between two polylines - the shaded area under a curve, or between two curves.
@@ -21,7 +21,7 @@ namespace Stride.CommunityToolkit.Rendering.Lines;
 /// It is plain arithmetic on the points, so it is covered by unit tests.
 /// </para>
 /// </remarks>
-public static class AreaMeshBuilder
+internal static class AreaMeshBuilder
 {
     /// <summary>
     /// Turns two equal-length polylines into the runs of drawable columns between them: each column is a
@@ -35,7 +35,7 @@ public static class AreaMeshBuilder
     /// <returns>Zero or more runs, each with at least two columns.</returns>
     /// <exception cref="ArgumentNullException">If either edge is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">If the edges have different lengths, or the range is inside out.</exception>
-    public static List<List<(Vector3 Upper, Vector3 Lower)>> Columns(IReadOnlyList<Vector3> upper, IReadOnlyList<Vector3> lower, float yMin, float yMax)
+    internal static List<List<(Vector3 Upper, Vector3 Lower)>> Columns(IReadOnlyList<Vector3> upper, IReadOnlyList<Vector3> lower, float yMin, float yMax)
     {
         ArgumentNullException.ThrowIfNull(upper);
         ArgumentNullException.ThrowIfNull(lower);
@@ -95,7 +95,7 @@ public static class AreaMeshBuilder
     /// <returns>A mesh whose bounds are set, ready to be put in a <see cref="Model"/>.</returns>
     /// <exception cref="ArgumentNullException">If any argument is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">If there are no runs, or one has fewer than two columns.</exception>
-    public static Mesh Build(GraphicsDevice device, IReadOnlyList<IReadOnlyList<(Vector3 Upper, Vector3 Lower)>> runs, AreaOptions options)
+    internal static Mesh Build(GraphicsDevice device, IReadOnlyList<IReadOnlyList<(Vector3 Upper, Vector3 Lower)>> runs, AreaOptions options)
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(runs);
@@ -125,6 +125,7 @@ public static class AreaMeshBuilder
                 throw new ArgumentException("Every run needs at least two columns.", nameof(runs));
             }
 
+            // Every run is appended to the same buffers, so its indices start where its vertices do
             var baseIndex = vertices.Count;
 
             for (var i = 0; i < run.Count; i++)
@@ -136,6 +137,8 @@ public static class AreaMeshBuilder
                 vertices.Add(new VertexPositionNormalTexture(run[i].Lower, normal, new Vector2(u, 1f)));
             }
 
+            // Each pair of neighbouring columns spans a quad: upper/lower of this column (a, a+1) and of
+            // the next (b, b+1). Two triangles per quad, wound the same way round so the band is one face.
             for (var i = 0; i + 1 < run.Count; i++)
             {
                 var a = baseIndex + i * 2;

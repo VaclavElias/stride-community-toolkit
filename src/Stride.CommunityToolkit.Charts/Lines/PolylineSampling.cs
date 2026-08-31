@@ -1,6 +1,6 @@
 using Stride.Core.Mathematics;
 
-namespace Stride.CommunityToolkit.Rendering.Lines;
+namespace Stride.CommunityToolkit.Charts.Lines;
 
 /// <summary>
 /// Turns functions into point lists for <see cref="PolylineMeshBuilder"/>.

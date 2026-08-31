@@ -1,4 +1,4 @@
-using Stride.CommunityToolkit.Rendering.Lines;
+using Stride.CommunityToolkit.Charts.Lines;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Engine.Processors;
@@ -326,7 +326,7 @@ public sealed class Chart : IDisposable
         entity.Transform.Position = new Vector3(0f, 0f, LayerStep * 0.5f);
         Root.AddChild(entity);
 
-        var series = new ChartAreaSeries(seriesName, entity, legendOptions, areaOptions, upper, lower, from, to, samples);
+        var series = new ChartAreaSeries(seriesName, entity, legendOptions, areaOptions, new AreaSpec(upper, lower, from, to, samples));
 
         _series.Add(series);
         series.Rebuild(this);

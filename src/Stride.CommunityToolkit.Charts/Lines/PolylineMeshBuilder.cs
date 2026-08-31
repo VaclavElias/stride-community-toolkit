@@ -3,7 +3,7 @@ using Stride.Graphics;
 using Stride.Rendering;
 using Buffer = Stride.Graphics.Buffer;
 
-namespace Stride.CommunityToolkit.Rendering.Lines;
+namespace Stride.CommunityToolkit.Charts.Lines;
 
 /// <summary>
 /// Builds ribbon <see cref="Mesh"/>es from points, so a line can have real thickness.
@@ -22,7 +22,7 @@ namespace Stride.CommunityToolkit.Rendering.Lines;
 /// Both are there for materials that want to fade the edges or animate along the line.
 /// </para>
 /// </remarks>
-public static class PolylineMeshBuilder
+internal static class PolylineMeshBuilder
 {
     /// <summary>
     /// Builds one continuous ribbon through <paramref name="points"/>.
@@ -33,7 +33,7 @@ public static class PolylineMeshBuilder
     /// <returns>A mesh whose bounds are set, ready to be put in a <see cref="Model"/>.</returns>
     /// <exception cref="ArgumentNullException">If any argument is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">If there are fewer than two points, or <see cref="PolylineOptions.Normal"/> has no length.</exception>
-    public static Mesh Build(GraphicsDevice device, IReadOnlyList<Vector3> points, PolylineOptions options)
+    internal static Mesh Build(GraphicsDevice device, IReadOnlyList<Vector3> points, PolylineOptions options)
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(points);
@@ -63,7 +63,7 @@ public static class PolylineMeshBuilder
     /// <returns>A mesh whose bounds are set, ready to be put in a <see cref="Model"/>.</returns>
     /// <exception cref="ArgumentNullException">If any argument is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">If there are no segments, or <see cref="PolylineOptions.Normal"/> has no length.</exception>
-    public static Mesh BuildSegments(GraphicsDevice device, IReadOnlyList<(Vector3 Start, Vector3 End)> segments, PolylineOptions options)
+    internal static Mesh BuildSegments(GraphicsDevice device, IReadOnlyList<(Vector3 Start, Vector3 End)> segments, PolylineOptions options)
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(segments);
@@ -100,7 +100,7 @@ public static class PolylineMeshBuilder
     /// <returns>A mesh whose bounds are set, ready to be put in a <see cref="Model"/>.</returns>
     /// <exception cref="ArgumentNullException">If any argument is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">If there are no polylines, one has fewer than two points, or <see cref="PolylineOptions.Normal"/> has no length.</exception>
-    public static Mesh BuildMany(GraphicsDevice device, IReadOnlyList<IReadOnlyList<Vector3>> polylines, PolylineOptions options)
+    internal static Mesh BuildMany(GraphicsDevice device, IReadOnlyList<IReadOnlyList<Vector3>> polylines, PolylineOptions options)
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(polylines);
@@ -135,7 +135,7 @@ public static class PolylineMeshBuilder
     /// </summary>
     /// <param name="mesh">The mesh to release. Do not draw it afterwards.</param>
     /// <exception cref="ArgumentNullException">If <paramref name="mesh"/> is <see langword="null"/>.</exception>
-    public static void Release(Mesh mesh)
+    internal static void Release(Mesh mesh)
     {
         ArgumentNullException.ThrowIfNull(mesh);
 

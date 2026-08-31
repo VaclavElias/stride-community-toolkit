@@ -6,36 +6,15 @@ using Stride.Rendering;
 using Stride.Rendering.Materials;
 using Stride.Rendering.Materials.ComputeColors;
 
-namespace Stride.CommunityToolkit.Rendering.Lines;
+namespace Stride.CommunityToolkit.Charts.Lines;
 
 /// <summary>
-/// Creates entities that draw the filled region between two polylines.
+/// Builds the model - mesh plus material - that draws the filled region between two polylines.
 /// </summary>
-public static class AreaExtensions
+internal static class AreaModel
 {
     /// <summary>The fill tint, premultiplied; one value per material instance.</summary>
     private static readonly ValueParameterKey<Color4> AreaColorKey = ParameterKeys.NewValue<Color4>();
-
-    /// <summary>
-    /// Creates an entity drawing the band described by <paramref name="runs"/> as one filled mesh.
-    /// </summary>
-    /// <param name="game">The game whose graphics device the mesh is created on.</param>
-    /// <param name="runs">The runs of columns from <see cref="AreaMeshBuilder.Columns"/>.</param>
-    /// <param name="options">Fill colour, glow and plane; <see langword="null"/> for the defaults.</param>
-    /// <param name="name">The entity name, or <c>"Area"</c>.</param>
-    /// <returns>An entity holding a <see cref="ModelComponent"/>; add it to a scene or parent it to another entity.</returns>
-    /// <exception cref="ArgumentNullException">If <paramref name="game"/> or <paramref name="runs"/> is <see langword="null"/>.</exception>
-    public static Entity CreateArea(this IGame game, IReadOnlyList<IReadOnlyList<(Vector3 Upper, Vector3 Lower)>> runs, AreaOptions? options = null, string? name = null)
-    {
-        ArgumentNullException.ThrowIfNull(game);
-        ArgumentNullException.ThrowIfNull(runs);
-
-        options ??= new AreaOptions();
-
-        var mesh = AreaMeshBuilder.Build(game.GraphicsDevice, runs, options);
-
-        return new Entity(name ?? "Area") { CreateModel(game, mesh, options) };
-    }
 
     /// <summary>
     /// Builds the flat, double-sided, translucent model an area fill uses.
@@ -51,7 +30,7 @@ public static class AreaExtensions
     /// <param name="mesh">The mesh to draw.</param>
     /// <param name="options">Fill colour and glow.</param>
     /// <returns>A model component ready to add to an entity.</returns>
-    internal static ModelComponent CreateModel(IGame game, Mesh mesh, AreaOptions options)
+    internal static ModelComponent Create(IGame game, Mesh mesh, AreaOptions options)
     {
         var device = game.GraphicsDevice;
 

@@ -5,7 +5,7 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 
-namespace Stride.CommunityToolkit.Rendering.Lines;
+namespace Stride.CommunityToolkit.Charts.Lines;
 
 /// <summary>
 /// Creates entities that draw polylines as ribbons.

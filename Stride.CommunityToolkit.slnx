@@ -108,6 +108,7 @@
   <Project Path="src/Stride.CommunityToolkit.Bepu/Stride.CommunityToolkit.Bepu.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Box2D/Stride.CommunityToolkit.Box2D.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Bullet/Stride.CommunityToolkit.Bullet.csproj" />
+  <Project Path="src/Stride.CommunityToolkit.Charts/Stride.CommunityToolkit.Charts.csproj" />
   <Project Path="src/Stride.CommunityToolkit.DebugShapes/Stride.CommunityToolkit.DebugShapes.csproj" />
   <Project Path="src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj" />
   <Project Path="src/Stride.CommunityToolkit.ImGuiNet/Stride.CommunityToolkit.ImGuiNet.csproj" />

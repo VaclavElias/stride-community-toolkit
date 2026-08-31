@@ -5,7 +5,7 @@ using Stride.Rendering;
 using System.Runtime.InteropServices;
 using Buffer = Stride.Graphics.Buffer;
 
-namespace Stride.CommunityToolkit.Rendering.Lines;
+namespace Stride.CommunityToolkit.Charts.Lines;
 
 /// <summary>
 /// A polyline that grows one point at a time - the trail of a moving body, drawn while it moves. The GPU
@@ -30,7 +30,7 @@ namespace Stride.CommunityToolkit.Rendering.Lines;
 /// distance along the run in world units, not normalised - a growing line has no final length to divide by.
 /// </para>
 /// </remarks>
-public sealed class GrowingPolyline : IDisposable
+internal sealed class GrowingPolyline : IDisposable
 {
     private readonly IGame _game;
     private readonly Buffer _vertexBuffer;
@@ -48,19 +48,19 @@ public sealed class GrowingPolyline : IDisposable
     private bool _isDisposed;
 
     /// <summary>The mesh to put in a <see cref="Model"/>; its draw count and bounds are kept up to date.</summary>
-    public Mesh Mesh { get; }
+    internal Mesh Mesh { get; }
 
     /// <summary>How many points the line currently holds, over all runs.</summary>
-    public int Count => _count;
+    internal int Count => _count;
 
     /// <summary>The most points the line can hold; fixed at construction, when the buffers are allocated.</summary>
-    public int Capacity { get; }
+    internal int Capacity { get; }
 
     /// <summary>
     /// What a full line does with the next point: <see langword="false"/> (the default) ignores it,
     /// <see langword="true"/> drops the oldest point instead - an oscilloscope trace.
     /// </summary>
-    public bool RollOver { get; set; }
+    internal bool RollOver { private get; set; }
 
     /// <summary>
     /// Allocates the GPU buffers for a line of at most <paramref name="capacity"/> points.
@@ -75,7 +75,7 @@ public sealed class GrowingPolyline : IDisposable
     /// <exception cref="ArgumentNullException">If <paramref name="game"/> or <paramref name="options"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="capacity"/> is less than two.</exception>
     /// <exception cref="ArgumentException">If <see cref="PolylineOptions.Normal"/> has no length.</exception>
-    public GrowingPolyline(IGame game, int capacity, PolylineOptions options, BoundingBox? bounds = null)
+    internal GrowingPolyline(IGame game, int capacity, PolylineOptions options, BoundingBox? bounds = null)
     {
         ArgumentNullException.ThrowIfNull(game);
         ArgumentNullException.ThrowIfNull(options);
@@ -124,7 +124,7 @@ public sealed class GrowingPolyline : IDisposable
     /// <see langword="false"/> when the line is full and <see cref="RollOver"/> is off, so the point was
     /// ignored; otherwise <see langword="true"/>.
     /// </returns>
-    public bool Add(Vector3 point)
+    internal bool Add(Vector3 point)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 
@@ -162,7 +162,7 @@ public sealed class GrowingPolyline : IDisposable
     /// Lifts the pen: the next <see cref="Add"/> starts a new run instead of connecting to the last point.
     /// Harmless when the line is empty or already broken.
     /// </summary>
-    public void Break()
+    internal void Break()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 
@@ -175,7 +175,7 @@ public sealed class GrowingPolyline : IDisposable
     /// <summary>
     /// Removes every point, keeping the buffers for reuse.
     /// </summary>
-    public void Clear()
+    internal void Clear()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 

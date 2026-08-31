@@ -1,4 +1,4 @@
-using Stride.CommunityToolkit.Rendering.Lines;
+using Stride.CommunityToolkit.Charts.Lines;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
@@ -16,30 +16,21 @@ namespace Stride.CommunityToolkit.Charts;
 /// </remarks>
 public sealed class ChartAreaSeries : ChartSeries
 {
-    private readonly Func<float, float> _upper;
-    private readonly Func<float, float> _lower;
-    private readonly float _from;
-    private readonly float _to;
-    private readonly int _samples;
+    private readonly AreaSpec _spec;
     private readonly AreaOptions _areaOptions;
 
-    internal ChartAreaSeries(string name, Entity entity, PolylineOptions legendOptions, AreaOptions areaOptions,
-        Func<float, float> upper, Func<float, float> lower, float from, float to, int samples)
+    internal ChartAreaSeries(string name, Entity entity, PolylineOptions legendOptions, AreaOptions areaOptions, in AreaSpec spec)
         : base(name, entity, legendOptions, isEmpty: false)
     {
         _areaOptions = areaOptions;
-        _upper = upper;
-        _lower = lower;
-        _from = from;
-        _to = to;
-        _samples = samples;
+        _spec = spec;
     }
 
     /// <summary>The first <c>x</c> of the shaded stretch, as asked for.</summary>
-    public float From => _from;
+    public float From => _spec.From;
 
     /// <summary>The last <c>x</c> of the shaded stretch, as asked for.</summary>
-    public float To => _to;
+    public float To => _spec.To;
 
     /// <summary>
     /// Re-samples the region for the chart's current ranges and rebuilds its mesh; the stretch is trimmed
@@ -50,20 +41,20 @@ public sealed class ChartAreaSeries : ChartSeries
         ReleaseModel();
 
         var o = chart.Options;
-        var from = MathF.Max(_from, o.XMin);
-        var to = MathF.Min(_to, o.XMax);
+        var from = MathF.Max(_spec.From, o.XMin);
+        var to = MathF.Min(_spec.To, o.XMax);
 
         if (to <= from)
             return;
 
-        var upper = PolylineSampling.Function(_upper, from, to, _samples);
-        var lower = PolylineSampling.Function(_lower, from, to, _samples);
+        var upper = PolylineSampling.Function(_spec.Upper, from, to, _spec.Samples);
+        var lower = PolylineSampling.Function(_spec.Lower, from, to, _spec.Samples);
         var runs = AreaMeshBuilder.Columns(upper, lower, o.YMin, o.YMax);
 
         if (runs.Count == 0)
             return;
 
         var mesh = AreaMeshBuilder.Build(chart.Game.GraphicsDevice, [.. runs], _areaOptions);
-        Entity.Add(AreaExtensions.CreateModel(chart.Game, mesh, _areaOptions));
+        Entity.Add(AreaModel.Create(chart.Game, mesh, _areaOptions));
     }
 }

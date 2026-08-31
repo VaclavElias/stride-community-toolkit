@@ -1,7 +1,7 @@
 using Stride.CommunityToolkit.Charts;
+using Stride.CommunityToolkit.Charts.Lines;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Compositing;
-using Stride.CommunityToolkit.Rendering.Lines;
 using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Windows;
@@ -12,9 +12,9 @@ using Stride.Graphics;
 using Stride.Input;
 using System.Globalization;
 
-// Playground for the chart helpers that are being grown here before moving into the toolkit.
-// Lines/ and Charts/ are already in their final namespaces (Stride.CommunityToolkit.Rendering.Lines
-// and Stride.CommunityToolkit.Charts), so extracting them later is a move, not a rewrite.
+// Playground and demo for Stride.CommunityToolkit.Charts. The chart helpers grew here and now live in
+// src/Stride.CommunityToolkit.Charts; this example is what exercises them, and stays the place to try
+// a new chart feature before it is settled enough to document.
 //
 // Two looks, one chart API:
 //   flat 2D  - orthographic camera, light background, no lighting or glow, major and minor grid,

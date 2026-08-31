@@ -65,7 +65,7 @@ The lesson generalises past grids: **when thin repeating detail must stay stable
 put it in a texture and let the sampler do the anti-aliasing.** Rasterising thin triangles fights the
 hardware; sampling a well-mipped texture uses it.
 
-**In the toolkit:** the chart playground's grid (`Example_Charts_Playground/Charts/ChartGridTexture.cs`)
+**In the toolkit:** the chart library's grid (`src/Stride.CommunityToolkit.Charts/ChartGridTexture.cs`)
 is this technique nearly verbatim - same luminance-constant mip formula, same emissive-times-colour
 material, same snapping - with the decade steps swapped for the chart's 1-2-5 tick steps.
 
@@ -171,7 +171,7 @@ also shows the production-hardened details: limiting the projection angle so a g
 produce a point kilometres away, and validating the inverted view matrix before trusting it.
 
 **In the toolkit:** `CameraComponentExtensions` (`GetPickRay`, `ScreenToWorldPoint`,
-`CalculateRayFromScreenPosition`) provides the same steps for game code; the chart playground's
+`CalculateRayFromScreenPosition`) provides the same steps for game code; the chart library's
 cursor readout intersects that ray with the chart's plane and works identically under an orthographic
 2D camera and a free 3D camera.
 

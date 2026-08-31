@@ -1,9 +1,9 @@
 using Stride.Core.Mathematics;
 
-namespace Stride.CommunityToolkit.Rendering.Lines;
+namespace Stride.CommunityToolkit.Charts.Lines;
 
 /// <summary>
-/// How a polyline is turned into a ribbon mesh by <see cref="PolylineMeshBuilder"/>.
+/// How a chart turns a polyline into a ribbon mesh: its width, colour, glow and the plane it lies in.
 /// </summary>
 /// <remarks>
 /// Direct3D draws hardware lines one pixel wide with no way to change that, so a visible line has to be

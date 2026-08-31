@@ -30,10 +30,9 @@
     </ItemGroup>
     <ItemGroup>
         <!--
-            The charts playground grows line and chart helpers in their final toolkit namespaces before
-            they move into the library. Its clipping code is pure point arithmetic and is tested here
-            for the same reason as Cubicle Calamity above.
+            The chart library's line, area and framing maths are pure arithmetic; the mesh builders are
+            internal to the package and reach these tests through its InternalsVisibleTo.
         -->
-        <ProjectReference Include="../../examples/code-only/Example_Charts_Playground/Example_Charts_Playground.csproj" />
+        <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Charts\Stride.CommunityToolkit.Charts.csproj" />
     </ItemGroup>
 </Project>

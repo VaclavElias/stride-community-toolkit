@@ -1,4 +1,4 @@
-using Stride.CommunityToolkit.Rendering.Lines;
+using Stride.CommunityToolkit.Charts.Lines;
 using Stride.Core.Mathematics;
 using Xunit;
 

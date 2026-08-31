@@ -1,4 +1,4 @@
-using Stride.CommunityToolkit.Rendering.Lines;
+using Stride.CommunityToolkit.Charts.Lines;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
@@ -36,7 +36,7 @@ public class ChartSeries : IDisposable
     /// </summary>
     public bool IsEmpty { get; }
 
-    /// <summary>Whether <see cref="Dispose"/> has run.</summary>
+    /// <summary>Whether <see cref="Dispose()"/> has run.</summary>
     public bool IsDisposed { get; private set; }
 
     /// <summary>Set for <c>y = f(x)</c> plots so a view-driven chart can re-sample the curve when the range changes.</summary>

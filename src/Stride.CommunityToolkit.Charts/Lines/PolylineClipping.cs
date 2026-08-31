@@ -1,6 +1,6 @@
 using Stride.Core.Mathematics;
 
-namespace Stride.CommunityToolkit.Rendering.Lines;
+namespace Stride.CommunityToolkit.Charts.Lines;
 
 /// <summary>
 /// Cuts a sampled polyline into the pieces that can be drawn: the runs that stay inside a rectangle or box,
@@ -22,13 +22,13 @@ namespace Stride.CommunityToolkit.Rendering.Lines;
 /// parametric curve that leaves the chart plane keeps its depth.
 /// </para>
 /// </remarks>
-public static class PolylineClipping
+internal static class PolylineClipping
 {
     /// <summary>
     /// A half-extent large enough to make an axis effectively unbounded in a clip box while staying far from
     /// float overflow - how the rectangle overloads express "any Z".
     /// </summary>
-    public const float UnboundedZ = 1e30f;
+    internal const float UnboundedZ = 1e30f;
 
     /// <summary>
     /// The runs of <paramref name="points"/> that lie inside the rectangle
@@ -43,7 +43,7 @@ public static class PolylineClipping
     /// <returns>Zero or more runs, each with at least two points, in the original order.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">If a maximum is smaller than its minimum.</exception>
-    public static List<Vector3[]> Clip(IReadOnlyList<Vector3> points, float xMin, float xMax, float yMin, float yMax)
+    internal static List<Vector3[]> Clip(IReadOnlyList<Vector3> points, float xMin, float xMax, float yMin, float yMax)
         => Clip(points, xMin, xMax, yMin, yMax, -UnboundedZ, UnboundedZ);
 
     /// <summary>
@@ -63,7 +63,7 @@ public static class PolylineClipping
     /// <returns>Zero or more runs, each with at least two points, in the original order.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">If a maximum is smaller than its minimum.</exception>
-    public static List<Vector3[]> Clip(IReadOnlyList<Vector3> points, float xMin, float xMax, float yMin, float yMax, float zMin, float zMax)
+    internal static List<Vector3[]> Clip(IReadOnlyList<Vector3> points, float xMin, float xMax, float yMin, float yMax, float zMin, float zMax)
     {
         ArgumentNullException.ThrowIfNull(points);
 
@@ -119,7 +119,7 @@ public static class PolylineClipping
     /// <param name="points">The polyline, in order.</param>
     /// <returns>Zero or more runs, each with at least two finite points, in the original order.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
-    public static List<Vector3[]> SplitAtNonFinite(IReadOnlyList<Vector3> points)
+    internal static List<Vector3[]> SplitAtNonFinite(IReadOnlyList<Vector3> points)
     {
         ArgumentNullException.ThrowIfNull(points);
 
@@ -162,7 +162,7 @@ public static class PolylineClipping
     /// <returns>Zero or more runs, each with at least two finite points, in the original order.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="maxJump"/> is negative.</exception>
-    public static List<Vector3[]> SplitAtJumps(IReadOnlyList<Vector3> points, float maxJump, bool extendEnds = false)
+    internal static List<Vector3[]> SplitAtJumps(IReadOnlyList<Vector3> points, float maxJump, bool extendEnds = false)
     {
         ArgumentNullException.ThrowIfNull(points);
         ArgumentOutOfRangeException.ThrowIfNegative(maxJump);
@@ -221,7 +221,7 @@ public static class PolylineClipping
     /// <param name="t0">The parameter where the clipped piece starts; <c>0</c> when <paramref name="a"/> is inside.</param>
     /// <param name="t1">The parameter where the clipped piece ends; <c>1</c> when <paramref name="b"/> is inside.</param>
     /// <returns><see langword="true"/> when some piece of the segment lies inside the box.</returns>
-    public static bool ClipSegment(Vector3 a, Vector3 b, in BoundingBox box, out float t0, out float t1)
+    internal static bool ClipSegment(Vector3 a, Vector3 b, in BoundingBox box, out float t0, out float t1)
     {
         t0 = 0f;
         t1 = 1f;
