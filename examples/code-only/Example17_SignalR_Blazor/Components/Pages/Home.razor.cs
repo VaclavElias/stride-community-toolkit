@@ -110,6 +110,10 @@ public partial class Home(NavigationManager navigation) : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // There is no finalizer to suppress here, but CA1816 asks for the call and it costs nothing: a derived
+        // component that does introduce one then does not have to re-implement disposal just to suppress it
+        GC.SuppressFinalize(this);
+
         if (_hubConnection is null) return;
 
         await _hubConnection.DisposeAsync();
