@@ -1,6 +1,6 @@
 using Example18_Box2DPhysics;
-using Stride.CommunityToolkit.Box2D;
 using Example18_Box2DPhysics.Helpers;
+using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
