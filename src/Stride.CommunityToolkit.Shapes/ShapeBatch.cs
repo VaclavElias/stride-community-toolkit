@@ -19,8 +19,9 @@ namespace Stride.CommunityToolkit.Shapes;
 /// order, and the batch resets itself after rendering. Register with <c>game.AddShapeBatch()</c>.
 /// </para>
 /// <para>
-/// <see cref="BorderWidth"/> and <see cref="FillAlpha"/> are current state, captured by each draw
-/// call as it is made, so you can change them between calls the way you would with a sprite batch.
+/// <see cref="BorderWidth"/>, <see cref="FillAlpha"/> and <see cref="FillColor"/> are current state,
+/// captured by each draw call as it is made, so you can change them between calls the way you would
+/// with a sprite batch.
 /// </para>
 /// </remarks>
 public sealed class ShapeBatch : RenderObject
@@ -46,6 +47,20 @@ public sealed class ShapeBatch : RenderObject
     /// Captured by each draw call as it is made.
     /// </summary>
     public float FillAlpha { get; set; } = 0.6f;
+
+    /// <summary>
+    /// The fill's own colour, or <c>null</c> (the default) to fill with the outline colour, which is
+    /// what the Box2D testbed does. Set it when the two should differ - a chart marker filled in its
+    /// series colour but outlined in a neutral one, a bar with a darker edge, a light cursor ring
+    /// with a dark halo. Captured by each draw call as it is made.
+    /// </summary>
+    /// <remarks>
+    /// The colour is used as given, including its own alpha, with <see cref="FillAlpha"/> scaling
+    /// only its opacity. That differs from the default path, where <see cref="FillAlpha"/> also
+    /// darkens the outline colour the way the testbed does - which would turn a colour you chose
+    /// deliberately into a muddy version of itself.
+    /// </remarks>
+    public Color? FillColor { get; set; }
 
     /// <summary>
     /// Whether shapes are tested against the depth buffer, so scene geometry can occlude them. They
@@ -169,7 +184,7 @@ public sealed class ShapeBatch : RenderObject
     {
         BuildBasis(normal, out var axisX, out var axisY);
 
-        Add([Vector2.Zero], new ShapePlane(center, axisX, axisY, PlaneMode.Fixed), new ShapeStyle(color, BorderWidth, 0f), radius, 1f);
+        Add([Vector2.Zero], new ShapePlane(center, axisX, axisY, PlaneMode.Fixed), new ShapeStyle(color, color, BorderWidth, 0f), radius, 1f);
     }
 
     /// <summary>
@@ -235,7 +250,7 @@ public sealed class ShapeBatch : RenderObject
         // Solid: an outline-only line would be two thin rails rather than a line
         Add(segment,
             new ShapePlane(center, direction / length, Vector3.UnitY, PlaneMode.Axial),
-            new ShapeStyle(color, BorderWidth, 1f), lineRadius, 1f);
+            new ShapeStyle(color, color, BorderWidth, 1f), lineRadius, 1f);
     }
 
     /// <summary>
@@ -265,7 +280,7 @@ public sealed class ShapeBatch : RenderObject
 
         Add(segment,
             new ShapePlane((start + end) * 0.5f, direction / length, Vector3.UnitY, PlaneMode.Axial),
-            new ShapeStyle(color, pixelWidth, 0f), 0f, 1f);
+            new ShapeStyle(color, color, pixelWidth, 0f), 0f, 1f);
     }
 
     /// <summary>
@@ -305,8 +320,20 @@ public sealed class ShapeBatch : RenderObject
     /// <summary>Called by the render feature once the batch is drawn; the next frame starts empty.</summary>
     internal void Reset() => Instances.Clear();
 
-    /// <summary>The border and fill as they stand right now, which is what a draw call captures.</summary>
-    private ShapeStyle CurrentStyle(Color color) => new(color, BorderWidth, FillAlpha);
+    /// <summary>The colours, border and fill as they stand right now, which is what a draw call captures.</summary>
+    private ShapeStyle CurrentStyle(Color color)
+    {
+        // No explicit fill colour: the testbed's own formula, where FillAlpha scales the outline
+        // colour's brightness as well as its opacity. Keeping it verbatim is what makes the Box2D
+        // examples match the testbed side by side.
+        if (FillColor is not { } fill) return new(color, color, BorderWidth, FillAlpha);
+
+        // An explicit fill colour is used as given. Dimming its brightness the testbed way would
+        // turn a chosen colour into a muddy version of itself, so FillAlpha scales opacity only.
+        var alpha = (byte)Math.Clamp(fill.A * FillAlpha, 0f, 255f);
+
+        return new(color, new Color(fill.R, fill.G, fill.B, alpha), BorderWidth, 1f);
+    }
 
     /// <summary>
     /// Any two perpendicular unit axes spanning the plane a normal defines. Which two does not

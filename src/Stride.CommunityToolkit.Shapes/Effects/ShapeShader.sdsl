@@ -28,6 +28,12 @@ namespace Stride.CommunityToolkit.Shapes
             // and GPUs canonicalize NaNs on float reads, destroying the red channel
             uint Color;
             float Scale;
+            // The fill's own colour, so a shape can be filled in one colour and outlined in another.
+            // Callers who want the old behaviour pass the outline colour here.
+            uint FillColor;
+            float Pad0;
+            float Pad1;
+            float Pad2;
         };
 
         float4x4 ViewProjection;
@@ -54,6 +60,7 @@ namespace Stride.CommunityToolkit.Shapes
         stream float FragCount;
         stream float FragRadius;
         stream float FragThickness;
+        stream float4 FragFillColor;
         stream float FragFillAlpha;
         stream float FragClipW;
 
@@ -103,6 +110,7 @@ namespace Stride.CommunityToolkit.Shapes
             streams.FragRadius = invScale * data.Radius;
             streams.FragCount = count;
             streams.FragColor = BitsToColor(data.Color);
+            streams.FragFillColor = BitsToColor(data.FillColor);
             streams.FragFillAlpha = data.AxisY.w;
 
             // A uniform scale multiplies the shape's world footprint only: every point, the centre
@@ -180,7 +188,7 @@ namespace Stride.CommunityToolkit.Shapes
             int count = (int)round(streams.FragCount);
 
             float4 borderColor = streams.FragColor;
-            float4 fillColor = streams.FragFillAlpha * borderColor;
+            float4 fillColor = streams.FragFillAlpha * streams.FragFillColor;
 
             // Perspective term: near shapes have a large w, far ones a small one, so the same pixel
             // width maps to more or fewer world units with distance

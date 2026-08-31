@@ -21,6 +21,12 @@ internal readonly struct ShapeInstance
     public readonly float Radius;
     public readonly Color Color;
     public readonly float Scale;
+    public readonly Color FillColor;
+
+    // Keeps the stride a multiple of 16 bytes, which every GPU is happy with
+    private readonly float _pad0;
+    private readonly float _pad1;
+    private readonly float _pad2;
 
     internal ShapeInstance(in ShapePlane plane, in ShapeStyle style, ReadOnlySpan<Vector4> packedPoints, int count, float radius, float scale)
     {
@@ -37,5 +43,9 @@ internal readonly struct ShapeInstance
         Radius = radius;
         Color = style.Color;
         Scale = scale;
+        FillColor = style.FillColor;
+        _pad0 = 0;
+        _pad1 = 0;
+        _pad2 = 0;
     }
 }

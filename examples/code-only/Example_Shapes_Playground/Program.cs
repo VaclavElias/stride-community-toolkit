@@ -212,6 +212,10 @@ void DrawDecals(ShapeBatch shapes, float seconds)
 /// </summary>
 void DrawPanels(ShapeBatch shapes)
 {
+    // Fill and outline are independent colours: a dark panel with a light edge, which deriving the
+    // fill from the outline colour cannot produce
+    shapes.FillColor = new Color(16, 28, 52);
+
     for (var i = 0; i < 4; i++)
     {
         var angle = i * MathF.PI * 0.5f + MathF.PI * 0.25f;
@@ -223,6 +227,8 @@ void DrawPanels(ShapeBatch shapes)
 
         shapes.DrawRectangle(position, tangent, Vector3.UnitY, new Vector2(6f, 3.6f), Color.LightSkyBlue, cornerRadius: 0.5f);
     }
+
+    shapes.FillColor = null;
 }
 
 /// <summary>
@@ -263,13 +269,19 @@ void DrawBillboards(ShapeBatch shapes, float seconds)
 {
     var bob = MathF.Sin(seconds * 2f) * 0.25f;
 
+    // A coloured fill inside a neutral outline: the chart-marker case, readable against any
+    // background because the ring never takes the series colour
+    shapes.FillColor = Color.LimeGreen;
+
     for (var i = 0; i < PillarCount; i++)
     {
         var pillar = pillars[i].Transform.Position;
         var above = new Vector3(pillar.X, pillarHeights[i] + 1.6f + bob, pillar.Z);
 
-        shapes.DrawBillboardCircle(above, 0.45f, Color.LimeGreen);
+        shapes.DrawBillboardCircle(above, 0.45f, Color.White);
     }
+
+    shapes.FillColor = null;
 
     // A diamond over the hub: any polygon can be billboarded, not just circles
     ReadOnlySpan<Vector2> diamond = [new(0.9f, 0f), new(0f, 0.9f), new(-0.9f, 0f), new(0f, -0.9f)];
