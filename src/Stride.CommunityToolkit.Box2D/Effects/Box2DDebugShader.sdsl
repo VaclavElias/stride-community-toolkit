@@ -125,7 +125,17 @@ namespace Stride.CommunityToolkit.Box2D
             float4 borderColor = streams.FragColor;
             float4 fillColor = FillAlpha * borderColor;
 
-            float dw = SdConvexPolygon(streams.FragPosition, points, count);
+            // A single point is a circle of FragRadius - the polygon SDF cannot handle it, the
+            // point distance trivially can. Two points + radius make a capsule through the loop.
+            float dw;
+            if (count == 1)
+            {
+                dw = length(streams.FragPosition - points[0]);
+            }
+            else
+            {
+                dw = SdConvexPolygon(streams.FragPosition, points, count);
+            }
             float d = abs(dw - streams.FragRadius);
 
             // Roll the fill alpha down at the border

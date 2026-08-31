@@ -73,11 +73,11 @@ public sealed class Box2DDebugDraw : RenderObject
     /// <param name="rotation">Rotation in radians about the Z axis.</param>
     /// <param name="color">The border colour; the fill is drawn at 60% of its alpha.</param>
     /// <param name="radius">Optional rounding radius added around the polygon, in world units.</param>
-    /// <exception cref="ArgumentException">Thrown when fewer than 2 or more than 8 vertices are provided.</exception>
+    /// <exception cref="ArgumentException">Thrown when fewer than 1 or more than 8 vertices are provided.</exception>
     public void DrawSolidPolygon(ReadOnlySpan<Vector2> vertices, Vector2 position, float rotation, Color color, float radius = 0f)
     {
-        if (vertices.Length < 2 || vertices.Length > 8)
-            throw new ArgumentException("A polygon needs between 2 and 8 vertices.", nameof(vertices));
+        if (vertices.Length < 1 || vertices.Length > 8)
+            throw new ArgumentException("A polygon needs between 1 and 8 vertices.", nameof(vertices));
 
         var (sin, cos) = MathF.SinCos(rotation);
 
@@ -100,6 +100,19 @@ public sealed class Box2DDebugDraw : RenderObject
         }
 
         Instances.Add(new PolygonInstance(new Vector4(position.X, position.Y, cos, sin), packed, vertices.Length, radius, color));
+    }
+
+    /// <summary>
+    /// Submits a solid circle for this frame - a single point rounded by the radius.
+    /// </summary>
+    /// <param name="center">World-space circle center.</param>
+    /// <param name="radius">Circle radius in world units.</param>
+    /// <param name="color">The border colour; the fill is drawn at 60% of its alpha.</param>
+    public void DrawSolidCircle(Vector2 center, float radius, Color color)
+    {
+        ReadOnlySpan<Vector2> point = [Vector2.Zero];
+
+        DrawSolidPolygon(point, center, 0f, color, radius);
     }
 
     /// <summary>Called by the render feature once the batch is drawn; the next frame starts empty.</summary>

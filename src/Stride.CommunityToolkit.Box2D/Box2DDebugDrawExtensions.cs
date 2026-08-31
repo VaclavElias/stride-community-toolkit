@@ -59,6 +59,12 @@ public static class Box2DDebugDrawExtensions
 
         var batch = new Box2DDebugDraw();
 
+        // Expose the batch to Box2DDebugShapeProcessor and anything else that wants to draw
+        if (game.Services.GetService<Box2DDebugDraw>() is null)
+        {
+            game.Services.AddService(batch);
+        }
+
         // The visibility group is created by the first frame's rendering, after the usual Start
         // callback runs - a one-shot game system registers the batch as soon as it exists
         game.GameSystems.Add(new BatchRegistrar(game.Services, batch));
