@@ -114,6 +114,9 @@ void Start(Scene rootScene)
         options.ZMin = -3f;
         options.ZMax = 3f;
         options.GridPlanes = ChartGridPlanes.XY | ChartGridPlanes.XZ;
+
+        // The bounded grids are part of the figure; show them from the start (G still toggles)
+        options.GridVisible = true;
     }
 
     chart = Chart.Create(game, options);

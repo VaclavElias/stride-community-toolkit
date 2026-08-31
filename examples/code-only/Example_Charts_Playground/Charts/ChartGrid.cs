@@ -13,12 +13,20 @@ namespace Stride.CommunityToolkit.Charts;
 /// editor's technique - the lines live in a mip-mapped texture filtered by the GPU sampler, so they are
 /// stable at every zoom, and a range change only moves transforms instead of rebuilding geometry.
 /// </summary>
+/// <remarks>
+/// The grid has two layouts. <b>Bounded</b>, the default, sizes each plane exactly to the chart's ranges,
+/// so the grid ends where the axes end - the right look for a fixed figure, 2D or 3D. <b>Infinite</b>,
+/// switched on by <see cref="Chart.FollowCamera"/>, uses oversized planes snapped to cell multiples so the
+/// grid appears endless while the view-driven chart pans and zooms - there the ranges always equal the
+/// screen, so the oversize never shows as a mismatch.
+/// </remarks>
 internal sealed class ChartGrid : IDisposable
 {
     private readonly Game _game;
     private readonly Chart _chart;
     private readonly List<Entry> _planes = [];
     private Texture? _texture;
+    private bool _infinite;
     private bool _isDisposed;
 
     internal ChartGrid(Game game, Chart chart)
@@ -47,8 +55,7 @@ internal sealed class ChartGrid : IDisposable
     /// </summary>
     internal void Create()
     {
-        var device = _game.GraphicsDevice;
-        _texture = ChartGridTexture.Create(device);
+        _texture ??= ChartGridTexture.Create(_game.GraphicsDevice);
 
         var planes = _chart.Is3D ? _chart.Options.GridPlanes : _chart.Options.GridPlanes & ChartGridPlanes.XY;
 
@@ -57,15 +64,33 @@ internal sealed class ChartGrid : IDisposable
             if ((planes & plane) == 0)
                 continue;
 
-            Add(device, plane, isMinor: false, _chart.Options.GridColor, -Chart.LayerStep);
-            Add(device, plane, isMinor: true, _chart.Options.MinorGridColor, -2f * Chart.LayerStep);
+            Add(plane, isMinor: false, _chart.Options.GridColor, -Chart.LayerStep);
+            Add(plane, isMinor: true, _chart.Options.MinorGridColor, -2f * Chart.LayerStep);
         }
     }
 
     /// <summary>
-    /// Points every plane at the current ranges: each is scaled so one texture cell equals its step and
-    /// snapped to a cell multiple near the view centre, so the grid appears infinite and its lines land
-    /// exactly on the tick values.
+    /// Switches to the infinite layout for a view-driven chart and rebuilds the planes; the texture is
+    /// shared and kept. Idempotent.
+    /// </summary>
+    internal void SetInfinite()
+    {
+        if (_infinite)
+            return;
+
+        var visible = Visible;
+        _infinite = true;
+
+        RemovePlanes();
+        Create();
+        Visible = visible;
+        Update();
+    }
+
+    /// <summary>
+    /// Points every plane at the current ranges. Bounded planes are sized and centred on the ranges;
+    /// infinite ones are scaled so one texture cell equals their step and snapped to a cell multiple near
+    /// the view centre, so the grid appears endless and its lines land exactly on the tick values.
     /// </summary>
     internal void Update()
     {
@@ -75,6 +100,7 @@ internal sealed class ChartGrid : IDisposable
             Math.Clamp(0f, o.XMin, o.XMax),
             Math.Clamp(0f, o.YMin, o.YMax),
             _chart.Is3D ? Math.Clamp(0f, o.ZMin, o.ZMax) : 0f);
+        var range = new Vector3(o.XMax - o.XMin, o.YMax - o.YMin, o.ZMax - o.ZMin);
 
         var visible = Visible;
 
@@ -83,15 +109,30 @@ internal sealed class ChartGrid : IDisposable
             var cell = entry.IsMinor ? o.TickStep / Math.Max(1, o.MinorDivisions) : o.TickStep;
 
             entry.Model.Enabled = visible && (!entry.IsMinor || o.MinorDivisions > 1);
-            entry.Entity.Transform.Scale = new Vector3(cell, cell, 1f);
 
-            // Snap the two spanned coordinates to cell multiples; hold the third on its axis
-            entry.Entity.Transform.Position = entry.Plane switch
+            if (_infinite)
             {
-                ChartGridPlanes.XZ => new Vector3(Snap(centre.X, cell), anchor.Y + entry.Offset, Snap(centre.Z, cell)),
-                ChartGridPlanes.YZ => new Vector3(anchor.X + entry.Offset, Snap(centre.Y, cell), Snap(centre.Z, cell)),
-                _ => new Vector3(Snap(centre.X, cell), Snap(centre.Y, cell), anchor.Z + entry.Offset),
-            };
+                entry.Entity.Transform.Scale = new Vector3(cell, cell, 1f);
+
+                // Snap the two spanned coordinates to cell multiples; hold the third on its axis
+                entry.Entity.Transform.Position = entry.Plane switch
+                {
+                    ChartGridPlanes.XZ => new Vector3(Snap(centre.X, cell), anchor.Y + entry.Offset, Snap(centre.Z, cell)),
+                    ChartGridPlanes.YZ => new Vector3(anchor.X + entry.Offset, Snap(centre.Y, cell), Snap(centre.Z, cell)),
+                    _ => new Vector3(Snap(centre.X, cell), Snap(centre.Y, cell), anchor.Z + entry.Offset),
+                };
+            }
+            else
+            {
+                // The plane covers the ranges exactly, so the grid ends where the axes end; the local X
+                // and Y axes map onto the world axes the plane's rotation chose
+                (entry.Entity.Transform.Scale, entry.Entity.Transform.Position) = entry.Plane switch
+                {
+                    ChartGridPlanes.XZ => (new Vector3(range.X, range.Z, 1f), new Vector3(centre.X, anchor.Y + entry.Offset, centre.Z)),
+                    ChartGridPlanes.YZ => (new Vector3(range.Z, range.Y, 1f), new Vector3(anchor.X + entry.Offset, centre.Y, centre.Z)),
+                    _ => (new Vector3(range.X, range.Y, 1f), new Vector3(centre.X, centre.Y, anchor.Z + entry.Offset)),
+                };
+            }
         }
 
         static float Snap(float value, float cell) => MathF.Round(value / cell) * cell;
@@ -105,6 +146,13 @@ internal sealed class ChartGrid : IDisposable
 
         _isDisposed = true;
 
+        RemovePlanes();
+        _texture?.Dispose();
+        _texture = null;
+    }
+
+    private void RemovePlanes()
+    {
         foreach (var entry in _planes)
         {
             if (entry.Model.Model is { } model)
@@ -119,13 +167,39 @@ internal sealed class ChartGrid : IDisposable
         }
 
         _planes.Clear();
-        _texture?.Dispose();
-        _texture = null;
     }
 
-    private void Add(GraphicsDevice device, ChartGridPlanes plane, bool isMinor, Color color, float offset)
+    private void Add(ChartGridPlanes plane, bool isMinor, Color color, float offset)
     {
-        var material = ChartGridTexture.CreateMaterial(device, _texture!, color);
+        var device = _game.GraphicsDevice;
+        var o = _chart.Options;
+        var cell = isMinor ? o.TickStep / Math.Max(1, o.MinorDivisions) : o.TickStep;
+
+        // Bounded planes are unit quads scaled to the ranges, with as many texture cells baked into the
+        // material as steps fit the ranges; infinite ones carry a fixed cell count and get scaled so one
+        // cell equals one step. Cell boundaries land on tick values when the ranges start on a step.
+        Vector2 tiles;
+        float planeSize;
+
+        if (_infinite)
+        {
+            tiles = new Vector2(ChartGridTexture.PlaneCells);
+            planeSize = ChartGridTexture.PlaneCells;
+        }
+        else
+        {
+            var spans = plane switch
+            {
+                ChartGridPlanes.XZ => new Vector2(o.XMax - o.XMin, o.ZMax - o.ZMin),
+                ChartGridPlanes.YZ => new Vector2(o.ZMax - o.ZMin, o.YMax - o.YMin),
+                _ => new Vector2(o.XMax - o.XMin, o.YMax - o.YMin),
+            };
+
+            tiles = new Vector2(MathF.Max(1f, MathF.Round(spans.X / cell)), MathF.Max(1f, MathF.Round(spans.Y / cell)));
+            planeSize = 1f;
+        }
+
+        var material = ChartGridTexture.CreateMaterial(device, _texture!, color, tiles);
 
         var entity = new Entity($"{plane} {(isMinor ? "minor" : "major")} grid")
         {
@@ -134,7 +208,7 @@ internal sealed class ChartGrid : IDisposable
                 Model = new Model
                 {
                     material,
-                    new Mesh { Draw = GeometricPrimitive.Plane.New(device, ChartGridTexture.PlaneCells, ChartGridTexture.PlaneCells).ToMeshDraw() },
+                    new Mesh { Draw = GeometricPrimitive.Plane.New(device, planeSize, planeSize).ToMeshDraw() },
                 },
             },
         };

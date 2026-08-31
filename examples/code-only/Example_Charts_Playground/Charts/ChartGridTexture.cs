@@ -46,7 +46,8 @@ internal static class ChartGridTexture
     /// <param name="device">The device to compile the material on.</param>
     /// <param name="texture">The texture from <see cref="Create"/>.</param>
     /// <param name="color">The line tint - a chart's <c>GridColor</c> or <c>MinorGridColor</c>.</param>
-    internal static Material CreateMaterial(GraphicsDevice device, Texture texture, Color color)
+    /// <param name="tiles">How many texture cells tile the plane along each local axis.</param>
+    internal static Material CreateMaterial(GraphicsDevice device, Texture texture, Color color, Vector2 tiles)
     {
         var material = Material.New(device, new MaterialDescriptor
         {
@@ -54,7 +55,7 @@ internal static class ChartGridTexture
             {
                 Emissive = new MaterialEmissiveMapFeature(new ComputeBinaryColor(
                     new ComputeColor { Key = GridColorKey },
-                    new ComputeTextureColor { Key = TexturingKeys.Texture0, Texture = texture, Scale = new Vector2(PlaneCells) },
+                    new ComputeTextureColor { Key = TexturingKeys.Texture0, Texture = texture, Scale = tiles },
                     BinaryOperator.Multiply))
                 {
                     UseAlpha = true,

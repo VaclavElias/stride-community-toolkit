@@ -322,7 +322,13 @@ public sealed class Chart : IDisposable
     /// covers the whole screen and the tick step adapts to the zoom.
     /// </summary>
     /// <returns>The follower; call <see cref="ChartViewFollower.Update"/> from your update loop.</returns>
-    public ChartViewFollower FollowCamera() => new(Game, this);
+    public ChartViewFollower FollowCamera()
+    {
+        // A view-driven chart needs the endless grid; a figure keeps the bounded one
+        _grid.SetInfinite();
+
+        return new ChartViewFollower(Game, this);
+    }
 
     /// <summary>
     /// Re-targets the chart to a new visible range. Axes, ticks, labels, titles and the legend are torn down
