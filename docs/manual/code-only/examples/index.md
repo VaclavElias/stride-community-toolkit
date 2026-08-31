@@ -354,6 +354,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/stride-ui-button-hover-animation.webp" class="card-img-top" alt="Screenshot of the Stride UI - Button Hover Animation example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-ui-button-hover-animation.md">Stride UI - Button Hover Animation</a></h3>
+                <p><span class="badge text-bg-secondary">UI</span></p>
+                <p class="card-text">A main menu built from code whose buttons grow a blue underline while the pointer is over them.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/stride-game-engine-example-11-imgui-ui.webp" class="card-img-top" alt="Screenshot of the ImGui UI example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="imgui-ui.md">ImGui UI</a></h3>
@@ -443,7 +453,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stress-pile-2d.md">Basic2D Scene (Stress Pile)</a></h3>
                 <p><span class="badge text-bg-secondary">Performance</span></p>
-                <p class="card-text">Thousands of 2D physics bodies piling up, drawn in a single draw call through instancing, with the shape, batch size and spawn layout switchable while...</p>
+                <p class="card-text">Thousands of 2D physics bodies piling up, drawn in two instanced draw calls - awake bodies through one master, sleeping bodies tinted green through...</p>
             </div>
         </div>
     </div>

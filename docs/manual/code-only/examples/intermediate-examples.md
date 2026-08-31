@@ -24,7 +24,9 @@ A Stride subsystem used directly, or several concepts combined. These assume you
 - [Particles](particles.md): A blue fountain: fifty particles a second launched upward from a small area, pulled back down by gravity, each rendered as a camera-facing billboard.
 - [Debug Shapes](debug-shapes.md): The full tour of the DebugShapes package: every immediate-mode primitive it can draw, exercised from a ShapeUpdater component so the shapes animate and the batching can be seen under load.
 - [Debug Shapes Usage](debug-shapes-usage.md): The short version of the debug shapes example: turn the system on, draw a sphere and a circle, done.
+- [Shapes Playground](shapes-playground.md): The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a plane, genuinely thick 3D lines and wire boxes, and camera-facing billboards.
 - [Stride UI - Capsule and Window](stride-ui-capsule-with-rigid-body.md): A capsule in a 3D scene with a "Hello, World" panel drawn over it using Stride's built-in UI.
+- [Stride UI - Button Hover Animation](stride-ui-button-hover-animation.md): A main menu built from code whose buttons grow a blue underline while the pointer is over them.
 - [ImGui UI](imgui-ui.md): An ImGui overlay for in-game tools, debug panels and live tweaking.
 - [2D Spawn Menu](spawn-menu-2d.md): Drive a scene from the keyboard without filling the screen with instructions.
 - [Cube Clicker](stride-ui-cube-clicker.md): A small clicker game: cubes appear, left and right clicks are counted, and both the score and the cube positions are written to disk so the next run picks up where the last one stopped.
