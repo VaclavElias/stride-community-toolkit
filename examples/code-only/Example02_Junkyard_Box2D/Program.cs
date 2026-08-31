@@ -10,6 +10,8 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Graphics.GeometricPrimitives;
 using Stride.Rendering;
+using Stride.Rendering.Materials;
+using Stride.Rendering.Materials.ComputeColors;
 using static Box2D.NET.B2Bodies;
 using static Box2D.NET.B2Geometries;
 using static Box2D.NET.B2MathFunction;
@@ -312,7 +314,7 @@ void CreatePusher()
     visual.Transform.Position = new Vector3(0, 4, 0);
     pusherEntity.AddChild(visual);
 
-    RegisterOutlinedVisual(component, RectangleVertices(2.0f, 4.0f), royalBlue, 0.4f, 0.6f);
+    RegisterOutlinedVisual(component, RectangleVertices(2.0f, 4.0f), royalBlue, 0.4f, 0.6f, transparentFill: true);
 
     pusherEntity.Scene = scene;
 
@@ -418,15 +420,37 @@ void PrebuildBorderModels()
     }
 }
 
-OutlinedVisual RegisterOutlinedVisual(ModelComponent component, Vector2[] vertices, Color color, float zOffset, float maxBorder)
+OutlinedVisual RegisterOutlinedVisual(ModelComponent component, Vector2[] vertices, Color color, float zOffset, float maxBorder, bool transparentFill = false)
 {
-    // solid_polygon.fs fills at 60% alpha; composited over the flat background that becomes:
-    var fillColor = new Color(
-        (byte)(color.R * 0.6f + background.R * 0.4f),
-        (byte)(color.G * 0.6f + background.G * 0.4f),
-        (byte)(color.B * 0.6f + background.B * 0.4f));
+    // solid_polygon.fs fills at 60% ALPHA. Real transparency only works on non-instanced models
+    // here (an instanced mesh with a transparent material rendered at full opacity), so the
+    // pusher gets the real thing - the testbed's most visible see-through moment - while the
+    // instanced rocks and wall squares use the same 60% blend precomputed against the background,
+    // which is pixel-identical everywhere except where same-coloured fills overlap.
+    Material fillMaterial;
 
-    var visual = new OutlinedVisual(component, vertices, game.CreateFlatMaterial(color), game.CreateFlatMaterial(fillColor), zOffset, maxBorder);
+    if (transparentFill)
+    {
+        fillMaterial = Material.New(game.GraphicsDevice, new MaterialDescriptor
+        {
+            Attributes =
+            {
+                Emissive = new MaterialEmissiveMapFeature(new ComputeColor(color)),
+                Transparency = new MaterialTransparencyBlendFeature { Alpha = new ComputeFloat(0.6f) },
+            }
+        });
+    }
+    else
+    {
+        var fillColor = new Color(
+            (byte)(color.R * 0.6f + background.R * 0.4f),
+            (byte)(color.G * 0.6f + background.G * 0.4f),
+            (byte)(color.B * 0.6f + background.B * 0.4f));
+
+        fillMaterial = game.CreateFlatMaterial(fillColor);
+    }
+
+    var visual = new OutlinedVisual(component, vertices, game.CreateFlatMaterial(color), fillMaterial, zOffset, maxBorder);
 
     outlinedVisuals.Add(visual);
 
