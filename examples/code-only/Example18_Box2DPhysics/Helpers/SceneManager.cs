@@ -2,6 +2,7 @@ using Box2D.NET;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Rendering.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -123,7 +124,7 @@ public class SceneManager
     {
         var entity = new Entity(GameConfig.WallName)
         {
-            new Box2DDebugShapeComponent
+            new ShapeComponent
             {
                 Vertices =
                 [

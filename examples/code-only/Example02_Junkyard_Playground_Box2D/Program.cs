@@ -3,6 +3,7 @@ using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Box2D.Events;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Rendering.Shapes;
 using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.Core.Mathematics;
@@ -15,7 +16,7 @@ using static Box2D.NET.B2MathFunction;
 using static Box2D.NET.B2Shapes;
 
 // The playground sibling of Example02_Junkyard_Box2D: the same walled yard and sweeping plow, but
-// built the Stride way - every shape is an entity carrying Box2DDebugShapeComponent (the testbed
+// built the Stride way - every shape is an entity carrying ShapeComponent (the testbed
 // look, no meshes or materials) and a Box2D body, so the component system, scripts and camera all
 // join in. Shapes of different kinds fall and mix freely - pentagons, circles, capsules and boxes,
 // switchable at runtime - something the instanced stress piles cannot do, because here rendering is
@@ -51,7 +52,7 @@ var gold = new Color(0xFF, 0xD7, 0x00);
 var background = new Color(0.2f, 0.2f, 0.2f);
 
 Box2DSimulation? simulation = null;
-Box2DDebugDraw? debugDraw = null;
+ShapeBatch? shapeBatch = null;
 CameraComponent? camera = null;
 Basic2DCameraController? cameraController = null;
 
@@ -92,9 +93,9 @@ void Start(Scene rootScene)
     camera.Entity.Transform.Position = new Vector3(8, 25, 50);
     camera.OrthographicSize = 60;
 
-    debugDraw = game.AddBox2DDebugDraw();
-    debugDraw.BorderWidth = 1f;
-    debugDraw.FillAlpha = 0.4f;
+    shapeBatch = game.AddShapeBatch();
+    shapeBatch.BorderWidth = 1f;
+    shapeBatch.FillAlpha = 0.4f;
 
     simulation = new Box2DSimulation();
     simulation.RegisterSensorEventHandler(sensorWatcher);
@@ -149,7 +150,7 @@ void AddStaticSquare(Scene scene, Vector2[] vertices, float x, float y)
 {
     var entity = new Entity("StaticSquare")
     {
-        new Box2DDebugShapeComponent { Vertices = vertices, Color = paleGreen }
+        new ShapeComponent { Vertices = vertices, Color = paleGreen }
     };
     entity.Transform.Position = new Vector3(x, y, 0);
     entity.Scene = scene;
@@ -165,7 +166,7 @@ void CreateSensorGate(Scene scene)
 
     var entity = new Entity("SensorGate")
     {
-        new Box2DDebugShapeComponent { Vertices = gateVertices, Color = wheat }
+        new ShapeComponent { Vertices = gateVertices, Color = wheat }
     };
     entity.Transform.Position = new Vector3(0, 22, 0);
     entity.Scene = scene;
@@ -186,7 +187,7 @@ void CreatePusher(Scene scene)
 {
     var entity = new Entity("Pusher")
     {
-        new Box2DDebugShapeComponent { Vertices = [new(-2, 0), new(2, 0), new(2, 8), new(-2, 8)], Color = royalBlue }
+        new ShapeComponent { Vertices = [new(-2, 0), new(2, 0), new(2, 8), new(-2, 8)], Color = royalBlue }
     };
     entity.Scene = scene;
 
@@ -242,7 +243,7 @@ void SpawnBatch(Scene scene, int count)
 /// </summary>
 void Spawn(Scene scene, ShapeDefinition definition, Vector2 position)
 {
-    var component = new Box2DDebugShapeComponent { Vertices = definition.Vertices, Radius = definition.Radius, Color = pink };
+    var component = new ShapeComponent { Vertices = definition.Vertices, Radius = definition.Radius, Color = pink };
     var entity = new Entity("Shape") { component };
 
     var bodyId = simulation!.CreateDynamicBody(entity, new Vector3(position.X, position.Y, 0));
@@ -434,7 +435,7 @@ static Vector2[] FibonacciPentagon(float radius)
 public sealed record ShapeDefinition(string Name, Vector2[] Vertices, float Radius);
 
 /// <summary>One spawned shape: the entity, its body, and the component whose colour tracks the body state.</summary>
-public sealed record SpawnedShape(Entity Entity, B2BodyId BodyId, Box2DDebugShapeComponent Component);
+public sealed record SpawnedShape(Entity Entity, B2BodyId BodyId, ShapeComponent Component);
 
 /// <summary>
 /// Tracks which entities are inside the sensor gate through the library's sensor events. Begin adds
@@ -504,18 +505,18 @@ order: 63
 description:
   en: |-
     The playground sibling of the Junkyard replica: the same walled yard and sweeping plow, built
-    the Stride way - every shape is an entity carrying Box2DDebugShapeComponent and a Box2D body, so
+    the Stride way - every shape is an entity carrying ShapeComponent and a Box2D body, so
     components, scripts, events and the camera all join in. Pentagons, circles, capsules and boxes
     fall and mix freely, switchable at runtime. A sensor gate turns anything passing through gold via
     the library's sensor events; clicking launches or drops shapes; middle-click makes the camera
     follow one through the pile.
   cs: |-
     Hravý sourozenec repliky vrakoviště: stejný ohrazený dvůr a radlice, ale postavené po stridím
-    způsobu - každý tvar je entita s Box2DDebugShapeComponent a tělesem Box2D, takže se zapojují
+    způsobu - každý tvar je entita s ShapeComponent a tělesem Box2D, takže se zapojují
     komponenty, skripty, události i kamera. Pětiúhelníky, kruhy, kapsle a krabice padají a míchají
     se dohromady; senzorová brána vše, co jí proletí, obarví zlatě.
 concepts:
-  - One entity per shape with Box2DDebugShapeComponent - the testbed look through the component system
+  - One entity per shape with ShapeComponent - the testbed look through the component system
   - Mixing shape kinds freely in one scene, impossible with per-model instanced masters
   - Circles and capsules through the SDF shader's rounding radius
   - Building the collider from the same vertices as the visual, so they always agree

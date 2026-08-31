@@ -1,6 +1,7 @@
 using Example18_Box2DPhysics.Helpers;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Rendering.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -36,9 +37,9 @@ void Start(Scene rootScene)
     game.AddProfiler();
     // Shapes render through the toolkit's Box2D debug draw - testbed-style fill and pixel-constant
     // borders from an SDF shader, replacing the old per-mesh outline render features
-    var debugDraw = game.AddBox2DDebugDraw();
-    debugDraw.BorderWidth = 1f;
-    debugDraw.FillAlpha = 0.4f;
+    var shapeBatch = game.AddShapeBatch();
+    shapeBatch.BorderWidth = 1f;
+    shapeBatch.FillAlpha = 0.4f;
 
     // Initialize the Box2D physics simulation
     simulation = new Box2DSimulation();

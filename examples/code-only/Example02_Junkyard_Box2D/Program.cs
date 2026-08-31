@@ -1,6 +1,7 @@
 using Box2D.NET;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Rendering.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -14,7 +15,7 @@ using static Box2D.NET.B2Shapes;
 // into it, and a kinematic pusher plowing back and forth through the pile at x = 60*sin(0.2t).
 //
 // Rendering works exactly like the Box2D testbed: no meshes, no materials, no entities - every
-// shape is submitted each frame to the toolkit's Box2DDebugDraw, whose shader (a port of the
+// shape is submitted each frame to the toolkit's ShapeBatch, whose shader (a port of the
 // testbed's solid_polygon shader) draws all of them in one instanced call, computing the 60%-alpha
 // fill and the pixel-constant border per fragment. Zoom and resize cost nothing; overlapping
 // shapes blend through each other; body states show as the testbed's colours - pale green statics,
@@ -40,7 +41,7 @@ var royalBlue = new Color(0x41, 0x69, 0xE1);
 var background = new Color(0.2f, 0.2f, 0.2f);
 
 Box2DSimulation? simulation = null;
-Box2DDebugDraw? debugDraw = null;
+ShapeBatch? shapeBatch = null;
 
 // Bodies are entity-less: physics is the single source of truth and the debug draw reads it
 // directly every frame, exactly like the testbed
@@ -80,9 +81,9 @@ void Start(Scene rootScene)
     camera.Entity.Transform.Position = new Vector3(8, 25, 50);
     camera.OrthographicSize = 60;
 
-    debugDraw = game.AddBox2DDebugDraw();
-    debugDraw.BorderWidth = 1f;
-    debugDraw.FillAlpha = 0.4f;
+    shapeBatch = game.AddShapeBatch();
+    shapeBatch.BorderWidth = 1f;
+    shapeBatch.FillAlpha = 0.4f;
 
     simulation = new Box2DSimulation();
 
@@ -193,13 +194,13 @@ void Update(Scene rootScene, GameTime time)
 /// </summary>
 void SubmitShapes()
 {
-    if (debugDraw is null) return;
+    if (shapeBatch is null) return;
 
     var x = -80.0f * GridSize;
 
     for (var i = 0; i < 161; ++i)
     {
-        debugDraw.DrawSolidPolygon(floorSquare, new Vector2(x, 0f), 0f, paleGreen);
+        shapeBatch.DrawSolidPolygon(floorSquare, new Vector2(x, 0f), 0f, paleGreen);
         x += GridSize;
     }
 
@@ -207,8 +208,8 @@ void SubmitShapes()
 
     for (var i = 0; i < 50; ++i)
     {
-        debugDraw.DrawSolidPolygon(wallSquare, new Vector2(-80.0f * GridSize, y), 0f, paleGreen);
-        debugDraw.DrawSolidPolygon(wallSquare, new Vector2(80.0f * GridSize, y), 0f, paleGreen);
+        shapeBatch.DrawSolidPolygon(wallSquare, new Vector2(-80.0f * GridSize, y), 0f, paleGreen);
+        shapeBatch.DrawSolidPolygon(wallSquare, new Vector2(80.0f * GridSize, y), 0f, paleGreen);
         y += GridSize;
     }
 
@@ -239,7 +240,7 @@ void SubmitShapes()
 void SubmitBodyPolygon(Vector2[] vertices, B2Transform transform, Color color)
 {
     // The instance transform is the body's, in the same (x, y, cos, sin) form the testbed uses
-    debugDraw!.DrawSolidPolygon(vertices, new Vector2(transform.p.X, transform.p.Y), MathF.Atan2(transform.q.s, transform.q.c), color);
+    shapeBatch!.DrawSolidPolygon(vertices, new Vector2(transform.p.X, transform.p.Y), MathF.Atan2(transform.q.s, transform.q.c), color);
 }
 
 static Vector2[] RectangleVertices(float halfWidth, float halfHeight) =>
@@ -310,7 +311,7 @@ description:
     A faithful replica of the Box2D.NET BenchmarkJunkyard sample: 8,000 small five-sided rocks rain
     into a walled yard and a kinematic plow sweeps back and forth through the pile, driven by a
     target transform once per fixed step. Rendering works exactly like the Box2D testbed: no meshes,
-    materials or entities - every shape is submitted each frame to the toolkit's Box2DDebugDraw,
+    materials or entities - every shape is submitted each frame to the toolkit's ShapeBatch,
     whose shader (a port of the testbed's solid_polygon shader) draws them all in one instanced
     call with the 60%-alpha fill and pixel-constant border computed per fragment. Body states show
     as the testbed's colours - pink awake, salmon fast-movers, gray sleepers.
@@ -318,11 +319,11 @@ description:
     Věrná replika ukázky BenchmarkJunkyard z Box2D.NET: 8 000 malých pětiúhelníkových kamenů prší
     do ohrazeného dvora a kinematická radlice se prohrnuje hromadou tam a zpět. Vykreslování funguje
     přesně jako Box2D testbed: žádné meshe, materiály ani entity - každý tvar se každý snímek předá
-    do Box2DDebugDraw, jehož shader (port testbed shaderu solid_polygon) je vykreslí jedním
+    do ShapeBatch, jehož shader (port testbed shaderu solid_polygon) je vykreslí jedním
     instancovaným voláním s výplní o 60% průhlednosti a okrajem stálé šířky v pixelech.
 concepts:
   - Replicating a Box2D testbed benchmark scene in Stride, rendering included
-  - Immediate-mode shape drawing with Box2DDebugDraw - no meshes, materials or entities
+  - Immediate-mode shape drawing with ShapeBatch - no meshes, materials or entities
   - An SDF shader computing fill, border and transparency per fragment, stable under any zoom
   - Entity-less physics bodies as the single source of truth, read directly each frame
   - Driving a kinematic body with SetTargetTransform once per fixed step

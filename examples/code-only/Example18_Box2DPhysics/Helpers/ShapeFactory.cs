@@ -1,6 +1,7 @@
 using Example.Common;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Rendering.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
@@ -50,7 +51,7 @@ public class ShapeFactory(Scene scene)
     /// capsule two vertices plus a radius, the rest are their corner polygons - mirroring exactly
     /// how ShapeFixtureBuilder builds the matching collider.
     /// </summary>
-    private static Box2DDebugShapeComponent CreateShapeComponent(Shape2DModel shape, Color color) => shape.Type switch
+    private static ShapeComponent CreateShapeComponent(Shape2DModel shape, Color color) => shape.Type switch
     {
         Primitive2DModelType.Circle => new() { Vertices = [Vector2.Zero], Radius = shape.Size.X, Color = color },
         Primitive2DModelType.Capsule => new()
@@ -80,13 +81,6 @@ public class ShapeFactory(Scene scene)
             ],
             Color = color,
         },
-    };
-
-    private static float GetRadius(Shape2DModel model) => model.Type switch
-    {
-        Primitive2DModelType.Circle => model.Size.X,
-        Primitive2DModelType.Capsule => model.Size.X,
-        _ => 0f
     };
 
     private static Vector3 GetRandomPosition() => new(Random.Shared.Next(-5, 5), Random.Shared.Next(10, 30), 0);
