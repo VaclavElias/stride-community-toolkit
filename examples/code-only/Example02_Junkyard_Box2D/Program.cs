@@ -82,6 +82,7 @@ void Start(Scene rootScene)
 
     debugDraw = game.AddBox2DDebugDraw();
     debugDraw.BorderWidth = 1f;
+    debugDraw.FillAlpha = 0.4f;
 
     simulation = new Box2DSimulation();
 

@@ -59,6 +59,13 @@ public sealed class Box2DDebugDraw : RenderObject
     public float BorderWidth { get; set; } = 3f;
 
     /// <summary>
+    /// Fill intensity relative to the border colour, 0 to 1. The testbed value is 0.6, but its GL
+    /// pipeline blends in sRGB space while Stride blends in linear space, which reads lighter for
+    /// the same value - around 0.5 tends to match the testbed side by side. Takes effect the next frame.
+    /// </summary>
+    public float FillAlpha { get; set; } = 0.6f;
+
+    /// <summary>
     /// Submits a solid convex polygon for this frame.
     /// </summary>
     /// <param name="vertices">The polygon corners in local space, counter-clockwise, at most 8.</param>

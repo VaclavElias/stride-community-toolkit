@@ -30,6 +30,10 @@ namespace Stride.CommunityToolkit.Box2D
         // Border width in pixels (the testbed uses 3)
         float BorderPixels = 3.0;
 
+        // Fill intensity relative to the border colour. The testbed uses 0.6, but it blends in sRGB
+        // space while Stride blends in linear space, which reads lighter - tune to taste.
+        float FillAlpha = 0.6;
+
         StructuredBuffer<PolygonData> Polygons;
 
         stream float2 LocalPosition : POSITION;
@@ -119,7 +123,7 @@ namespace Stride.CommunityToolkit.Box2D
             int count = (int)round(streams.FragCount);
 
             float4 borderColor = streams.FragColor;
-            float4 fillColor = 0.6 * borderColor;
+            float4 fillColor = FillAlpha * borderColor;
 
             float dw = SdConvexPolygon(streams.FragPosition, points, count);
             float d = abs(dw - streams.FragRadius);
