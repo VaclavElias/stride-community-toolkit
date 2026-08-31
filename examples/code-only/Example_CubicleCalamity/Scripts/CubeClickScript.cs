@@ -93,7 +93,7 @@ public class CubeClickScript : AsyncScript
         {
             if (!IsGameOver && Input.HasMouse && IsClicking())
             {
-                TryClear(camera);
+                ClearCubeUnderCursor(camera);
             }
 
             // The menu keys live only behind game over, so they cannot fire mid-game. Q also moves
@@ -121,7 +121,11 @@ public class CubeClickScript : AsyncScript
         => Input.IsKeyDown(Keys.LeftShift) && Input.IsMouseButtonDown(MouseButton.Left)
         || Input.IsMouseButtonPressed(MouseButton.Left);
 
-    private void TryClear(CameraComponent camera)
+/// <summary>
+    /// Clears the cube under the mouse, if the ray finds one. Not named Try* because it reports
+    /// nothing: a ray that hits nothing, or hits something that is not a cube, is an ordinary miss.
+    /// </summary>
+    private void ClearCubeUnderCursor(CameraComponent camera)
     {
         if (!camera.RaycastMouse(this, 100, out var hitInfo)) return;
 
