@@ -1,4 +1,5 @@
 using Example.Common;
+using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
@@ -32,57 +33,56 @@ public class ShapeFactory(Game game, Scene scene)
     {
         var actualColor = overrideColor ?? shape.Color;
 
-        var darkerColor = new Color(
-            (byte)(actualColor.R * 0.5f),
-            (byte)(actualColor.G * 0.5f),
-            (byte)(actualColor.B * 0.5f),
-            actualColor.A);
-
-        var entity = game.Create2DPrimitive(shape.Type, new()
+        // The Box2D debug-draw component renders the shape testbed-style - fill plus a
+        // pixel-constant border from the same numbers the collider uses. No mesh, no material,
+        // no outline shader.
+        var entity = new Entity(name ?? $"{shape.Type}-{GameConfig.ShapeName}")
         {
-            Size = shape.Size,
-            Material = game.CreateFlatMaterial(darkerColor)
-        });
-
-        entity.Name = name ?? $"{shape.Type}-{GameConfig.ShapeName}";
-        entity.Transform.Position = position.HasValue ? (Vector3)position : GetRandomPosition();
-
-        // Define polygon vertices based on a shape type
-        var polygonVertices = shape.Type switch
-        {
-            Primitive2DModelType.Square or Primitive2DModelType.Rectangle =>
-            [
-                new Vector2(-shape.Size.X * 0.5f, -shape.Size.Y * 0.5f), // Bottom-left
-                new Vector2(shape.Size.X * 0.5f, -shape.Size.Y * 0.5f), // Bottom-right
-                new Vector2(shape.Size.X * 0.5f, shape.Size.Y * 0.5f), // Top-right
-                new Vector2(-shape.Size.X * 0.5f, shape.Size.Y * 0.5f) // Top-left
-            ],
-            Primitive2DModelType.Triangle =>
-            [
-                new Vector2(0, shape.Size.Y * 0.5f), // Top
-                new Vector2(-shape.Size.X * 0.5f, -shape.Size.Y * 0.5f), // Bottom-left
-                new Vector2(shape.Size.X * 0.5f, -shape.Size.Y * 0.5f) // Bottom-right
-            ],
-            _ => Array.Empty<Vector2>() // For circles, use existing logic
+            CreateShapeComponent(shape, actualColor)
         };
 
-        entity.Add(new MeshOutlineComponent()
-        {
-            Enabled = true,
-            Color = actualColor,
-            Intensity = 1f,
-            ShapeType = shape.Type,
-            OutlineThickness = 1f, // 3 pixels
-            Radius = GetRadius(shape),
-            PixelScale = 150,
-            CapsuleHalfHeight = shape.Size.Y / 2,
-            PolygonVertices = polygonVertices
-        });
-
+        entity.Transform.Position = position.HasValue ? (Vector3)position : GetRandomPosition();
         entity.Scene = scene;
 
         return entity;
     }
+
+    /// <summary>
+    /// Builds the debug-draw outline for a shape model: a circle is one vertex plus a radius, a
+    /// capsule two vertices plus a radius, the rest are their corner polygons - mirroring exactly
+    /// how ShapeFixtureBuilder builds the matching collider.
+    /// </summary>
+    private static Box2DDebugShapeComponent CreateShapeComponent(Shape2DModel shape, Color color) => shape.Type switch
+    {
+        Primitive2DModelType.Circle => new() { Vertices = [Vector2.Zero], Radius = shape.Size.X, Color = color },
+        Primitive2DModelType.Capsule => new()
+        {
+            Vertices = [new(0, -(shape.Size.Y / 2 - shape.Size.X)), new(0, shape.Size.Y / 2 - shape.Size.X)],
+            Radius = shape.Size.X,
+            Color = color,
+        },
+        Primitive2DModelType.Triangle => new()
+        {
+            Vertices =
+            [
+                new(-shape.Size.X * 0.5f, -shape.Size.Y * 0.5f),
+                new(shape.Size.X * 0.5f, -shape.Size.Y * 0.5f),
+                new(0, shape.Size.Y * 0.5f),
+            ],
+            Color = color,
+        },
+        _ => new()
+        {
+            Vertices =
+            [
+                new(-shape.Size.X * 0.5f, -shape.Size.Y * 0.5f),
+                new(shape.Size.X * 0.5f, -shape.Size.Y * 0.5f),
+                new(shape.Size.X * 0.5f, shape.Size.Y * 0.5f),
+                new(-shape.Size.X * 0.5f, shape.Size.Y * 0.5f),
+            ],
+            Color = color,
+        },
+    };
 
     private static float GetRadius(Shape2DModel model) => model.Type switch
     {

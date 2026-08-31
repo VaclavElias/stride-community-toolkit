@@ -1,4 +1,3 @@
-using Example18_Box2DPhysics;
 using Example18_Box2DPhysics.Helpers;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
@@ -35,8 +34,11 @@ void Start(Scene rootScene)
     //game.Add3DCamera().Add3DCameraController();
     //game.AddSkybox();
     game.AddProfiler();
-    //game.AddRootRenderFeature(new OuterOutline2DShaderRenderFeature());
-    game.AddRootRenderFeature(new SDFPerimeterOutline2DShaderRenderFeature());
+    // Shapes render through the toolkit's Box2D debug draw - testbed-style fill and pixel-constant
+    // borders from an SDF shader, replacing the old per-mesh outline render features
+    var debugDraw = game.AddBox2DDebugDraw();
+    debugDraw.BorderWidth = 1f;
+    debugDraw.FillAlpha = 0.4f;
 
     // Initialize the Box2D physics simulation
     simulation = new Box2DSimulation();

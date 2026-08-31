@@ -8,6 +8,9 @@ using Stride.Engine;
 using Stride.Games;
 using Stride.Input;
 using static Box2D.NET.B2Bodies;
+using static Box2D.NET.B2Geometries;
+using static Box2D.NET.B2MathFunction;
+using static Box2D.NET.B2Shapes;
 using static Box2D.NET.B2Joints;
 
 namespace Example18_Box2DPhysics.Helpers;
@@ -91,38 +94,50 @@ public class SceneManager
 
     private void AddGroundAndWalls()
     {
-        const float WallThickness = 1f;
-        const float WallWidth = 50f;
-        const float WallHeight = 10f;
-        const int GroundYPosition = -3;
-
-        var groundShape = new Shape2DModel()
-        {
-            Type = Primitive2DModelType.Rectangle,
-            Color = GameConfig.GroundColor,
-            Size = new Vector2(WallWidth, WallThickness),
-        };
-        var groundEntity = _shapeFactory.CreateEntity(groundShape, name: GameConfig.WallName);
-        var groundBodyId = _simulation.CreateStaticBody(groundEntity, new Vector3(0, GroundYPosition, 0));
+        // Junkyard-style yard: one static body carrying rows of slightly overlapping squares,
+        // each square also an entity drawn by the Box2D debug-draw component
+        var groundId = _simulation.CreateStaticBody(Vector3.Zero);
         var shapeDef = DefaultShapeDef();
-        shapeDef.material.friction = 0.6f; // Set ground friction
 
-        ShapeFixtureBuilder.AttachShape(groundShape.Type, groundShape.Size, groundBodyId, shapeDef);
-
-        var wallShape = new Shape2DModel()
+        for (var i = 0; i <= 50; i++)
         {
-            Type = Primitive2DModelType.Rectangle,
-            Color = GameConfig.GroundColor,
-            Size = new Vector2(WallThickness, WallHeight),
+            var x = -25f + i;
+            var box = b2MakeOffsetBox(0.55f, 0.5f, new B2Vec2(x, -3f), b2Rot_identity);
+            b2CreatePolygonShape(groundId, in shapeDef, in box);
+            AddStaticSquare(new Vector2(x, -3f), 0.55f, 0.5f);
+        }
+
+        for (var i = 0; i < 10; i++)
+        {
+            var y = -2f + i;
+
+            foreach (var x in (float[])[-25f, 25f])
+            {
+                var box = b2MakeOffsetBox(0.5f, 0.55f, new B2Vec2(x, y), b2Rot_identity);
+                b2CreatePolygonShape(groundId, in shapeDef, in box);
+                AddStaticSquare(new Vector2(x, y), 0.5f, 0.55f);
+            }
+        }
+    }
+
+    private void AddStaticSquare(Vector2 position, float halfWidth, float halfHeight)
+    {
+        var entity = new Entity(GameConfig.WallName)
+        {
+            new Box2DDebugShapeComponent
+            {
+                Vertices =
+                [
+                    new(-halfWidth, -halfHeight),
+                    new(halfWidth, -halfHeight),
+                    new(halfWidth, halfHeight),
+                    new(-halfWidth, halfHeight),
+                ],
+                Color = GameConfig.GroundColor,
+            }
         };
-
-        var leftWallEntity = _shapeFactory.CreateEntity(wallShape, name: GameConfig.WallName);
-        var leftWallBodyId = _simulation.CreateStaticBody(leftWallEntity, new Vector3(-25 + WallThickness / 2, -GroundYPosition - WallThickness / 2, 0));
-        ShapeFixtureBuilder.AttachShape(wallShape.Type, wallShape.Size, leftWallBodyId, shapeDef);
-
-        var rightWallEntity = _shapeFactory.CreateEntity(wallShape, name: GameConfig.WallName);
-        var rightWallBodyId = _simulation.CreateStaticBody(rightWallEntity, new Vector3(25 - WallThickness / 2, -GroundYPosition - WallThickness / 2, 0));
-        ShapeFixtureBuilder.AttachShape(wallShape.Type, wallShape.Size, rightWallBodyId, shapeDef);
+        entity.Transform.Position = new Vector3(position.X, position.Y, 0);
+        entity.Scene = _scene;
     }
 
     /// <summary>
