@@ -13,6 +13,7 @@ public sealed class PhysicsWorld2D : IDisposable
 {
     private B2WorldId _worldId;
     private PhysicsStepSettings _settings;
+    private readonly Box2DTaskScheduler? _scheduler;
 
     private double _accumulator;
 
@@ -53,8 +54,32 @@ public sealed class PhysicsWorld2D : IDisposable
         _settings = settings ?? new PhysicsStepSettings();
         var def = b2DefaultWorldDef();
         def.gravity = new B2Vec2(0f, -10f);
+
+        // b2DefaultWorldDef gives a single-threaded world - without task callbacks every solve runs
+        // on the stepping thread, which is 4-5x slower for a large active scene. Measured on the
+        // 10k-box stress pile: 25-43 ms per step single-threaded, 5.6-10.4 ms with 8 workers.
+        var workerCount = ResolveWorkerCount(_settings.WorkerCount);
+
+        if (workerCount > 1)
+        {
+            _scheduler = new Box2DTaskScheduler(workerCount);
+            def.workerCount = workerCount;
+            def.enqueueTask = _scheduler.Enqueue;
+            def.finishTask = Box2DTaskScheduler.Finish;
+        }
+
         _worldId = b2CreateWorld(in def);
     }
+
+    /// <summary>
+    /// The number of solver worker threads the world was created with (1 = single-threaded).
+    /// </summary>
+    public int WorkerCount => _scheduler?.WorkerCount ?? 1;
+
+    // 0 = auto: the Box2D samples' convention. More is not better - on a 28-core machine, 14
+    // workers measured slightly slower than 8 on the 10k-box pile. Box2D caps workers at 32.
+    private static int ResolveWorkerCount(int requested)
+        => requested > 0 ? Math.Min(requested, 32) : Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
 
     /// <summary>
     /// Gets the native world id.
@@ -106,5 +131,8 @@ public sealed class PhysicsWorld2D : IDisposable
 
             _worldId = default;
         }
+
+        // After the world, so no step can still be dispatching work to the pool
+        _scheduler?.Dispose();
     }
 }

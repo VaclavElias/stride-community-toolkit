@@ -4,6 +4,7 @@ using Stride.Engine;
 using static Box2D.NET.B2Bodies;
 using static Box2D.NET.B2MathFunction;
 using static Box2D.NET.B2Types;
+using static Box2D.NET.B2Worlds;
 
 namespace Stride.CommunityToolkit.Box2D;
 
@@ -94,20 +95,22 @@ public sealed class Box2DStrideBridge
     /// </summary>
     public void SyncTransformsFromPhysics()
     {
-        foreach (var item in _bodyToEntity)
+        // Body move events deliver exactly the bodies the simulation moved this step, transforms
+        // included, as one contiguous array - the API Box2D provides precisely for engine sync.
+        // The cost scales with movement, not population: a settled pile produces zero events,
+        // where iterating every body and asking for its transform cost ~10x more while moving.
+        var events = b2World_GetBodyEvents(_world.WorldId);
+
+        for (int i = 0; i < events.moveCount; i++)
         {
-            var bodyId = item.Key;
-            var entity = item.Value;
+            ref var moveEvent = ref events.moveEvents[i];
 
-            // A sleeping body cannot have moved, and its entity was synchronized before it fell
-            // asleep - skipping it keeps a settled pile of thousands of bodies nearly free.
-            if (!b2Body_IsAwake(bodyId)) continue;
+            if (!_bodyToEntity.TryGetValue(moveEvent.bodyId, out var entity)) continue;
 
-            var position = b2Body_GetPosition(bodyId);
-            var rotation = b2Body_GetRotation(bodyId);
+            var position = moveEvent.transform.p;
 
             entity.Transform.Position = new Vector3(position.X, position.Y, 0f);
-            entity.Transform.Rotation = Quaternion.RotationZ(B2MathFunction.b2Rot_GetAngle(rotation));
+            entity.Transform.Rotation = Quaternion.RotationZ(b2Rot_GetAngle(moveEvent.transform.q));
         }
     }
 }

@@ -70,9 +70,10 @@ public sealed class Box2DSimulation : IDisposable
     public void UnregisterSensorEventHandler(ISensorEventHandler handler) => _eventRouter.UnregisterSensorEventHandler(handler);
 
     /// <summary>Creates a new simulation instance with a fresh Box2D world.</summary>
-    public Box2DSimulation()
+    /// <param name="settings">Optional stepping and threading configuration; defaults to <see cref="PhysicsStepSettings"/> defaults.</param>
+    public Box2DSimulation(PhysicsStepSettings? settings = null)
     {
-        _world = new PhysicsWorld2D();
+        _world = new PhysicsWorld2D(settings);
         _bridge = new Box2DStrideBridge(_world);
     }
 
