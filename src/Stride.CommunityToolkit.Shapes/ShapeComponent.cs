@@ -1,7 +1,8 @@
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Engine.Design;
 
-namespace Stride.CommunityToolkit.Rendering.Shapes;
+namespace Stride.CommunityToolkit.Shapes;
 
 /// <summary>
 /// Draws a flat shape at this entity's world transform through the game's <see cref="ShapeBatch"/>,

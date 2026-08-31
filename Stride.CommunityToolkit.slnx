@@ -112,6 +112,7 @@
   <Project Path="src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj" />
   <Project Path="src/Stride.CommunityToolkit.ImGuiNet/Stride.CommunityToolkit.ImGuiNet.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Linux/Stride.CommunityToolkit.Linux.csproj" />
+  <Project Path="src/Stride.CommunityToolkit.Shapes/Stride.CommunityToolkit.Shapes.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Skyboxes/Stride.CommunityToolkit.Skyboxes.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Windows/Stride.CommunityToolkit.Windows.csproj" />
   <Project Path="src/Stride.CommunityToolkit/Stride.CommunityToolkit.csproj" />

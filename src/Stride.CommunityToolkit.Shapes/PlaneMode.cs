@@ -1,4 +1,4 @@
-namespace Stride.CommunityToolkit.Rendering.Shapes;
+namespace Stride.CommunityToolkit.Shapes;
 
 /// <summary>How a shape's flat plane is oriented in the world.</summary>
 internal enum PlaneMode

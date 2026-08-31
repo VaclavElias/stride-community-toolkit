@@ -1,7 +1,8 @@
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Rendering;
 
-namespace Stride.CommunityToolkit.Rendering.Shapes;
+namespace Stride.CommunityToolkit.Shapes;
 
 /// <summary>
 /// Submits every enabled <see cref="ShapeComponent"/> to the game's <see cref="ShapeBatch"/> each

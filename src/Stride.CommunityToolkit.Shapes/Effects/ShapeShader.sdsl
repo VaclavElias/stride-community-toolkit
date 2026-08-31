@@ -1,4 +1,4 @@
-namespace Stride.CommunityToolkit.Rendering.Shapes
+namespace Stride.CommunityToolkit.Shapes
 {
     // Convex shapes drawn as instanced quads, with the outline a constant number of PIXELS wide
     // whatever the zoom, distance or window size, because it is measured per fragment from a signed

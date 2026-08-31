@@ -6,8 +6,7 @@ Meta:
     Authors: []
     Owners: []
     Dependencies: null
-AssetFolders:
-    -   Path: !dir Rendering/Shapes/Effects
+AssetFolders: []
 ResourceFolders: []
 OutputGroupDirectories: {}
 ExplicitFolders: []

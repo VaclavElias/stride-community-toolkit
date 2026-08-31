@@ -1,8 +1,9 @@
+using Stride.Core;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Rendering;
 
-namespace Stride.CommunityToolkit.Rendering.Shapes;
+namespace Stride.CommunityToolkit.Shapes;
 
 /// <summary>
 /// Wires <see cref="ShapeBatch"/> rendering into a game's graphics compositor.

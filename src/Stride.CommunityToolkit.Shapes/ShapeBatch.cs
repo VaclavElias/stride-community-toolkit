@@ -1,6 +1,7 @@
+using Stride.Core.Mathematics;
 using Stride.Rendering;
 
-namespace Stride.CommunityToolkit.Rendering.Shapes;
+namespace Stride.CommunityToolkit.Shapes;
 
 /// <summary>
 /// Immediate-mode drawing of filled convex shapes whose outline stays a constant number of pixels
@@ -235,6 +236,36 @@ public sealed class ShapeBatch : RenderObject
         Add(segment,
             new ShapePlane(center, direction / length, Vector3.UnitY, PlaneMode.Axial),
             new ShapeStyle(color, BorderWidth, 1f), lineRadius, 1f);
+    }
+
+    /// <summary>
+    /// Submits a line whose width is measured in on-screen pixels rather than world units, so it
+    /// keeps exactly the same thickness however far away it is - grid lines, axis rules, leader
+    /// lines, anything that should read as drawn on the screen rather than placed in the scene.
+    /// </summary>
+    /// <param name="start">World-space start point.</param>
+    /// <param name="end">World-space end point.</param>
+    /// <param name="pixelWidth">Line width in on-screen pixels.</param>
+    /// <param name="color">The line colour.</param>
+    /// <remarks>
+    /// This is <see cref="DrawLine"/> with its world width collapsed to nothing, which leaves the
+    /// outline - already measured in pixels - drawing the whole line. <see cref="BorderWidth"/> and
+    /// <see cref="FillAlpha"/> do not apply; <paramref name="pixelWidth"/> is the width.
+    /// </remarks>
+    public void DrawPixelLine(Vector3 start, Vector3 end, float pixelWidth, Color color)
+    {
+        var direction = end - start;
+        var length = direction.Length();
+
+        if (length <= float.Epsilon) return;
+
+        var halfSegment = length * 0.5f;
+
+        ReadOnlySpan<Vector2> segment = [new(-halfSegment, 0f), new(halfSegment, 0f)];
+
+        Add(segment,
+            new ShapePlane((start + end) * 0.5f, direction / length, Vector3.UnitY, PlaneMode.Axial),
+            new ShapeStyle(color, pixelWidth, 0f), 0f, 1f);
     }
 
     /// <summary>

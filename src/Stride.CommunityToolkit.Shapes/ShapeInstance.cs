@@ -1,6 +1,7 @@
+using Stride.Core.Mathematics;
 using System.Runtime.InteropServices;
 
-namespace Stride.CommunityToolkit.Rendering.Shapes;
+namespace Stride.CommunityToolkit.Shapes;
 
 /// <summary>
 /// The GPU-facing layout of one shape, mirrored field for field by the shader's ShapeData. The

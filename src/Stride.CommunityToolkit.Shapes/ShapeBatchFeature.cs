@@ -1,9 +1,10 @@
+using Stride.Core.Mathematics;
 using Stride.Graphics;
 using Stride.Rendering;
 using System.Runtime.InteropServices;
 using Buffer = Stride.Graphics.Buffer;
 
-namespace Stride.CommunityToolkit.Rendering.Shapes;
+namespace Stride.CommunityToolkit.Shapes;
 
 /// <summary>
 /// Renders every <see cref="ShapeBatch"/> with <c>ShapeShader</c>: one instanced draw of a shared
