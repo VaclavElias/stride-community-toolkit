@@ -1,22 +1,17 @@
-using Stride.Core.Mathematics;
 using Stride.Graphics;
 using Stride.Rendering;
 using System.Runtime.InteropServices;
 using Buffer = Stride.Graphics.Buffer;
 
-namespace Stride.CommunityToolkit.Box2D;
+namespace Stride.CommunityToolkit.Rendering.Shapes;
 
 /// <summary>
-/// Renders every <see cref="Box2DDebugDraw"/> batch with <c>Box2DDebugShader</c>: one instanced
-/// draw of a shared quad per batch, the polygon geometry and colours delivered through a structured
-/// buffer and evaluated per fragment as a signed distance function - the Box2D testbed's renderer,
-/// ported to Stride.
+/// Renders every <see cref="ShapeBatch"/> with <c>ShapeShader</c>: one instanced draw of a shared
+/// quad per batch, the shape geometry and colours delivered through a structured buffer and
+/// evaluated per fragment as a signed distance function.
 /// </summary>
-public class Box2DDebugDrawFeature : RootRenderFeature
+public class ShapeBatchFeature : RootRenderFeature
 {
-    // The quad has a margin around the unit polygon so the anti-aliased border is never clipped
-    private const float QuadMargin = 1.1f;
-
     private DynamicEffectInstance? _effect;
     private MutablePipelineState? _pipelineState;
     private Buffer? _quadBuffer;
@@ -24,34 +19,34 @@ public class Box2DDebugDrawFeature : RootRenderFeature
     private VertexDeclaration? _vertexDeclaration;
 
     /// <inheritdoc/>
-    public override Type SupportedRenderObjectType => typeof(Box2DDebugDraw);
+    public override Type SupportedRenderObjectType => typeof(ShapeBatch);
 
     /// <inheritdoc/>
     protected override void InitializeCore()
     {
-        _effect = new DynamicEffectInstance("Box2DDebugShader");
+        _effect = new DynamicEffectInstance("ShapeShader");
         _effect.Initialize(Context.Services);
         _effect.UpdateEffect(Context.GraphicsDevice);
 
         _vertexDeclaration = new VertexDeclaration(VertexElement.Position<Vector2>());
 
+        // A unit quad; the vertex shader grows it per shape to leave room for a thick border
         _quadBuffer = Buffer.Vertex.New(Context.GraphicsDevice, new[]
         {
-            new Vector2(-QuadMargin, -QuadMargin),
-            new Vector2(QuadMargin, -QuadMargin),
-            new Vector2(-QuadMargin, QuadMargin),
-            new Vector2(QuadMargin, -QuadMargin),
-            new Vector2(QuadMargin, QuadMargin),
-            new Vector2(-QuadMargin, QuadMargin),
+            new Vector2(-1f, -1f),
+            new Vector2(1f, -1f),
+            new Vector2(-1f, 1f),
+            new Vector2(1f, -1f),
+            new Vector2(1f, 1f),
+            new Vector2(-1f, 1f),
         });
 
-        _instanceBuffer = Buffer.Structured.New<Box2DDebugDraw.PolygonInstance>(Context.GraphicsDevice, 1);
+        _instanceBuffer = Buffer.Structured.New<ShapeInstance>(Context.GraphicsDevice, 1);
 
         _pipelineState = new MutablePipelineState(Context.GraphicsDevice);
         _pipelineState.State.SetDefaults();
         _pipelineState.State.InputElements = _vertexDeclaration.CreateInputElements();
         _pipelineState.State.BlendState = BlendStates.AlphaBlend;
-        _pipelineState.State.DepthStencilState = DepthStencilStates.None;
         _pipelineState.State.RasterizerState = RasterizerStates.CullNone;
         _pipelineState.State.PrimitiveType = PrimitiveType.TriangleList;
     }
@@ -63,26 +58,37 @@ public class Box2DDebugDrawFeature : RootRenderFeature
 
         var commandList = context.CommandList;
 
+        // Pixels per world unit at clip w = 1: projection M22 is 2 / world height for an
+        // orthographic view, and 1 / tan(fov / 2) for a perspective one, where the shader's
+        // per-fragment w supplies the distance falloff
+        var pixelScale = renderView.ViewSize.Y * renderView.Projection.M22 * 0.5f;
+
+        var viewInverse = Matrix.Invert(renderView.View);
+        var cameraRight = new Vector3(viewInverse.M11, viewInverse.M12, viewInverse.M13);
+        var cameraUp = new Vector3(viewInverse.M21, viewInverse.M22, viewInverse.M23);
+        var eyePosition = viewInverse.TranslationVector;
+
         for (var index = startIndex; index < endIndex; index++)
         {
             var renderNodeReference = renderViewStage.SortedRenderNodes[index].RenderNode;
-            var batch = (Box2DDebugDraw)GetRenderNode(renderNodeReference).RenderObject;
+            var batch = (ShapeBatch)GetRenderNode(renderNodeReference).RenderObject;
             var instances = CollectionsMarshal.AsSpan(batch.Instances);
 
             if (instances.IsEmpty) continue;
 
             UploadInstances(context, instances);
 
-            // Pixels per world unit for an orthographic view: projection M22 is 2 / world height
-            var pixelScale = renderView.ViewSize.Y * renderView.Projection.M22 * 0.5f;
-
             _effect.UpdateEffect(context.GraphicsDevice);
-            _effect.Parameters.Set(Box2DDebugShaderKeys.ViewProjection, renderView.ViewProjection);
-            _effect.Parameters.Set(Box2DDebugShaderKeys.PixelScale, pixelScale);
-            _effect.Parameters.Set(Box2DDebugShaderKeys.BorderPixels, batch.BorderWidth);
-            _effect.Parameters.Set(Box2DDebugShaderKeys.FillAlpha, batch.FillAlpha);
-            _effect.Parameters.Set(Box2DDebugShaderKeys.Polygons, _instanceBuffer);
+            _effect.Parameters.Set(ShapeShaderKeys.ViewProjection, renderView.ViewProjection);
+            _effect.Parameters.Set(ShapeShaderKeys.PixelScale, pixelScale);
+            _effect.Parameters.Set(ShapeShaderKeys.CameraRight, cameraRight);
+            _effect.Parameters.Set(ShapeShaderKeys.CameraUp, cameraUp);
+            _effect.Parameters.Set(ShapeShaderKeys.EyePosition, eyePosition);
+            _effect.Parameters.Set(ShapeShaderKeys.Shapes, _instanceBuffer);
 
+            // Tested but never written: shapes are transparent, so writing depth would let one
+            // shape reject another that should blend over it
+            _pipelineState.State.DepthStencilState = batch.DepthTest ? DepthStencilStates.DepthRead : DepthStencilStates.None;
             _pipelineState.State.RootSignature = _effect.RootSignature;
             _pipelineState.State.EffectBytecode = _effect.Effect.Bytecode;
             _pipelineState.State.Output.CaptureState(commandList);
@@ -100,14 +106,14 @@ public class Box2DDebugDrawFeature : RootRenderFeature
         }
     }
 
-    private void UploadInstances(RenderDrawContext context, ReadOnlySpan<Box2DDebugDraw.PolygonInstance> instances)
+    private void UploadInstances(RenderDrawContext context, ReadOnlySpan<ShapeInstance> instances)
     {
         if (instances.Length > _instanceBuffer!.ElementCount)
         {
             _instanceBuffer.Dispose();
 
             var capacity = (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)Math.Max(instances.Length, 64));
-            _instanceBuffer = Buffer.Structured.New<Box2DDebugDraw.PolygonInstance>(context.GraphicsDevice, capacity);
+            _instanceBuffer = Buffer.Structured.New<ShapeInstance>(context.GraphicsDevice, capacity);
         }
 
         _instanceBuffer.SetData(context.CommandList, instances);

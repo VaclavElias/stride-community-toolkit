@@ -11,6 +11,7 @@ What's inside:
 - Entity, Game, Camera, Transform, Model and Script System extensions: component search, LookAt, screen-to-world rays, delays, repeats and timers
 - Procedural primitives (cube, sphere, capsule, cylinder, cone, torus, teapot, plane and 2D shapes) with materials, no assets required
 - MeshBuilder and TextureCanvas for building meshes and textures in code
+- ShapeBatch: filled convex shapes whose outline stays a constant few pixels wide at any zoom or distance, in 2D or on any plane in 3D, plus camera-facing markers and genuinely thick 3D lines - thousands per frame in one instanced draw, no models or materials
 - On-screen text: DebugOverlay (scalable, high-DPI aware, per-line background), EntityTextComponent and WorldTextComponent
 - Camera controllers for 3D (fly) and 2D (pan and zoom) scenes with built-in key help
 - Easing functions, math and random helpers, collection helpers
@@ -37,6 +38,13 @@ Physics helpers are in Stride.CommunityToolkit.Bepu (recommended) and Stride.Com
 
     <ItemGroup>
         <None Include="*.sdpkg" Pack="true" PackagePath="stride" />
+        <None Include="Rendering\Shapes\Effects\*.*" Pack="true" PackagePath="stride\Effects" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Rendering\Shapes\Effects\ShapeShader.sdsl">
+            <LastGenOutput>ShapeShader.sdsl.cs</LastGenOutput>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

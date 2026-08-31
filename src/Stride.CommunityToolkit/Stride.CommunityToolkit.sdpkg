@@ -7,7 +7,7 @@ Meta:
     Owners: []
     Dependencies: null
 AssetFolders:
-    -   Path: !dir Rendering/DebugShapes/Effects
+    -   Path: !dir Rendering/Shapes/Effects
 ResourceFolders: []
 OutputGroupDirectories: {}
 ExplicitFolders: []

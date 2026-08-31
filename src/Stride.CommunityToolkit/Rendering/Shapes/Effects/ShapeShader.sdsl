@@ -1,15 +1,23 @@
-namespace Stride.CommunityToolkit.Box2D
+namespace Stride.CommunityToolkit.Rendering.Shapes
 {
-    // A port of the Box2D testbed's solid_polygon.vs/fs (Erin Catto, MIT): convex polygons drawn as
-    // instanced quads, with the fill at 60% alpha and a border a constant few PIXELS wide computed
-    // per fragment from a signed distance function - the exact look of the Box2D debug draw, stable
-    // under any zoom or window size.
-    internal shader Box2DDebugShader : ShaderBase
+    // Convex shapes drawn as instanced quads, with the outline a constant number of PIXELS wide
+    // whatever the zoom, distance or window size, because it is measured per fragment from a signed
+    // distance function rather than built as geometry.
+    //
+    // Derived from the Box2D testbed's solid_polygon.vs/fs (Erin Catto, MIT), extended here with an
+    // arbitrary 3D plane per shape, billboarding, per-shape border width and fill, and a thickness
+    // term that stays correct under a perspective projection.
+    internal shader ShapeShader : ShaderBase
     {
-        struct PolygonData
+        struct ShapeData
         {
-            // x, y, cos, sin
-            float4 Transform;
+            // xyz: world position of the shape's local origin
+            // w:   plane mode - 0 fixed (use AxisX/AxisY), 1 screen-aligned, 2 axial about AxisX
+            float4 Position;
+            // xyz: the plane's X axis, unit length; w: border width in pixels
+            float4 AxisX;
+            // xyz: the plane's Y axis, unit length; w: fill alpha, 0 for an unfilled outline
+            float4 AxisY;
             float4 Points12;
             float4 Points34;
             float4 Points56;
@@ -19,22 +27,21 @@ namespace Stride.CommunityToolkit.Box2D
             // uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit pattern,
             // and GPUs canonicalize NaNs on float reads, destroying the red channel
             uint Color;
-            float Pad;
+            float Scale;
         };
 
         float4x4 ViewProjection;
 
-        // Pixels per world unit, so the border keeps a constant on-screen width
+        // Pixels per world unit at clip w = 1. Under an orthographic projection w is always 1, so
+        // this alone fixes the on-screen size; under perspective the per-fragment w scales it.
         float PixelScale;
 
-        // Border width in pixels (the testbed uses 3)
-        float BorderPixels = 3.0;
+        // Camera basis for billboarded shapes
+        float3 CameraRight;
+        float3 CameraUp;
+        float3 EyePosition;
 
-        // Fill intensity relative to the border colour. The testbed uses 0.6, but it blends in sRGB
-        // space while Stride blends in linear space, which reads lighter - tune to taste.
-        float FillAlpha = 0.6;
-
-        StructuredBuffer<PolygonData> Polygons;
+        StructuredBuffer<ShapeData> Shapes;
 
         stream float2 LocalPosition : POSITION;
 
@@ -47,10 +54,12 @@ namespace Stride.CommunityToolkit.Box2D
         stream float FragCount;
         stream float FragRadius;
         stream float FragThickness;
+        stream float FragFillAlpha;
+        stream float FragClipW;
 
         override stage void VSMain()
         {
-            PolygonData data = Polygons[streams.InstanceID];
+            ShapeData data = Shapes[streams.InstanceID];
 
             float2 points[8];
             points[0] = data.Points12.xy;
@@ -77,8 +86,8 @@ namespace Stride.CommunityToolkit.Box2D
             float2 width = upper - lower;
             float maxWidth = max(width.x, width.y);
 
-            float scale = data.Radius + 0.5 * maxWidth;
-            float invScale = 1.0 / scale;
+            float localScale = data.Radius + 0.5 * maxWidth;
+            float invScale = 1.0 / localScale;
 
             // Shift and scale polygon points so they fit in a 2x2 quad
             for (int j = 0; j < count; ++j)
@@ -93,19 +102,67 @@ namespace Stride.CommunityToolkit.Box2D
 
             streams.FragRadius = invScale * data.Radius;
             streams.FragCount = count;
-            streams.FragThickness = BorderPixels / (PixelScale * scale);
             streams.FragColor = BitsToColor(data.Color);
-            streams.FragPosition = streams.LocalPosition;
+            streams.FragFillAlpha = data.AxisY.w;
 
-            // Scale up and transform the quad corner to fit the polygon
-            float x = data.Transform.x;
-            float y = data.Transform.y;
-            float c = data.Transform.z;
-            float s = data.Transform.w;
-            float2 p = float2(scale * streams.LocalPosition.x, scale * streams.LocalPosition.y) + center;
-            p = float2((c * p.x - s * p.y) + x, (s * p.x + c * p.y) + y);
+            // A uniform scale multiplies the shape's world footprint only: every point, the centre
+            // and the radius scale together, so the normalized SDF above comes out identical
+            float worldScale = localScale * data.Scale;
+            float2 worldCenter = center * data.Scale;
 
-            streams.ShadingPosition = mul(float4(p, 0.0, 1.0), ViewProjection);
+            // Border thickness in the normalized local space, before the perspective term. Under an
+            // orthographic projection the pixel shader's w is 1 and this is already final.
+            streams.FragThickness = data.AxisX.w / (PixelScale * worldScale);
+
+            // Resolve the plane the shape lives in
+            float mode = data.Position.w;
+            float3 origin = data.Position.xyz;
+            float3 axisX = data.AxisX.xyz;
+            float3 axisY = data.AxisY.xyz;
+
+            if (mode > 1.5)
+            {
+                // Axial billboard: AxisX stays put and the plane swings about it to face the eye.
+                // This is what turns a two-point capsule into a thick, round-capped 3D line.
+                float3 toEye = EyePosition - origin;
+                float3 side = cross(toEye, axisX);
+                float sideLength = length(side);
+
+                if (sideLength > 0.000001)
+                {
+                    axisY = side / sideLength;
+                }
+                else
+                {
+                    axisY = CameraUp;
+                }
+            }
+            else if (mode > 0.5)
+            {
+                // Screen-aligned billboard
+                axisX = CameraRight;
+                axisY = CameraUp;
+            }
+
+            // The quad needs a margin around the shape or a thick border is clipped at the edge.
+            // The border straddles the outline, so half its thickness has to fit outside.
+            float3 centerWorld = origin + worldCenter.x * axisX + worldCenter.y * axisY;
+            float centerW = mul(float4(centerWorld, 1.0), ViewProjection).w;
+            float margin = 1.0 + max(0.1, streams.FragThickness * max(centerW, 0.0001));
+
+            float2 local = margin * streams.LocalPosition;
+
+            streams.FragPosition = local;
+
+            float2 q = worldScale * local + worldCenter;
+            float3 worldPosition = origin + q.x * axisX + q.y * axisY;
+
+            float4 clip = mul(float4(worldPosition, 1.0), ViewProjection);
+
+            // A varying carrying w interpolates perspective-correctly to exactly the fragment's w,
+            // which is what makes the border a constant pixel width at any depth
+            streams.FragClipW = clip.w;
+            streams.ShadingPosition = clip;
         }
 
         override stage void PSMain()
@@ -123,7 +180,11 @@ namespace Stride.CommunityToolkit.Box2D
             int count = (int)round(streams.FragCount);
 
             float4 borderColor = streams.FragColor;
-            float4 fillColor = FillAlpha * borderColor;
+            float4 fillColor = streams.FragFillAlpha * borderColor;
+
+            // Perspective term: near shapes have a large w, far ones a small one, so the same pixel
+            // width maps to more or fewer world units with distance
+            float thickness = max(streams.FragThickness * streams.FragClipW, 0.000001);
 
             // A single point is a circle of FragRadius - the polygon SDF cannot handle it, the
             // point distance trivially can. Two points + radius make a capsule through the loop.
@@ -139,16 +200,16 @@ namespace Stride.CommunityToolkit.Box2D
             float d = abs(dw - streams.FragRadius);
 
             // Roll the fill alpha down at the border
-            float4 back = float4(fillColor.rgb, fillColor.a * smoothstep(streams.FragRadius + streams.FragThickness, streams.FragRadius, dw));
+            float4 back = float4(fillColor.rgb, fillColor.a * smoothstep(streams.FragRadius + thickness, streams.FragRadius, dw));
 
             // Roll the border alpha down from 1 to 0 across the border thickness
-            float4 front = float4(borderColor.rgb, smoothstep(streams.FragThickness, 0.0, d));
+            float4 front = float4(borderColor.rgb, smoothstep(thickness, 0.0, d));
 
             float4 blended = BlendColors(front, back);
 
-            // The testbed palette is sRGB and its GL framebuffer passes it through; Stride's sRGB
-            // backbuffer re-encodes linear values, so convert to linear here to land on the same
-            // on-screen colours
+            // The palette is sRGB and the Box2D testbed's GL framebuffer passes it through; Stride's
+            // sRGB backbuffer re-encodes linear values, so convert to linear here to land on the
+            // same on-screen colours
             streams.ColorTarget = float4(pow(max(blended.rgb, 0.0), 2.2), blended.a);
         }
 
