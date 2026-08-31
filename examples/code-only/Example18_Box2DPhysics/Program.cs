@@ -1,7 +1,7 @@
 using Example18_Box2DPhysics.Helpers;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Rendering.Shapes;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;

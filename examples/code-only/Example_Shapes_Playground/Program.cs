@@ -1,8 +1,8 @@
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Shapes;
 using Stride.CommunityToolkit.Scripts.Utilities;
+using Stride.CommunityToolkit.Shapes;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -242,6 +242,11 @@ void DrawLines(ShapeBatch shapes, float seconds)
 
         shapes.DrawLine(hub, top, width, Color.Gold);
     }
+
+    // Pixel-width rails running to the horizon: the same thickness near and far, where the thick
+    // world-space lines above visibly taper with distance
+    shapes.DrawPixelLine(new Vector3(-22, 0.5f, 5f), new Vector3(-22, 0.5f, -150f), 2f, Color.White);
+    shapes.DrawPixelLine(new Vector3(22, 0.5f, 5f), new Vector3(22, 0.5f, -150f), 2f, Color.White);
 
     // A selection volume around the tallest pillar
     var tallest = pillars[PillarCount - 1].Transform.Position;

@@ -1,7 +1,6 @@
 using Example.Common;
-using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Shapes;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
