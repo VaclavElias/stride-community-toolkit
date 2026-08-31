@@ -336,6 +336,35 @@ public sealed class Chart : IDisposable
     }
 
     /// <summary>
+    /// Swaps the function behind a plotted curve and rebuilds just that curve, in place: the series keeps
+    /// its name, colour and legend row, and no entity is created or destroyed. This is how a curve is
+    /// animated - a parameter changing every frame - without the churn of removing and re-plotting it.
+    /// </summary>
+    /// <param name="series">A series returned by <see cref="Plot"/>.</param>
+    /// <param name="f">The new function, sampled with the density the series was created with.</param>
+    /// <returns><see langword="true"/> if the series is on this chart and has been rebuilt.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="series"/> or <paramref name="f"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">If <paramref name="series"/> is not a <c>y = f(x)</c> plot.</exception>
+    public bool Replot(ChartSeries series, Func<float, float> f)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentNullException.ThrowIfNull(f);
+
+        if (series.Function is null)
+        {
+            throw new ArgumentException("Only a curve plotted from a function can be re-plotted from one.", nameof(series));
+        }
+
+        if (!_series.Contains(series))
+            return false;
+
+        series.Function = f;
+        ReplotSeries(series);
+
+        return true;
+    }
+
+    /// <summary>
     /// Takes a curve off the chart: detaches its entity and frees its GPU buffers. Does nothing if the series
     /// is not on this chart.
     /// </summary>

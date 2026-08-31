@@ -33,7 +33,7 @@ WindowsDpiManager.EnablePerMonitorV2();
 
 // Run with "--3d" for the glowing 3D look; a runtime switch rather than a const so neither branch is
 // dead code to the compiler
-var use3DScene = true; // args.Any(a => a.Equals("--3d", StringComparison.OrdinalIgnoreCase));
+var use3DScene = args.Any(a => a.Equals("--3d", StringComparison.OrdinalIgnoreCase));
 
 // "--zoom 61" starts zoomed out to that view height - handy for checking how the view-driven chart
 // adapts its tick step, sampling density and line widths at a given zoom level
@@ -59,6 +59,13 @@ const float Gravity = 9.81f;
 var ballPosition = Vector2.Zero;
 var ballVelocity = Vector2.Zero;
 var ballFlying = false;
+
+// The animated curve: sin(kx) with k sweeping up and down, re-plotted in place every frame
+ChartSeries? wave = null;
+var animate = true;
+var waveTime = 0f;
+var waveFrequency = 1f;
+const float WaveAmplitude = 1.5f;
 
 game.Run(start: Start, update: Update);
 
@@ -187,6 +194,13 @@ void Start(Scene rootScene)
     // with the curve when a view-driven chart changes range, and clipped to the chart the same way.
     chart.AddArea(x => 2f * MathF.Sin(x), from: 0f, to: MathF.PI, color: options.CurvePalette[0], name: "integral");
 
+    // The animated curve. Its colour is explicit so the palette rotation of the other series stays put,
+    // and it starts at the frequency the first frame will set.
+    wave = chart.Plot(
+        x => WaveAmplitude * MathF.Sin(waveFrequency * x),
+        new PolylineOptions { Width = options.CurveWidth, Color = new Color(0, 158, 150), EmissiveIntensity = options.CurveEmissiveIntensity },
+        name: "wave");
+
     // The ball itself is a small closed ribbon circle moved along the flight path
     ball = game.CreatePolyline(
         PolylineSampling.Parametric(t => new Vector3(0.12f * MathF.Cos(t), 0.12f * MathF.Sin(t), 0f), 0f, MathUtil.TwoPi, 20),
@@ -255,6 +269,7 @@ void Start(Scene rootScene)
         new($"Press T to {(tangent is null ? "restore" : "remove")} the tan curve", Color.Yellow),
         new($"Press L to toggle the legend ({(chart.LegendVisible ? "on" : "off")})", Color.Yellow),
         new($"Press Space to throw the ball (trail: {trail.Count}/{trail.Capacity} points)", Color.Yellow),
+        new($"Press A to {(animate ? "pause" : "resume")} the wave (k = {waveFrequency:0.00})", Color.Yellow),
         new($"{chart.Series.Count} series: {string.Join(", ", chart.Series.Select(s => s.Name))}"),
     ]);
 }
@@ -291,6 +306,21 @@ void Update(Scene scene, GameTime time)
     if (game.Input.IsKeyPressed(Keys.Space))
     {
         ThrowBall();
+    }
+
+    if (game.Input.IsKeyPressed(Keys.A))
+    {
+        animate = !animate;
+    }
+
+    // Re-plotting a curve in place is cheap enough to do every frame: the mesh is rebuilt, but nothing
+    // is created or destroyed - same entity, same colour, same legend row
+    if (animate && wave is not null)
+    {
+        waveTime += (float)time.Elapsed.TotalSeconds;
+        waveFrequency = 1.75f + 1.25f * MathF.Sin(waveTime * 0.9f);
+
+        chart.Replot(wave, x => WaveAmplitude * MathF.Sin(waveFrequency * x));
     }
 
     // The readout follows the mouse over the chart plane; hidden while the cursor is off the chart
@@ -358,6 +388,7 @@ concepts:
   - "3D charts: a Z axis, box clipping and grid planes on the floor and walls, opt-in via ZMin/ZMax"
   - Chart and axis titles, and scatter markers batched into one mesh
   - "A shaded area between two functions: columns clamped to the range, two triangles per column"
+  - "Animating a curve: Chart.Replot swaps the function and rebuilds one mesh in place, every frame"
   - Comparing a simulated flight path with the analytic ballistic curve on the same chart
   - "A mouse readout: intersecting the pick ray with the chart plane, no Stride UI needed"
   - A legend rebuilt from the live series list, with its ribbon buffers freed on every rebuild
