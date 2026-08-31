@@ -18,7 +18,7 @@ public sealed class SignalRHubClient : IAsyncDisposable
     private readonly List<IDisposable> _subscriptions = [];
     private readonly List<IStoppable> _sendQueues = [];
     private readonly ILogger<SignalRHubClient>? _logger;
-    private readonly string _hubUrl;
+    private readonly Uri _hubUrl;
 
     /// <summary>
     /// Active SignalR hub connection.
@@ -31,7 +31,7 @@ public sealed class SignalRHubClient : IAsyncDisposable
     /// <param name="hubUrl">Absolute hub URL.</param>
     /// <param name="configureBuilder">Optional builder customization callback.</param>
     /// <param name="logger">Optional logger.</param>
-    public SignalRHubClient(string hubUrl, Action<IHubConnectionBuilder>? configureBuilder = null, ILogger<SignalRHubClient>? logger = null)
+    public SignalRHubClient(Uri hubUrl, Action<IHubConnectionBuilder>? configureBuilder = null, ILogger<SignalRHubClient>? logger = null)
         : this(new SignalRClientOptions { HubUrl = hubUrl }, logger, configureBuilder)
     {
     }
@@ -45,7 +45,7 @@ public sealed class SignalRHubClient : IAsyncDisposable
     public SignalRHubClient(SignalRClientOptions options, ILogger<SignalRHubClient>? logger = null, Action<IHubConnectionBuilder>? configureBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(options);
-        if (string.IsNullOrWhiteSpace(options.HubUrl)) throw new ArgumentException("HubUrl must be provided", nameof(options));
+        if (options.HubUrl is null) throw new ArgumentException("HubUrl must be provided", nameof(options));
 
         _hubUrl = options.HubUrl;
 

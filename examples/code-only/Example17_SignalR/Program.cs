@@ -12,9 +12,13 @@ using var game = new Game();
 var strideLogger = GlobalLogger.GetLogger("SignalR");
 var loggerAdapter = new StrideLoggerAdapter<SignalRHubClient>(strideLogger);
 
-var hubUrl = $"{GameSettings.HubBaseUrl}/{GameSettings.HubUrl}";
+var hubUrl = new Uri(GameSettings.HubBaseUrl, GameSettings.HubPath);
 
-game.Services.AddService(new ScreenService(hubUrl, loggerAdapter));
+// Owned here rather than only registered: the service holds a live hub connection, and disposing it
+// closes that connection on the way out. Declared after the game so it is released before it.
+await using var screenService = new ScreenService(hubUrl, loggerAdapter);
+
+game.Services.AddService(screenService);
 
 game.Run(start: (Scene rootScene) =>
 {

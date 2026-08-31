@@ -36,7 +36,7 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapHub<Screen1Hub>(Constants.HubUrl);
+app.MapHub<Screen1Hub>(Constants.HubPath);
 
 app.Run();
 /*

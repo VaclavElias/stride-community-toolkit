@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace Example17_SignalR.SignalR;
 
-public class OutgoingQueue<T> : IStoppable
+public sealed class OutgoingQueue<T> : IStoppable, IDisposable
 {
     private readonly SignalRHubClient _owner;
     private readonly string _methodName;
@@ -19,6 +19,13 @@ public class OutgoingQueue<T> : IStoppable
     }
 
     public void Enqueue(T item) => _queue.Enqueue(item);
+
+    /// <summary>
+    /// Same work as <see cref="Stop"/>, which already cancels the loop and releases the token source.
+    /// Present so the type owns the disposal of the <see cref="CancellationTokenSource"/> it creates,
+    /// rather than leaving it to whoever remembers to call Stop. Safe to call twice.
+    /// </summary>
+    public void Dispose() => Stop();
 
     public void Stop()
     {

@@ -6,9 +6,9 @@ namespace Example17_SignalR.SignalR;
 public sealed class SignalRClientOptions
 {
     /// <summary>
-    /// Absolute hub URL (e.g. https://localhost:44304/screen1).
+    /// Absolute hub URL (e.g. https://localhost:44304/screen1). Required.
     /// </summary>
-    public string HubUrl { get; set; } = string.Empty;
+    public Uri? HubUrl { get; set; }
 
     /// <summary>
     /// Optional server timeout override.

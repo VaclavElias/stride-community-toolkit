@@ -27,7 +27,7 @@ public class RemovalQueueProcessorScript : AsyncScript
     /// <summary>
     /// Dequeues pending entities and removes them from the scene after broadcasting a removal request.
     /// </summary>
-    private void DrainRemovalQueue()
+    private static void DrainRemovalQueue()
     {
         while (ContactTriggerHandler.RemovalQueue.TryDequeue(out var entity))
         {
@@ -46,7 +46,7 @@ public class RemovalQueueProcessorScript : AsyncScript
     /// Broadcasts a <see cref="CountDto"/> to notify the hub about a unit removal.
     /// Destroyer entities are ignored.
     /// </summary>
-    private void BroadcastEntityRemovalRequest(Entity entity)
+    private static void BroadcastEntityRemovalRequest(Entity entity)
     {
         var robotComponent = entity.Get<RobotComponent>();
 

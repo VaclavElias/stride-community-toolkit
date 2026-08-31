@@ -40,7 +40,7 @@ public partial class Home(NavigationManager navigation) : IAsyncDisposable
     protected override async Task OnInitializedAsync()
     {
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(_navigation.ToAbsoluteUri(Constants.HubUrl))
+            .WithUrl(_navigation.ToAbsoluteUri(Constants.HubPath))
             .Build();
 
         _hubConnection.On(nameof(IScreenClient.ReceiveMessageAsync), (MessageDto dto) =>
