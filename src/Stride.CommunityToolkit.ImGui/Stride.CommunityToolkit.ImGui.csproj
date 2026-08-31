@@ -17,10 +17,9 @@ Depends on the Hexa.NET.ImGui package.$(StrideVersionNote)</Description>
     <Import Project="..\CommonSettings.props" />
 
     <ItemGroup>
-        <None Include="Assets\*.*" Pack="true" PackagePath="stride\Assets" />
-        <None Include="Resources\*.*" Pack="true" PackagePath="stride\Resources" />
-        <None Include="Effects\*.*" Pack="true" PackagePath="stride\Effects" />
-        <None Include="*.sdpkg" Pack="true" PackagePath="stride" />
+        <!-- Effects/ and the .sdpkg manifest are staged into the package by the Stride.AssetCompiler
+             targets below; hand-packing them shipped a manifest pointing at stride\Effects while the
+             shaders actually land in stride\Assets\Effects. -->
     </ItemGroup>
 
     <ItemGroup>

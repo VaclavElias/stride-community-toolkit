@@ -17,13 +17,11 @@ Ported from the Box2D testbed's solid_polygon shader (Erin Catto, MIT) and exten
     <Import Project="..\CommonSettings.props" />
 
     <ItemGroup>
-        <None Include="Effects\*.*" Pack="true" PackagePath="stride\Effects" />
-        <None Include="*.sdpkg" Pack="true" PackagePath="stride" />
-    </ItemGroup>
-
-    <ItemGroup>
         <!-- This library ships a shader. Shaders are assets compiled by the asset compiler according
-             to the Graphics API target, so the package that owns the shader owns the dependency. -->
+             to the Graphics API target, so the package that owns the shader owns the dependency.
+             Its targets also stage Effects/ into the package as stride/Assets/Effects and generate
+             the matching .sdpkg manifest - do not hand-write either, or the generated manifest is
+             replaced by one that points at a folder the package does not have. -->
         <PackageReference Include="Stride.AssetCompiler" Version="$(StrideVersion)" IncludeAssets="build;buildTransitive" />
     </ItemGroup>
 
