@@ -106,6 +106,30 @@ texture-times-colour and anisotropic-sampler variations copied from the editor.
 **In a game:** highlight and hologram materials, team colours set per instance, debug visualisation -
 any material whose definition is more natural as three lines of code than as an asset.
 
+### The transparency trap
+
+Asking for a translucent colour is not enough to get a translucent material. We learned this shading
+the area under a curve: the fill simply was not there, and forcing the colour opaque proved the
+geometry had been right all along. Three things have to line up.
+
+1. **A transparency feature.** `Attributes.Transparency = new MaterialTransparencyBlendFeature()` is
+   what sets a blend state on the pass and marks it transparent. Setting `MaterialPass.HasTransparency`
+   by hand looks like the same thing and is not: the generated shader never learns to blend.
+2. **A shading feature that writes the alpha.** `MaterialEmissiveMapFeature` only assigns
+   `shadingColorAlpha` when its `UseAlpha` flag is set; otherwise the material alpha comes from the
+   diffuse channel. If the colour carrying your alpha is the emissive one, say so.
+3. **Premultiplied colour.** Stride blends with `BlendStates.AlphaBlend`, which is *premultiplied*
+   (`One, InvSrcAlpha`), and the emissive and lit contributions are added to the shading colour without
+   being scaled by alpha. Run the value through `Color4.PremultiplyAlpha` after the colour-space
+   conversion; skip it and a half-transparent surface reads as a glowing one.
+
+The editor does all three: `ViewportGridGizmo.CreateColoredTextureMaterial` builds the descriptor and
+`UpdateGrids` premultiplies the colour it pushes into its parameter key. Bepu's `CollidableGizmo` is
+the shorter version of the same recipe.
+
+**In the toolkit:** `GizmoEmissiveColorMaterial.Create` follows this path automatically when the colour
+it is handed has an alpha below 255, and leaves opaque colours on the cheaper opaque path.
+
 ## CPU-side images: authoring textures pixel by pixel
 
 **Where:** `core/Stride.Foundation/Graphics/Image.cs` (note the home: this class moved from the old

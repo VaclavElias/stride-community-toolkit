@@ -43,8 +43,9 @@ public static class AreaExtensions
     /// <remarks>
     /// The material is emissive times a colour parameter with a transparency blend feature - the recipe the
     /// scene editor's grid gizmo uses, and the reason a fill can be translucent at all. An emissive material
-    /// without that feature ignores its alpha, which is why the gizmo material used for ribbons is not
-    /// reused here: a ribbon is opaque, a fill is not.
+    /// without that feature ignores its alpha entirely. The ribbon material (GizmoEmissiveColorMaterial)
+    /// follows the same recipe for translucent colours, but is lit and single-sided; a fill wants neither,
+    /// so it keeps its own descriptor.
     /// </remarks>
     /// <param name="game">The game whose graphics device the material is created on.</param>
     /// <param name="mesh">The mesh to draw.</param>
