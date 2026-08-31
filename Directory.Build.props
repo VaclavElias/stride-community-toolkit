@@ -9,6 +9,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <StrideVersion>4.4.0-beta5</StrideVersion>
+
+    <!--
+      Appended to every package <Description>. It has to be defined here, not in src/CommonSettings.props:
+      the package projects set Description before importing that file, and MSBuild expands properties in
+      evaluation order, so a note defined later would expand to nothing (which is what used to happen).
+    -->
+    <StrideVersionNote>
+
+Stride compatibility (each toolkit version is built for one Stride release):
+- Stride 4.4: this version
+- Stride 4.3: 1.0.0-preview.62
+- Stride 4.2: 1.0.0-preview.61
+
+Documentation: https://stride3d.github.io/stride-community-toolkit/
+Source and 50+ runnable examples: https://github.com/stride3d/stride-community-toolkit</StrideVersionNote>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SolutionDir)' != ''">

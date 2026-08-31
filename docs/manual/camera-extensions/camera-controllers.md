@@ -48,8 +48,8 @@ parameters rather than properties you set later.
 | Arrow keys | Move | `CameraMoveSpeed` (5 units/s) |
 | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | Move - **off by default**, see below | `EnableWasdMovement` |
 | Hold <kbd>Shift</kbd> | Move and zoom faster | `SpeedFactor` (×5) |
-| Mouse wheel | Zoom, 10 % of the view per notch | `ZoomStep` (0.1), `MinOrthographicSize` (0.1), `MaxOrthographicSize` (100) |
-| Middle mouse drag | Pan - the point under the cursor stays under the cursor | `EnableMouseDragPan` (on), `MouseDragButton` |
+| Mouse wheel | Zoom toward the cursor, 10 % of the view per notch | `ZoomStep` (0.1), `ZoomToCursor` (on), `MinOrthographicSize` (0.1), `MaxOrthographicSize` (100) |
+| Middle mouse drag | Pan - the point under the cursor stays under the cursor; wheel rolls are ignored while the wheel button is held | `EnableMouseDragPan` (on), `MouseDragButton` |
 | <kbd>H</kbd> | Reset to where the camera *started*, at `OrthographicSizeDefault` (10) | `OrthographicSizeDefault` |
 
 Three of those defaults are decisions rather than accidents:
@@ -128,6 +128,26 @@ anywhere - even before the controller has started - is respected. The 2D control
 parameter because the overlay belongs to the whole scene, not to the camera; move it with
 <kbd>F3</kbd> or set the position directly. Size, font and
 background of that block are the overlay's own settings - see [Debug Overlay](../rendering/debug-overlay.md).
+
+## The orbit controller
+
+`Basic3DOrbitCameraController` circles a target point instead of flying - the right camera for
+inspecting one thing: a scene centrepiece, a model viewer, a 3D chart. Attach it to a camera entity
+and set `Target`; the entity's starting position relative to the target provides the initial distance
+and angles, so framing the camera first (for example with a chart's `FrameCamera`) also frames the
+orbit.
+
+| Input | Action | Configure with |
+| --- | --- | --- |
+| Left mouse drag | Orbit around the target; pitch clamped to about ±85° | `OrbitButton`, `OrbitSensitivity`, `MinPitch`/`MaxPitch` |
+| Mouse wheel | Dolly in and out, 10 % of the distance per notch; ignored while middle-drag panning | `ZoomStep` (0.1), `MinDistance` (0.5), `MaxDistance` (500) |
+| Middle mouse drag | Pan the target - the point under the cursor stays roughly under the cursor | `PanButton` |
+| Hold Shift | Faster zoom and pan | `SpeedFactor` (5) |
+| H | Reset to the starting view | - |
+| F2 | Collapse or expand the help, with the live target, distance and angles | `HelpToggleKey`, `HelpCollapsed` |
+
+The charts playground uses it in `--3d` mode: the fly controller from `SetupBase3DScene` is removed
+and an orbit centred on the chart takes its place.
 
 ## When the defaults are wrong
 

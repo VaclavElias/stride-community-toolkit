@@ -12,6 +12,7 @@
     <Project Path="examples/code-only/Example01_Basic2DScene_Primitives/Example01_Basic2DScene_Primitives.csproj" />
     <Project Path="examples/code-only/Example01_Basic2DScene_SpawnMenu/Example01_Basic2DScene_SpawnMenu.csproj" />
     <Project Path="examples/code-only/Example01_Basic2DScene_StressPile/Example01_Basic2DScene_StressPile.csproj" Id="ecd38d72-a517-4abb-a465-e91b7a8d5c6b" />
+    <Project Path="examples/code-only/Example01_Basic2DScene_StressPile_Box2D/Example01_Basic2DScene_StressPile_Box2D.csproj" />
     <Project Path="examples/code-only/Example01_Basic3DScene/Example01_Basic3DScene.csproj" />
     <Project Path="examples/code-only/Example01_Basic3DScene_BulletPhysics/Example01_Basic3DScene_BulletPhysics.csproj" />
     <Project Path="examples/code-only/Example01_Basic3DScene_DPI_Aware/Example01_Basic3DScene_DPI_Aware.csproj" />
@@ -26,6 +27,8 @@
     <Project Path="examples/code-only/Example01_WorldText/Example01_WorldText.csproj" />
     <Project Path="examples/code-only/Example02_GiveMeACube/Example02_GiveMeACube.csproj" />
     <Project Path="examples/code-only/Example02_GiveMeACube_SimulationUpdate/Example02_GiveMeACube_SimulationUpdate.csproj" />
+    <Project Path="examples/code-only/Example02_Junkyard_Box2D/Example02_Junkyard_Box2D.csproj" Id="53e844c7-8e4e-45f2-8639-1d3d7b054825" />
+  <Project Path="examples/code-only/Example02_Junkyard_Playground_Box2D/Example02_Junkyard_Playground_Box2D.csproj" />
     <Project Path="examples/code-only/Example03_StrideUI_CapsuleAndWindow/Example03_StrideUI_CapsuleAndWindow.csproj" />
     <Project Path="examples/code-only/Example04_MyraUI/Example04_MyraUI.csproj">
       <Build Solution="Debug|*" Project="false" />
@@ -102,6 +105,7 @@
     <Build Solution="Debug|*" Project="false" />
   </Project>
   <Project Path="src/Stride.CommunityToolkit.Bepu/Stride.CommunityToolkit.Bepu.csproj" />
+  <Project Path="src/Stride.CommunityToolkit.Box2D/Stride.CommunityToolkit.Box2D.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Bullet/Stride.CommunityToolkit.Bullet.csproj" />
   <Project Path="src/Stride.CommunityToolkit.DebugShapes/Stride.CommunityToolkit.DebugShapes.csproj" />
   <Project Path="src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj" />

@@ -55,10 +55,5 @@ internal static partial class NativeMethods
 
     /// <summary>Win32 POINT; blittable, so it can be passed by value through LibraryImport.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct POINT
-    {
-        public readonly int X;
-        public readonly int Y;
-        public POINT(int x, int y) { X = x; Y = y; }
-    }
+    internal readonly record struct POINT(int X, int Y);
 }

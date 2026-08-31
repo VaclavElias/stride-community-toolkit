@@ -25,28 +25,28 @@ public abstract class AxialGizmo
     /// Defines the tessellation level of the Gizmo, which affects how smoothly the object is rendered.
     /// A higher value results in smoother rendering at the cost of performance.
     /// </summary>
-    protected const int GizmoTessellation = 64;
+    private protected const int GizmoTessellation = 64;
 
     /// <summary>
     /// The size of the object placed at the extremities of the Gizmo's axes (e.g., arrowheads or markers).
     /// </summary>
-    protected const float GizmoExtremitySize = 0.15f;
+    private protected const float GizmoExtremitySize = 0.15f;
 
     /// <summary>
     /// The scale factor of the object placed at the origin of the Gizmo, compared to the objects at the extremities.
     /// Typically, the object at the origin is larger to make it more noticeable.
     /// </summary>
-    protected const float GizmoOriginScale = 1.33f;
+    private protected const float GizmoOriginScale = 1.33f;
 
     /// <summary>
     /// The size of the Gizmo's small planes, which are used for transformations along specific axes or planes.
     /// </summary>
-    protected const float GizmoPlaneLength = 0.25f;
+    private protected const float GizmoPlaneLength = 0.25f;
 
     /// <summary>
     /// The default size of the Gizmo when rendered on the screen, measured in pixels. This controls how large the Gizmo appears relative to the screen.
     /// </summary>
-    protected const float GizmoDefaultSize = 133f;
+    private protected const float GizmoDefaultSize = 133f;
 
     private static readonly Color _redUniformColor = new(0xFC, 0x37, 0x37);
     private static readonly Color _greenUniformColor = new(0x32, 0xE3, 0x35);

@@ -58,13 +58,60 @@ public static class PolylineExtensions
         return ToEntity(game, mesh, options, name ?? "Segments");
     }
 
-    private static Entity ToEntity(IGame game, Mesh mesh, PolylineOptions options, string name)
+    /// <summary>
+    /// Creates an entity drawing several open polylines as one ribbon mesh with one material - the pieces a
+    /// clipped curve is cut into, or lines that belong together.
+    /// </summary>
+    /// <param name="game">The game whose graphics device the mesh is created on.</param>
+    /// <param name="polylines">The polylines; each needs at least two points, and at least one polyline is required.</param>
+    /// <param name="options">Width, colour, glow and plane; <see langword="null"/> for the defaults. <see cref="PolylineOptions.Closed"/> is ignored.</param>
+    /// <param name="name">The entity name, or <c>"Polylines"</c>.</param>
+    /// <returns>An entity holding a <see cref="ModelComponent"/>; add it to a scene or parent it to another entity.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="game"/> or <paramref name="polylines"/> is <see langword="null"/>.</exception>
+    public static Entity CreatePolylines(this IGame game, IReadOnlyList<IReadOnlyList<Vector3>> polylines, PolylineOptions? options = null, string? name = null)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(polylines);
+
+        options ??= new PolylineOptions();
+
+        var mesh = PolylineMeshBuilder.BuildMany(game.GraphicsDevice, polylines, options);
+
+        return ToEntity(game, mesh, options, name ?? "Polylines");
+    }
+
+    /// <summary>
+    /// Creates an entity drawing an already built polyline mesh with the usual emissive, double-sided
+    /// material - the path a <see cref="GrowingPolyline"/> takes, whose mesh exists before its points do.
+    /// </summary>
+    /// <param name="game">The game whose graphics device the material is created on.</param>
+    /// <param name="mesh">The mesh to draw; its buffers stay owned by whoever built them.</param>
+    /// <param name="options">Colour and glow; <see langword="null"/> for the defaults.</param>
+    /// <param name="name">The entity name, or <c>"Polyline"</c>.</param>
+    /// <returns>An entity holding a <see cref="ModelComponent"/>; add it to a scene or parent it to another entity.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="game"/> or <paramref name="mesh"/> is <see langword="null"/>.</exception>
+    public static Entity CreatePolylineEntity(this IGame game, Mesh mesh, PolylineOptions? options = null, string? name = null)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(mesh);
+
+        options ??= new PolylineOptions();
+
+        return ToEntity(game, mesh, options, name ?? "Polyline");
+    }
+
+    /// <summary>
+    /// Builds the usual emissive, double-sided polyline model for a mesh - what every entity factory here
+    /// wraps, and what a chart uses to swap the model on an existing entity when a curve is re-sampled.
+    /// </summary>
+    internal static ModelComponent CreateModel(IGame game, Mesh mesh, PolylineOptions options)
     {
         var material = GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, options.Color, options.EmissiveIntensity);
         material.Passes[0].CullMode = CullMode.None;
 
-        var model = new Model { mesh, material };
-
-        return new Entity(name) { new ModelComponent(model) };
+        return new ModelComponent(new Model { mesh, material });
     }
+
+    private static Entity ToEntity(IGame game, Mesh mesh, PolylineOptions options, string name)
+        => new(name) { CreateModel(game, mesh, options) };
 }

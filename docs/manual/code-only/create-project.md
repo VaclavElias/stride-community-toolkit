@@ -2,12 +2,12 @@
 
 ## Command line and Visual Studio Code
 
-The steps below show how to create a new Stride project using the command line. If you prefer Visual Studio Code, run the same commands from its integrated terminal.
+The steps below show how to create a new Stride project using the command line. If you prefer Visual Studio Code, run the same commands from its integrated terminal. For the shortest possible start - one `.cs` file, no project file at all - see [Create a File-Based App](create-file-based-app.md).
 
 > [!NOTE]
-> These instructions target Windows. While code-only projects can be built and run on Linux, the [setup is currently more involved](https://github.com/stride3d/stride/issues/2596). We're working to simplify it and will provide official guidance later.
+> These instructions target Windows. On Linux, reference `Stride.CommunityToolkit.Linux` instead of `Stride.CommunityToolkit.Windows` and set `<RuntimeIdentifier>linux-x64</RuntimeIdentifier>` in the project file; the Linux package copies the native libraries the asset compiler needs.
 >
-> If you're still on Stride 4.2, use `--version 1.0.0-preview.61` instead of `--prerelease`, which targets Stride 4.3.
+> Match the toolkit version to your Stride version - the table is in [Getting Started](../getting-started.md). `--prerelease` takes the newest preview, so on an older Stride pin it, for example `--version 1.0.0-preview.62` for Stride 4.3.
 
 1. Prerequisites: Make sure all prerequisites are installed. See [Getting started](../getting-started.md) for details.
 2. Create a console app. You can follow the official [Microsoft tutorial](https://learn.microsoft.com/en-gb/dotnet/core/tutorials/with-visual-studio-code) or run:

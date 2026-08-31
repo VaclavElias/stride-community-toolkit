@@ -334,10 +334,7 @@ public static class PrefabExtensions
     /// <exception cref="ArgumentException">If <paramref name="prefab"/> is <see langword="null"/>.</exception>
     public static List<Entity> Instantiate(this Prefab prefab, ref Vector3 translation, ref Quaternion rotation, ref Vector3 scale)
     {
-        if (prefab == null)
-        {
-            throw new ArgumentNullException(nameof(prefab));
-        }
+        ArgumentNullException.ThrowIfNull(prefab);
 
         Matrix localMatrix;
         Matrix.Transformation(ref scale, ref rotation, ref translation, out localMatrix);

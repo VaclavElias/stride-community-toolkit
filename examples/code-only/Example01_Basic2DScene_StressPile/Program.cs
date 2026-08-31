@@ -14,11 +14,12 @@ using Stride.Games;
 using Stride.Input;
 using Stride.Rendering;
 
-// Thousands of 2D bodies in one draw call, with the shape, the batch size and the spawn layout all
+// Thousands of 2D bodies in two draw calls - awake bodies through one master entity, sleeping
+// bodies tinted green through another - with the shape, the batch size and the spawn layout all
 // switchable while it runs.
 //
-// Everything is drawn by a single master entity, so every body on screen necessarily shares one
-// Model - shapes cannot be mixed. Changing shape therefore clears the pile and respawns it, while
+// Each sleep state is drawn by one master entity, so every body on screen necessarily shares one
+// of two Models - shapes cannot be mixed. Changing shape therefore clears the pile and respawns it, while
 // changing the layout or the batch size only affects what is spawned next.
 
 Vector3 wallHeight = new(1, 65, 1);
@@ -26,9 +27,10 @@ const float WallWidth = 100;
 const float SpawnHeight = 150;
 const float ColumnWidth = WallWidth - 30;
 
-// One Model per shape, built on first use and kept. Nine of them cost a few hundred KB, and it makes
-// switching back to a shape you have already used free.
+// One Model per shape and sleep state, built on first use and kept. Eighteen of them cost under a
+// megabyte, and it makes switching back to a shape you have already used free.
 Dictionary<PrimitiveModelType, Model> models = [];
+Dictionary<PrimitiveModelType, Model> sleepingModels = [];
 
 PrimitiveModelType[] shapes =
 [
@@ -49,8 +51,15 @@ var random = new Random(1);
 var bodies = new List<Entity>();
 
 Scene? scene = null;
-BufferedEntityInstancing? instancing = null;
-Entity? master = null;
+BufferedEntityInstancing? awakeInstancing = null;
+BufferedEntityInstancing? sleepingInstancing = null;
+Entity? awakeMaster = null;
+Entity? sleepingMaster = null;
+
+// Sleep-state tracking, aligned with the bodies list: which master each body is drawn by right now
+List<BodyComponent> bodyComponents = [];
+List<bool> awakeStates = [];
+int sleepingCount = 0;
 
 var shape = PrimitiveModelType.Sphere;
 var layout = SpawnLayout.Grid;
@@ -62,8 +71,9 @@ using var game = new Game();
 
 game.Run(start: Start, update: Update);
 
-// The buffered instancing owns its GPU buffers, and the engine never releases user-owned buffers
-instancing?.Dispose();
+// The buffered instancings own their GPU buffers, and the engine never releases user-owned buffers
+awakeInstancing?.Dispose();
+sleepingInstancing?.Dispose();
 
 void Start(Scene rootScene)
 {
@@ -87,8 +97,10 @@ void Start(Scene rootScene)
 
     CreateWall(new Vector3(-WallWidth / 2, 0, 0), wallHeight);
     CreateWall(new Vector3(WallWidth / 2, 0, 0), wallHeight);
-    CreateWall(new Vector3(-25, -46.6f, 0), new Vector3(58.3f, 1, 1), Quaternion.RotationZ(MathUtil.DegreesToRadians(-30)));
-    CreateWall(new Vector3(25, -46.6f, 0), new Vector3(58.3f, 1, 1), Quaternion.RotationZ(MathUtil.DegreesToRadians(30)));
+    // The ramps overlap deeply at the middle: with a shallow overlap, pressure from the pile
+    // squeezes boxes through the crack where they meet and fires them out at high speed
+    CreateWall(new Vector3(-23.27f, -47.6f, 0), new Vector3(62.3f, 1, 1), Quaternion.RotationZ(MathUtil.DegreesToRadians(-30)));
+    CreateWall(new Vector3(23.27f, -47.6f, 0), new Vector3(62.3f, 1, 1), Quaternion.RotationZ(MathUtil.DegreesToRadians(30)));
 
     SetupInstancing();
     SetupMenus();
@@ -119,20 +131,31 @@ void SetupInstancing()
     // wires up transform, skinning, material and lighting, but not instancing
     game.AddInstancingSupport();
 
-    instancing = new BufferedEntityInstancing(new BepuEntityInstancing());
+    awakeInstancing = new BufferedEntityInstancing(new BepuEntityInstancing());
+    sleepingInstancing = new BufferedEntityInstancing(new BepuEntityInstancing());
 
-    // One master for the whole run. Its Model is swapped when the shape changes; the instancing
-    // object is reused, because it grows its own buffers and retires the old ones safely
-    master = new Entity("BufferedMaster")
+    // One master per sleep state for the whole run. Their Models are swapped when the shape changes;
+    // the instancing objects are reused, because they grow their own buffers and retire the old ones
+    // safely. The sleeping master is where the sleep skip pays off: once the pile settles it holds
+    // every body, all asleep, and its gather and upload both stop.
+    awakeMaster = new Entity("AwakeMaster")
     {
         new ModelComponent(ModelFor(shape)),
-        new InstancingComponent { Type = instancing }
+        new InstancingComponent { Type = awakeInstancing }
     };
 
-    master.Scene = scene;
+    sleepingMaster = new Entity("SleepingMaster")
+    {
+        new ModelComponent(SleepingModelFor(shape)),
+        new InstancingComponent { Type = sleepingInstancing }
+    };
+
+    awakeMaster.Scene = scene;
+    sleepingMaster.Scene = scene;
 
     // Registers with the graphics compositor, not the scene, so it outlives anything in the scene
-    game.AddInstancingBufferUpload(instancing);
+    game.AddInstancingBufferUpload(awakeInstancing);
+    game.AddInstancingBufferUpload(sleepingInstancing);
 }
 
 /// <summary>Returns the shared model for a shape, building it once on first use.</summary>
@@ -146,6 +169,21 @@ Model ModelFor(PrimitiveModelType type)
     var model = game.Create3DPrimitive(type, new Primitive3DEntityOptions()).Get<ModelComponent>().Model;
 
     models[type] = model;
+
+    return model;
+}
+
+/// <summary>Returns the shared sleeping-tint model for a shape, building it once on first use.</summary>
+Model SleepingModelFor(PrimitiveModelType type)
+{
+    if (sleepingModels.TryGetValue(type, out var cached)) return cached;
+
+    var model = game.Create3DPrimitive(type, new Primitive3DEntityOptions
+    {
+        Material = game.CreateMaterial(Color.MediumSeaGreen)
+    }).Get<ModelComponent>().Model;
+
+    sleepingModels[type] = model;
 
     return model;
 }
@@ -201,7 +239,8 @@ void ChangeShape(PrimitiveModelType type)
 
     Clear();
 
-    master!.Get<ModelComponent>().Model = ModelFor(shape);
+    awakeMaster!.Get<ModelComponent>().Model = ModelFor(shape);
+    sleepingMaster!.Get<ModelComponent>().Model = SleepingModelFor(shape);
 
     SpawnBatch(batchSize);
 }
@@ -211,7 +250,8 @@ void Clear()
 {
     // Before the entities leave the scene: an entity removed from the scene stays registered with
     // the instancing, which would keep reading transforms off it and drawing ghosts
-    instancing?.Clear();
+    awakeInstancing?.Clear();
+    sleepingInstancing?.Clear();
 
     foreach (var body in bodies)
     {
@@ -219,6 +259,9 @@ void Clear()
     }
 
     bodies.Clear();
+    bodyComponents.Clear();
+    awakeStates.Clear();
+    sleepingCount = 0;
 }
 
 void SpawnBatch(int count)
@@ -274,16 +317,88 @@ void Spawn(Vector3 position)
 
     entity.Transform.Position = position;
 
-    instancing?.AddInstance(entity);
+    // New bodies are awake by definition; UpdateSleepTint moves them once Bepu puts them to sleep
+    awakeInstancing?.AddInstance(entity);
 
     entity.Scene = scene;
 
     bodies.Add(entity);
+    bodyComponents.Add(entity.Get<BodyComponent>()!);
+    awakeStates.Add(true);
 }
 
 void Update(Scene rootScene, GameTime time)
 {
+    UpdateSleepTint();
+    DespawnEscaped();
     HandleInput();
+}
+
+/// <summary>
+/// Moves bodies between the awake and sleeping masters as their sleep state changes, so the pile
+/// shows where the engine has stopped simulating. A body is in exactly one instancing at a time.
+/// </summary>
+void UpdateSleepTint()
+{
+    for (var i = 0; i < bodies.Count; i++)
+    {
+        var awake = bodyComponents[i].Awake;
+
+        if (awake == awakeStates[i]) continue;
+
+        awakeStates[i] = awake;
+
+        if (awake)
+        {
+            sleepingInstancing?.RemoveInstance(bodies[i]);
+            awakeInstancing?.AddInstance(bodies[i]);
+            sleepingCount--;
+        }
+        else
+        {
+            awakeInstancing?.RemoveInstance(bodies[i]);
+            sleepingInstancing?.AddInstance(bodies[i]);
+            sleepingCount++;
+        }
+    }
+
+    // An instancing with zero instances falls back to drawing the master's model once, un-instanced,
+    // at the master's own transform - a lone shape floating at the origin. Hide the master instead.
+    awakeMaster!.Get<ModelComponent>().Enabled = awakeInstancing!.RegisteredInstanceCount > 0;
+    sleepingMaster!.Get<ModelComponent>().Enabled = sleepingInstancing!.RegisteredInstanceCount > 0;
+}
+
+/// <summary>
+/// Removes bodies that were ejected from the arena. An escapee free-falls forever, so it never
+/// sleeps - it would keep the awake counter up and the instancing sleep-skip disabled for good.
+/// </summary>
+void DespawnEscaped()
+{
+    for (var i = bodies.Count - 1; i >= 0; i--)
+    {
+        var position = bodies[i].Transform.Position;
+
+        if (MathF.Abs(position.X) < 70f && position.Y > -70f) continue;
+
+        var entity = bodies[i];
+
+        if (awakeStates[i])
+        {
+            awakeInstancing?.RemoveInstance(entity);
+        }
+        else
+        {
+            sleepingInstancing?.RemoveInstance(entity);
+            sleepingCount--;
+        }
+
+        // Leaving the scene removes the Bepu body; there is no simulation to notify by hand
+        entity.Scene = null;
+
+        bodies.RemoveAt(i);
+        bodyComponents.RemoveAt(i);
+        awakeStates.RemoveAt(i);
+    }
 }
 
 void HandleInput()
@@ -322,7 +437,8 @@ IReadOnlyList<TextElement> BuildOverlayLines()
 {
     List<TextElement> lines =
     [
-        new($"{bodies.Count:N0} bodies, one draw call", Color.LightGreen),
+        new($"{bodies.Count:N0} bodies, two draw calls", Color.LightGreen),
+        new($"{bodies.Count - sleepingCount:N0} awake / {sleepingCount:N0} asleep", Color.MediumSeaGreen),
         new(string.Empty),
     ];
 
@@ -360,20 +476,22 @@ complexity: 4
 order: 60
 description:
   en: |-
-    Thousands of 2D physics bodies piling up, drawn in a single draw call through instancing, with the
-    shape, batch size and spawn layout switchable while it runs. Because one master entity draws every
-    body, all of them share a single Model and shapes cannot be mixed - changing shape clears and
+    Thousands of 2D physics bodies piling up, drawn in two instanced draw calls - awake bodies through
+    one master, sleeping bodies tinted green through another - with the shape, batch size and spawn
+    layout switchable while it runs. Because one master entity per sleep state draws every body, all
+    of them share one of two Models and shapes cannot be mixed - changing shape clears and
     respawns the pile, which the example uses to show how to tear a pile down safely. Models are cached
     per shape and the instancing object is reused rather than recreated, so switching costs nothing.
     Grid spawns are deliberately jittered: a perfectly regular lattice of touching bodies degenerates
     Bepu's broad-phase tree.
   cs: |-
-    Tisíce 2D fyzikálních těles se vrší na sebe a vykreslují se jediným voláním díky instancingu.
+    Tisíce 2D fyzikálních těles se vrší na sebe a vykreslují se dvěma voláními díky instancingu; spící tělesa se zbarví zeleně.
     Za běhu lze měnit tvar, velikost dávky i způsob rozmístění. Protože vše vykresluje jedna hlavní
     entita, sdílejí všechna tělesa jeden model a tvary nelze míchat - změna tvaru proto hromadu smaže
     a vytvoří znovu. Modely se ukládají do mezipaměti podle tvaru a instancing se používá opakovaně.
 concepts:
-  - Drawing thousands of physics bodies in a single draw call
+  - Drawing thousands of physics bodies in two instanced draw calls, split by sleep state
+  - Tinting sleeping bodies by moving instances between an awake and a sleeping master
   - Confining bodies to the XY plane with Body2DComponent
   - Sharing one Model across every body instead of generating one each
   - Tearing down an instanced pile safely, clearing the instancing before the entities
@@ -389,6 +507,7 @@ tags:
   - Draw Calls
   - Stress Test
 related:
+  - Example01_Basic2DScene_StressPile_Box2D
   - Example22_Instancing_EntityTransform
   - Example01_Basic2DScene_SpawnMenu
   - Example01_Basic2DScene_FallingShapes

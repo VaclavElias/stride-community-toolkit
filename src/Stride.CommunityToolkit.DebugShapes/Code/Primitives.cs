@@ -18,16 +18,6 @@ internal struct Primitives
     public int Cones;
     public int Lines;
 
-    public void Clear()
-    {
-        Quads = 0;
-        Circles = 0;
-        Spheres = 0;
-        HalfSpheres = 0;
-        Cubes = 0;
-        Capsules = 0;
-        Cylinders = 0;
-        Cones = 0;
-        Lines = 0;
-    }
+    /// <summary>Resets every count to zero.</summary>
+    internal void Clear() => this = default;
 }

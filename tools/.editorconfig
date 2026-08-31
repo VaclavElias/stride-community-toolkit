@@ -1,0 +1,9 @@
+# Analyzer tuning for the repository tools. This file layers on top of the repository root
+# .editorconfig (no root = true here); rules below are relaxed because these are in-repo console
+# tools, not shipped libraries.
+
+[*.cs]
+# CA1873 (avoid potentially expensive logging) asks for LoggerMessage delegates and IsEnabled guards.
+# The console logger is these tools' user interface and is always enabled, so there is nothing to
+# guard and nothing performance-sensitive to protect.
+dotnet_diagnostic.CA1873.severity = none

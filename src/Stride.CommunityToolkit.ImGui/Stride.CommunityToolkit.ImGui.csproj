@@ -1,10 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Title>Stride Community Toolkit - ImgGui</Title>
-        <Description>
-            A specialized extension of the Stride Community Toolkit, providing easy-to-use ImGui utilities for Stride projects. Enhance your Stride scenes with dynamic UI without needing additional assets or complex setup.$(StrideVersionNote)
-        </Description>
+        <Title>Stride Community Toolkit - ImGui</Title>
+        <Description>Dear ImGui for Stride through Hexa.NET.ImGui: an ImGuiSystem that renders ImGui over the scene and feeds it Stride's keyboard and mouse input, plus ready-made debug windows.
+
+What's inside:
+- ImGuiSystem: create it once after the graphics device exists; every window added afterwards is drawn through it
+- BaseWindow: derive from it to make your own window in a few lines
+- HierarchyView (scene tree with search), Inspector (read and edit any object's fields and properties live), PerfMonitor (frame time, memory, draw calls and per-thread sample strips)
+- ImGuiExtension: using-block helpers for windows, child regions, menus, combos, tooltips, columns and IDs, and Stride textures as ImGui images
+
+Depends on the Hexa.NET.ImGui package.$(StrideVersionNote)</Description>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 

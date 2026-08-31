@@ -200,6 +200,6 @@ public class BufferedEntityInstancing : InstancingUserBuffer, IInstancing, IDisp
         _disposed = true;
     }
 
-    private static Buffer CreateMatrixBuffer(GraphicsDevice device, int elementCount)
+    private static Buffer<Matrix> CreateMatrixBuffer(GraphicsDevice device, int elementCount)
         => Buffer.New<Matrix>(device, elementCount, BufferFlags.ShaderResource | BufferFlags.StructuredBuffer, GraphicsResourceUsage.Dynamic);
 }

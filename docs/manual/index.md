@@ -2,15 +2,16 @@
 
 [!INCLUDE [global-note](../includes/global-note.md)]
 
-The toolkit is a set of extensions and helpers for [Stride](https://www.stride3d.net/), an open-source C# game engine. Its largest piece is the **code-only** approach: building a Stride game from a plain C# project, with no editor and no asset pipeline.
+The toolkit is a set of extensions and helpers for [Stride](https://www.stride3d.net/), an open-source C# game engine. Its largest piece is the **code-only** approach: building a Stride game from a plain .NET project, with no editor and no asset pipeline.
 
-Nothing here is required to use Stride. Everything is an extension method or a small component you can read, copy and change.
+The toolkit is optional: Stride doesn't need it, and you can adopt as much or as little of it as you like. Everything is an extension method or a small component you can read, copy and change.
 
 ## Start here
 
 - **New to the toolkit?** [Getting Started](getting-started.md) gets the package installed and a window on screen.
 - **New to Stride itself?** [Components and Scripts](components-and-scripts.md) explains the entity-component model the rest of the manual assumes.
 - **Want to see it running first?** The [examples gallery](code-only/examples/index.md) is every code-only example with a screenshot. Each one is a complete program you can copy and run.
+- **Not writing C#?** The toolkit works from any .NET language. The gallery has [F#](code-only/examples/index.md#f-getting-started) and [Visual Basic](code-only/examples/index.md#visual-basic-getting-started) versions of the getting-started examples.
 
 ## What is in here
 

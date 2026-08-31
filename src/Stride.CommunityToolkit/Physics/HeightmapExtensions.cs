@@ -29,7 +29,7 @@ public static partial class HeightmapExtensions
     /// or float heightmaps HeightMultiplier=10000.0f (based on a short -32,768 to 32,767,
     /// sum yields 65,535 levels for much smoother maps).
     /// </summary>
-    public const float HeightMultiplier = 255.0f;
+    public static readonly float HeightMultiplier = 255.0f;
 
     //ToDo: Needs refactoring
     //Example of picking a Heightmap, and its extension
@@ -226,22 +226,15 @@ public static partial class HeightmapExtensions
             pos.X = minBounds.X;
             for (x = 0; x < numVertsX; x++)
             {
-                m_vertices[count].Position = new Vector3(pos.X,
-                    heightmap.GetHeightAt(x, z), pos.Z);
-                terrainPoints[count] = m_vertices[count].Position;
-                if (TEXTURE_REPEAT > 0)//whole terrain has the texture repeatedly
-                {
-                    m_vertices[count].TexCoord.X = m_QuadSideWidthX * TEXTURE_REPEAT * x / (float)numVertsX * tessellation;
-                    m_vertices[count].TexCoord.Y = m_QuadSideWidthZ * TEXTURE_REPEAT * (z * 1.0f) / (float)numVertsZ * tessellation;
-                }
-                else //make each quad have the texture
-                {
-                    m_vertices[count].TexCoord.X = m_QuadSideWidthX * x * tessellation;
-                    m_vertices[count].TexCoord.Y = m_QuadSideWidthZ * z * tessellation;
-                }
-                m_vertices[count].Normal = heightmap.GetNormal(x, z);
-                m_vertices[count].Tangent = heightmap.GetTangent(x, z);
-                m_vertices[count].Color = new Vector4(R, G, B, 255.0f);
+                var vertexPosition = new Vector3(pos.X, heightmap.GetHeightAt(x, z), pos.Z);
+                terrainPoints[count] = vertexPosition;
+
+                // TEXTURE_REPEAT > 0 tiles the texture over the whole terrain; otherwise each quad gets one copy.
+                var texCoord = TEXTURE_REPEAT > 0
+                    ? new Vector2(m_QuadSideWidthX * TEXTURE_REPEAT * x / (float)numVertsX * tessellation, m_QuadSideWidthZ * TEXTURE_REPEAT * (z * 1.0f) / (float)numVertsZ * tessellation)
+                    : new Vector2(m_QuadSideWidthX * x * tessellation, m_QuadSideWidthZ * z * tessellation);
+
+                m_vertices[count] = new VertexTypePosTexNormColor(vertexPosition, heightmap.GetNormal(x, z), heightmap.GetTangent(x, z), texCoord, new Vector4(R, G, B, 255.0f));
                 pos.X += stepX;
                 count++;
             }

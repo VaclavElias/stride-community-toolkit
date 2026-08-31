@@ -47,7 +47,7 @@ public class ImGuiSystem : GameSystemBase
     private ImGuiPlatformIOPtr _platform;
 
     // dependencies
-    private readonly IGame _game;
+    private readonly GameBase _game;
     private readonly InputManager input;
     private readonly GraphicsDevice device;
     private readonly GraphicsDeviceManager deviceManager;
@@ -61,7 +61,7 @@ public class ImGuiSystem : GameSystemBase
     private VertexBufferBinding vertexBinding;
     private IndexBufferBinding indexBinding;
     private EffectInstance imShader;
-    private readonly Dictionary<ImTextureID, Texture> _managedTextures = new();
+    private readonly ImGuiTextureManager _textures;
 
     private Dictionary<Keys, ImGuiKey> _keys = [];
     private bool _isFirstFrame = true;
@@ -106,6 +106,7 @@ public class ImGuiSystem : GameSystemBase
         context = Services.GetService<GraphicsContext>() ?? throw new InvalidOperationException("ImGuiSystem: GraphicsContext must be available!");
         effectSystem = Services.GetService<EffectSystem>() ?? throw new InvalidOperationException("ImGuiSystem: EffectSystem must be available!");
         commandList = context.CommandList;
+        _textures = new ImGuiTextureManager(device, commandList);
 
         ImGuiContext = CreateContext();
         SetCurrentContext(ImGuiContext);
@@ -136,9 +137,7 @@ public class ImGuiSystem : GameSystemBase
     /// <inheritdoc />
     protected override void Destroy()
     {
-        foreach (var texture in _managedTextures.Values)
-            texture.Dispose();
-        _managedTextures.Clear();
+        _textures.Dispose();
         vertexBinding.Buffer?.Dispose();
         indexBinding?.Buffer?.Dispose();
         imPipeline?.Dispose();
@@ -173,18 +172,18 @@ public class ImGuiSystem : GameSystemBase
         _keys.Add(Keys.Y, ImGuiKey.Y);
         _keys.Add(Keys.Z, ImGuiKey.Z);
 
-        setClipboardFn = SetClipboard;
-        getClipboardFn = GetClipboard;
+        _setClipboardFn = SetClipboard;
+        _getClipboardFn = GetClipboard;
 
-        _platform.PlatformSetClipboardTextFn = (void*)Marshal.GetFunctionPointerForDelegate(setClipboardFn);
-        _platform.PlatformGetClipboardTextFn = (void*)Marshal.GetFunctionPointerForDelegate(getClipboardFn);
+        _platform.PlatformSetClipboardTextFn = (void*)Marshal.GetFunctionPointerForDelegate(_setClipboardFn);
+        _platform.PlatformGetClipboardTextFn = (void*)Marshal.GetFunctionPointerForDelegate(_getClipboardFn);
     }
 
     [FixedAddressValueType]
-    static SetClipboardDelegate? setClipboardFn;
+    static SetClipboardDelegate? _setClipboardFn;
 
     [FixedAddressValueType]
-    static GetClipboardDelegate? getClipboardFn;
+    static GetClipboardDelegate? _getClipboardFn;
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     unsafe delegate void SetClipboardDelegate(ImGuiContextPtr ctx, byte* text);
@@ -192,7 +191,7 @@ public class ImGuiSystem : GameSystemBase
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     unsafe delegate byte* GetClipboardDelegate(ImGuiContextPtr ctx);
 
-    unsafe void SetClipboard(ImGuiContextPtr ctx, byte* text)
+    static unsafe void SetClipboard(ImGuiContextPtr ctx, byte* text)
     {
     }
 
@@ -257,79 +256,6 @@ public class ImGuiSystem : GameSystemBase
         vertexBinding = vertexBufferBinding;
     }
 
-    // Dear ImGui 1.92+ texture event handlers (RendererHasTextures protocol)
-
-    unsafe void ProcessTextureUpdates(ImDrawDataPtr drawData)
-    {
-        if (drawData.Handle->Textures == null) return;
-        var textures = drawData.Textures;
-        for (int i = 0; i < textures.Size; i++)
-        {
-            ImTextureDataPtr textureData = textures.Data[i];
-            switch (textureData.Status)
-            {
-                case ImTextureStatus.WantCreate:
-                    CreateManagedTexture(textureData);
-                    break;
-                case ImTextureStatus.WantUpdates:
-                    UpdateManagedTexture(textureData);
-                    break;
-                case ImTextureStatus.WantDestroy:
-                    DestroyManagedTexture(textureData);
-                    break;
-            }
-        }
-    }
-
-    unsafe void CreateManagedTexture(ImTextureDataPtr textureData)
-    {
-        var pixelFormat = textureData.Format == ImTextureFormat.Rgba32
-            ? PixelFormat.R8G8B8A8_UNorm
-            : PixelFormat.R8_UNorm;
-        var newTexture = Texture.New2D(device, textureData.Width, textureData.Height, pixelFormat, TextureFlags.ShaderResource);
-        newTexture.SetData(commandList, new ReadOnlySpan<byte>(textureData.Pixels, textureData.GetSizeInBytes()));
-
-        // Use high-bit sentinel to distinguish ImGui-managed IDs from ImGuiExtension user-texture IDs (which start from 1)
-        var managedId = (ImTextureID)(nint)(0x80000000u | (uint)textureData.UniqueID);
-        textureData.SetTexID(managedId);
-        _managedTextures[managedId] = newTexture;
-        textureData.SetStatus(ImTextureStatus.Ok);
-    }
-
-    unsafe void UpdateManagedTexture(ImTextureDataPtr textureData)
-    {
-        var texId = textureData.GetTexID();
-        if (_managedTextures.TryGetValue(texId, out var existing))
-        {
-            var pixelFormat = textureData.Format == ImTextureFormat.Rgba32
-                ? PixelFormat.R8G8B8A8_UNorm
-                : PixelFormat.R8_UNorm;
-            if (existing.Width != textureData.Width || existing.Height != textureData.Height)
-            {
-                existing.Dispose();
-                var newTexture = Texture.New2D(device, textureData.Width, textureData.Height, pixelFormat, TextureFlags.ShaderResource);
-                newTexture.SetData(commandList, new ReadOnlySpan<byte>(textureData.Pixels, textureData.GetSizeInBytes()));
-                _managedTextures[texId] = newTexture;
-            }
-            else
-            {
-                existing.SetData(commandList, new ReadOnlySpan<byte>(textureData.Pixels, textureData.GetSizeInBytes()));
-            }
-        }
-        textureData.SetStatus(ImTextureStatus.Ok);
-    }
-
-    void DestroyManagedTexture(ImTextureDataPtr textureData)
-    {
-        var texId = textureData.GetTexID();
-        if (_managedTextures.TryGetValue(texId, out var texture))
-        {
-            texture.Dispose();
-            _managedTextures.Remove(texId);
-        }
-        textureData.SetStatus(ImTextureStatus.Ok);
-    }
-
     /// <summary>
     /// Forwards this frame's input and display size to ImGui and begins a new ImGui frame. Windows build their UI in
     /// their own <c>Update</c>, which runs after this one.
@@ -347,6 +273,26 @@ public class ImGuiSystem : GameSystemBase
         _io.DisplaySize = new System.Numerics.Vector2(surfaceSize.Width, surfaceSize.Height);
         _io.DeltaTime = deltaTime;
 
+        FeedInput();
+
+        // An update that never reached a draw left a frame open. Close it before starting the next one,
+        // discarding its draw data - the frame it belonged to is not being presented anyway.
+        if (_frameBegun)
+        {
+            Hexa.NET.ImGui.ImGui.EndFrame();
+        }
+
+        Hexa.NET.ImGui.ImGui.NewFrame();
+        _frameBegun = true;
+    }
+
+
+    /// <summary>
+    /// Feeds one frame of Stride input into ImGui: mouse position and buttons, text, keys, wheel and
+    /// modifiers. Skipped while the mouse is position-locked, matching the previous inline behaviour.
+    /// </summary>
+    void FeedInput()
+    {
         if (input.HasMouse == false || input.IsMousePositionLocked == false)
         {
             var mousePos = input.AbsoluteMousePosition;
@@ -361,43 +307,46 @@ public class ImGuiSystem : GameSystemBase
                 input.TextInput.DisableTextInput();
             }
 
-            // handle input events
-            foreach (InputEvent ev in input.Events)
-            {
-                switch (ev)
-                {
-                    case TextInputEvent tev:
-                        if (tev.Text == "\t") continue;
-                        _io.AddInputCharactersUTF8(tev.Text);
-                        break;
-                    case KeyEvent kev:
-                        if (_keys.TryGetValue(kev.Key, out var imGuiKey))
-                            _io.AddKeyEvent(imGuiKey, input.IsKeyDown(kev.Key));
-                        break;
-                    case MouseWheelEvent mw:
-                        _io.AddMouseWheelEvent(0, mw.WheelDelta);
-                        break;
-                }
-            }
-
-            _io.AddMouseButtonEvent(0, input.IsMouseButtonDown(MouseButton.Left));
-            _io.AddMouseButtonEvent(1, input.IsMouseButtonDown(MouseButton.Right));
-            _io.AddMouseButtonEvent(2, input.IsMouseButtonDown(MouseButton.Middle));
-
-            _io.AddKeyEvent(ImGuiKey.ModAlt, input.IsKeyDown(Keys.LeftAlt) || input.IsKeyDown(Keys.RightAlt));
-            _io.AddKeyEvent(ImGuiKey.ModShift, input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift));
-            _io.AddKeyEvent(ImGuiKey.ModCtrl, input.IsKeyDown(Keys.LeftCtrl) || input.IsKeyDown(Keys.RightCtrl));
-            _io.AddKeyEvent(ImGuiKey.ModSuper, input.IsKeyDown(Keys.LeftWin) || input.IsKeyDown(Keys.RightWin));
+            ForwardInputEvents();
+            ForwardMouseButtonsAndModifiers();
         }
-        // An update that never reached a draw left a frame open. Close it before starting the next one,
-        // discarding its draw data - the frame it belonged to is not being presented anyway.
-        if (_frameBegun)
+    }
+
+
+    /// <summary>Forwards this frame's text, key and wheel events to ImGui.</summary>
+    void ForwardInputEvents()
+    {
+        // handle input events
+        foreach (InputEvent ev in input.Events)
         {
-            Hexa.NET.ImGui.ImGui.EndFrame();
+            switch (ev)
+            {
+            case TextInputEvent tev:
+                if (tev.Text == "\t") continue;
+                _io.AddInputCharactersUTF8(tev.Text);
+                break;
+            case KeyEvent kev:
+                if (_keys.TryGetValue(kev.Key, out var imGuiKey))
+                    _io.AddKeyEvent(imGuiKey, input.IsKeyDown(kev.Key));
+                break;
+            case MouseWheelEvent mw:
+                _io.AddMouseWheelEvent(0, mw.WheelDelta);
+                break;
+            }
         }
+    }
 
-        Hexa.NET.ImGui.ImGui.NewFrame();
-        _frameBegun = true;
+    /// <summary>Forwards the mouse button and modifier key states to ImGui.</summary>
+    void ForwardMouseButtonsAndModifiers()
+    {
+        _io.AddMouseButtonEvent(0, input.IsMouseButtonDown(MouseButton.Left));
+        _io.AddMouseButtonEvent(1, input.IsMouseButtonDown(MouseButton.Right));
+        _io.AddMouseButtonEvent(2, input.IsMouseButtonDown(MouseButton.Middle));
+
+        _io.AddKeyEvent(ImGuiKey.ModAlt, input.IsKeyDown(Keys.LeftAlt) || input.IsKeyDown(Keys.RightAlt));
+        _io.AddKeyEvent(ImGuiKey.ModShift, input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift));
+        _io.AddKeyEvent(ImGuiKey.ModCtrl, input.IsKeyDown(Keys.LeftCtrl) || input.IsKeyDown(Keys.RightCtrl));
+        _io.AddKeyEvent(ImGuiKey.ModSuper, input.IsKeyDown(Keys.LeftWin) || input.IsKeyDown(Keys.RightWin));
     }
 
     /// <summary>
@@ -417,7 +366,7 @@ public class ImGuiSystem : GameSystemBase
         _frameBegun = false;
 
         var drawData = Hexa.NET.ImGui.ImGui.GetDrawData();
-        ProcessTextureUpdates(drawData);
+        _textures.ProcessTextureUpdates(drawData);
         RenderDrawLists(drawData);
         ImGuiExtension.ClearTextures();
     }
@@ -474,8 +423,7 @@ public class ImGuiSystem : GameSystemBase
         commandList.SetIndexBuffer(indexBinding.Buffer, 0, is32Bits);
 
         // Seed with the first available managed texture (font atlas) as the initial shader binding
-        Texture? currentTexture = null;
-        foreach (var t in _managedTextures.Values) { currentTexture = t; break; }
+        Texture? currentTexture = _textures.FirstTexture();
         if (currentTexture != null)
             imShader.Parameters.Set(ImGuiShaderKeys.tex, currentTexture);
 
@@ -493,7 +441,7 @@ public class ImGuiSystem : GameSystemBase
                 // managed (font atlas, ImGui-internal) textures have high-bit IDs;
                 // user textures registered via ImGuiExtension use small sequential IDs.
                 var texId = cmd.TexRef.GetTexID();
-                if (_managedTextures.TryGetValue(texId, out var managedTexture))
+                if (_textures.TryGet(texId, out var managedTexture))
                 {
                     imShader.Parameters.Set(ImGuiShaderKeys.tex, managedTexture);
                 }

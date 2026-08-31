@@ -45,37 +45,7 @@ public class ImmediateDebugRenderFeature : RootRenderFeature
 
         foreach (RenderObject renderObject in RenderObjects)
         {
-            ImmediateDebugRenderObject debugObject = (ImmediateDebugRenderObject)renderObject;
-
-            int primitivesWithDepth = DebugPrimitiveRenderer.SumBasicPrimitives(ref debugObject.totalPrimitives);
-            int primitivesWithoutDepth = DebugPrimitiveRenderer.SumBasicPrimitives(ref debugObject.totalPrimitivesNoDepth);
-            int totalThingsToDraw = primitivesWithDepth + primitivesWithoutDepth;
-
-            _primitiveRenderer.EnsureCapacity(totalThingsToDraw, debugObject.totalPrimitives.Lines * 2 + debugObject.totalPrimitivesNoDepth.Lines * 2);
-
-            var primitiveOffsets = DebugPrimitiveRenderer.SetupPrimitiveOffsets(ref debugObject.totalPrimitives, lastOffset);
-            var primitiveOffsetsNoDepth = DebugPrimitiveRenderer.SetupPrimitiveOffsets(ref debugObject.totalPrimitivesNoDepth, primitiveOffsets.Cones + debugObject.totalPrimitives.Cones);
-
-            primitiveOffsets.Lines = 0 + lastLineOffset;
-            primitiveOffsetsNoDepth.Lines = debugObject.totalPrimitives.Lines * 2 + lastLineOffset;
-
-            debugObject.instanceOffsets = primitiveOffsets;
-            debugObject.instanceOffsetsNoDepth = primitiveOffsetsNoDepth;
-
-            _primitiveRenderer.ProcessRenderables(debugObject.renderablesWithDepth, ref primitiveOffsets);
-            _primitiveRenderer.ProcessRenderables(debugObject.renderablesNoDepth, ref primitiveOffsetsNoDepth);
-
-            debugObject.primitivesToDraw = debugObject.totalPrimitives;
-            debugObject.primitivesToDrawNoDepth = debugObject.totalPrimitivesNoDepth;
-
-            lastOffset = debugObject.instanceOffsetsNoDepth.Cones + debugObject.totalPrimitivesNoDepth.Cones;
-            lastLineOffset = debugObject.instanceOffsetsNoDepth.Lines + debugObject.totalPrimitivesNoDepth.Lines * 2;
-
-            // Clear per-frame message queues
-            debugObject.renderablesWithDepth.Clear();
-            debugObject.renderablesNoDepth.Clear();
-            debugObject.totalPrimitives.Clear();
-            debugObject.totalPrimitivesNoDepth.Clear();
+            (lastOffset, lastLineOffset) = ((ImmediateDebugRenderObject)renderObject).ExtractFrame(_primitiveRenderer, lastOffset, lastLineOffset);
         }
     }
 

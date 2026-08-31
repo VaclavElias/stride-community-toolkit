@@ -184,7 +184,6 @@ public class ShapeUpdater : SyncScript
         var posSpan = CollectionsMarshal.AsSpan(_primitivePositions);
         var rotSpan = CollectionsMarshal.AsSpan(_primitiveRotations);
         var velSpan = CollectionsMarshal.AsSpan(_primitiveVelocities);
-        var rvelSpan = CollectionsMarshal.AsSpan(_primitiveRotVelocities);
         var colSpan = CollectionsMarshal.AsSpan(_primitiveColors);
 
         int currentShape = 0;
@@ -193,37 +192,54 @@ public class ShapeUpdater : SyncScript
             ref readonly var position = ref posSpan[i];
             ref readonly var rotation = ref rotSpan[i];
             ref readonly var velocity = ref velSpan[i];
-            ref readonly var rotVelocity = ref rvelSpan[i];
             ref readonly var color = ref colSpan[i];
 
-            switch (_mode)
+            if (_mode == CurrentRenderMode.All)
             {
-                case CurrentRenderMode.All:
-                    switch (currentShape++)
-                    {
-                        case 0: _debugDraw.DrawSphere(position, 0.5f, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                        case 1: _debugDraw.DrawCube(position, new Vector3(1, 1, 1), rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                        case 2: _debugDraw.DrawCapsule(position, 2.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                        case 3: _debugDraw.DrawCylinder(position, 2.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                        case 4: _debugDraw.DrawCone(position, 1.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                        case 5: _debugDraw.DrawRay(position, velocity, color, depthTest: _useDepthTesting); break;
-                        case 6: _debugDraw.DrawQuad(position, new Vector2(1.0f), rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                        case 7: _debugDraw.DrawCircle(position, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                        case 8: _debugDraw.DrawHalfSphere(position, 0.5f, color, rotation, depthTest: _useDepthTesting, solid: !_useWireframe); currentShape = 0; break;
-                    }
-                    break;
-                case CurrentRenderMode.Quad: _debugDraw.DrawQuad(position, new Vector2(1.0f), rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                case CurrentRenderMode.Circle: _debugDraw.DrawCircle(position, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                case CurrentRenderMode.Sphere: _debugDraw.DrawSphere(position, 0.5f, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                case CurrentRenderMode.HalfSphere: _debugDraw.DrawHalfSphere(position, 0.5f, color, rotation, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                case CurrentRenderMode.Cube: _debugDraw.DrawCube(position, new Vector3(1, 1, 1), rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe && i % 2 == 0); break;
-                case CurrentRenderMode.Capsule: _debugDraw.DrawCapsule(position, 2.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                case CurrentRenderMode.Cylinder: _debugDraw.DrawCylinder(position, 2.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                case CurrentRenderMode.Cone: _debugDraw.DrawCone(position, 1.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                case CurrentRenderMode.Ray: _debugDraw.DrawRay(position, velocity, color, depthTest: _useDepthTesting); break;
-                case CurrentRenderMode.Arrow: _debugDraw.DrawArrow(position, position + velocity, color: color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
-                case CurrentRenderMode.None: break;
+                currentShape = DrawNextShapeInCycle(currentShape, in position, in rotation, in velocity, in color);
             }
+            else
+            {
+                DrawShapeForMode(i, in position, in rotation, in velocity, in color);
+            }
+        }
+    }
+
+    /// <summary>Draws the next shape of the nine-shape cycle used by <see cref="CurrentRenderMode.All"/>.</summary>
+    private int DrawNextShapeInCycle(int currentShape, in Vector3 position, in Quaternion rotation, in Vector3 velocity, in Color color)
+    {
+        switch (currentShape++)
+        {
+            case 0: _debugDraw!.DrawSphere(position, 0.5f, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case 1: _debugDraw!.DrawCube(position, new Vector3(1, 1, 1), rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case 2: _debugDraw!.DrawCapsule(position, 2.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case 3: _debugDraw!.DrawCylinder(position, 2.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case 4: _debugDraw!.DrawCone(position, 1.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case 5: _debugDraw!.DrawRay(position, velocity, color, depthTest: _useDepthTesting); break;
+            case 6: _debugDraw!.DrawQuad(position, new Vector2(1.0f), rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case 7: _debugDraw!.DrawCircle(position, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case 8: _debugDraw!.DrawHalfSphere(position, 0.5f, color, rotation, depthTest: _useDepthTesting, solid: !_useWireframe); currentShape = 0; break;
+        }
+
+        return currentShape;
+    }
+
+    /// <summary>Draws the shape selected by <see cref="_mode"/> for one primitive.</summary>
+    private void DrawShapeForMode(int index, in Vector3 position, in Quaternion rotation, in Vector3 velocity, in Color color)
+    {
+        switch (_mode)
+        {
+            case CurrentRenderMode.Quad: _debugDraw!.DrawQuad(position, new Vector2(1.0f), rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case CurrentRenderMode.Circle: _debugDraw!.DrawCircle(position, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case CurrentRenderMode.Sphere: _debugDraw!.DrawSphere(position, 0.5f, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case CurrentRenderMode.HalfSphere: _debugDraw!.DrawHalfSphere(position, 0.5f, color, rotation, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case CurrentRenderMode.Cube: _debugDraw!.DrawCube(position, new Vector3(1, 1, 1), rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe && index % 2 == 0); break;
+            case CurrentRenderMode.Capsule: _debugDraw!.DrawCapsule(position, 2.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case CurrentRenderMode.Cylinder: _debugDraw!.DrawCylinder(position, 2.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case CurrentRenderMode.Cone: _debugDraw!.DrawCone(position, 1.0f, 0.5f, rotation, color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case CurrentRenderMode.Ray: _debugDraw!.DrawRay(position, velocity, color, depthTest: _useDepthTesting); break;
+            case CurrentRenderMode.Arrow: _debugDraw!.DrawArrow(position, position + velocity, color: color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
+            case CurrentRenderMode.None: break;
         }
     }
 

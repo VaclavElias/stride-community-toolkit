@@ -1,7 +1,5 @@
 using Stride.CommunityToolkit.Renderers;
 using Stride.CommunityToolkit.Rendering.Text;
-using Stride.Core.Diagnostics;
-using Stride.Core.Serialization.Contents;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Graphics.Font;
@@ -39,13 +37,8 @@ public sealed class DebugOverlay : GameSystemBase
 {
     private readonly List<DebugOverlaySection> _sections = [];
 
-    private static readonly Logger Log = GlobalLogger.GetLogger(nameof(DebugOverlay));
-
     private SpriteBatch? _spriteBatch;
-    private SpriteFont? _defaultFont;
-    private SpriteFont? _systemFont;
-    private string? _systemFontKey;
-    private bool _systemFontFailed;
+    private readonly DebugOverlayFontResolver _fontResolver = new();
     private Texture? _background;
     private InputManager? _input;
     private IGraphicsDeviceService? _graphicsDeviceService;
@@ -306,7 +299,7 @@ public sealed class DebugOverlay : GameSystemBase
         // Stride's DebugTextSystem draws an 8 by 16 pixel bitmap font at a fixed size with a grey strip
         // baked into every glyph. Drawing with a real font through the sprite batch instead is what makes
         // Scale, FontSize and BackgroundColor possible, and keeps the text sharp at any size.
-        var font = ResolveFont(content);
+        var font = _fontResolver.Resolve(this, content, Services);
         _spriteBatch ??= new SpriteBatch(device);
         _background ??= ScreenTextDrawer.CreateBackgroundTexture(device);
 
@@ -388,226 +381,13 @@ public sealed class DebugOverlay : GameSystemBase
         _spriteBatch = null;
         _background?.Dispose();
         _background = null;
-        _systemFont?.Dispose();
-        _systemFont = null;
+        _fontResolver.Dispose();
 
         base.Destroy();
     }
 
     /// <summary><see cref="Scale"/> with nonsense values clamped away.</summary>
     private float EffectiveScale => Math.Max(0.25f, Scale);
-
-    /// <summary>
-    /// <see cref="Font"/> if set; otherwise an installed font - <see cref="FontName"/>, or the first of <see cref="FontFamily"/> 's candidates that is present - registered with Stride's font system from its file the first time it is needed; otherwise Stride's default font.
-    /// </summary>
-    private SpriteFont ResolveFont(IContentManager content)
-    {
-        if (Font != null) return Font;
-
-        var key = $"{FontFamily}|{FontName}|{FontStyle}|{FontFile}";
-
-        if (key != _systemFontKey)
-        {
-            _systemFont?.Dispose();
-            _systemFont = null;
-            _systemFontKey = key;
-            _systemFontFailed = false;
-        }
-
-        if (_systemFont is null && !_systemFontFailed)
-        {
-            _systemFont = TryLoadSystemFont();
-            _systemFontFailed = _systemFont is null;
-        }
-
-        return _systemFont ?? (_defaultFont ??= content.Load<SpriteFont>(RendererDefaults.DefaultFontPath));
-    }
-
-    private SpriteFont? TryLoadSystemFont()
-    {
-        var fontSystem = Services.GetService<FontSystem>();
-
-        if (fontSystem is null)
-        {
-            Log.Warning("No FontSystem service; drawing with Stride's default font.");
-            return null;
-        }
-
-        var style = FontStyle;
-        var families = FontName is { Length: > 0 } explicitName ? [explicitName] : FamilyCandidates(FontFamily);
-
-        try
-        {
-            foreach (var family in families)
-            {
-                var runtimeFonts = fontSystem.RuntimeFonts;
-
-                if (!runtimeFonts.IsRegistered(family, style))
-                {
-                    var path = FontFile ?? FindSystemFontFile(family, style);
-
-                    if (path is null) continue;
-
-                    runtimeFonts.RegisterFont(family, path, style);
-                }
-
-                return fontSystem.LoadRuntimeFont(family, FontSize, style);
-            }
-
-            Log.Warning($"None of the fonts {string.Join(", ", families)} ({style}) were found in the system font folders; drawing with Stride's default font instead.");
-        }
-        catch (Exception exception)
-        {
-            Log.Warning($"The overlay font could not be loaded; drawing with Stride's default font instead. {exception.Message}");
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// The families tried, in order, for a <see cref="DebugOverlayFontFamily"/> on the current operating system - the platform's usual screen font first, then the metric-compatible families other platforms ship, so a font is nearly always found without any being bundled.
-    /// </summary>
-    private static string[] FamilyCandidates(DebugOverlayFontFamily family)
-    {
-        var monospace = family == DebugOverlayFontFamily.Monospace;
-
-        if (OperatingSystem.IsWindows())
-        {
-            return monospace
-                ? ["Consolas", "Cascadia Mono", "Courier New", "DejaVu Sans Mono"]
-                : ["Segoe UI", "Arial", "DejaVu Sans"];
-        }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            return monospace
-                ? ["Menlo", "Courier New", "DejaVu Sans Mono"]
-                : ["Helvetica", "Arial", "DejaVu Sans"];
-        }
-
-        return monospace
-            ? ["DejaVu Sans Mono", "Liberation Mono", "Courier New"]
-            : ["Liberation Sans", "DejaVu Sans", "Arial"];
-    }
-
-    /// <summary>
-    /// Looks for the font file of a family in the operating system's font folders, using the known file names of the common families and the usual naming conventions for the rest.
-    /// </summary>
-    private static string? FindSystemFontFile(string family, FontStyle style)
-    {
-        var directories = SystemFontDirectories().Where(Directory.Exists).ToList();
-
-        if (directories.Count == 0) return null;
-
-        var wanted = new HashSet<string>(FileNameCandidates(family, style), StringComparer.OrdinalIgnoreCase);
-
-        foreach (var directory in directories)
-        {
-            IEnumerable<string> files;
-
-            try
-            {
-                files = Directory.EnumerateFiles(directory, "*.*", SearchOption.AllDirectories);
-            }
-            catch (Exception)
-            {
-                continue;
-            }
-
-            foreach (var file in files)
-            {
-                var extension = Path.GetExtension(file);
-
-                if (!extension.Equals(".ttf", StringComparison.OrdinalIgnoreCase)
-                    && !extension.Equals(".otf", StringComparison.OrdinalIgnoreCase)
-                    && !extension.Equals(".ttc", StringComparison.OrdinalIgnoreCase))
-                { continue; }
-
-                if (wanted.Contains(Path.GetFileNameWithoutExtension(file)))
-                    return file;
-            }
-        }
-
-        return null;
-    }
-
-    private static IEnumerable<string> SystemFontDirectories()
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts");
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Windows", "Fonts");
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            yield return "/System/Library/Fonts";
-            yield return "/Library/Fonts";
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Fonts");
-        }
-        else
-        {
-            yield return "/usr/share/fonts";
-            yield return "/usr/local/share/fonts";
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fonts");
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "fonts");
-        }
-    }
-
-    /// <summary>
-    /// File names (without extension) of the common families per style, for the ones whose files are not named after the family: Windows' classic eight-character names and macOS' collections. Anything else is tried under the usual conventions - "Family", "Family-Bold", "FamilyBold" and so on.
-    /// </summary>
-    private static readonly Dictionary<string, string[]> KnownFontFiles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        // Regular, Bold, Italic, BoldItalic
-        ["Consolas"] = ["consola", "consolab", "consolai", "consolaz"],
-        ["Courier New"] = ["cour", "courbd", "couri", "courbi"],
-        ["Arial"] = ["arial", "arialbd", "ariali", "arialbi"],
-        ["Segoe UI"] = ["segoeui", "segoeuib", "segoeuii", "segoeuiz"],
-        ["Times New Roman"] = ["times", "timesbd", "timesi", "timesbi"],
-        ["Verdana"] = ["verdana", "verdanab", "verdanai", "verdanaz"],
-        ["Tahoma"] = ["tahoma", "tahomabd", "tahoma", "tahomabd"],
-        ["Cascadia Mono"] = ["CascadiaMono", "CascadiaMono", "CascadiaMonoItalic", "CascadiaMonoItalic"],
-        ["Menlo"] = ["Menlo", "Menlo", "Menlo", "Menlo"],
-        ["Helvetica"] = ["Helvetica", "Helvetica", "Helvetica", "Helvetica"],
-        ["DejaVu Sans"] = ["DejaVuSans", "DejaVuSans-Bold", "DejaVuSans-Oblique", "DejaVuSans-BoldOblique"],
-        ["DejaVu Sans Mono"] = ["DejaVuSansMono", "DejaVuSansMono-Bold", "DejaVuSansMono-Oblique", "DejaVuSansMono-BoldOblique"],
-    };
-
-    private static IEnumerable<string> FileNameCandidates(string family, FontStyle style)
-    {
-        var bold = (style & FontStyle.Bold) == FontStyle.Bold;
-        var italic = (style & FontStyle.Italic) == FontStyle.Italic;
-        var styleIndex = (bold ? 1 : 0) + (italic ? 2 : 0);
-
-        if (KnownFontFiles.TryGetValue(family, out var known))
-            yield return known[styleIndex];
-
-        var compact = family.Replace(" ", string.Empty);
-
-        var suffixes = styleIndex switch
-        {
-            3 => new[] { "-BoldItalic", "BoldItalic", " Bold Italic", "bi", "z" },
-            1 => new[] { "-Bold", "Bold", " Bold", "bd", "b" },
-            2 => new[] { "-Italic", "Italic", " Italic", "i" },
-            _ => new[] { string.Empty, "-Regular", "Regular", " Regular" },
-        };
-
-        foreach (var suffix in suffixes)
-        {
-            yield return compact + suffix;
-            yield return family + suffix;
-        }
-    }
-
-    /// <summary>
-    /// Produces a readable name for a key, so <see cref="Keys.D2"/> shows as "2" rather than "D2".
-    /// </summary>
-    private static string DescribeKey(Keys key) => key switch
-    {
-        >= Keys.D0 and <= Keys.D9 => ((char)('0' + (key - Keys.D0))).ToString(),
-        >= Keys.NumPad0 and <= Keys.NumPad9 => ((char)('0' + (key - Keys.NumPad0))).ToString(),
-        _ => key.ToString()
-    };
 
     private List<TextElement> CollectLines()
     {
@@ -631,7 +411,7 @@ public sealed class DebugOverlay : GameSystemBase
             {
                 var marker = section.Collapsed ? CollapsedMarker : ExpandedMarker;
 
-                lines.Add(new($"{DescribeKey(section.ToggleKey!.Value)} - {section.Title} {marker}", TitleColor));
+                lines.Add(new($"{KeyNames.Describe(section.ToggleKey!.Value)} - {section.Title} {marker}", TitleColor));
             }
             else if (!string.IsNullOrEmpty(section.Title))
             {

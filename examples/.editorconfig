@@ -1,0 +1,9 @@
+# Analyzer tuning for the examples. This file layers on top of the repository root .editorconfig
+# (no root = true here); rules below are relaxed because examples are standalone teaching code,
+# not shipped libraries.
+
+[*.cs]
+# CA1873 (avoid potentially expensive logging) asks for LoggerMessage delegates and IsEnabled guards.
+# Examples log generously on purpose, and plain log calls are what they should teach; none of this
+# code is performance-sensitive.
+dotnet_diagnostic.CA1873.severity = none

@@ -2,12 +2,12 @@ using Stride.Core;
 using Stride.Core.Reflection;
 using System.Reflection;
 
-namespace Stride.CommunityToolkit;
+namespace Stride.CommunityToolkit.ImGui;
 
-internal class Module
+internal static class Module
 {
     [ModuleInitializer]
-    public static void Initialize()
+    internal static void Initialize()
     {
         AssemblyRegistry.Register(typeof(Module).GetTypeInfo().Assembly, AssemblyCommonCategories.Assets);
     }

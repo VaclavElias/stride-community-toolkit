@@ -1,8 +1,8 @@
 using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu.Extensions;
+using Stride.Core.Mathematics;
 using Stride.Graphics.GeometricPrimitives;
 using Stride.Rendering.ProceduralModels;
-using System.Numerics;
 
 namespace Stride.CommunityToolkit.Bepu.Colliders;
 

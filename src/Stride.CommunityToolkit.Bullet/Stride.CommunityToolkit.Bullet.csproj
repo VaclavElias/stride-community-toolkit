@@ -2,9 +2,14 @@
 
     <PropertyGroup>
         <Title>Stride Community Toolkit - Bullet Physics</Title>
-        <Description>
-            A specialized extension of the Stride Community Toolkit, providing easy-to-use Bullet Physics utilities for Stride projects. Enhance your Stride scenes with realistic physics simulations without needing additional assets or complex setup.$(StrideVersionNote)
-        </Description>
+        <Description>Bullet Physics helpers for the Stride Community Toolkit, for projects on Stride's Bullet-based physics.
+
+What's inside:
+- SetupBase3DScene / SetupBase2DScene with Bullet physics
+- Create3DPrimitive / Create2DPrimitive with a matching Bullet collider, plus Add3DGround, Add2DGround and AddInfinite3DGround
+- Raycasting from a camera, the mouse, an entity or a RaySegment, including penetrating casts that return every hit
+
+Maintenance mode: kept working, not extended. New projects should use Stride.CommunityToolkit.Bepu.$(StrideVersionNote)</Description>
     </PropertyGroup>
 
     <Import Project="..\CommonSettings.props" />

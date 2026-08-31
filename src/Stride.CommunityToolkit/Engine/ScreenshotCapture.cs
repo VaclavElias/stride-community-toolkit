@@ -43,7 +43,7 @@ public static class ScreenshotCapture
     /// Late enough for the first shaders to have compiled and for a scene to have settled into
     /// something worth looking at, short enough that capturing sixty examples is not an afternoon.
     /// </remarks>
-    public const int DefaultFrame = 240;
+    public static readonly int DefaultFrame = 240;
 
     /// <summary>
     /// Schedules a capture if the environment asks for one.
@@ -94,7 +94,7 @@ public static class ScreenshotCapture
         private int _frame;
         private bool _captured;
 
-        public ScreenshotSystem(Game game, string outputPath, int targetFrame)
+        internal ScreenshotSystem(Game game, string outputPath, int targetFrame)
             : base(game.Services)
         {
             _game = game;

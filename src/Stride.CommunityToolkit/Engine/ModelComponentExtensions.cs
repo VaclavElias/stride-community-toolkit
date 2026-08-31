@@ -338,9 +338,9 @@ public static class ModelComponentExtensions
         return material.Passes[passIndex].Parameters;
     }
 
-    private class ModelComponentMaterialCopy : Material
+    private sealed class ModelComponentMaterialCopy : Material
     {
-        public required ModelComponent ModelComponent { get; init; }
+        internal required ModelComponent ModelComponent { get; init; }
     }
 
     private static unsafe (List<Vector3> vertices, List<int> indices) GetMeshData(Model model, IGame game)

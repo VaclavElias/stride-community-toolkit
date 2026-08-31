@@ -4,6 +4,8 @@
   href: getting-started.md
 - name: Components and Scripts
   href: components-and-scripts.md
+- name: Engine Patterns
+  href: engine-patterns.md
 # - name: What's new in docs
 #   href: whats-new.md
 - name: Code-Only
@@ -11,6 +13,8 @@
   items:
   - name: Create Project
     href: code-only/create-project.md
+  - name: Create File-Based App
+    href: code-only/create-file-based-app.md
   - name: Examples (56)
     # href supplies the children (the generated per-level toc); topicHref makes the node itself
     # clickable, landing on the visual gallery.

@@ -23,7 +23,7 @@ internal static class ScreenTextDrawer
     /// <param name="screenSize">Size of the render target in pixels.</param>
     /// <param name="screenPosition">The resulting pixel position.</param>
     /// <returns><see langword="false"/> when the point is behind the camera or outside the view.</returns>
-    public static bool TryProject(Vector3 worldPosition, ref Matrix viewProjection, Vector2 screenSize, out Vector2 screenPosition)
+    internal static bool TryProject(Vector3 worldPosition, ref Matrix viewProjection, Vector2 screenSize, out Vector2 screenPosition)
     {
         screenPosition = default;
 
@@ -57,7 +57,7 @@ internal static class ScreenTextDrawer
     /// <param name="position">Where to draw it, in pixels.</param>
     /// <param name="textSize">The measured size of the text, before <see cref="ScreenTextStyle.Scale"/>.</param>
     /// <param name="style">How to draw it.</param>
-    public static void Draw(
+    internal static void Draw(
         SpriteBatch spriteBatch,
         Texture? backgroundTexture,
         string text,
@@ -127,7 +127,7 @@ internal static class ScreenTextDrawer
     /// <summary>
     /// Maps an anchor to the fraction of the text's width and height sitting before the anchor point.
     /// </summary>
-    public static Vector2 GetAnchorFactor(TextAnchor anchor) => anchor switch
+    internal static Vector2 GetAnchorFactor(TextAnchor anchor) => anchor switch
     {
         TextAnchor.TopLeft => new Vector2(0f, 0f),
         TextAnchor.TopCenter => new Vector2(0.5f, 0f),
@@ -150,7 +150,7 @@ internal static class ScreenTextDrawer
     /// default background in as well, squaring the colour and its alpha - which is why a background
     /// asked for at alpha 0.01 arrived at 0.0001 and never appeared.
     /// </remarks>
-    public static Texture CreateBackgroundTexture(GraphicsDevice graphicsDevice)
+    internal static Texture CreateBackgroundTexture(GraphicsDevice graphicsDevice)
         => Texture.New2D(graphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, [Color.White]);
 
     private static Color4 WithOpacity(Color color, float opacity)

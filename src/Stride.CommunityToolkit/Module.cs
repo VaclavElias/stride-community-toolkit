@@ -3,10 +3,10 @@ using System.Reflection;
 
 namespace Stride.CommunityToolkit;
 
-internal class Module
+internal static class Module
 {
     [ModuleInitializer]
-    public static void Initialize()
+    internal static void Initialize()
     {
         AssemblyRegistry.Register(typeof(Module).GetTypeInfo().Assembly, AssemblyCommonCategories.Assets);
     }

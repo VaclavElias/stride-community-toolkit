@@ -5,23 +5,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Box2D.NET" Version="3.1.654" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Bepu\Stride.CommunityToolkit.Bepu.csproj" />
+        <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Box2D\Stride.CommunityToolkit.Box2D.csproj" />
         <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Skyboxes\Stride.CommunityToolkit.Skyboxes.csproj" />
         <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Windows\Stride.CommunityToolkit.Windows.csproj" />
         <ProjectReference Include="..\Example.Common\Example.Common.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Update="Effects\OuterOutline2DShader.sdsl">
-            <LastGenOutput>OuterOutline2DShader.sdsl.cs</LastGenOutput>
-        </None>
-        <None Update="Effects\SDFPerimeterOutline2DShader.sdsl">
-            <LastGenOutput>SDFPerimeterOutline2DShader.sdsl.cs</LastGenOutput>
-        </None>
     </ItemGroup>
 
 </Project>

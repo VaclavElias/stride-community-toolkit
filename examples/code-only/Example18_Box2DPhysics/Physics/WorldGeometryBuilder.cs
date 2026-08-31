@@ -1,5 +1,6 @@
 using Box2D.NET;
 using Example18_Box2DPhysics.Helpers;
+using Stride.CommunityToolkit.Box2D;
 using Stride.Core.Mathematics;
 using static Box2D.NET.B2Bodies;
 using static Box2D.NET.B2Geometries;
@@ -25,7 +26,7 @@ public static class WorldGeometryBuilder
 
         var groundId = b2CreateBody(worldId, in def);
         var groundBox = b2MakeBox(groundSize.X, groundSize.Y);
-        var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
+        var shapeDef = ShapeFixtureBuilder.CreateCustomShapeDef(GameConfig.DefaultDensity, GameConfig.DefaultFriction, GameConfig.DefaultRestitution);
 
         shapeDef.material.friction = 0.6f;
 
@@ -55,7 +56,7 @@ public static class WorldGeometryBuilder
             def.name = "Wall";
             var bodyId = b2CreateBody(worldId, in def);
             var box = b2MakeBox(c.Size.X, c.Size.Y);
-            var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
+            var shapeDef = ShapeFixtureBuilder.CreateCustomShapeDef(GameConfig.DefaultDensity, GameConfig.DefaultFriction, GameConfig.DefaultRestitution);
             b2CreatePolygonShape(bodyId, in shapeDef, in box);
             walls.Add(bodyId);
         }

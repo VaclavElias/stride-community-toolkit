@@ -2,9 +2,12 @@
 
     <PropertyGroup>
         <Title>Stride Community Toolkit - DebugShapes</Title>
-        <Description>
-            A specialized extension of the Stride Community Toolkit, providing easy-to-use Debug shapes to be able to visualize and debug your Stride scenes. Enhance your Stride scenes with dynamic models without needing additional assets or complex setup.$(StrideVersionNote)
-        </Description>
+        <Description>Immediate-mode debug shapes for Stride: draw lines, arrows, cubes, spheres, half spheres, capsules, cylinders, cones, circles, quads and bounds from any script, for one frame or for a set time, and they disappear when you stop drawing.
+
+What's inside:
+- ImmediateDebugRenderSystem, registered with game.AddDebugShapes(): DrawLine, DrawArrow, DrawCube, DrawSphere, DrawCapsule, DrawCylinder, DrawCone, DrawCircle, DrawQuad, DrawBounds and more, solid or wireframe, with or without depth test
+- Thousands of shapes per frame in a handful of instanced draw calls: no entities, models or assets involved
+- Works in code-only and Game Studio projects; the render feature is added to the graphics compositor for you$(StrideVersionNote)</Description>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 

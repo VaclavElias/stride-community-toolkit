@@ -14,7 +14,7 @@ internal sealed class PrimitivePipeline
     private readonly InputElementDescription[] _inputElements;
     private readonly InputElementDescription[] _lineInputElements;
 
-    public PrimitivePipeline(MutablePipelineState pipelineState,
+    internal PrimitivePipeline(MutablePipelineState pipelineState,
                              DynamicEffectInstance primitiveEffect,
                              DynamicEffectInstance lineEffect,
                              InputElementDescription[] inputElements,
@@ -30,7 +30,7 @@ internal sealed class PrimitivePipeline
     /// <summary>
     /// Configures the pipeline for triangle primitives.
     /// </summary>
-    public void ConfigurePrimitivePipeline(CommandList commandList, bool depthTest, FillMode selectedFillMode, bool isDoubleSided, bool hasTransparency)
+    internal void ConfigurePrimitivePipeline(CommandList commandList, bool depthTest, FillMode selectedFillMode, bool isDoubleSided, bool hasTransparency)
     {
         _pipelineState.State.SetDefaults();
         _pipelineState.State.PrimitiveType = PrimitiveType.TriangleList;
@@ -48,7 +48,7 @@ internal sealed class PrimitivePipeline
     /// <summary>
     /// Configures the pipeline for line primitives.
     /// </summary>
-    public void ConfigureLinePipeline(CommandList commandList, bool depthTest, bool hasTransparency)
+    internal void ConfigureLinePipeline(CommandList commandList, bool depthTest, bool hasTransparency)
     {
         _pipelineState.State.SetDefaults();
         _pipelineState.State.PrimitiveType = PrimitiveType.LineList;

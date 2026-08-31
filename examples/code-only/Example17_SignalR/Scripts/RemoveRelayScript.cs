@@ -19,7 +19,7 @@ public sealed class RemoveRelayScript : AsyncScript
 
         if (_screenService is null) return;
 
-        var removeRequestReceiver = new EventReceiver<CountDto>(GlobalEvents.RemoveRequestEventKey);
+        using var removeRequestReceiver = new EventReceiver<CountDto>(GlobalEvents.RemoveRequestEventKey);
 
         while (Game.IsRunning)
         {

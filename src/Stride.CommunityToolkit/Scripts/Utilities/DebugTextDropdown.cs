@@ -215,7 +215,7 @@ public class DebugTextDropdown
     /// </remarks>
     public IReadOnlyList<TextElement> GetLines()
     {
-        var key = DescribeKey(ToggleKey);
+        var key = KeyNames.Describe(ToggleKey);
 
         if (!IsOpen)
         {
@@ -234,19 +234,9 @@ public class DebugTextDropdown
             var item = Items[i];
             var colour = i == SelectedIndex ? SelectedColor ?? item.Color : item.Color;
 
-            lines.Add(new($"  {DescribeKey(item.Key)} - {item.Text}", colour));
+            lines.Add(new($"  {KeyNames.Describe(item.Key)} - {item.Text}", colour));
         }
 
         return lines;
     }
-
-    /// <summary>
-    /// Produces a readable name for a key, so <see cref="Keys.D2"/> shows as "2" rather than "D2".
-    /// </summary>
-    private static string DescribeKey(Keys key) => key switch
-    {
-        >= Keys.D0 and <= Keys.D9 => ((char)('0' + (key - Keys.D0))).ToString(),
-        >= Keys.NumPad0 and <= Keys.NumPad9 => ((char)('0' + (key - Keys.NumPad0))).ToString(),
-        _ => key.ToString()
-    };
 }

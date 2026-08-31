@@ -18,7 +18,7 @@ public class ImmediateDebugRenderObject : RenderObject
     internal readonly List<Renderable> renderablesNoDepth = [];
 
     /* accumulators used when data is being pushed to the system */
-    internal Primitives totalPrimitives, totalPrimitivesNoDepth;
+    private Primitives totalPrimitives, totalPrimitivesNoDepth;
 
     /* used to specify offset into instance data buffers when drawing */
     internal Primitives instanceOffsets, instanceOffsetsNoDepth;
@@ -246,5 +246,46 @@ public class ImmediateDebugRenderObject : RenderObject
             renderablesNoDepth.Add(msg);
             totalPrimitivesNoDepth.Lines++;
         }
+    }
+
+    /// <summary>
+    /// Ends the frame for this object: turns everything queued since the last call into draw counts and
+    /// instance offsets, hands the instance data to <paramref name="renderer"/>, and clears the queues.
+    /// </summary>
+    /// <param name="renderer">Destination for the instance data.</param>
+    /// <param name="instanceOffset">First free instance slot; objects extracted earlier this frame occupy the slots below it.</param>
+    /// <param name="lineOffset">First free line-vertex slot.</param>
+    /// <returns>The first free instance and line-vertex slots after this object's data.</returns>
+    internal (int InstanceOffset, int LineOffset) ExtractFrame(DebugPrimitiveRenderer renderer, int instanceOffset, int lineOffset)
+    {
+        int primitivesWithDepth = DebugPrimitiveRenderer.SumBasicPrimitives(ref totalPrimitives);
+        int primitivesWithoutDepth = DebugPrimitiveRenderer.SumBasicPrimitives(ref totalPrimitivesNoDepth);
+
+        renderer.EnsureCapacity(primitivesWithDepth + primitivesWithoutDepth, totalPrimitives.Lines * 2 + totalPrimitivesNoDepth.Lines * 2);
+
+        var primitiveOffsets = DebugPrimitiveRenderer.SetupPrimitiveOffsets(ref totalPrimitives, instanceOffset);
+        var primitiveOffsetsNoDepth = DebugPrimitiveRenderer.SetupPrimitiveOffsets(ref totalPrimitivesNoDepth, primitiveOffsets.Cones + totalPrimitives.Cones);
+
+        primitiveOffsets.Lines = lineOffset;
+        primitiveOffsetsNoDepth.Lines = totalPrimitives.Lines * 2 + lineOffset;
+
+        instanceOffsets = primitiveOffsets;
+        instanceOffsetsNoDepth = primitiveOffsetsNoDepth;
+
+        renderer.ProcessRenderables(renderablesWithDepth, ref primitiveOffsets);
+        renderer.ProcessRenderables(renderablesNoDepth, ref primitiveOffsetsNoDepth);
+
+        primitivesToDraw = totalPrimitives;
+        primitivesToDrawNoDepth = totalPrimitivesNoDepth;
+
+        var next = (instanceOffsetsNoDepth.Cones + totalPrimitivesNoDepth.Cones, instanceOffsetsNoDepth.Lines + totalPrimitivesNoDepth.Lines * 2);
+
+        // Clear per-frame message queues
+        renderablesWithDepth.Clear();
+        renderablesNoDepth.Clear();
+        totalPrimitives.Clear();
+        totalPrimitivesNoDepth.Clear();
+
+        return next;
     }
 }

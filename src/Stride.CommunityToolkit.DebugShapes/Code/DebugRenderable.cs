@@ -9,66 +9,75 @@ namespace Stride.CommunityToolkit.DebugShapes.Code;
 [StructLayout(LayoutKind.Explicit)]
 internal struct DebugRenderable
 {
-    internal DebugRenderable(ref Quad q, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref Quad q, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.Quad;
         Flags = renderFlags;
+        Lifetime = lifetime;
         QuadData = q;
     }
 
-    internal DebugRenderable(ref Circle c, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref Circle c, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.Circle;
         Flags = renderFlags;
+        Lifetime = lifetime;
         CircleData = c;
     }
 
-    internal DebugRenderable(ref Line l, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref Line l, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.Line;
         Flags = renderFlags;
+        Lifetime = lifetime;
         LineData = l;
     }
 
-    internal DebugRenderable(ref Cube b, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref Cube b, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.Cube;
         Flags = renderFlags;
+        Lifetime = lifetime;
         CubeData = b;
     }
 
-    internal DebugRenderable(ref Sphere s, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref Sphere s, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.Sphere;
         Flags = renderFlags;
+        Lifetime = lifetime;
         SphereData = s;
     }
 
-    internal DebugRenderable(ref HalfSphere h, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref HalfSphere h, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.HalfSphere;
         Flags = renderFlags;
+        Lifetime = lifetime;
         HalfSphereData = h;
     }
 
-    internal DebugRenderable(ref Capsule c, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref Capsule c, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.Capsule;
         Flags = renderFlags;
+        Lifetime = lifetime;
         CapsuleData = c;
     }
 
-    internal DebugRenderable(ref Cylinder c, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref Cylinder c, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.Cylinder;
         Flags = renderFlags;
+        Lifetime = lifetime;
         CylinderData = c;
     }
 
-    internal DebugRenderable(ref Cone c, DebugRenderableFlags renderFlags) : this()
+    internal DebugRenderable(ref Cone c, DebugRenderableFlags renderFlags, float lifetime = 0f) : this()
     {
         Type = DebugPrimitiveType.Cone;
         Flags = renderFlags;
+        Lifetime = lifetime;
         ConeData = c;
     }
 

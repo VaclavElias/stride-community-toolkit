@@ -86,12 +86,12 @@ public class GameProfiler : AsyncScript
                 // Toggle the filtering mode
                 if (Input.IsKeyPressed(Keys.F1))
                 {
-                    FilteringMode = (GameProfilingResults)(((int)FilteringMode + 1) % Enum.GetValues(typeof(GameProfilingResults)).Length);
+                    FilteringMode = (GameProfilingResults)(((int)FilteringMode + 1) % Enum.GetValues<GameProfilingResults>().Length);
                 }
                 // Toggle the sorting mode
                 if (Input.IsKeyPressed(Keys.F2))
                 {
-                    SortingMode = (GameProfilingSorting)(((int)SortingMode + 1) % Enum.GetValues(typeof(GameProfilingSorting)).Length);
+                    SortingMode = (GameProfilingSorting)(((int)SortingMode + 1) % Enum.GetValues<GameProfilingSorting>().Length);
                 }
 
                 // Update the result page

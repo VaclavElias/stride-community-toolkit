@@ -68,7 +68,7 @@ public readonly struct RaySegment : IEquatable<RaySegment>, IFormattable
     /// </returns>
     public override string ToString()
     {
-        return string.Format(CultureInfo.CurrentCulture, ToStringFormat, Start.ToString(), End.ToString());
+        return string.Format(CultureInfo.CurrentCulture, ToStringFormat, Start, End);
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public readonly struct RaySegment : IEquatable<RaySegment>, IFormattable
     /// </returns>
     public string ToString(IFormatProvider formatProvider)
     {
-        return string.Format(formatProvider, ToStringFormat, Start.ToString(), End.ToString());
+        return string.Format(formatProvider, ToStringFormat, Start, End);
     }
 
     /// <summary>

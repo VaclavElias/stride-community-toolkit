@@ -53,8 +53,15 @@ public static class WindowsDpiManager
 
         try
         {
-            // 0=Unaware, 1=System, 2=PerMonitor
-            NativeMethods.SetProcessDpiAwareness(2);
+            // 0=Unaware, 1=System, 2=PerMonitor. Returns an HRESULT; E_ACCESSDENIED (0x80070005) means the
+            // awareness was already fixed by a manifest or an earlier call, so a failure is only worth a debug line.
+            var result = NativeMethods.SetProcessDpiAwareness(2);
+#if DEBUG
+            if (result < 0)
+            {
+                Debug.WriteLine($"WindowsDpiManager.EnablePerMonitorV2 fallback returned HRESULT 0x{result:X8}.");
+            }
+#endif
         }
         catch (Exception ex)
         {
