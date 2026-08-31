@@ -81,6 +81,7 @@ void Start(Scene rootScene)
     camera.OrthographicSize = 60;
 
     debugDraw = game.AddBox2DDebugDraw();
+    debugDraw.BorderWidth = 1f;
 
     simulation = new Box2DSimulation();
 

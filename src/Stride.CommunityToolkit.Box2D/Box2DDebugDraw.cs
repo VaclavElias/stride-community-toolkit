@@ -53,6 +53,12 @@ public sealed class Box2DDebugDraw : RenderObject
     internal readonly List<PolygonInstance> Instances = [];
 
     /// <summary>
+    /// Border width in on-screen pixels, constant at any zoom. The testbed default is 3; set 0 for
+    /// borderless fills. Takes effect the next frame.
+    /// </summary>
+    public float BorderWidth { get; set; } = 3f;
+
+    /// <summary>
     /// Submits a solid convex polygon for this frame.
     /// </summary>
     /// <param name="vertices">The polygon corners in local space, counter-clockwise, at most 8.</param>

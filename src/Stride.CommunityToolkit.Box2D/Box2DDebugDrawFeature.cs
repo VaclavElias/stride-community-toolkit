@@ -79,6 +79,7 @@ public class Box2DDebugDrawFeature : RootRenderFeature
             _effect.UpdateEffect(context.GraphicsDevice);
             _effect.Parameters.Set(Box2DDebugShaderKeys.ViewProjection, renderView.ViewProjection);
             _effect.Parameters.Set(Box2DDebugShaderKeys.PixelScale, pixelScale);
+            _effect.Parameters.Set(Box2DDebugShaderKeys.BorderPixels, batch.BorderWidth);
             _effect.Parameters.Set(Box2DDebugShaderKeys.Polygons, _instanceBuffer);
 
             _pipelineState.State.RootSignature = _effect.RootSignature;

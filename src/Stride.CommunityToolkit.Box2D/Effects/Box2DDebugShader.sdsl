@@ -27,6 +27,9 @@ namespace Stride.CommunityToolkit.Box2D
         // Pixels per world unit, so the border keeps a constant on-screen width
         float PixelScale;
 
+        // Border width in pixels (the testbed uses 3)
+        float BorderPixels = 3.0;
+
         StructuredBuffer<PolygonData> Polygons;
 
         stream float2 LocalPosition : POSITION;
@@ -86,7 +89,7 @@ namespace Stride.CommunityToolkit.Box2D
 
             streams.FragRadius = invScale * data.Radius;
             streams.FragCount = count;
-            streams.FragThickness = 3.0 / (PixelScale * scale);
+            streams.FragThickness = BorderPixels / (PixelScale * scale);
             streams.FragColor = BitsToColor(data.Color);
             streams.FragPosition = streams.LocalPosition;
 
