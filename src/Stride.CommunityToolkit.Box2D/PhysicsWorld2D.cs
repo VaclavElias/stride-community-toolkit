@@ -98,8 +98,9 @@ public sealed class PhysicsWorld2D : IDisposable
     /// </summary>
     /// <param name="deltaSeconds">Elapsed real time in seconds since the last call.</param>
     /// <param name="perFixedStep">Optional callback invoked after each fixed step with the step duration.</param>
+    /// <param name="beforeFixedStep">Optional callback invoked before each fixed step with the step duration.</param>
     /// <returns>The number of fixed steps performed this call.</returns>
-    public int Step(float deltaSeconds, Action<float>? perFixedStep = null)
+    public int Step(float deltaSeconds, Action<float>? perFixedStep = null, Action<float>? beforeFixedStep = null)
     {
         if (deltaSeconds <= 0f) return 0;
 
@@ -111,6 +112,7 @@ public sealed class PhysicsWorld2D : IDisposable
 
         while (_accumulator >= fixedStep && performed < _settings.MaxStepsPerFrame)
         {
+            beforeFixedStep?.Invoke(fixedStep);
             b2World_Step(_worldId, fixedStep, _settings.SubStepCount);
             _accumulator -= fixedStep;
             performed++;

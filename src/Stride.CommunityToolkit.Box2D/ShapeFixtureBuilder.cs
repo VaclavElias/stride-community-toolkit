@@ -59,6 +59,36 @@ public static class ShapeFixtureBuilder
     }
 
     /// <summary>
+    /// Creates and attaches a convex polygon fixture from custom vertices.
+    /// </summary>
+    /// <param name="vertices">The polygon corners in local space; their convex hull is used. Box2D supports at most 8 hull vertices.</param>
+    /// <param name="bodyId">The Box2D body to which the polygon will be attached.</param>
+    /// <param name="shapeDef">
+    /// Optional shape definition (density, friction, restitution, sensor flag). If <c>null</c>,
+    /// <see cref="CreateDefaultShapeDef"/> is used.
+    /// </param>
+    /// <exception cref="ArgumentException">Thrown when fewer than 3 vertices are provided.</exception>
+    public static void AttachPolygon(Vector2[] vertices, B2BodyId bodyId, B2ShapeDef? shapeDef = null)
+    {
+        ArgumentNullException.ThrowIfNull(vertices);
+
+        if (vertices.Length < 3) throw new ArgumentException("A polygon needs at least 3 vertices.", nameof(vertices));
+
+        var finalShapeDef = shapeDef ?? CreateDefaultShapeDef();
+        var points = new B2Vec2[vertices.Length];
+
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            points[i] = new B2Vec2(vertices[i].X, vertices[i].Y);
+        }
+
+        var hull = b2ComputeHull(points, points.Length);
+        var polygon = b2MakePolygon(in hull, 0.0f);
+
+        b2CreatePolygonShape(bodyId, in finalShapeDef, in polygon);
+    }
+
+    /// <summary>
     /// Creates a <see cref="B2ShapeDef"/> with Box2D's own defaults (density 1, friction 0.6,
     /// restitution 0). Use <see cref="CreateCustomShapeDef"/> to specify material properties.
     /// </summary>

@@ -31,6 +31,9 @@ public sealed class Box2DSimulation : IDisposable
     // Contact and sensor event system (delegated to the router)
     private readonly PhysicsEventRouter2D _eventRouter = new();
 
+    // Per-fixed-step handlers (the IBox2DSimulationUpdate pattern)
+    private readonly List<IBox2DSimulationUpdate> _simulationUpdates = new();
+
     /// <summary>Enable dispatch of begin/end contact events.</summary>
     public bool EnableContactEvents { get; set; } = true;
 
@@ -52,6 +55,20 @@ public sealed class Box2DSimulation : IDisposable
 
         set => b2World_SetGravity(_world.WorldId, new B2Vec2(value.X, value.Y));
     }
+
+    /// <summary>
+    /// Registers a handler whose <see cref="IBox2DSimulationUpdate.SimulationUpdate"/> runs before and
+    /// <see cref="IBox2DSimulationUpdate.AfterSimulationUpdate"/> after every fixed step; a handler is only registered once.
+    /// </summary>
+    /// <param name="handler">The handler to invoke around each fixed step.</param>
+    public void RegisterSimulationUpdate(IBox2DSimulationUpdate handler)
+    {
+        if (!_simulationUpdates.Contains(handler)) _simulationUpdates.Add(handler);
+    }
+
+    /// <summary>Unregisters a simulation update handler.</summary>
+    /// <param name="handler">The handler to remove.</param>
+    public void UnregisterSimulationUpdate(IBox2DSimulationUpdate handler) => _simulationUpdates.Remove(handler);
 
     /// <summary>Registers a contact event handler.</summary>
     /// <param name="handler">The handler to receive contact events.</param>
@@ -108,6 +125,20 @@ public sealed class Box2DSimulation : IDisposable
     public B2BodyId CreateStaticBody(Entity entity, Vector3 position, float rotation = 0f)
         => _bridge.CreateBody(entity, position, B2BodyType.b2_staticBody, rotation);
 
+    /// <summary>Creates a static body without an associated entity at a world position.</summary>
+    /// <param name="position">Initial world position (Z is ignored).</param>
+    /// <param name="rotation">Initial rotation in radians about the Z axis.</param>
+    /// <returns>The id of the created body.</returns>
+    public B2BodyId CreateStaticBody(Vector3 position, float rotation = 0f)
+        => _bridge.CreateBody(position, B2BodyType.b2_staticBody, rotation);
+
+    /// <summary>Creates a kinematic body without an associated entity at a world position.</summary>
+    /// <param name="position">Initial world position (Z is ignored).</param>
+    /// <param name="rotation">Initial rotation in radians about the Z axis.</param>
+    /// <returns>The id of the created body.</returns>
+    public B2BodyId CreateKinematicBody(Vector3 position, float rotation = 0f)
+        => _bridge.CreateBody(position, B2BodyType.b2_kinematicBody, rotation);
+
     /// <summary>Advances the simulation by the elapsed real time, executing zero or more fixed steps.</summary>
     /// <param name="elapsed">Frame time delta.</param>
     public void Update(TimeSpan elapsed)
@@ -115,14 +146,21 @@ public sealed class Box2DSimulation : IDisposable
         if (!Enabled) return;
 
         // Delegate fixed-step accumulation to PhysicsWorld2D; process events per fixed step
-        _world.Step((float)elapsed.TotalSeconds, _ =>
-        {
-            if (EnableContactEvents || EnableHitEvents)
-                ProcessContactEvents();
-            if (EnableSensorEvents)
-                ProcessSensorEvents();
-            _bridge.SyncTransformsFromPhysics();
-        });
+        _world.Step((float)elapsed.TotalSeconds,
+            perFixedStep: dt =>
+            {
+                if (EnableContactEvents || EnableHitEvents)
+                    ProcessContactEvents();
+                if (EnableSensorEvents)
+                    ProcessSensorEvents();
+                _bridge.SyncTransformsFromPhysics();
+
+                foreach (var handler in _simulationUpdates) handler.AfterSimulationUpdate(this, dt);
+            },
+            beforeFixedStep: dt =>
+            {
+                foreach (var handler in _simulationUpdates) handler.SimulationUpdate(this, dt);
+            });
     }
 
     private void ProcessContactEvents() => _eventRouter.ProcessContacts(_world.WorldId, GetEntity, EnableContactEvents, EnableHitEvents);
