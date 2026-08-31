@@ -1,3 +1,4 @@
+using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Engine.Design;
@@ -20,7 +21,14 @@ namespace Stride.CommunityToolkit.Shapes;
 /// same frame.
 /// </para>
 /// </remarks>
-[DefaultEntityComponentProcessor(typeof(ShapeProcessor))]
+// Runtime only, matching the toolkit's text components: the processor draws through a ShapeBatch
+// that the running game registers, and the editor never has one, so running it there is wasted work.
+[DefaultEntityComponentProcessor(typeof(ShapeProcessor), ExecutionMode = ExecutionMode.Runtime)]
+// DataContract is what makes the component usable from Game Studio at all: without it the editor
+// cannot clone the component to the game side and reports "No serializer available for type".
+[DataContract("ShapeComponent")]
+[Display("Shape (call AddShapeBatch)", Expand = ExpandRule.Once)]
+[ComponentCategory("Rendering")]
 public sealed class ShapeComponent : ActivableEntityComponent
 {
     /// <summary>
@@ -52,6 +60,11 @@ public sealed class ShapeComponent : ActivableEntityComponent
     /// the host game happened to register first, which may well be depth-tested, and a marker that
     /// must never be occluded would then silently disappear behind scene geometry.
     /// </remarks>
+    /// <remarks>
+    /// Not serialized: a batch is a live render object owned by the running game, so there is
+    /// nothing for Game Studio to author here. Assign it from code.
+    /// </remarks>
+    [DataMemberIgnore]
     public ShapeBatch? Batch { get; set; }
 
     /// <summary>

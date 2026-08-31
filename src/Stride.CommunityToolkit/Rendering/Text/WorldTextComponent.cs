@@ -34,6 +34,9 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 /// </remarks>
 [DefaultEntityComponentProcessor(typeof(WorldTextProcessor), ExecutionMode = ExecutionMode.Runtime)]
 [AllowMultipleComponents]
+[DataContract("WorldTextComponent")]
+[Display("World Text (call AddWorldTextRenderer)", Expand = ExpandRule.Once)]
+[ComponentCategory("Text")]
 public class WorldTextComponent : EntityComponent
 {
     /// <summary>

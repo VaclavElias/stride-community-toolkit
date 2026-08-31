@@ -48,6 +48,15 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 // two. Without this Stride rejects the second with "Cannot add a component of type ... multiple
 // times". LightComponent and ScriptComponent opt in the same way.
 [AllowMultipleComponents]
+// DataContract is what makes the component usable from Game Studio at all: without it the editor
+// cannot clone the component to the game side and reports "No serializer available for type".
+[DataContract("EntityTextComponent")]
+// The renderer is registered by the running game, not by the component, so a component added in
+// Game Studio draws nothing until someone calls AddEntityTextRenderer - with no error to explain it.
+// Stride has no description or tooltip attribute, so the display name carries the reminder; it shows
+// in the Add-component menu and the component header, which is exactly where the decision is made.
+[Display("Entity Text (call AddEntityTextRenderer)", Expand = ExpandRule.Once)]
+[ComponentCategory("Text")]
 public class EntityTextComponent : EntityComponent
 {
     /// <summary>
