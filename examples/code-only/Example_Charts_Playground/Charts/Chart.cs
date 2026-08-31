@@ -265,6 +265,77 @@ public sealed class Chart : IDisposable
     }
 
     /// <summary>
+    /// Shades the region between <c>y = f(x)</c> and a horizontal baseline over a stretch of <c>x</c> - the
+    /// picture of a definite integral. The fill is translucent and drawn behind the curves.
+    /// </summary>
+    /// <param name="f">The function bounding the region.</param>
+    /// <param name="from">The first <c>x</c> of the stretch.</param>
+    /// <param name="to">The last <c>x</c> of the stretch.</param>
+    /// <param name="baseline">The <c>y</c> the region is measured from. Defaults to <c>0</c>, the x axis.</param>
+    /// <param name="color">The fill colour; <see langword="null"/> takes the next palette colour at <see cref="ChartOptions.AreaOpacity"/>.</param>
+    /// <param name="name">The series and entity name.</param>
+    /// <param name="samples">How many columns the region is built from; more follows a wiggly curve more closely.</param>
+    /// <returns>The region, already on the chart; remove it like any other series.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="f"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">If <paramref name="to"/> is not greater than <paramref name="from"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="samples"/> is less than two.</exception>
+    public ChartAreaSeries AddArea(Func<float, float> f, float from, float to, float baseline = 0f, Color? color = null, string? name = null, int samples = 200)
+    {
+        ArgumentNullException.ThrowIfNull(f);
+
+        return AddArea(f, _ => baseline, from, to, color, name, samples);
+    }
+
+    /// <summary>
+    /// Shades the region between two functions over a stretch of <c>x</c> - the gap between a measurement
+    /// and a model, or between two bounds.
+    /// </summary>
+    /// <param name="upper">One function bounding the region.</param>
+    /// <param name="lower">The other; the two may cross, and the region simply narrows to nothing there.</param>
+    /// <param name="from">The first <c>x</c> of the stretch.</param>
+    /// <param name="to">The last <c>x</c> of the stretch.</param>
+    /// <param name="color">The fill colour; <see langword="null"/> takes the next palette colour at <see cref="ChartOptions.AreaOpacity"/>.</param>
+    /// <param name="name">The series and entity name.</param>
+    /// <param name="samples">How many columns the region is built from.</param>
+    /// <returns>The region, already on the chart; remove it like any other series.</returns>
+    /// <exception cref="ArgumentNullException">If either function is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">If <paramref name="to"/> is not greater than <paramref name="from"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="samples"/> is less than two.</exception>
+    public ChartAreaSeries AddArea(Func<float, float> upper, Func<float, float> lower, float from, float to, Color? color = null, string? name = null, int samples = 200)
+    {
+        ArgumentNullException.ThrowIfNull(upper);
+        ArgumentNullException.ThrowIfNull(lower);
+        ArgumentOutOfRangeException.ThrowIfLessThan(samples, 2);
+
+        if (to <= from)
+        {
+            throw new ArgumentException("The stretch must have a positive width.", nameof(to));
+        }
+
+        // The swatch keeps the solid colour so the legend stays legible; only the fill is translucent
+        var solid = color ?? DefaultCurveOptions().Color;
+        var fill = new Color(solid.R, solid.G, solid.B, (byte)Math.Clamp((int)(Options.AreaOpacity * 255f), 0, 255));
+
+        var areaOptions = new AreaOptions { Color = fill, EmissiveIntensity = Options.CurveEmissiveIntensity };
+        var legendOptions = new PolylineOptions { Width = Options.CurveWidth, Color = solid, EmissiveIntensity = Options.CurveEmissiveIntensity };
+
+        var seriesName = name ?? $"Area {_series.Count + 1}";
+        var entity = new Entity(seriesName);
+
+        // Behind the curves and the axes, in front of the grid
+        entity.Transform.Position = new Vector3(0f, 0f, LayerStep * 0.5f);
+        Root.AddChild(entity);
+
+        var series = new ChartAreaSeries(seriesName, entity, legendOptions, areaOptions, upper, lower, from, to, samples);
+
+        _series.Add(series);
+        series.Rebuild(this);
+        _legend.Rebuild();
+
+        return series;
+    }
+
+    /// <summary>
     /// Takes a curve off the chart: detaches its entity and frees its GPU buffers. Does nothing if the series
     /// is not on this chart.
     /// </summary>
@@ -512,6 +583,12 @@ public sealed class Chart : IDisposable
         if (series is ChartTrajectory trajectory)
         {
             trajectory.RescaleWidth(ViewScale);
+            return;
+        }
+
+        if (series is ChartAreaSeries area)
+        {
+            area.Rebuild(this);
             return;
         }
 

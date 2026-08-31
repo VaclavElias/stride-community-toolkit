@@ -183,6 +183,10 @@ void Start(Scene rootScene)
 
     chart.AddMarkers(samples, options: new PolylineOptions { Width = options.CurveWidth, Color = new Color(96, 66, 166), EmissiveIntensity = options.CurveEmissiveIntensity }, name: "samples");
 
+    // The integral picture: one arch of the sine shaded down to the x axis. The region is re-sampled
+    // with the curve when a view-driven chart changes range, and clipped to the chart the same way.
+    chart.AddArea(x => 2f * MathF.Sin(x), from: 0f, to: MathF.PI, color: options.CurvePalette[0], name: "integral");
+
     // The ball itself is a small closed ribbon circle moved along the flight path
     ball = game.CreatePolyline(
         PolylineSampling.Parametric(t => new Vector3(0.12f * MathF.Cos(t), 0.12f * MathF.Sin(t), 0f), 0f, MathUtil.TwoPi, 20),
@@ -353,6 +357,7 @@ concepts:
   - "A view-driven chart: ranges follow the camera, with 1-2-5 tick steps picked per zoom level"
   - "3D charts: a Z axis, box clipping and grid planes on the floor and walls, opt-in via ZMin/ZMax"
   - Chart and axis titles, and scatter markers batched into one mesh
+  - "A shaded area between two functions: columns clamped to the range, two triangles per column"
   - Comparing a simulated flight path with the analytic ballistic curve on the same chart
   - "A mouse readout: intersecting the pick ray with the chart plane, no Stride UI needed"
   - A legend rebuilt from the live series list, with its ribbon buffers freed on every rebuild

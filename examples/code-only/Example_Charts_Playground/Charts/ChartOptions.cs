@@ -149,6 +149,13 @@ public sealed class ChartOptions
     /// <summary>Emissive intensity used for curves added without explicit options; above <c>1</c> glows when bloom is on. Defaults to <c>2.5</c>.</summary>
     public float CurveEmissiveIntensity { get; set; } = 2.5f;
 
+    /// <summary>
+    /// How opaque a shaded region from <see cref="Chart.AddArea(Func{float, float}, float, float, float, Color?, string?, int)"/>
+    /// is when no colour is given, from <c>0</c> to <c>1</c>. Defaults to <c>0.25</c> - enough to read as a
+    /// region, faint enough to see the grid and curves through it.
+    /// </summary>
+    public float AreaOpacity { get; set; } = 0.25f;
+
     /// <summary>Colours handed out in turn to curves added without explicit options.</summary>
     public IReadOnlyList<Color> CurvePalette { get; set; } =
     [
