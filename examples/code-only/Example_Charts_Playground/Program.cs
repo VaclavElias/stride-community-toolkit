@@ -33,7 +33,7 @@ WindowsDpiManager.EnablePerMonitorV2();
 
 // Run with "--3d" for the glowing 3D look; a runtime switch rather than a const so neither branch is
 // dead code to the compiler
-var use3DScene = args.Any(a => a.Equals("--3d", StringComparison.OrdinalIgnoreCase));
+var use3DScene = true; // args.Any(a => a.Equals("--3d", StringComparison.OrdinalIgnoreCase));
 
 // "--zoom 61" starts zoomed out to that view height - handy for checking how the view-driven chart
 // adapts its tick step, sampling density and line widths at a given zoom level
@@ -195,6 +195,31 @@ void Start(Scene rootScene)
     if (!use3DScene)
     {
         follower = chart.FollowCamera();
+    }
+
+    // 3D: swap the fly controller for an orbit around the chart and frame the camera to fit the
+    // window - the natural way to inspect a 3D figure
+    if (use3DScene)
+    {
+        var cameraEntity3D = rootScene.Entities.FirstOrDefault(e => e.Get<CameraComponent>() != null);
+
+        if (cameraEntity3D?.Get<CameraComponent>() is { } camera3D)
+        {
+            if (cameraEntity3D.Get<Basic3DCameraController>() is { } flyController)
+            {
+                cameraEntity3D.Remove(flyController);
+            }
+
+            cameraEntity3D.Add(new Basic3DOrbitCameraController { Target = chart.Root.Transform.Position });
+
+            // A gently angled start, mostly facing the chart plane. The framing distance is dictated by
+            // the box corner the frustum touches - the helix gives the box a real Z depth - so the
+            // flatter the angle, the fuller the window; these angles keep it clearly 3D while filling
+            // most of the frame. The orbit picks its initial angles up from this pose.
+            cameraEntity3D.Transform.Rotation = Quaternion.RotationYawPitchRoll(
+                MathUtil.DegreesToRadians(18f), MathUtil.DegreesToRadians(-12f), 0f);
+            chart.FrameCamera(camera3D, padding: 0.02f);
+        }
     }
 
     ThrowBall();

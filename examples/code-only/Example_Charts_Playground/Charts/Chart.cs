@@ -1,6 +1,7 @@
 using Stride.CommunityToolkit.Rendering.Lines;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Engine.Processors;
 
 namespace Stride.CommunityToolkit.Charts;
 
@@ -358,6 +359,63 @@ public sealed class Chart : IDisposable
         {
             ReplotSeries(series);
         }
+    }
+
+    /// <summary>
+    /// Moves <paramref name="camera"/> so the chart's ranges exactly fill the window, with a little
+    /// breathing room. An orthographic camera is centred and gets its size set; a perspective camera keeps
+    /// its viewing direction and backs away until the chart's box fits the frustum. One-shot: the chart
+    /// never steers the camera afterwards.
+    /// </summary>
+    /// <param name="camera">The camera to frame.</param>
+    /// <param name="padding">Extra room as a fraction of the chart per side. Defaults to <c>0.05</c>.</param>
+    /// <exception cref="ArgumentNullException">If <paramref name="camera"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="padding"/> is negative.</exception>
+    public void FrameCamera(CameraComponent camera, float padding = 0.05f)
+    {
+        ArgumentNullException.ThrowIfNull(camera);
+        ArgumentOutOfRangeException.ThrowIfNegative(padding);
+
+        var backBuffer = Game.GraphicsDevice.Presenter.BackBuffer;
+        var aspect = (float)backBuffer.Width / backBuffer.Height;
+
+        // The chart's box in world space: the local ranges through the root's world matrix
+        Root.Transform.UpdateWorldMatrix();
+        var localMin = new Vector3(Options.XMin, Options.YMin, Is3D ? Options.ZMin : 0f);
+        var localMax = new Vector3(Options.XMax, Options.YMax, Is3D ? Options.ZMax : 0f);
+        var box = ChartFraming.TransformBox(localMin, localMax, in Root.Transform.WorldMatrix);
+        var centre = (box.Minimum + box.Maximum) * 0.5f;
+        var size = Vector3.Max(box.Maximum - box.Minimum, new Vector3(1e-3f));
+
+        var transform = camera.Entity.Transform;
+
+        if (camera.Projection == CameraProjectionMode.Orthographic)
+        {
+            // Centre the view and size it; the camera keeps its depth along Z
+            transform.Position = new Vector3(centre.X, centre.Y, transform.Position.Z);
+            camera.OrthographicSize = ChartFraming.OrthographicSize(size.X, size.Y, aspect, padding);
+            return;
+        }
+
+        // Keep the viewing direction and back away along it until every corner of the box fits the frustum
+        transform.UpdateWorldMatrix();
+        var forward = transform.WorldMatrix.Forward;
+
+        if (forward.LengthSquared() < MathUtil.ZeroTolerance)
+        {
+            forward = -Vector3.UnitZ;
+        }
+
+        forward.Normalize();
+
+        var right = transform.WorldMatrix.Right;
+        right.Normalize();
+        var up = transform.WorldMatrix.Up;
+        up.Normalize();
+
+        var fov = MathUtil.DegreesToRadians(camera.VerticalFieldOfView);
+        var distance = ChartFraming.PerspectiveDistance(in box, right, up, forward, aspect, fov, padding);
+        transform.Position = centre - forward * distance;
     }
 
     /// <summary>
