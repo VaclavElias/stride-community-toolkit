@@ -178,8 +178,9 @@ Entity CreateLineEntity(Game game)
     // Create the mesh
     var mesh = new Mesh { Draw = meshDraw };
 
-    // The model is built from the mesh and a gizmo material, an emissive material for clear visualization
-    var lineModelComponent = new ModelComponent { Model = new Model { mesh, GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, Color.DarkMagenta) } };
+    // The model is built from the mesh and a gizmo material: emissive, so the ray is visible whatever the
+    // lighting, and bright enough (intensity above 1) that bloom gives it a glow
+    var lineModelComponent = new ModelComponent { Model = new Model { mesh, GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, Color.OrangeRed, 4) } };
 
     // Return a new entity that contains the line model component
     return new Entity { lineModelComponent };

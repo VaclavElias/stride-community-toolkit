@@ -44,9 +44,10 @@ static Entity CreateLineEntity(Game game)
     var indices = new short[] { 0, 1 };
     var indexBuffer = Buffer.New(game.GraphicsDevice, indices, BufferFlags.IndexBuffer, GraphicsResourceUsage.Default);
 
-    var material = GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, Color.DarkMagenta);
-    // Or use this for a specific color
-    //var material = game.CreateMaterial(Color.DarkMagenta);
+    // Emissive, so the line shows whatever the lighting; an intensity above 1 also carries it past the
+    // bloom threshold and gives it a glow. A lit material such as game.CreateMaterial would draw this mesh
+    // black: lighting needs normals, and the vertex layout below has positions only.
+    var material = GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, Color.OrangeRed, 4);
 
     var meshDraw = new MeshDraw
     {
