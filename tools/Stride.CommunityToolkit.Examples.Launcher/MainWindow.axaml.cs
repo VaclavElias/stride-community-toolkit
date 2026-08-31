@@ -16,9 +16,14 @@ public partial class MainWindow : Window
     private Process? _running;
     private CancellationTokenSource? _cts;
 
-    private static readonly Regex GenericWarning = new(@"\bwarning\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly Regex ShaderWarning = new(@"\b(effect|shader|hlsl|fx|mixin|compiler)\b.*\bwarning\b|\bwarning\b.*\b(effect|shader|hlsl|fx|mixin|compiler)\b",
-      RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    // Source-generated rather than constructed at runtime: the matcher is built at compile time, so
+    // startup pays neither the pattern parse nor the RegexOptions.Compiled IL emission that the two
+    // static readonly fields used to. Compiled is therefore dropped - it has no meaning here.
+    [GeneratedRegex(@"\bwarning\b", RegexOptions.IgnoreCase)]
+    private static partial Regex GenericWarning();
+
+    [GeneratedRegex(@"\b(effect|shader|hlsl|fx|mixin|compiler)\b.*\bwarning\b|\bwarning\b.*\b(effect|shader|hlsl|fx|mixin|compiler)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex ShaderWarning();
 
     public MainWindow()
     {
@@ -230,8 +235,8 @@ public partial class MainWindow : Window
 || string.Equals(Environment.GetEnvironmentVariable("SHOW_WARNINGS"), "true", StringComparison.OrdinalIgnoreCase);
         if (showAll) return false;
 
-        if (!GenericWarning.IsMatch(line)) return false;
-        return ShaderWarning.IsMatch(line);
+        if (!GenericWarning().IsMatch(line)) return false;
+        return ShaderWarning().IsMatch(line);
     }
 
     private void AppendLine(string text, bool isError = false)
@@ -297,12 +302,16 @@ public partial class MainWindow : Window
     /// One row in the list.
     /// </summary>
     /// <remarks>
-    /// The entry is stored in a property rather than captured from the primary constructor parameter,
-    /// which is what the previous version did and what CS9124 warned about.
+    /// An explicit constructor rather than a primary one, and internal members rather than public:
+    /// the type is private, so public here would only overstate the reach these members actually
+    /// have. Storing the entry in a property is what avoided the CS9124 the primary-constructor
+    /// version warned about; writing the constructor out keeps that and lets it be internal too.
     /// </remarks>
-    private sealed class ExampleListItem(ExampleEntry entry)
+    private sealed class ExampleListItem
     {
-        public ExampleEntry Entry { get; } = entry;
+        internal ExampleListItem(ExampleEntry entry) => Entry = entry;
+
+        internal ExampleEntry Entry { get; }
 
         public override string ToString()
         {

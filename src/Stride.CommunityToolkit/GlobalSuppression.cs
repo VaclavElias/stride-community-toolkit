@@ -109,3 +109,49 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DCollisionMatrix", Justification = "Library API instantiated by consumers; nothing in the toolkit itself needs one yet.")]
 [assembly: SuppressMessage("NDepend", "ND2500:DontCreateThreadsExplicitly", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DTaskScheduler..ctor(Int32)", Justification = "Deliberate: Box2D requires each concurrently running task callback to hold a distinct worker index, which dedicated threads guarantee structurally; the workers also park in a blocking dequeue for the world lifetime, which thread-pool threads must never do.")]
 [assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeComponent.Vertices", Justification = "A runtime-swappable shape outline is the point of the component; the next frame draws whatever array is assigned.")]
+
+// --- Examples.Core: one set of sources compiled into both launchers -------------------------
+// Constants/Levels/ExampleManifest/ManifestExample/ExampleEntry/ManifestLoader live in the console
+// runner and are <Compile Include Link=".."> into the Avalonia launcher. That is a deliberate,
+// documented choice - see the comment on the linked ItemGroup in
+// Stride.CommunityToolkit.Examples.Launcher.csproj: both launchers are single-project tools and a
+// third project to hold six small types would cost more than it saves. The two rules below are the
+// unavoidable price of it, and neither describes a real defect: it is one source file compiled
+// twice, not two divergent copies.
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Stride.CommunityToolkit.Examples:Stride.CommunityToolkit.Examples.Core", Scope = "deep", Justification = "Shared manifest-reading sources linked into both launchers; one file, two compilations.")]
+[assembly: SuppressMessage("NDepend", "ND2100:AvoidReferencingSourceFileOutOfTheProjectDirectory", Target = "Stride.CommunityToolkit.Examples.Launcher:Stride.CommunityToolkit.Examples.Core", Scope = "deep", Justification = "The linked ItemGroup is the point; the files are owned by Stride.CommunityToolkit.Examples next door.")]
+
+// --- Example10: the Bepu and Bullet twins -----------------------------------------------------
+// The two Example10 projects are the same scene on two physics engines, kept side by side so the
+// difference between them is the diff. They deliberately share namespace and type names.
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example10_StrideUI_DragAndDrop:Example10_StrideUI_DragAndDrop", Scope = "deep", Justification = "Bepu twin of Example10_StrideUI_DragAndDrop_BulletPhysics; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example10_StrideUI_DragAndDrop_BulletPhysics:Example10_StrideUI_DragAndDrop", Scope = "deep", Justification = "Bullet twin of Example10_StrideUI_DragAndDrop; same scene, different engine, on purpose.")]
+// Scope="deep" on a namespace covers its own types, not those of a child namespace, so the .UI
+// namespace needs its own pair of entries.
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example10_StrideUI_DragAndDrop:Example10_StrideUI_DragAndDrop.UI", Scope = "deep", Justification = "Bepu twin of Example10_StrideUI_DragAndDrop_BulletPhysics; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example10_StrideUI_DragAndDrop_BulletPhysics:Example10_StrideUI_DragAndDrop.UI", Scope = "deep", Justification = "Bullet twin of Example10_StrideUI_DragAndDrop; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example10_StrideUI_DragAndDrop:Example10_StrideUI_DragAndDrop.PrimitiveGenerator", Scope = "deep", Justification = "Scatters cubes around the scene; nothing security-related, same as Helpers.VectorHelper above.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example10_StrideUI_DragAndDrop_BulletPhysics:Example10_StrideUI_DragAndDrop.PrimitiveGenerator", Scope = "deep", Justification = "Scatters cubes around the scene; nothing security-related, same as Helpers.VectorHelper above.")]
+
+// --- Launcher: the Avalonia entry-point contract -----------------------------------------------
+// Avalonia's project template declares BuildAvaloniaApp as a public static method on an internal
+// Program, and the XAML previewer finds it by name through reflection. Narrowing it to internal or
+// private is what both rules ask for and would change nothing for any caller - Program is already
+// internal - but it is exactly the shape the tooling looks for, so it stays as the template has it.
+[assembly: SuppressMessage("NDepend", "ND1800:MethodsThatCouldHaveALowerVisibility", Target = "Stride.CommunityToolkit.Examples.Launcher:Stride.CommunityToolkit.Examples.Launcher.Program.BuildAvaloniaApp()", Justification = "Avalonia entry-point contract; found by the XAML previewer through reflection.")]
+[assembly: SuppressMessage("NDepend", "ND1807:AvoidPublicMethodsNotPubliclyVisible", Target = "Stride.CommunityToolkit.Examples.Launcher:Stride.CommunityToolkit.Examples.Launcher.Program.BuildAvaloniaApp()", Justification = "Avalonia entry-point contract; found by the XAML previewer through reflection.")]
+
+// --- ImGuiNet: the same two facts already recorded for the ImGui package -----------------------
+[assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend: pipeline, buffers, shader, context, DPI and input references are its state - same as ImGuiSystem above.")]
+[assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetExtensions.DrawText(ImGuiNetSystem,Int32,Int32,String,Byte,Byte,Byte,Byte)", Justification = "Byte-per-channel colour mirrors the Box2D.NET draw API this overload exists to match; the Vector4 overload on ImGuiNetSystem.DrawString is the shorter path.")]
+// ImGuiNetSystem is 206 statements against a 200 threshold, and gained two instance fields against
+// the baseline. Splitting RenderImGuiDrawData and Update into named steps - which is what cleared the
+// two "even more complex / even larger" regressions on them - is what carried it over: extraction
+// trades branches inside a method for a handful of call statements on the type. That is the better
+// shape to read, so it stays. The honest fix for the remaining size is to give the draw-data
+// rendering and the font atlas their own types, the way the ImGui package already did with
+// ImGuiTextureManager and ImGuiNetTextOverlay; the font atlas owns _fontTexture, which the renderer
+// and Destroy both use, so that is a real refactor of a graphics path and wants a run of
+// Example11_ImGuiNet behind it rather than a quiet edit.
+[assembly: SuppressMessage("NDepend", "ND1000:AvoidTypesTooBig", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend, 6 statements over the threshold; see the note above on the pending renderer/font-atlas extraction.")]
+[assembly: SuppressMessage("NDepend", "ND1107:AvoidAddingInstanceFieldsToATypeThatAlreadyHadManyInstanceFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Scope = "deep", Justification = "See ND1002 above; the baseline comparison counts the DPI/font-scaling state as an addition - same situation as ImGuiSystem.")]

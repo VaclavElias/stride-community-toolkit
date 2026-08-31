@@ -12,9 +12,9 @@ namespace Example10_StrideUI_DragAndDrop.UI;
 public class DragAndDropCanvas : Canvas
 {
     private readonly SpriteFont _font;
-    private int _canvasWidth = 300;
-    private int _canvasHeight = 200;
-    private int _closeButtonSize = 25;
+    private readonly int _canvasWidth = 300;
+    private readonly int _canvasHeight = 200;
+    private readonly int _closeButtonSize = 25;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DragAndDropCanvas"/> class.

@@ -363,38 +363,7 @@ public class ImGuiNetSystem : GameSystemBase
         var deltaTime = (float)gameTime.Elapsed.TotalSeconds;
         var io = ImGui.GetIO();
 
-        // Update display size
-        var clientBounds = _game.Window.ClientBounds;
-        io.DisplaySize = new Vector2(clientBounds.Width, clientBounds.Height);
-
-        // HiDPI/backbuffer scaling (matches Box2D.NET pattern)
-        if (_graphicsDevice?.Presenter?.BackBuffer != null)
-        {
-            var back = _graphicsDevice.Presenter.BackBuffer;
-            if (clientBounds.Width > 0 && clientBounds.Height > 0)
-            {
-                var fbScale = new Vector2(
-                    back.Width / (float)clientBounds.Width,
-                    back.Height / (float)clientBounds.Height);
-
-                io.DisplayFramebufferScale = fbScale;
-
-                // Auto font scaling: rebuild atlas when the framebuffer scale changes significantly
-                if (AutoScaleFonts)
-                {
-                    // Use average scale to keep sizing intuitive
-                    float avgScale = MathF.Max(1.0f, (fbScale.X + fbScale.Y) * 0.5f);
-                    float oldAvg = MathF.Max(1.0f, (_lastFramebufferScale.X + _lastFramebufferScale.Y) * 0.5f);
-
-                    // Detect meaningful change (for example, window moved to a monitor with different DPI)
-                    if (MathF.Abs(avgScale - oldAvg) > 0.05f)
-                    {
-                        SetDpiScale(avgScale);
-                        _lastFramebufferScale = fbScale;
-                    }
-                }
-            }
-        }
+        UpdateDisplayMetrics(io);
 
         // Rebuild fonts if requested
         if (_pendingFontRebuild)
@@ -424,6 +393,42 @@ public class ImGuiNetSystem : GameSystemBase
 
         // Process draw commands
         _textOverlay.Draw(_showUI, _camera, GraphicsDevice);
+    }
+
+    /// <summary>
+    /// Tells ImGui the size of the surface it is drawing on, and rebuilds the font atlas when the
+    /// window moves to a display with a different DPI.
+    /// </summary>
+    private void UpdateDisplayMetrics(ImGuiIOPtr io)
+    {
+        // Update display size
+        var clientBounds = _game.Window.ClientBounds;
+        io.DisplaySize = new Vector2(clientBounds.Width, clientBounds.Height);
+
+        // HiDPI/backbuffer scaling (matches Box2D.NET pattern)
+        if (_graphicsDevice?.Presenter?.BackBuffer == null) return;
+        if (clientBounds.Width <= 0 || clientBounds.Height <= 0) return;
+
+        var back = _graphicsDevice.Presenter.BackBuffer;
+        var fbScale = new Vector2(
+            back.Width / (float)clientBounds.Width,
+            back.Height / (float)clientBounds.Height);
+
+        io.DisplayFramebufferScale = fbScale;
+
+        // Auto font scaling: rebuild atlas when the framebuffer scale changes significantly
+        if (!AutoScaleFonts) return;
+
+        // Use average scale to keep sizing intuitive
+        float avgScale = MathF.Max(1.0f, (fbScale.X + fbScale.Y) * 0.5f);
+        float oldAvg = MathF.Max(1.0f, (_lastFramebufferScale.X + _lastFramebufferScale.Y) * 0.5f);
+
+        // Detect meaningful change (for example, window moved to a monitor with different DPI)
+        if (MathF.Abs(avgScale - oldAvg) > 0.05f)
+        {
+            SetDpiScale(avgScale);
+            _lastFramebufferScale = fbScale;
+        }
     }
 
     /// <inheritdoc/>
@@ -462,17 +467,7 @@ public class ImGuiNetSystem : GameSystemBase
         _commandList.SetPipelineState(_pipelineState);
 
         // Set shader parameters using the existing ImGui shader keys
-        try
-        {
-            _imguiShader.Parameters.Set(ImGuiNetShaderKeys.proj, ref projMatrix);
-            _imguiShader.Parameters.Set(ImGuiNetShaderKeys.tex, _fontTexture);
-        }
-        catch
-        {
-            // Fallback to string-based parameter setting
-            Logger.Warning("Using fallback shader parameter setting");
-            return; // Skip rendering if we can't set parameters
-        }
+        if (!TrySetShaderParameters(ref projMatrix)) return;
 
         _imguiShader.Apply(_graphicsContext);
 
@@ -481,54 +476,98 @@ public class ImGuiNetSystem : GameSystemBase
         {
             var cmdList = drawData.CmdLists[n];
 
-            // Update vertex buffer if needed (see CreateRenderingResources for why the arguments are named)
-            if (cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>() > _vertexBinding.Buffer.SizeInBytes)
-            {
-                var newVertexBuffer = Stride.Graphics.Buffer.Vertex.New(_graphicsDevice,
-                    bufferSize: cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>() * 2,
-                    usage: GraphicsResourceUsage.Dynamic);
-                _vertexBinding.Buffer?.Dispose();
-                _vertexBinding = new VertexBufferBinding(newVertexBuffer, _vertexLayout, 0);
-            }
+            EnsureBufferCapacity(cmdList);
+            UploadCommandListData(cmdList);
+            DrawCommandList(cmdList);
+        }
+    }
 
-            // Update index buffer if needed
-            if (cmdList.IdxBuffer.Size * sizeof(ushort) > _indexBinding!.Buffer.SizeInBytes)
-            {
-                var newIndexBuffer = Stride.Graphics.Buffer.Index.New(_graphicsDevice,
-                    bufferSize: cmdList.IdxBuffer.Size * sizeof(ushort) * 2,
-                    usage: GraphicsResourceUsage.Dynamic);
-                _indexBinding.Buffer?.Dispose();
-                _indexBinding = new IndexBufferBinding(newIndexBuffer, false, 0);
-            }
+    /// <summary>
+    /// Puts the projection matrix and font texture on the shader.
+    /// </summary>
+    /// <returns>
+    /// <see langword="false"/> if the parameters could not be set, in which case the frame is skipped.
+    /// </returns>
+    private bool TrySetShaderParameters(ref Matrix projMatrix)
+    {
+        try
+        {
+            _imguiShader!.Parameters.Set(ImGuiNetShaderKeys.proj, ref projMatrix);
+            _imguiShader.Parameters.Set(ImGuiNetShaderKeys.tex, _fontTexture);
+            return true;
+        }
+        catch
+        {
+            // Fallback to string-based parameter setting
+            Logger.Warning("Using fallback shader parameter setting");
+            return false; // Skip rendering if we can't set parameters
+        }
+    }
 
-            // Upload vertex and index data
-            _vertexBinding.Buffer.SetData(_commandList,
-                new ReadOnlySpan<ImDrawVert>((void*)cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size));
-            _indexBinding.Buffer.SetData(_commandList,
-                new ReadOnlySpan<ushort>((void*)cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size));
+    /// <summary>
+    /// Grows the vertex and index buffers when this command list does not fit in them.
+    /// </summary>
+    private unsafe void EnsureBufferCapacity(ImDrawListPtr cmdList)
+    {
+        // Update vertex buffer if needed (see CreateRenderingResources for why the arguments are named)
+        if (cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>() > _vertexBinding.Buffer.SizeInBytes)
+        {
+            var newVertexBuffer = Stride.Graphics.Buffer.Vertex.New(_graphicsDevice,
+                bufferSize: cmdList.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>() * 2,
+                usage: GraphicsResourceUsage.Dynamic);
+            _vertexBinding.Buffer?.Dispose();
+            _vertexBinding = new VertexBufferBinding(newVertexBuffer, _vertexLayout, 0);
+        }
 
-            // Set buffers
-            _commandList.SetVertexBuffer(0, _vertexBinding.Buffer, 0, Unsafe.SizeOf<ImDrawVert>());
-            _commandList.SetIndexBuffer(_indexBinding.Buffer, 0, false);
+        // Update index buffer if needed
+        if (cmdList.IdxBuffer.Size * sizeof(ushort) > _indexBinding!.Buffer.SizeInBytes)
+        {
+            var newIndexBuffer = Stride.Graphics.Buffer.Index.New(_graphicsDevice,
+                bufferSize: cmdList.IdxBuffer.Size * sizeof(ushort) * 2,
+                usage: GraphicsResourceUsage.Dynamic);
+            _indexBinding.Buffer?.Dispose();
+            _indexBinding = new IndexBufferBinding(newIndexBuffer, false, 0);
+        }
+    }
 
-            // Render draw commands
-            int idxOffset = 0;
-            for (int i = 0; i < cmdList.CmdBuffer.Size; i++)
-            {
-                var cmd = cmdList.CmdBuffer[i];
+    /// <summary>
+    /// Uploads this command list's vertices and indices, then binds them.
+    /// </summary>
+    private unsafe void UploadCommandListData(ImDrawListPtr cmdList)
+    {
+        // Upload vertex and index data
+        _vertexBinding.Buffer.SetData(_commandList,
+            new ReadOnlySpan<ImDrawVert>((void*)cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size));
+        _indexBinding!.Buffer.SetData(_commandList,
+            new ReadOnlySpan<ushort>((void*)cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size));
 
-                // Set scissor rectangle
-                _commandList.SetScissorRectangle(new Rectangle(
-                    (int)cmd.ClipRect.X,
-                    (int)cmd.ClipRect.Y,
-                    (int)(cmd.ClipRect.Z - cmd.ClipRect.X),
-                    (int)(cmd.ClipRect.W - cmd.ClipRect.Y)
-                ));
+        // Set buffers
+        _commandList!.SetVertexBuffer(0, _vertexBinding.Buffer, 0, Unsafe.SizeOf<ImDrawVert>());
+        _commandList.SetIndexBuffer(_indexBinding.Buffer, 0, false);
+    }
 
-                // Draw indexed
-                _commandList.DrawIndexed((int)cmd.ElemCount, idxOffset, 0);
-                idxOffset += (int)cmd.ElemCount;
-            }
+    /// <summary>
+    /// Issues one scissored indexed draw per ImGui command in this list.
+    /// </summary>
+    private void DrawCommandList(ImDrawListPtr cmdList)
+    {
+        // Render draw commands
+        int idxOffset = 0;
+        for (int i = 0; i < cmdList.CmdBuffer.Size; i++)
+        {
+            var cmd = cmdList.CmdBuffer[i];
+
+            // Set scissor rectangle
+            _commandList!.SetScissorRectangle(new Rectangle(
+                (int)cmd.ClipRect.X,
+                (int)cmd.ClipRect.Y,
+                (int)(cmd.ClipRect.Z - cmd.ClipRect.X),
+                (int)(cmd.ClipRect.W - cmd.ClipRect.Y)
+            ));
+
+            // Draw indexed
+            _commandList.DrawIndexed((int)cmd.ElemCount, idxOffset, 0);
+            idxOffset += (int)cmd.ElemCount;
         }
     }
 

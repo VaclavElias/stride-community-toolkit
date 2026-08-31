@@ -21,7 +21,7 @@ public class UIManager
 
     private int _windowId = 1;
     private TextBlock? _textBlock;
-    private Vector3 _defaultWindowPosition = new(0.02f, 0.05f, 0);
+    private readonly Vector3 _defaultWindowPosition = new(0.02f, 0.05f, 0);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UIManager"/> class.
