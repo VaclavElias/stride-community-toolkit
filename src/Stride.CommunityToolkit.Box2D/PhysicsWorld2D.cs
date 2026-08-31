@@ -2,40 +2,42 @@ using Box2D.NET;
 using static Box2D.NET.B2Types;
 using static Box2D.NET.B2Worlds;
 
-namespace Example18_Box2DPhysics.Box2DPhysics.Core;
+namespace Stride.CommunityToolkit.Box2D;
 
 /// <summary>
-/// Generic 2D physics world wrapper around Box2D.NET intended for future extraction into a reusable
-/// toolkit library. This class deliberately avoids any dependency on Stride <c>Entity</c> types.
+/// Engine-agnostic 2D physics world wrapper around Box2D.NET: owns the native world and advances it
+/// on a fixed timestep. It deliberately avoids any dependency on Stride <c>Entity</c> types; pairing
+/// bodies with entities is <see cref="Box2DStrideBridge"/>'s job.
 /// </summary>
-/// <remarks>
-/// Current example code uses <c>Box2DSimulation</c>; during refactor this class will absorb the
-/// world + stepping responsibilities while a separate bridge handles Stride entity synchronization.
-/// Existing comments and logic in the original class will be migrated here gradually.
-/// </remarks>
-public class PhysicsWorld2D : IDisposable
+public sealed class PhysicsWorld2D : IDisposable
 {
     private B2WorldId _worldId;
     private PhysicsStepSettings _settings;
 
     private double _accumulator;
 
-    // Exposed tuning (mirrors record values but mutable for runtime adjustments)
+    /// <summary>Target simulation frequency in hertz used to derive the fixed step size.</summary>
     public int TargetHz
     {
         get => _settings.TargetHz;
         set => _settings = _settings with { TargetHz = value };
     }
+
+    /// <summary>Maximum number of fixed steps processed per frame, to avoid the spiral of death.</summary>
     public int MaxStepsPerFrame
     {
         get => _settings.MaxStepsPerFrame;
         set => _settings = _settings with { MaxStepsPerFrame = value };
     }
+
+    /// <summary>Box2D sub-step count passed to each world step.</summary>
     public int SubStepCount
     {
         get => _settings.SubStepCount;
         set => _settings = _settings with { SubStepCount = value };
     }
+
+    /// <summary>Multiplier applied to incoming delta time before fixed-step accumulation.</summary>
     public float TimeScale
     {
         get => _settings.TimeScale;
@@ -45,11 +47,12 @@ public class PhysicsWorld2D : IDisposable
     /// <summary>
     /// Creates a new physics world with default gravity (0, -10).
     /// </summary>
+    /// <param name="settings">Optional stepping configuration; defaults to <see cref="PhysicsStepSettings"/> defaults.</param>
     public PhysicsWorld2D(PhysicsStepSettings? settings = null)
     {
         _settings = settings ?? new PhysicsStepSettings();
         var def = b2DefaultWorldDef();
-        def.gravity = new Box2D.NET.B2Vec2(0f, -10f);
+        def.gravity = new B2Vec2(0f, -10f);
         _worldId = b2CreateWorld(in def);
     }
 
@@ -61,15 +64,20 @@ public class PhysicsWorld2D : IDisposable
     /// <summary>
     /// Adjusts global gravity.
     /// </summary>
-    public void SetGravity(float x, float y) => b2World_SetGravity(_worldId, new Box2D.NET.B2Vec2(x, y));
+    /// <param name="x">Gravity along the X axis.</param>
+    /// <param name="y">Gravity along the Y axis (negative pulls down).</param>
+    public void SetGravity(float x, float y) => b2World_SetGravity(_worldId, new B2Vec2(x, y));
 
     /// <summary>
-    /// Advances the simulation using a fixed timestep accumulator strategy.
+    /// Advances the simulation using a fixed-timestep accumulator strategy.
     /// </summary>
-    /// <param name="deltaSeconds">Elapsed real time seconds since last call.</param>
+    /// <param name="deltaSeconds">Elapsed real time in seconds since the last call.</param>
+    /// <param name="perFixedStep">Optional callback invoked after each fixed step with the step duration.</param>
+    /// <returns>The number of fixed steps performed this call.</returns>
     public int Step(float deltaSeconds, Action<float>? perFixedStep = null)
     {
         if (deltaSeconds <= 0f) return 0;
+
         var scaled = deltaSeconds * _settings.TimeScale;
         _accumulator += scaled;
 

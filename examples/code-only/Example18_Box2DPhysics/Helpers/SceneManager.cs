@@ -1,7 +1,6 @@
 using Box2D.NET;
 using Example.Common;
-using Example18_Box2DPhysics.Box2DPhysics;
-using Example18_Box2DPhysics.Physics;
+using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
@@ -84,7 +83,7 @@ public class SceneManager
             // Set zero gravity for this body to demonstrate weightless behavior
             b2Body_SetGravityScale(bodyId, 0);
 
-            ShapeFixtureBuilder.AttachShape(shape, bodyId);
+            ShapeFixtureBuilder.AttachShape(shape.Type, shape.Size, bodyId, DefaultShapeDef());
         }
 
         AddInitialShapes();
@@ -105,10 +104,10 @@ public class SceneManager
         };
         var groundEntity = _shapeFactory.CreateEntity(groundShape, name: GameConfig.WallName);
         var groundBodyId = _simulation.CreateStaticBody(groundEntity, new Vector3(0, GroundYPosition, 0));
-        var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
+        var shapeDef = DefaultShapeDef();
         shapeDef.material.friction = 0.6f; // Set ground friction
 
-        ShapeFixtureBuilder.AttachShape(groundShape, groundBodyId, shapeDef);
+        ShapeFixtureBuilder.AttachShape(groundShape.Type, groundShape.Size, groundBodyId, shapeDef);
 
         var wallShape = new Shape2DModel()
         {
@@ -119,11 +118,11 @@ public class SceneManager
 
         var leftWallEntity = _shapeFactory.CreateEntity(wallShape, name: GameConfig.WallName);
         var leftWallBodyId = _simulation.CreateStaticBody(leftWallEntity, new Vector3(-25 + WallThickness / 2, -GroundYPosition - WallThickness / 2, 0));
-        ShapeFixtureBuilder.AttachShape(wallShape, leftWallBodyId, shapeDef);
+        ShapeFixtureBuilder.AttachShape(wallShape.Type, wallShape.Size, leftWallBodyId, shapeDef);
 
         var rightWallEntity = _shapeFactory.CreateEntity(wallShape, name: GameConfig.WallName);
         var rightWallBodyId = _simulation.CreateStaticBody(rightWallEntity, new Vector3(25 - WallThickness / 2, -GroundYPosition - WallThickness / 2, 0));
-        ShapeFixtureBuilder.AttachShape(wallShape, rightWallBodyId, shapeDef);
+        ShapeFixtureBuilder.AttachShape(wallShape.Type, wallShape.Size, rightWallBodyId, shapeDef);
     }
 
     /// <summary>
@@ -253,7 +252,7 @@ public class SceneManager
             var entity = _shapeFactory.CreateEntity(shapeModel, color);
             var bodyId = _simulation.CreateDynamicBody(entity, entity.Transform.Position);
 
-            ShapeFixtureBuilder.AttachShape(shapeModel, bodyId);
+            ShapeFixtureBuilder.AttachShape(shapeModel.Type, shapeModel.Size, bodyId, DefaultShapeDef());
 
             _totalShapesCreated++;
         }
@@ -270,7 +269,7 @@ public class SceneManager
             var entity = _shapeFactory.CreateEntity(shapeModel, overrideColor: GameConfig.ShapeColor);
             var bodyId = _simulation.CreateDynamicBody(entity, entity.Transform.Position);
 
-            ShapeFixtureBuilder.AttachShape(shapeModel, bodyId);
+            ShapeFixtureBuilder.AttachShape(shapeModel.Type, shapeModel.Size, bodyId, DefaultShapeDef());
             _totalShapesCreated++;
         }
     }
@@ -304,8 +303,8 @@ public class SceneManager
         var bodyIdA = _simulation.CreateDynamicBody(entity1, entity1.Transform.Position);
         var bodyIdB = _simulation.CreateDynamicBody(entity2, entity2.Transform.Position);
 
-        ShapeFixtureBuilder.AttachShape(shapeModel1, bodyIdA);
-        ShapeFixtureBuilder.AttachShape(shapeModel2, bodyIdB);
+        ShapeFixtureBuilder.AttachShape(shapeModel1.Type, shapeModel1.Size, bodyIdA, DefaultShapeDef());
+        ShapeFixtureBuilder.AttachShape(shapeModel2.Type, shapeModel2.Size, bodyIdB, DefaultShapeDef());
 
         // Create distance joint
         CreateDistanceJoint(bodyIdA, bodyIdB);
@@ -341,7 +340,7 @@ public class SceneManager
         var entity = _shapeFactory.CreateEntity(shapeModel, GameConfig.SelectedShapeColor, position);
         var bodyId = _simulation.CreateDynamicBody(entity, entity.Transform.Position);
 
-        ShapeFixtureBuilder.AttachShape(shapeModel, bodyId);
+        ShapeFixtureBuilder.AttachShape(shapeModel.Type, shapeModel.Size, bodyId, DefaultShapeDef());
         _totalShapesCreated++;
 
         LogAction($"Created {shapeModel.Type} at mouse position");
@@ -398,6 +397,13 @@ public class SceneManager
         // Could add more UI elements here
         // Performance metrics, physics debug info, etc.
     }
+
+    /// <summary>
+    /// The shape definition used for every fixture in this demo, built from the
+    /// <see cref="GameConfig"/> material values.
+    /// </summary>
+    private static B2ShapeDef DefaultShapeDef()
+        => ShapeFixtureBuilder.CreateCustomShapeDef(GameConfig.DefaultDensity, GameConfig.DefaultFriction, GameConfig.DefaultRestitution);
 
     private void LogAction(string action)
     {

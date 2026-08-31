@@ -70,6 +70,8 @@ public class OuterOutline2DShaderRenderFeature : RootRenderFeature
 
         var viewProjection = renderView.ViewProjection;
 
+        // Walk this stage's meshes and re-draw the outlined ones: the feature runs as its own pass, so
+        // every mesh with an enabled MeshOutlineComponent is rendered a second time with the outline shader.
         foreach (var renderNode in renderViewStage.SortedRenderNodes)
         {
             if (renderNode.RenderObject is not RenderMesh renderMesh)
@@ -89,6 +91,7 @@ public class OuterOutline2DShaderRenderFeature : RootRenderFeature
                 continue;
             }
 
+            // Reuse the mesh's own geometry: rebind its vertex buffers and draw them with the outline effect.
             MeshDraw drawData = renderMesh.ActiveMeshDraw;
 
             for (int slot = 0; slot < drawData.VertexBuffers.Length; slot++)
@@ -103,6 +106,8 @@ public class OuterOutline2DShaderRenderFeature : RootRenderFeature
             _shader.Parameters.Set(OuterOutline2DShaderKeys.Intensity, outlineScript.Intensity);
             _shader.Parameters.Set(OuterOutline2DShaderKeys.OutlineThickness, outlineScript.OutlineThickness);
 
+            // Rebuild the pipeline state per mesh: the primitive type can differ, and the output state
+            // must be captured from the command list after the shader is up to date.
             _pipelineState.State.RootSignature = _shader.RootSignature;
             _pipelineState.State.EffectBytecode = _shader.Effect.Bytecode;
             _pipelineState.State.PrimitiveType = drawData.PrimitiveType;

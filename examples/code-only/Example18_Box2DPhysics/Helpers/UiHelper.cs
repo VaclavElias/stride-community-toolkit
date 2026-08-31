@@ -1,4 +1,4 @@
-using Example18_Box2DPhysics.Box2DPhysics;
+using Stride.CommunityToolkit.Box2D;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
@@ -141,12 +141,12 @@ public class UiHelper
     /// <summary>
     /// Represents a navigation command with text and color
     /// </summary>
-    private record NavigationCommand(string Text, Color Color);
+    private sealed record NavigationCommand(string Text, Color Color);
 
     /// <summary>
     /// Tracks physics-related information for display
     /// </summary>
-    private class PhysicsInfo
+    private sealed class PhysicsInfo
     {
         public DateTime LastUpdate { get; set; } = DateTime.Now;
         public string LastAction { get; set; } = "None";

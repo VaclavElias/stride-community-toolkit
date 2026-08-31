@@ -57,7 +57,7 @@ public class MeshOutlineComponent : EntityComponent
     /// Gets or sets the 2D polygon vertices for outline rendering.
     /// These define the shape's outline in local 2D coordinates.
     /// </summary>
-    public Vector2[] PolygonVertices { get; set; } = Array.Empty<Vector2>();
+    public Vector2[] PolygonVertices { get; init; } = Array.Empty<Vector2>();
 
     /// <summary>
     /// Gets the vertex count for the polygon outline.

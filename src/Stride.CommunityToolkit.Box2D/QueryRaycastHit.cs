@@ -1,12 +1,11 @@
 using Box2D.NET;
 using Stride.Core.Mathematics;
 
-namespace Example18_Box2DPhysics.Box2DPhysics.Core.Results;
+namespace Stride.CommunityToolkit.Box2D;
 
 /// <summary>
-/// Represents a raw 2D raycast hit returned by <see cref="PhysicsQueries2D"/>.
-/// Engine-agnostic: contains only Box2D identifiers and value types so it can be lifted
-/// into a future reusable Box2D toolkit library without changes.
+/// A raw 2D raycast hit returned by <see cref="PhysicsQueries2D"/>. Engine-agnostic: contains only
+/// Box2D identifiers and value types; see <see cref="RaycastHit"/> for the entity-resolved variant.
 /// </summary>
 /// <param name="BodyId">The body hit by the ray.</param>
 /// <param name="ShapeId">The specific shape on the body that was hit.</param>

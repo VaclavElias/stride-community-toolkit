@@ -1,0 +1,113 @@
+using Box2D.NET;
+using Stride.Core.Mathematics;
+using Stride.Engine;
+using static Box2D.NET.B2Bodies;
+using static Box2D.NET.B2MathFunction;
+using static Box2D.NET.B2Types;
+
+namespace Stride.CommunityToolkit.Box2D;
+
+/// <summary>
+/// Bridge responsible for mapping Box2D bodies to Stride entities and synchronizing transforms.
+/// This isolates engine-specific concerns away from the engine-agnostic <see cref="PhysicsWorld2D"/>.
+/// </summary>
+public sealed class Box2DStrideBridge
+{
+    private readonly PhysicsWorld2D _world;
+    private readonly Dictionary<B2BodyId, Entity> _bodyToEntity = [];
+    private readonly Dictionary<Entity, B2BodyId> _entityToBody = [];
+
+    /// <summary>
+    /// Creates a bridge for the given world.
+    /// </summary>
+    /// <param name="world">The physics world bodies are created in.</param>
+    public Box2DStrideBridge(PhysicsWorld2D world)
+    {
+        _world = world;
+    }
+
+    /// <summary>
+    /// Creates a body of the given type at a world position, without an associated entity.
+    /// </summary>
+    /// <param name="position">Initial world position (Z is ignored).</param>
+    /// <param name="type">The Box2D body type.</param>
+    /// <param name="rotation">Initial rotation in radians about the Z axis.</param>
+    /// <returns>The id of the created body.</returns>
+    public B2BodyId CreateBody(Vector3 position, B2BodyType type, float rotation = 0f)
+    {
+        var bodyDef = b2DefaultBodyDef();
+        bodyDef.type = type;
+        bodyDef.position = new B2Vec2(position.X, position.Y);
+        bodyDef.rotation = b2MakeRot(rotation);
+
+        return b2CreateBody(_world.WorldId, in bodyDef);
+    }
+
+    /// <summary>
+    /// Creates a body of the given type at a world position and associates it with an entity,
+    /// so <see cref="SyncTransformsFromPhysics"/> keeps the entity transform in step with the body.
+    /// </summary>
+    /// <param name="entity">The entity driven by the body.</param>
+    /// <param name="position">Initial world position (Z is ignored).</param>
+    /// <param name="type">The Box2D body type.</param>
+    /// <param name="rotation">Initial rotation in radians about the Z axis.</param>
+    /// <returns>The id of the created body.</returns>
+    public B2BodyId CreateBody(Entity entity, Vector3 position, B2BodyType type, float rotation = 0f)
+    {
+        var bodyId = CreateBody(position, type, rotation);
+
+        _bodyToEntity[bodyId] = entity;
+        _entityToBody[entity] = bodyId;
+
+        return bodyId;
+    }
+
+    /// <summary>
+    /// Destroys the body associated with <paramref name="entity"/> and forgets the mapping, if present.
+    /// </summary>
+    /// <param name="entity">The entity whose body should be removed.</param>
+    public void RemoveBody(Entity entity)
+    {
+        if (_entityToBody.TryGetValue(entity, out var bodyId))
+        {
+            b2DestroyBody(bodyId);
+
+            _entityToBody.Remove(entity);
+            _bodyToEntity.Remove(bodyId);
+        }
+    }
+
+    /// <summary>Gets the entity registered for the given body id, or null.</summary>
+    /// <param name="bodyId">The body to look up.</param>
+    public Entity? GetEntity(B2BodyId bodyId) => _bodyToEntity.TryGetValue(bodyId, out var e) ? e : null;
+
+    /// <summary>Gets the body registered for the given entity, or null.</summary>
+    /// <param name="entity">The entity to look up.</param>
+    public B2BodyId? GetBody(Entity entity) => _entityToBody.TryGetValue(entity, out var id) ? id : null;
+
+    /// <summary>All body ids currently mapped to an entity.</summary>
+    public IEnumerable<B2BodyId> Bodies => _bodyToEntity.Keys;
+
+    /// <summary>
+    /// Synchronizes Stride entity transforms from physics body positions and rotations.
+    /// Call after each fixed step.
+    /// </summary>
+    public void SyncTransformsFromPhysics()
+    {
+        foreach (var item in _bodyToEntity)
+        {
+            var bodyId = item.Key;
+            var entity = item.Value;
+
+            // A sleeping body cannot have moved, and its entity was synchronized before it fell
+            // asleep - skipping it keeps a settled pile of thousands of bodies nearly free.
+            if (!b2Body_IsAwake(bodyId)) continue;
+
+            var position = b2Body_GetPosition(bodyId);
+            var rotation = b2Body_GetRotation(bodyId);
+
+            entity.Transform.Position = new Vector3(position.X, position.Y, 0f);
+            entity.Transform.Rotation = Quaternion.RotationZ(B2MathFunction.b2Rot_GetAngle(rotation));
+        }
+    }
+}

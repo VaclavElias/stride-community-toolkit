@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Title>Stride Community Toolkit - Box2D Physics</Title>
+        <Description>Box2D.NET physics integration for the Stride Community Toolkit - an experimental 2D physics alternative.
+
+What's inside:
+- Box2DSimulation: a Box2D world bound to Stride entities, with fixed-timestep stepping and transform sync
+- Contact, hit and sensor events routed to your handlers via PhysicsEventRouter2D
+- PhysicsQueries2D: closest-hit and all-hits raycasts plus point, AABB and circle overlap queries
+- ShapeFixtureBuilder: Box2D fixtures matching the toolkit's 2D primitives (box, circle, triangle, capsule)
+- BodyForces: impulse and velocity helpers for bodies
+
+Requires the Box2D.NET package.$(StrideVersionNote)</Description>
+        <!-- Not published to NuGet yet: the API is still settling while Box2D support matures. -->
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <Import Project="..\CommonSettings.props" />
+
+    <ItemGroup>
+        <PackageReference Include="Box2D.NET" Version="3.1.654" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
+    </ItemGroup>
+
+</Project>

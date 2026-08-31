@@ -5,14 +5,13 @@ using static Box2D.NET.B2Shapes;
 using static Box2D.NET.B2Types;
 using static Box2D.NET.B2Worlds;
 
-namespace Example18_Box2DPhysics.Box2DPhysics.Queries;
+namespace Stride.CommunityToolkit.Box2D;
 
 /// <summary>
-/// Stateless helper methods for common Box2D query patterns. Intended for extraction to a reusable
-/// toolkit library. These wrappers avoid any Stride engine types and operate directly on world IDs
-/// and primitive math structs only.
+/// Stateless helper methods for common Box2D query patterns. These wrappers avoid any Stride engine
+/// types and operate directly on world ids and primitive math structs only.
 /// </summary>
-public static partial class PhysicsQueries2D
+public static class PhysicsQueries2D
 {
     /// <summary>
     /// Performs a closest-hit raycast against every shape in <paramref name="worldId"/> along a segment starting at <paramref name="origin"/> in <paramref name="direction"/> up to <paramref name="maxDistance"/>.
@@ -34,11 +33,11 @@ public static partial class PhysicsQueries2D
         if (!result.hit)
             return (false, default, default, default, default, 0f);
 
-        var p = new Vector2(result.point.X, result.point.Y);
-        var n = new Vector2(result.normal.X, result.normal.Y);
+        var point = new Vector2(result.point.X, result.point.Y);
+        var normal = new Vector2(result.normal.X, result.normal.Y);
         var bodyId = b2Shape_GetBody(result.shapeId);
 
-        return (true, bodyId, result.shapeId, p, n, result.fraction);
+        return (true, bodyId, result.shapeId, point, normal, result.fraction);
     }
 
     /// <summary>
@@ -46,7 +45,7 @@ public static partial class PhysicsQueries2D
     /// </summary>
     /// <param name="worldId">Target Box2D world.</param>
     /// <param name="point">The point to test.</param>
-    /// <param name="querySize">Half-extent of the temporary AABB used for broad-phase query.</param>
+    /// <param name="querySize">Half-extent of the temporary AABB used for the broad-phase query.</param>
     /// <returns>The first body id whose shape actually contains the point; null if none.</returns>
     public static B2BodyId? OverlapPoint(B2WorldId worldId, Vector2 point, float querySize = 0.1f)
     {
