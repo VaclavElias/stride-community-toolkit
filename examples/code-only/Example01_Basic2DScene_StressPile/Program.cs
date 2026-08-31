@@ -389,6 +389,7 @@ tags:
   - Draw Calls
   - Stress Test
 related:
+  - Example01_Basic2DScene_StressPile_Box2D
   - Example22_Instancing_EntityTransform
   - Example01_Basic2DScene_SpawnMenu
   - Example01_Basic2DScene_FallingShapes
