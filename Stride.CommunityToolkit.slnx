@@ -27,6 +27,7 @@
     <Project Path="examples/code-only/Example01_WorldText/Example01_WorldText.csproj" />
     <Project Path="examples/code-only/Example02_GiveMeACube/Example02_GiveMeACube.csproj" />
     <Project Path="examples/code-only/Example02_GiveMeACube_SimulationUpdate/Example02_GiveMeACube_SimulationUpdate.csproj" />
+    <Project Path="examples/code-only/Example02_Junkyard_Box2D/Example02_Junkyard_Box2D.csproj" Id="53e844c7-8e4e-45f2-8639-1d3d7b054825" />
     <Project Path="examples/code-only/Example03_StrideUI_CapsuleAndWindow/Example03_StrideUI_CapsuleAndWindow.csproj" />
     <Project Path="examples/code-only/Example04_MyraUI/Example04_MyraUI.csproj">
       <Build Solution="Debug|*" Project="false" />
