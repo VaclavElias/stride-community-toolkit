@@ -33,9 +33,11 @@ public sealed class ShapeProcessor : EntityProcessor<ShapeComponent>
             var fillAlpha = batch.FillAlpha;
             var fillColor = batch.FillColor;
 
-            batch.BorderWidth = component.BorderWidth ?? borderWidth;
-            batch.FillAlpha = component.FillAlpha ?? fillAlpha;
-            batch.FillColor = component.FillColor ?? fillColor;
+            // Negative means "inherit"; a transparent fill colour means the same for the colour,
+            // because Game Studio cannot edit nullable value types (see ShapeComponent.Inherit)
+            batch.BorderWidth = component.BorderWidth < 0f ? borderWidth : component.BorderWidth;
+            batch.FillAlpha = component.FillAlpha < 0f ? fillAlpha : component.FillAlpha;
+            batch.FillColor = component.FillColor.A == 0 ? fillColor : component.FillColor;
 
             Draw(batch, component);
 

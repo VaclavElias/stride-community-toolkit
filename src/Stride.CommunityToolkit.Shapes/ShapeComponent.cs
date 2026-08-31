@@ -32,6 +32,14 @@ namespace Stride.CommunityToolkit.Shapes;
 public sealed class ShapeComponent : ActivableEntityComponent
 {
     /// <summary>
+    /// Assigned to <see cref="BorderWidth"/> or <see cref="FillAlpha"/> to take the batch's value
+    /// instead of one set here. A negative width or fill is meaningless, which is what makes it a
+    /// safe sentinel - and Game Studio's property grid cannot edit a nullable value type at all,
+    /// so an optional float has to be expressed this way rather than as float?.
+    /// </summary>
+    public static readonly float Inherit = -1f;
+
+    /// <summary>
     /// The shape outline in local space, counter-clockwise, at most 8 corners. May be swapped at
     /// runtime; the next frame draws the new outline. A single vertex with <see cref="Radius"/> set
     /// draws a circle; two vertices with a radius draw a capsule.
@@ -68,20 +76,22 @@ public sealed class ShapeComponent : ActivableEntityComponent
     public ShapeBatch? Batch { get; set; }
 
     /// <summary>
-    /// Outline width in on-screen pixels for this shape, or <c>null</c> to use the batch's
+    /// Outline width in on-screen pixels for this shape, or Inherit to use the batch's
     /// <see cref="ShapeBatch.BorderWidth"/>.
     /// </summary>
-    public float? BorderWidth { get; set; }
+    public float BorderWidth { get; set; } = Inherit;
 
     /// <summary>
-    /// Fill intensity for this shape, 0 to 1, or <c>null</c> to use the batch's
+    /// Fill intensity for this shape, 0 to 1, or Inherit to use the batch's
     /// <see cref="ShapeBatch.FillAlpha"/>. Set 0 for an unfilled outline.
     /// </summary>
-    public float? FillAlpha { get; set; }
+    public float FillAlpha { get; set; } = Inherit;
 
     /// <summary>
-    /// The fill's own colour for this shape, or <c>null</c> to use the batch's
-    /// <see cref="ShapeBatch.FillColor"/> - which itself defaults to filling with the outline colour.
+    /// The fill's own colour for this shape. Leave it fully transparent - an alpha of zero, which
+    /// is the default - to use the batch's <see cref="ShapeBatch.FillColor"/>, which itself
+    /// defaults to filling with the outline colour. For a see-through fill use <see cref="FillAlpha"/>
+    /// rather than a transparent colour here.
     /// </summary>
-    public Color? FillColor { get; set; }
+    public Color FillColor { get; set; }
 }
