@@ -7,6 +7,7 @@ env:
     src/Stride.CommunityToolkit.Bullet/Stride.CommunityToolkit.Bullet.csproj
     src/Stride.CommunityToolkit.DebugShapes/Stride.CommunityToolkit.DebugShapes.csproj
     src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj
+    src/Stride.CommunityToolkit.Shapes/Stride.CommunityToolkit.Shapes.csproj
     src/Stride.CommunityToolkit.Skyboxes/Stride.CommunityToolkit.Skyboxes.csproj
     src/Stride.CommunityToolkit.Windows/Stride.CommunityToolkit.Windows.csproj
     src/Stride.CommunityToolkit.Linux/Stride.CommunityToolkit.Linux.csproj
