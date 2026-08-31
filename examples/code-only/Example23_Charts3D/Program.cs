@@ -8,6 +8,9 @@ using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Rendering.Compositing;
+using Stride.Rendering.Images;
+using Stride.Rendering.Lights;
 using Stride.Games;
 using Stride.Input;
 
@@ -23,7 +26,8 @@ using Stride.Input;
 // FollowCamera - re-targeting the ranges to what the camera sees is an orthographic idea.
 //
 // Controls: left-drag orbits, middle-drag pans, wheel zooms, H resets the view; G grid, L legend,
-// T removes or restores tan, Space throws the ball, A pauses the animated curve.
+// T removes or restores tan, Space throws the ball, A pauses the animated curve, V switches between
+// the chart look and the showcase look.
 
 // Without this a scaled-up 4K desktop hands the game a scaled, blurred window. A no-op off Windows.
 WindowsDpiManager.EnablePerMonitorV2();
@@ -48,6 +52,13 @@ var ballFlying = false;
 
 // The animated curve: sin(kx) with k sweeping up and down, re-plotted in place every frame
 var animate = true;
+var showcase = false;
+LightComponent? keyLight = null;
+Bloom? bloom = null;
+const float ChartGlow = 2.5f;
+const float ShowcaseGlow = 6f;
+const float ChartLight = 20f;
+const float ShowcaseLight = 2f;
 var waveTime = 0f;
 var waveFrequency = 1f;
 const float WaveAmplitude = 1.5f;
@@ -62,9 +73,15 @@ void Start(Scene rootScene)
     // What SetupBase3D does, with a dark background instead of cornflower blue: emissive curves above
     // intensity 1 only look like they glow against something dark
     game.AddGraphicsCompositor(clearColor: new Color(16, 18, 28)).AddCleanUIStage();
+
+    // The bloom the showcase look widens later; the default is tuned for a scene, not for thin bright lines
+    if (game.SceneSystem.GraphicsCompositor.SingleView is ForwardRenderer { PostEffects: PostProcessingEffects effects })
+    {
+        bloom = effects.Bloom;
+    }
     game.Add3DCamera();
     game.Add3DCameraController();
-    game.AddDirectionalLight();
+    keyLight = game.AddDirectionalLight(intensity: ChartLight).Get<LightComponent>();
 
     // Glow3D is the lit preset: bright palette, emissive intensity above 1, which the default
     // compositor's bloom turns into a glow
@@ -176,6 +193,7 @@ void Start(Scene rootScene)
         new($"Press L to toggle the legend ({(chart.LegendVisible ? "on" : "off")})", Color.Yellow),
         new($"Press Space to throw the ball (trail: {trail.Count}/{trail.Capacity} points)", Color.Yellow),
         new($"Press A to {(animate ? "pause" : "resume")} the wave (k = {waveFrequency:0.00})", Color.Yellow),
+        new($"Press V for the {(showcase ? "chart" : "showcase")} look (glow {chart.Glow:0.0})", Color.Yellow),
         new($"{chart.Series.Count} series: {string.Join(", ", chart.Series.Select(s => s.Name))}"),
     ]);
 }
@@ -215,6 +233,36 @@ void Update(Scene scene, GameTime time)
     if (game.Input.IsKeyPressed(Keys.A))
     {
         animate = !animate;
+    }
+
+    // The showcase look. Everything here is emissive already; what holds it back in the default view is
+    // the grid behind the curves and a glow of 2.5. Drop the grid and push the glow up and the same
+    // figure reads as the neon thing you get by orbiting behind it - no rotating needed. Setting Glow is
+    // a material parameter write per series, so nothing is rebuilt.
+    if (game.Input.IsKeyPressed(Keys.V))
+    {
+        showcase = !showcase;
+
+        chart.GridVisible = !showcase;
+        chart.Glow = showcase ? ShowcaseGlow : ChartGlow;
+
+        // The light matters more than it looks. A ribbon is emissive AND lit, so a bright key light adds
+        // white to every curve and washes the colour out - which is why the halo always looked better from
+        // behind, where the ribbons face away from it. Dimming the light is what brings that side to the
+        // front; it is not turned off, so the labels and axes keep some shading.
+        if (keyLight is not null)
+        {
+            keyLight.Intensity = showcase ? ShowcaseLight : ChartLight;
+        }
+
+        // The last piece, and the one that explains why orbiting behind the chart always looked better:
+        // bloom spreads in SCREEN space, so the same halo covers far more of a figure that sits small in
+        // the frame than of one that fills it. Rather than push the camera away, widen the bloom.
+        if (bloom is not null)
+        {
+            bloom.Radius = showcase ? 20f : 10f;
+            bloom.Amount = showcase ? 0.5f : 0.3f;
+        }
     }
 
     if (animate && wave is not null)

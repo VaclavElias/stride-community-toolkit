@@ -1,6 +1,7 @@
 using Stride.CommunityToolkit.Charts.Lines;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Rendering.Materials;
 
 namespace Stride.CommunityToolkit.Charts;
 
@@ -57,6 +58,21 @@ public class ChartSeries : IDisposable
         Entity = entity;
         Options = options;
         IsEmpty = isEmpty;
+    }
+
+    /// <summary>
+    /// Pushes a new emissive intensity into this series' material. Each series builds its own material, so
+    /// this touches nothing else on the chart, and it is a parameter write rather than a rebuild.
+    /// </summary>
+    internal void SetEmissiveIntensity(float intensity)
+    {
+        if (Entity.Get<ModelComponent>()?.Model is not { } model)
+            return;
+
+        foreach (var instance in model.Materials)
+        {
+            instance.Material?.Passes[0].Parameters.Set(MaterialKeys.EmissiveIntensity, intensity);
+        }
     }
 
     /// <summary>

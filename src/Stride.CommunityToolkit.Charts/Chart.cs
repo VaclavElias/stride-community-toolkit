@@ -64,6 +64,30 @@ public sealed class Chart : IDisposable
         set => _legend.Visible = value;
     }
 
+    /// <summary>
+    /// The emissive intensity every series is drawn with. Above <c>1</c> the curves glow through the
+    /// compositor's bloom; the higher it goes the more they bleed into the scene around them.
+    /// </summary>
+    /// <remarks>
+    /// Setting it pushes the new value straight into the material of every series already on the chart -
+    /// no mesh is rebuilt, so it is cheap enough to animate - and updates
+    /// <see cref="ChartSeriesOptions.EmissiveIntensity"/> so series added afterwards match. Turning the
+    /// grid off at the same time is what makes a chart read as a glowing figure rather than a diagram.
+    /// </remarks>
+    public float Glow
+    {
+        get => Options.Series.EmissiveIntensity;
+        set
+        {
+            Options.Series.EmissiveIntensity = value;
+
+            foreach (var series in _series)
+            {
+                series.SetEmissiveIntensity(value);
+            }
+        }
+    }
+
     /// <summary>The game the chart draws in - meshes are built on its device, on the game thread.</summary>
     internal Game Game { get; }
 
