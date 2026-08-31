@@ -236,7 +236,7 @@ void RenderNavigation()
 
 void ProcessRaycast(MouseButton mouseButton, Vector2 screenPosition)
 {
-    //if (_bepuConfig == null) return;
+    if (_camera is null) return;
 
     if (mouseButton == MouseButton.Left)
     {
