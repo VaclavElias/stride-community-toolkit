@@ -159,3 +159,15 @@ using System.Diagnostics.CodeAnalysis;
 // --- Example17 SignalR ---
 [assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example17_SignalR:Example17_SignalR.SignalR.SignalRHubClient", Scope = "deep", Justification = "Jitter on the reconnect backoff delay, so a room full of clients does not retry in lockstep after a server restart; nothing security-related.")]
 [assembly: SuppressMessage("NDepend", "ND1313:OverrideEqualsAndOperatorEqualsOnValueTypes", Target = "Example17_SignalR:Example17_SignalR.SignalR.BufferedSubscription<T>", Justification = "A readonly handle around one queue, handed out by RegisterBuffered and only ever drained; instances are never compared, sorted or used as keys, so the equality contract would be dead code. A record struct would satisfy the rule but publishes the queue as a public member.")]
+// --- Cubicle Calamity: a game example ---
+// Colours for the board, positions for the falling game-over letters, and the shuffle behind a
+// spawn. Gameplay randomness, same as Helpers.VectorHelper above; a seedable System.Random is the
+// point, and CubeSpawner deliberately seeds it so the same board comes up while tuning.
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example_CubicleCalamity:Example_CubicleCalamity.Setup.CubeSpawner", Scope = "deep", Justification = "Cube colours; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example_CubicleCalamity:Example_CubicleCalamity.Setup.FallingLetters", Scope = "deep", Justification = "Scatter on the game-over letters; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example_CubicleCalamity:Example_CubicleCalamity.Scripts.CubeClickScript", Scope = "deep", Justification = "Picks which of the interchangeable click sounds to play; nothing security-related.")]
+// The class the example's own docs tell a reader to start from: it owns the order things happen in
+// and holds one reference per part it drives - grid, score, levels, progress, materials, spawner,
+// audio, the four scripts, simulation and scene. Splitting it would scatter one game's wiring across
+// several types and cost exactly the readability the example is for.
+[assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Example_CubicleCalamity:Example_CubicleCalamity.CubicleCalamityGame", Justification = "Game root: one field per part it owns, which is what makes the startup order readable in one place.")]

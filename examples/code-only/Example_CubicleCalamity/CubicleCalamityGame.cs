@@ -28,7 +28,11 @@ namespace Example_CubicleCalamity;
 /// the scripts under <c>Scripts/</c> handle everything that reacts to the player.
 /// </remarks>
 /// <param name="game">The running game.</param>
-public class CubicleCalamityGame(Game game)
+/// <param name="progressStore">
+/// Where progress is read and written. Defaults to <see cref="FreshProgressStore"/>, which starts
+/// every launch at level one; pass a <see cref="JsonProgressStore"/> to resume instead.
+/// </param>
+public class CubicleCalamityGame(Game game, IProgressStore? progressStore = null)
 {
     /// <summary>Seed for cube colours, so the same board comes up every run while tuning.</summary>
     private const int Seed = 1;
@@ -39,9 +43,11 @@ public class CubicleCalamityGame(Game game)
     private readonly ScoreKeeper _keeper = new();
     private readonly LevelState _levels = new();
 
-    // The seam persistence slots into: swap for a JsonProgressStore (see its docs) and a new launch
-    // resumes at the level the last game over reached. The rest of the game only sees the interface.
-    private readonly IProgressStore _progressStore = new FreshProgressStore();
+    // The seam persistence slots into: pass a JsonProgressStore (see its docs) at construction and a
+    // new launch resumes at the level the last game over reached. The rest of the game only sees the
+    // interface. Taking it as a parameter rather than newing it up here is what makes that a real
+    // choice at the call site instead of an edit to this file.
+    private readonly IProgressStore _progressStore = progressStore ?? new FreshProgressStore();
     private GameProgress _progress = new();
 
     // One full material set per palette, all built at startup: materials are GPU resources, and a
