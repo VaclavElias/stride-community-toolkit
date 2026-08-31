@@ -26,4 +26,10 @@ Requires the Box2D.NET package.$(StrideVersionNote)</Description>
         <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="Effects\Box2DDebugShader.sdsl">
+            <LastGenOutput>Box2DDebugShader.sdsl.cs</LastGenOutput>
+        </None>
+    </ItemGroup>
+
 </Project>
