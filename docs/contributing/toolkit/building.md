@@ -71,9 +71,16 @@ dotnet run --file build/pack-local.cs
 
 Useful arguments: `--version <version>`, `--configuration <configuration>` and `--clean`.
 
-This packs every publishable library into `bin/packages` as version `1.0.0-dev`. The version is
-fixed by design, so a reference such as `Stride.CommunityToolkit.Bepu@1.0.0-dev` keeps working
+This packs every publishable library into `bin/packages` as version `99.0.0-dev`. The version is
+fixed by design, so a reference such as `Stride.CommunityToolkit.Bepu@99.0.0-dev` keeps working
 across rebuilds and never has to be edited.
+
+The `99` is deliberate. A `PackageReference` means *at least* that version, and NuGet then picks the
+**lowest** version satisfying it. Because prerelease labels compare alphabetically, a `1.0.0-dev`
+constraint was satisfied by every published `1.0.0-preview.*` - so whenever the local feed was not
+consulted, NuGet quietly chose the *oldest* of them and the failure surfaced much later as a missing
+Stride 4.2 assembly. Nothing published can satisfy `99.0.0`, so that mistake now fails immediately
+with `NU1101`/`NU1102` instead.
 
 > [!IMPORTANT]
 > NuGet keys its global cache by package id and version, and will not re-extract a rebuilt package
@@ -87,7 +94,7 @@ The script also writes a ready-to-use `bin/packages/NuGet.config`. Copy it next 
 should consume the packages, then reference them normally:
 
 ```xml
-<PackageReference Include="Stride.CommunityToolkit.Bepu" Version="1.0.0-dev" />
+<PackageReference Include="Stride.CommunityToolkit.Bepu" Version="99.0.0-dev" />
 ```
 
 Nothing machine-wide needs changing. NuGet merges that configuration with any existing one, so
@@ -96,8 +103,8 @@ nuget.org and the Stride dev feed keep resolving exactly as before.
 > [!WARNING]
 > The `packageSourceMapping` entry in that file is required, not optional. Once **any** NuGet
 > configuration on the machine defines `packageSourceMapping`, and the Stride development setup does,
-> a source that is not mapped is silently never consulted. The symptom is not an error: the local
-> packages quietly resolve to an older `-preview` version from nuget.org instead.
+> a source that is not mapped is silently never consulted - so the local feed is skipped entirely and
+> the restore fails as if the packages did not exist.
 
 The file maps two patterns, and both are needed:
 
@@ -107,10 +114,9 @@ The file maps two patterns, and both are needed:
 ```
 
 `Stride.CommunityToolkit.*` requires a dot after the prefix, so it matches
-`Stride.CommunityToolkit.Bepu` and friends but **not** the base `Stride.CommunityToolkit` package.
-Without the exact-name pattern the base package falls through to the nuget.org catch-all and quietly
-resolves to an old published prerelease, because NuGet compares prerelease labels alphabetically and
-`dev` sorts before `preview`.
+`Stride.CommunityToolkit.Bepu` and friends but **not** the base `Stride.CommunityToolkit` package,
+which needs the exact-name pattern of its own. Without it the base package falls through to the
+nuget.org catch-all, where no `99.0.0` exists, and the restore fails.
 
 Both are more specific than the `Stride.*` mapped to the Stride dev feed. NuGet resolves by longest
 matching prefix, so the toolkit packages come from the local feed without disturbing how Stride
@@ -133,14 +139,12 @@ an example against the local packages instead:
 > [!WARNING]
 > **Add the `NuGet.config` before the package references, or restore explicitly afterwards.**
 >
-> A `PackageReference` to `1.0.0-dev` means *at least* `1.0.0-dev`. Prerelease labels are compared
-> alphabetically, and `dev` sorts before `preview`, so `1.0.0-preview.1` satisfies the constraint. If
-> the local feed is not configured yet, NuGet does not fail - it quietly resolves an **older
-> published preview** from nuget.org instead.
+> If the local feed is not configured yet, the restore fails with `NU1101`/`NU1102`: nothing
+> published satisfies `99.0.0`, which is the whole reason that version was chosen.
 >
-> Worse, adding the `NuGet.config` afterwards does not fix it on its own. The wrong resolution is
-> already recorded in `obj/project.assets.json`, and a plain `dotnet build` keeps using it, so the
-> build continues to fail against the wrong assemblies. Force a restore to recover:
+> Adding the `NuGet.config` afterwards does not fix it on its own, though. The failed resolution is
+> already recorded in `obj/project.assets.json`, and a plain `dotnet build` keeps using it. Force a
+> restore to recover:
 >
 > ```bash
 > dotnet restore examples/code-only/<Example>/<Example>.csproj
@@ -149,7 +153,7 @@ an example against the local packages instead:
 > Deleting the example's `obj` folder has the same effect. This is also why the base package matters:
 > the mapping in the generated config includes both `Stride.CommunityToolkit` and
 > `Stride.CommunityToolkit.*`, because the `.*` pattern alone does not match the base package name and
-> would leave it resolving from nuget.org.
+> would leave it looking on nuget.org, where no `99.0.0` exists.
 
 ## Running the examples
 

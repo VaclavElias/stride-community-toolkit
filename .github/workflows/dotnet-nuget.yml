@@ -14,6 +14,7 @@ env:
     src/Stride.CommunityToolkit.Bepu/Stride.CommunityToolkit.Bepu.csproj
     src/Stride.CommunityToolkit.Bullet/Stride.CommunityToolkit.Bullet.csproj
     src/Stride.CommunityToolkit.DebugShapes/Stride.CommunityToolkit.DebugShapes.csproj
+    src/Stride.CommunityToolkit.Shapes/Stride.CommunityToolkit.Shapes.csproj
     src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj
   TEST_PROJECT: tests/Stride.CommunityToolkit.Tests/Stride.CommunityToolkit.Tests.csproj
   COMMON_SETTINGS_PATH: src/CommonSettings.props

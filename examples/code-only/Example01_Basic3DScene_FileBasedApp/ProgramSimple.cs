@@ -1,9 +1,9 @@
 //#:project ../../../src/Stride.CommunityToolkit.Bepu/Stride.CommunityToolkit.Bepu.csproj
 //#:project ../../../src/Stride.CommunityToolkit.Skyboxes/Stride.CommunityToolkit.Skyboxes.csproj
 //#:project ../../../src/Stride.CommunityToolkit.Windows/Stride.CommunityToolkit.Windows.csproj
-#:package Stride.CommunityToolkit.Bepu@1.0.0-dev
-#:package Stride.CommunityToolkit.Skyboxes@1.0.0-dev
-#:package Stride.CommunityToolkit.Windows@1.0.0-dev
+#:package Stride.CommunityToolkit.Bepu@99.0.0-dev
+#:package Stride.CommunityToolkit.Skyboxes@99.0.0-dev
+#:package Stride.CommunityToolkit.Windows@99.0.0-dev
 
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
