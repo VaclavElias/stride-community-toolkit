@@ -1,7 +1,5 @@
 using Example.Common;
 using Stride.CommunityToolkit.Box2D;
-using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -11,7 +9,7 @@ namespace Example18_Box2DPhysics.Helpers;
 /// <summary>
 /// Factory class to create 2D shapes for the Box2D simulation with Box2D.NET
 /// </summary>
-public class ShapeFactory(Game game, Scene scene)
+public class ShapeFactory(Scene scene)
 {
     private readonly List<Shape2DModel> _shapes =
     [

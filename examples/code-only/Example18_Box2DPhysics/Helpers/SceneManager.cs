@@ -1,5 +1,4 @@
 using Box2D.NET;
-using Example.Common;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
@@ -9,9 +8,9 @@ using Stride.Games;
 using Stride.Input;
 using static Box2D.NET.B2Bodies;
 using static Box2D.NET.B2Geometries;
+using static Box2D.NET.B2Joints;
 using static Box2D.NET.B2MathFunction;
 using static Box2D.NET.B2Shapes;
-using static Box2D.NET.B2Joints;
 
 namespace Example18_Box2DPhysics.Helpers;
 
@@ -47,7 +46,7 @@ public class SceneManager
         _camera = camera;
         _worldId = simulation.GetWorldId();
 
-        _shapeFactory = new ShapeFactory(game, scene);
+        _shapeFactory = new ShapeFactory(scene);
         _uiHelper = new UiHelper(game);
         _inputManager = new InputManager(game, _camera);
     }
