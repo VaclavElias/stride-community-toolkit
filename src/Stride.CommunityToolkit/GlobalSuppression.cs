@@ -96,6 +96,40 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiExtension", Scope = "deep", Justification = "PlotLines mirrors the native Dear ImGui signature parameter for parameter.")]
 [assembly: SuppressMessage("NDepend", "ND1701:PotentiallyDeadMethods", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor+ThreadSampleCollection", Scope = "deep", Justification = "Instantiated through the generic new() constraint in PerfMonitorHelpers.Guaranteed, which static analysis cannot see.")]
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor+ThreadSampleCollection", Justification = "Instantiated through the generic new() constraint in PerfMonitorHelpers.Guaranteed, which static analysis cannot see.")]
+// --- Overload families the rule's own remedies cannot collapse ---------------------------------
+// ND1005 suggests optional parameters, named arguments or params. For these three, none of the three
+// applies, so the count is a fact about the API rather than something to fix.
+//
+// Get<T1..T16>: an arity family. C# has no variadic generics, so this is the only way to express it,
+// and it is the shape the framework itself uses for Func, Action and ValueTuple. Optional parameters
+// and params say nothing about generic type parameters.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.EntityExtensions.Get<TComponent1,TComponent2>(Entity)", Justification = "Generic arity family, two through sixteen components; C# has no variadic generics.")]
+// Interpolate: one overload per value type - float, Vector2, Vector3, Vector4, Color - each with a
+// by-ref form. Collapsing them needs an arithmetic constraint Stride's math types do not implement,
+// and the shape mirrors Stride's own MathUtil.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Mathematics.MathUtilEx.Interpolate(Single,Single,Single,EasingFunction)", Justification = "One overload per interpolated value type, each with a by-ref form; mirrors Stride's MathUtil.")]
+// SetMaterialParameter: one overload per Stride parameter key type - value, object and permutation,
+// each in accessor and key form - times how the value arrives. Those key types share no interface to
+// unify on, so this family mirrors the engine's ParameterCollection surface, as the raycast wrappers
+// mirror each physics engine's casing.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.ModelComponentExtensions.SetMaterialParameter<T>(ModelComponent,ObjectParameterAccessor<T>,T,Int32,Int32)", Justification = "One overload per Stride parameter key type; they share no interface to unify on.")]
+
+// --- Metrics that do not fit an extension-method library ---------------------------------------
+// Relational cohesion counts how often the types in a namespace reference each other. It is built
+// for domain models, where types collaborate. Stride.CommunityToolkit.Engine is a namespace of
+// independent extension holders, and an extension class collaborates with the engine, never with
+// its neighbours, so this number is low by construction and will stay low. It also pulls against
+// ND1305: folding the thin namespaces into Engine, which that rule asks for, would add more mutually
+// unrelated types here and lower cohesion further. Satisfying one guarantees failing the other.
+[assembly: SuppressMessage("NDepend", "ND1406:NamespacesWithPoorRelationalCohesion", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine", Justification = "A namespace of extension-method holders has no inter-type references to measure.")]
+
+// --- GPU vertex layouts -------------------------------------------------------------------------
+// A vertex struct is a memory layout the graphics device reads, with public fields at fixed offsets,
+// exactly as Stride's own VertexPositionNormalTexture is written. Making the fields readonly would
+// break the in-place edits a mesh builder performs (FlipWinding here) and buy nothing: the struct
+// exists to be copied into a vertex buffer, not to be shared.
+[assembly: SuppressMessage("NDepend", "ND1903:StructuresShouldBeImmutable", Target = "Stride.CommunityToolkit.Bullet:Stride.CommunityToolkit.Bullet.VertexTypePosTexNormColor", Justification = "GPU vertex layout with public fields, the same shape as Stride's own vertex structs.")]
+
 // --- DebugShapes: the tagged-union design -------------------------------------------------------
 // Renderable and DebugRenderable are tagged unions: one constructor per shape kind, all payloads at
 // the same FieldOffset. That is what lets a frame of debug shapes live in one flat list with no
@@ -245,3 +279,39 @@ using System.Diagnostics.CodeAnalysis;
 // a canvas that starts loading textures, a mesh builder that starts owning materials - split it then.
 [assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Utilities.MeshBuilder", Justification = "Fluent mesh builder: 24 methods by the rule's count over 121 lines, one responsibility.")]
 [assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Utilities.TextureCanvas", Justification = "Drawing surface: 32 methods by the rule's count over 200 lines, mostly Draw/Fill overloads over one canvas.")]
+
+// --- Prefab instantiation: the one overload family with a real remedy --------------------------
+// Unlike the three ND1005 families in SETTLED, this one the rule could be right about. Half of each
+// family is forced: a ref parameter cannot have a default, so every by-reference form needs its own
+// signature. The by-value half is five overloads covering which of translation, rotation and scale
+// the caller supplies, and that half is exactly what optional parameters are for. What stops it
+// being an obvious win is the cost of nullable value types on a per-instantiation path, which is a
+// measurement rather than a guess.
+//
+// Worth seeing together: NDepend counts these as two problems, but they are one family written
+// twice. Twenty-one methods express "instantiate a prefab, optionally with a transform", differing
+// only in whether one entity or a list comes back. If anything here matures, that is the thing to
+// look at rather than the overload count.
+//
+// TRIGGER: a decision on collapsing the by-value half with optional parameters, taken with an
+// allocation measurement behind it; or any move to merge the single and multiple variants.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.PrefabExtensions.InstantiateSingle(Prefab)", Justification = "Eleven overloads: transform combinations times by-value/by-ref. The by-ref half cannot take defaults; the by-value half could collapse, pending a measurement.")]
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.PrefabExtensions.Instantiate(Prefab,Vector3&)", Justification = "The list-returning twin of InstantiateSingle above, with the same ten transform combinations.")]
+
+// --- Namespaces still filling in ---------------------------------------------------------------
+// ND1305 asks for at least five types per namespace, to spare callers a pile of usings. These five
+// mirror Stride's own layout - Stride.Graphics, Stride.Rendering, Stride.Rendering.Compositing - and
+// that mirror is what makes a Stride user's mental model transfer. The toolkit is in preview; each of
+// these has helpers planned and no good neighbour to fold into today. Two thin ones were dealt with
+// instead of parked: Games merged into Engine (its class duplicated a name already there, and every
+// caller had the Engine using anyway), and Physics moved to the Bullet package, where heightfield
+// colliders actually live.
+//
+// TRIGGER: leaving preview, or the next major version - whichever comes first - when a namespace
+// move is on the table anyway. Fold any namespace still at one or two types into its parent then.
+// Graphics and Rendering are the ones to look at first: one two-method class each, used by no example.
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Graphics", Justification = "One class, GraphicsDeviceExtensions; mirrors Stride.Graphics and has device-level helpers planned.")]
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering", Justification = "One class, MaterialExtensions; the hub over Rendering.* and the home for planned material helpers.")]
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Compositing", Justification = "One class, GraphicsCompositorExtensions, used by twelve examples; mirrors Stride.Rendering.Compositing.")]
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Scripts", Justification = "Four camera controllers and a profiler, with more scripts planned; Scripts.Utilities beneath it is already at ten types.")]
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Instancing", Justification = "Four types with a written plan for more; mirrors where instancing sits in Stride.")]

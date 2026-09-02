@@ -1,5 +1,5 @@
 using Stride.BepuPhysics;
-using Stride.CommunityToolkit.Games;
+using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 

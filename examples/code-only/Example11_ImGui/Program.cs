@@ -1,6 +1,5 @@
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.ImGui;
 using Stride.CommunityToolkit.ImGui.DebugTools;
 using Stride.CommunityToolkit.Renderers;

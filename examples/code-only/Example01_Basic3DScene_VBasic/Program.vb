@@ -18,7 +18,7 @@ Module Program
         game.AddSkybox()
         game.AddProfiler()
 
-        Dim entity = game.Create3DPrimitive(PrimitiveModelType.Capsule)
+        Dim entity = game.Create3DPrimitive(PrimitiveModelType.Capsule, New Bepu3DPhysicsOptions())
         entity.Transform.Position = New Vector3(0, 8, 0)
         entity.Scene = rootScene
     End Sub

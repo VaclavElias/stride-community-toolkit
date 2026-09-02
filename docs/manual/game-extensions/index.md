@@ -2,7 +2,7 @@
 
 Extension methods for `Game` and `IGame`. They cover starting the game loop, assembling a scene from nothing, and the small conveniences - frame rate, materials, screenshots - that you would otherwise write once per project.
 
-They live in two namespaces: `Stride.CommunityToolkit.Engine` for anything that touches the scene or the graphics compositor, and `Stride.CommunityToolkit.Games` for the ones that only need `IGame`.
+They all live in `Stride.CommunityToolkit.Engine`, so one `using` covers everything on `game.`. Some take `Game` and some take `IGame`; at a call site the difference does not show, because a `Game` is an `IGame`.
 
 > [!TIP]
 > If you are working code-only, [Code-Only Extensions](../code-only/extensions.md) is the shorter,
@@ -12,7 +12,7 @@ They live in two namespaces: `Stride.CommunityToolkit.Engine` for anything that 
 
 - [`Run()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Run(Stride.Engine.Game,System.Action{Stride.Engine.Scene},System.Action{Stride.Engine.Scene,Stride.Games.GameTime},Stride.Games.GameContext)) - Starts the game loop. `start` runs once the root scene exists, `update` runs every frame after it.
 - [`Run()` with async `start`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Run(Stride.Engine.Game,System.Func{Stride.Engine.Scene,System.Threading.Tasks.Task},System.Action{Stride.Engine.Scene,Stride.Games.GameTime},Stride.Games.GameContext)) - The same, with a `start` that can `await` between steps. `update` begins only once that task completes.
-- [`Exit()`](xref:Stride.CommunityToolkit.Games.GameExtensions.Exit(Stride.Games.IGame)) - Closes the game from an `IGame` reference.
+- [`Exit()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Exit(Stride.Games.IGame)) - Closes the game from an `IGame` reference.
 
 ## Scene setup shortcuts
 
@@ -57,8 +57,8 @@ For image-based ambient light, `AddSkybox()` ships in the `Stride.CommunityToolk
 
 - [`CreateMaterial()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.CreateMaterial(Stride.Games.IGame,System.Nullable{Stride.Core.Mathematics.Color},System.Single,System.Single)) - A basic lit material, with optional colour, specular and micro-surface values.
 - [`CreateFlatMaterial()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.CreateFlatMaterial(Stride.Games.IGame,System.Nullable{Stride.Core.Mathematics.Color})) - An emissive material unaffected by lighting, which is what you want for 2D and for anything that must stay readable regardless of where the lights are.
-- [`Create3DPrimitive()`](xref:Stride.CommunityToolkit.Games.GameExtensions.Create3DPrimitive(Stride.Games.IGame,Stride.CommunityToolkit.Rendering.ProceduralModels.PrimitiveModelType,Stride.CommunityToolkit.Engine.Primitive3DEntityOptions)) - A cube, sphere, capsule and so on as an entity, with no collider attached.
-- [`Create2DPrimitive()`](xref:Stride.CommunityToolkit.Games.GameExtensions.Create2DPrimitive(Stride.Games.IGame,Stride.CommunityToolkit.Rendering.ProceduralModels.Primitive2DModelType,Stride.CommunityToolkit.Engine.Primitive2DEntityOptions)) - The 2D equivalent - square, circle, triangle, polygon.
+- [`Create3DPrimitive()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Create3DPrimitive(Stride.Games.IGame,Stride.CommunityToolkit.Rendering.ProceduralModels.PrimitiveModelType,Stride.CommunityToolkit.Engine.Primitive3DEntityOptions)) - A cube, sphere, capsule and so on as an entity, with no collider attached.
+- [`Create2DPrimitive()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Create2DPrimitive(Stride.Games.IGame,Stride.CommunityToolkit.Rendering.ProceduralModels.Primitive2DModelType,Stride.CommunityToolkit.Engine.Primitive2DEntityOptions)) - The 2D equivalent - square, circle, triangle, polygon.
 
 > [!NOTE]
 > The Bepu and Bullet packages each define their own `Create2DPrimitive()` and `Create3DPrimitive()`
@@ -83,11 +83,11 @@ To see colliders, use `ShowColliders()` in [Physics Extensions](../physics-exten
 
 ## Frame rate
 
-In the `Stride.CommunityToolkit.Games` namespace, on `IGame`.
+These take `IGame`, since they need nothing from the scene.
 
-- [`DeltaTime()`](xref:Stride.CommunityToolkit.Games.GameExtensions.DeltaTime(Stride.Games.IGame)) - Seconds since the last update, as a `float`.
-- [`DeltaTimeAccurate()`](xref:Stride.CommunityToolkit.Games.GameExtensions.DeltaTimeAccurate(Stride.Games.IGame)) - The same as a `double`, for accumulating over long runs.
-- [`FPS()`](xref:Stride.CommunityToolkit.Games.GameExtensions.FPS(Stride.Games.IGame)) - The current frames per second.
-- [`SetMaxFPS()`](xref:Stride.CommunityToolkit.Games.GameExtensions.SetMaxFPS(Stride.Games.IGame,System.Int32)) - Caps the frame rate.
-- [`SetFocusLostFPS()`](xref:Stride.CommunityToolkit.Games.GameExtensions.SetFocusLostFPS(Stride.Games.IGame,System.Int32)) - Caps it separately for when the window is in the background, so a minimised game stops burning a core.
-- [`EnableVSync()`](xref:Stride.CommunityToolkit.Games.GameExtensions.EnableVSync(Stride.Games.IGame)) / [`DisableVSync()`](xref:Stride.CommunityToolkit.Games.GameExtensions.DisableVSync(Stride.Games.IGame)) - Turns vertical sync on or off at runtime.
+- [`DeltaTime()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.DeltaTime(Stride.Games.IGame)) - Seconds since the last update, as a `float`.
+- [`DeltaTimeAccurate()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.DeltaTimeAccurate(Stride.Games.IGame)) - The same as a `double`, for accumulating over long runs.
+- [`FPS()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.FPS(Stride.Games.IGame)) - The current frames per second.
+- [`SetMaxFPS()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetMaxFPS(Stride.Games.IGame,System.Int32)) - Caps the frame rate.
+- [`SetFocusLostFPS()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetFocusLostFPS(Stride.Games.IGame,System.Int32)) - Caps it separately for when the window is in the background, so a minimised game stops burning a core.
+- [`EnableVSync()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.EnableVSync(Stride.Games.IGame)) / [`DisableVSync()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.DisableVSync(Stride.Games.IGame)) - Turns vertical sync on or off at runtime.

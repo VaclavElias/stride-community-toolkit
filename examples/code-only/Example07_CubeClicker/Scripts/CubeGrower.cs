@@ -1,7 +1,5 @@
-using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Physics;
 
 namespace Example07_CubeClicker.Scripts;
 
@@ -15,8 +13,6 @@ public class CubeGrower : AsyncScript
 
         Entity.Transform.Scale = Vector3.Zero;
 
-        var collider = Entity.GetComponent<RigidbodyComponent>();
-
         while (elapsedTime < GrowDuration)
         {
             elapsedTime += (float)Game.UpdateTime.Elapsed.TotalSeconds;
@@ -24,8 +20,6 @@ public class CubeGrower : AsyncScript
             // Calculate the new scale based on elapsed time
             var newScale = elapsedTime / GrowDuration;
             Entity.Transform.Scale = new Vector3(newScale);
-
-            collider?.UpdatePhysicsTransformation();
 
             await Script.NextFrame();
         }

@@ -1,8 +1,9 @@
+using Stride.Core.Mathematics;
 using Stride.Graphics;
 using Stride.Physics;
 using Stride.Rendering;
 
-namespace Stride.CommunityToolkit.Physics;
+namespace Stride.CommunityToolkit.Bullet;
 
 /// <summary>
 /// Extension helpers for working with <see cref="Heightmap"/> data: sampling heights and normals, ray picking,
@@ -22,7 +23,7 @@ namespace Stride.CommunityToolkit.Physics;
 /// var preview = heightmap.ToTexture(graphicsDevice, commandList);
 /// </code>
 /// </remarks>
-public static partial class HeightmapExtensions
+public static class HeightmapExtensions
 {
     /// <summary>
     /// Used to distinguish between Grey scale heightmaps HeightMultiplier=255.0f (yields a byte 0-255)
@@ -311,13 +312,19 @@ public static partial class HeightmapExtensions
         return points;
     }
 
+
     /// <summary>
     /// Converts a signed 16-bit height value to a packed <see cref="Color"/> using a float-to-RGBA conversion.
     /// </summary>
+    /// <remarks>
+    /// The value is widened to a float and its four bytes become the four channels, least significant
+    /// byte in red. That is the same reinterpretation a packed-float heightmap texture uses, so a
+    /// texture built from these colours can be read back the same way.
+    /// </remarks>
     public static Color AsStrideColor(this short val)
     {
-        FloatRGBAConverter converter = new FloatRGBAConverter((float)val);
-        return new Color(converter.R, converter.G,
-             converter.B, converter.A);
+        var bits = BitConverter.SingleToInt32Bits(val);
+
+        return new Color((byte)bits, (byte)(bits >> 8), (byte)(bits >> 16), (byte)(bits >> 24));
     }
 }

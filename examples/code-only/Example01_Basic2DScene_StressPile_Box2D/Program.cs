@@ -3,7 +3,6 @@ using Stride.CommunityToolkit.Box2D;
 using static Box2D.NET.B2Bodies;
 using static Box2D.NET.B2Worlds;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.Instancing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;

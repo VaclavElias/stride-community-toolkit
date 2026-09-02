@@ -64,9 +64,7 @@ void Start(Scene rootScene)
 
     CreateObstacleStacks(rootScene);
 
-    // Called through its full name: importing Stride.CommunityToolkit.Games would make the
-    // Create3DPrimitive calls below ambiguous with the Bepu overloads.
-    Stride.CommunityToolkit.Games.GameExtensions.SetMaxFPS(game, TargetFps);
+    game.SetMaxFPS(TargetFps);
 }
 
 void Update(Scene rootScene, GameTime gameTime)
