@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Reflection;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -37,7 +38,7 @@ public static class MetadataVocabulary
     /// Teaching levels, in presentation order. <c>Other</c> means "published but unclassified" and
     /// sorts last; it is not a substitute for <c>enabled: false</c> or <c>docs: false</c>.
     /// </summary>
-    public static readonly string[] Levels = [GettingStarted, Beginner, Intermediate, Advanced, Other];
+    public static readonly ImmutableArray<string> Levels = [GettingStarted, Beginner, Intermediate, Advanced, Other];
 
     /// <summary>
     /// Topic categories. A category names the *lesson*, not the scenery: a keyboard-menu example that
@@ -45,7 +46,7 @@ public static class MetadataVocabulary
     /// draws cubes or physics bodies. <c>Geometry</c> and <c>Debug</c> have no members yet but are
     /// earmarked for the <c>Example05_*</c> and <c>Example08_*</c> families.
     /// </summary>
-    public static readonly string[] Categories =
+    public static readonly ImmutableArray<string> Categories =
     [
         "Shapes",
         "Geometry",
@@ -62,7 +63,7 @@ public static class MetadataVocabulary
     ];
 
     /// <summary>Source languages, matching the file extensions the scanner understands.</summary>
-    public static readonly string[] Languages = ["csharp", "fsharp", "vb"];
+    public static readonly ImmutableArray<string> Languages = ["csharp", "fsharp", "vb"];
 
     /// <summary>The lowest accepted <c>complexity</c>.</summary>
     public const int MinComplexity = 1;
@@ -87,7 +88,7 @@ public static class MetadataVocabulary
     public static string? SuggestKey(string unknownKey)
         => KnownKeys.FirstOrDefault(known => string.Equals(known, unknownKey, StringComparison.OrdinalIgnoreCase));
 
-    private static IReadOnlySet<string> BuildKnownKeys()
+    private static HashSet<string> BuildKnownKeys()
     {
         var namingConvention = CamelCaseNamingConvention.Instance;
 

@@ -20,7 +20,7 @@ public static class DocPaths
     public const string MediaFolder = "media";
 
     /// <summary>The repository, for "View on GitHub" links.</summary>
-    public const string GitHubExamplesUrl = "https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only";
+    public static readonly Uri GitHubExamplesUrl = new("https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only");
 
     /// <summary>The landing pages that existed before levels replaced the Basic/Advance split.</summary>
     /// <remarks>

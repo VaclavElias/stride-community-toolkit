@@ -63,7 +63,7 @@ public class ExampleScanner(ILogger<ExampleScanner> logger)
     /// perfectly correct project name as a typo purely because that example has not been reached yet
     /// would bury the real typos in noise.
     /// </remarks>
-    public IReadOnlySet<string> FindProjectNames(DirectoryInfo examplesRootPath)
+    public static IReadOnlySet<string> FindProjectNames(DirectoryInfo examplesRootPath)
     {
         ArgumentNullException.ThrowIfNull(examplesRootPath);
 
@@ -85,7 +85,7 @@ public class ExampleScanner(ILogger<ExampleScanner> logger)
     /// </summary>
     /// <param name="exampleFilePath">The full path to the source file.</param>
     /// <returns>The project directory name.</returns>
-    public string GetProjectName(string exampleFilePath)
+    public static string GetProjectName(string exampleFilePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(exampleFilePath);
 
