@@ -17,6 +17,7 @@ A Stride subsystem used directly, or several concepts combined. These assume you
 - [Raycast](raycast.md): Click the ground and a sphere is kicked towards where you clicked; click the sphere and it stops dead.
 - [Collision Group](collision-group.md): Two players and an enemy, where the players collide with each other but the enemy passes through both.
 - [Collision Layer](collision-layer.md): The same players-and-enemy scene as the collision group example, solved the other way.
+- [Multiple Physics Simulations](multiple-simulations.md): Two Bepu simulations in one game, side by side: the left lane falls under Earth gravity, the right under Moon gravity, and an amber ball that belongs to the Moon world sinks straight through the Earth ground because the two worlds never touch.
 - [Simple Constraint](simple-constraint.md): One constraint, doing one thing: a distance servo holding two spheres three units apart, pulling them together or pushing them apart until they settle there.
 - [Constraints - Servo vs Motor vs Limit](constraint-motors.md): The three kinds of Bepu constraint, side by side.
 - [First-Person Character (Bepu)](first-person-character.md): A first-person character built entirely from code - no Game Studio scene - on a Bepu CharacterComponent, with boxes to walk into and jump onto.
@@ -24,7 +25,7 @@ A Stride subsystem used directly, or several concepts combined. These assume you
 - [Particles](particles.md): A blue fountain: fifty particles a second launched upward from a small area, pulled back down by gravity, each rendered as a camera-facing billboard.
 - [Debug Shapes](debug-shapes.md): The full tour of the DebugShapes package: every immediate-mode primitive it can draw, exercised from a ShapeUpdater component so the shapes animate and the batching can be seen under load.
 - [Debug Shapes Usage](debug-shapes-usage.md): The short version of the debug shapes example: turn the system on, draw a sphere and a circle, done.
-- [Shapes Playground](shapes-playground.md): The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a plane, genuinely thick 3D lines and wire boxes, and camera-facing billboards.
+- [Shapes Playground](shapes-playground.md): The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a plane, genuinely thick 3D lines and wire boxes, camera-facing billboards, pie wedges, donut charts and radial progress arcs, and a glow that halos any of them.
 - [Stride UI - Capsule and Window](stride-ui-capsule-with-rigid-body.md): A capsule in a 3D scene with a "Hello, World" panel drawn over it using Stride's built-in UI.
 - [Stride UI - Button Hover Animation](stride-ui-button-hover-animation.md): A main menu built from code whose buttons grow a blue underline while the pointer is over them.
 - [ImGui UI](imgui-ui.md): An ImGui overlay for in-game tools, debug panels and live tweaking.

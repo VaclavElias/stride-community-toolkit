@@ -13,6 +13,10 @@ They all live in `Stride.CommunityToolkit.Engine`, so one `using` covers everyth
 - [`Run()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Run(Stride.Engine.Game,System.Action{Stride.Engine.Scene},System.Action{Stride.Engine.Scene,Stride.Games.GameTime},Stride.Games.GameContext)) - Starts the game loop. `start` runs once the root scene exists, `update` runs every frame after it.
 - [`Run()` with async `start`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Run(Stride.Engine.Game,System.Func{Stride.Engine.Scene,System.Threading.Tasks.Task},System.Action{Stride.Engine.Scene,Stride.Games.GameTime},Stride.Games.GameContext)) - The same, with a `start` that can `await` between steps. `update` begins only once that task completes.
 - [`Exit()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Exit(Stride.Games.IGame)) - Closes the game from an `IGame` reference.
+- [`UseGameSettings()`](xref:Stride.CommunityToolkit.Engine.GameSettingsExtensions.UseGameSettings(Stride.Engine.Game,System.Action{Stride.Engine.Design.GameSettings})) - What a Game Studio project gets from its `GameSettings` asset, built in code and applied the same way: the configurations the audio, physics and navigation systems read (HRTF, physics defaults, navigation build settings, Bepu simulations), rendering settings (graphics profile, back buffer, colour space) and the shader compilation mode. Call it before `Run()`.
+
+> [!NOTE]
+> On the compilation mode, measured rather than assumed: on Direct3D 11 `Debug` (the engine's default for a game without settings) and `Release` produce identical shader bytecode, because the compiler only applies the optimisation level when debug information is off. `AppStore` is the one that differs - optimisation level 2 with the symbols stripped, so RenderDoc no longer shows shader source. Vulkan and Direct3D 12 ignore the mode. Bytecode is cached per mode, so a change means one full recompile on the next run.
 
 ## Scene setup shortcuts
 
