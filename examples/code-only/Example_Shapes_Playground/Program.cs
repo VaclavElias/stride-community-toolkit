@@ -17,16 +17,18 @@ using Stride.Input;
 //   panels                            rectangles standing in the world
 //   lines and wire boxes              a capsule swung to face the camera is a thick 3D line
 //   billboards                        markers that stay the same shape from any angle
+//   arcs, sectors and annuli          pie wedges, donut charts, radial progress, cooldown sweeps
+//   glow                              a soft halo outside the outline, in pixels like the border
 //
 // The point of all of it is the outline. It is a fixed number of PIXELS wide no matter how far away
 // the shape is, because the shader measures it per fragment against the fragment's own clip w
 // rather than building it as geometry. Press 7 and fly down the corridor of rings: they shrink with
-// distance, their outlines do not.
+// distance, their outlines do not. The glow (G) is measured the same way, so it holds too.
 
 const int PillarCount = 6;
 const float PillarRing = 12f;
 const float GroundLift = 0.02f;
-const int DemoCount = 7;
+const int DemoCount = 9;
 
 var demoNames = new[]
 {
@@ -37,6 +39,8 @@ var demoNames = new[]
     "Thick 3D lines and wire boxes",
     "Camera-facing billboards",
     "Distance proof (a corridor of rings)",
+    "Arcs, sectors and annuli",
+    "Glow and halos",
 };
 
 // Two batches, so the depth toggle can show the same shapes as scene geometry or as an overlay
@@ -52,6 +56,7 @@ var pillarHeights = new float[PillarCount];
 var depthTested = true;
 var borderWidth = 3f;
 var fillAlpha = 0.45f;
+var glowWidth = 0f;
 var submitted = 0;
 
 using var game = new Game();
@@ -132,6 +137,7 @@ void Update(Scene scene, GameTime gameTime)
     // Current state, captured by each draw call as it is made
     shapes.BorderWidth = borderWidth;
     shapes.FillAlpha = fillAlpha;
+    shapes.GlowWidth = glowWidth;
 
     var before = shapes.Count;
     var seconds = (float)gameTime.Total.TotalSeconds;
@@ -143,6 +149,8 @@ void Update(Scene scene, GameTime gameTime)
     if (enabled[4]) DrawLines(shapes, seconds);
     if (enabled[5]) DrawBillboards(shapes, seconds);
     if (enabled[6]) DrawDistanceProof(shapes);
+    if (enabled[7]) DrawArcsAndSectors(shapes, seconds);
+    if (enabled[8]) DrawGlow(shapes, seconds);
 
     submitted = shapes.Count - before;
 }
@@ -300,6 +308,97 @@ void DrawDistanceProof(ShapeBatch shapes)
     }
 }
 
+/// <summary>
+/// Circles with parts cut away. A sector keeps an angular range between two radial edges - a pie
+/// wedge, or with an inner radius a donut segment; an arc keeps a range of the ring with round ends
+/// - a progress bar bent into a circle; an annulus is a ring with real width and an outline on both
+/// edges. Angles are radians, counter-clockwise from the plane's X axis, negative for clockwise.
+/// </summary>
+void DrawArcsAndSectors(ShapeBatch shapes, float seconds)
+{
+    // A donut chart on the ground: four sectors sharing a centre, each filled in its own colour
+    // inside a neutral outline, with a small gap between them
+    ReadOnlySpan<(float Share, Color Fill)> segments =
+    [
+        (0.38f, Color.DodgerBlue), (0.27f, Color.Orange), (0.2f, Color.MediumSeaGreen), (0.15f, Color.Crimson),
+    ];
+
+    var chartCenter = new Vector3(-9f, GroundLift, 10f);
+    var angle = MathF.PI * 0.5f;
+
+    foreach (var (share, fill) in segments)
+    {
+        var sweep = share * MathF.Tau;
+
+        shapes.FillColor = fill;
+        shapes.DrawSector(chartCenter, Vector3.UnitY, 3.2f, angle + 0.03f, sweep - 0.06f, Color.White, innerRadius: 1.6f);
+
+        angle += sweep;
+    }
+
+    shapes.FillColor = null;
+
+    // An annulus beside it: the same ring with no cuts, and a pie wedge with none of the hole
+    shapes.DrawAnnulus(new Vector3(9f, GroundLift, 10f), Vector3.UnitY, 3.2f, 2.2f, Color.Turquoise);
+    shapes.DrawSector(new Vector3(9f, GroundLift, 10f), Vector3.UnitY, 2f, seconds * 0.8f, MathF.PI * 0.6f, Color.Gold);
+
+    // A field-of-view cone sweeping from a pillar's base: a sector that starts at the centre
+    var watcher = pillars[0].Transform.Position;
+    var facing = MathF.Sin(seconds * 0.5f) * 1.2f + MathF.PI;
+
+    shapes.DrawSector(new Vector3(watcher.X, GroundLift, watcher.Z), Vector3.UnitY, 7f, facing - 0.45f, 0.9f, Color.Yellow);
+
+    // Radial progress above every pillar, standing upright and facing +Z: a faint full-turn track
+    // behind a bright arc that fills clockwise from twelve o'clock, so the ends are round
+    for (var i = 0; i < PillarCount; i++)
+    {
+        var pillar = pillars[i].Transform.Position;
+        var centre = new Vector3(pillar.X, pillarHeights[i] + 3.2f, pillar.Z);
+        var progress = (MathF.Sin(seconds * 0.7f + i * 1.1f) + 1f) * 0.5f;
+
+        shapes.FillAlpha = 0.25f;
+        shapes.DrawArc(centre, Vector3.UnitZ, 1.1f, 0f, MathF.Tau, Color.Gray, width: 0.32f);
+
+        shapes.FillAlpha = 0.9f;
+        shapes.DrawArc(centre, Vector3.UnitZ, 1.1f, MathF.PI * 0.5f, -progress * MathF.Tau, Color.LimeGreen, width: 0.32f);
+    }
+
+    shapes.FillAlpha = fillAlpha;
+
+    // A stroke arc: a ring with a gap that travels around it, the width still the border's pixels
+    shapes.DrawArc(new Vector3(0, GroundLift, 0), Vector3.UnitY, 9.5f, seconds, MathF.Tau * 0.8f, Color.HotPink);
+}
+
+/// <summary>
+/// The glow lives outside the outline and fades out over a pixel width, so it neither tints the
+/// fill nor changes with distance. Its best use is contrast: a light ring with a dark glow stays
+/// readable over anything, which is what a cursor or a chart crosshair needs. Press G to put a glow
+/// under every demo at once.
+/// </summary>
+void DrawGlow(ShapeBatch shapes, float seconds)
+{
+    // A cursor ring wandering over the ground, white on a dark halo; the halo sits on both sides
+    // of the ring because the ring is the shape, not the disc it encloses
+    var (sin, cos) = MathF.SinCos(seconds * 0.6f);
+    var cursor = new Vector3(cos * 6f, GroundLift, 14f + sin * 3f);
+
+    shapes.GlowWidth = 8f;
+    shapes.GlowColor = new Color(0, 0, 0, 200);
+    shapes.DrawRing(cursor, Vector3.UnitY, 0.9f, Color.White);
+    shapes.DrawPixelLine(cursor - new Vector3(1.6f, 0, 0), cursor + new Vector3(1.6f, 0, 0), 1.5f, Color.White);
+    shapes.DrawPixelLine(cursor - new Vector3(0, 0, 1.6f), cursor + new Vector3(0, 0, 1.6f), 1.5f, Color.White);
+
+    // Neon: the same colour glowing wide around a stroke, and a filled disc whose glow stops at
+    // its edge rather than washing into the fill
+    shapes.GlowColor = null;
+    shapes.GlowWidth = 28f;
+    shapes.DrawRing(new Vector3(0, 6f, 14f), Vector3.UnitZ, 1.6f, Color.Cyan);
+    shapes.DrawDisc(new Vector3(-5f, 6f, 14f), Vector3.UnitZ, 1.2f, Color.Magenta);
+    shapes.DrawArc(new Vector3(5f, 6f, 14f), Vector3.UnitZ, 1.6f, seconds * 1.5f, MathF.PI * 1.2f, Color.OrangeRed);
+
+    shapes.GlowWidth = glowWidth;
+}
+
 void HandleInput()
 {
     for (var i = 0; i < DemoCount; i++)
@@ -308,6 +407,17 @@ void HandleInput()
     }
 
     if (game.Input.IsKeyPressed(Keys.T)) depthTested = !depthTested;
+
+    if (game.Input.IsKeyPressed(Keys.G))
+    {
+        glowWidth = glowWidth switch
+        {
+            < 1f => 4f,
+            < 6f => 10f,
+            < 16f => 24f,
+            _ => 0f,
+        };
+    }
 
     if (game.Input.IsKeyPressed(Keys.F))
     {
@@ -332,7 +442,7 @@ IReadOnlyList<TextElement> BuildOverlayLines()
     List<TextElement> lines =
     [
         new($"{submitted} shapes, one instanced draw call", Color.LightGreen),
-        new($"Border {borderWidth:0} px (+/-)   Fill {fillAlpha:0.00} (F)", Color.MediumSeaGreen),
+        new($"Border {borderWidth:0} px (+/-)   Fill {fillAlpha:0.00} (F)   Glow {glowWidth:0} px (G)", Color.MediumSeaGreen),
         new(depthTested ? "T - depth tested: the scene occludes shapes" : "T - overlay: shapes draw on top", Color.Gold),
         new(""),
     ];
@@ -358,20 +468,24 @@ order: 160
 description:
   en: |-
     The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a
-    plane, genuinely thick 3D lines and wire boxes, and camera-facing billboards. Every shape is flat
-    and evaluated per fragment as a signed distance function, so its outline stays a constant number
-    of pixels wide however far away it is - press 7 and fly down the corridor of rings to see it.
+    plane, genuinely thick 3D lines and wire boxes, camera-facing billboards, pie wedges, donut
+    charts and radial progress arcs, and a glow that halos any of them. Every shape is flat and
+    evaluated per fragment as a signed distance function, so its outline stays a constant number of
+    pixels wide however far away it is - press 7 and fly down the corridor of rings to see it.
   cs: |-
     Kompletní ukázka ShapeBatch ve 3D: kotouče a výběrové kroužky na zemi, dekaly, panely stojící v
-    rovině, opravdu silné 3D čáry a drátěné kvádry a billboardy natočené ke kameře. Každý tvar je
-    plochý a počítaný per fragment jako signed distance function, takže jeho obrys má stále stejnou
-    šířku v pixelech bez ohledu na vzdálenost.
+    rovině, opravdu silné 3D čáry a drátěné kvádry, billboardy natočené ke kameře, koláčové výseče,
+    prstencové grafy a kruhové ukazatele průběhu a záře, která kterýkoli z nich zvýrazní. Každý tvar
+    je plochý a počítaný per fragment jako signed distance function, takže jeho obrys má stále
+    stejnou šířku v pixelech bez ohledu na vzdálenost.
 concepts:
   - Registering a shape renderer with AddShapeBatch
   - Depth-tested shapes versus overlay shapes from two batches
   - Discs, rings and polygons lying on an arbitrary plane in 3D
   - Thick 3D lines and wire boxes from camera-facing capsules
   - Billboards that keep their shape from any viewpoint
+  - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
+  - An outer glow measured in pixels, for halos and neon
   - Why a signed distance function keeps an outline a constant pixel width
 tags:
   - 3D

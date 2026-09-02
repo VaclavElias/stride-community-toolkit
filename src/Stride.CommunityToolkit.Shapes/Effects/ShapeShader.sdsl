@@ -5,8 +5,9 @@ namespace Stride.CommunityToolkit.Shapes
     // distance function rather than built as geometry.
     //
     // Derived from the Box2D testbed's solid_polygon.vs/fs (Erin Catto, MIT), extended here with an
-    // arbitrary 3D plane per shape, billboarding, per-shape border width and fill, and a thickness
-    // term that stays correct under a perspective projection.
+    // arbitrary 3D plane per shape, billboarding, per-shape border width and fill, a thickness term
+    // that stays correct under a perspective projection, hollow bands and angular cuts (annuli,
+    // sectors, arcs) and an outer glow.
     internal shader ShapeShader : ShaderBase
     {
         struct ShapeData
@@ -31,9 +32,20 @@ namespace Stride.CommunityToolkit.Shapes
             // The fill's own colour, so a shape can be filled in one colour and outlined in another.
             // Callers who want the old behaviour pass the outline colour here.
             uint FillColor;
+            // How deep the shape's band reaches inward from the outline, in world units, when the
+            // Hollow flag is set: an annulus is a circle with a band, a stroke-only ring a band of 0
+            float RingWidth;
+            // Angular cut about the shape's centre, radians from the plane's X axis, counter-
+            // clockwise. A sweep of 0 means no cut; callers map a full turn to 0.
+            float AngleStart;
+            float AngleSweep;
+            // Outer glow width in pixels, 0 for none, and its colour
+            float GlowWidth;
+            uint GlowColor;
+            // 1: Hollow - only the band RingWidth deep inside the outline is the shape
+            // 2: RoundCaps - the angular cut ends in semicircles rather than radial edges (circles only)
+            int Flags;
             float Pad0;
-            float Pad1;
-            float Pad2;
         };
 
         float4x4 ViewProjection;
@@ -63,6 +75,15 @@ namespace Stride.CommunityToolkit.Shapes
         stream float4 FragFillColor;
         stream float FragFillAlpha;
         stream float FragClipW;
+        stream float FragRingWidth;
+        stream float FragSweep;
+        // xy: unit direction of the cut's start edge, zw: of its end edge
+        stream float4 FragWedge;
+        // xy: cos and sin of the rotation that puts the arc's middle on +Y, zw: sin and cos of half the sweep
+        stream float4 FragArc;
+        stream float FragGlow;
+        stream float4 FragGlowColor;
+        stream float FragFlags;
 
         override stage void VSMain()
         {
@@ -108,19 +129,35 @@ namespace Stride.CommunityToolkit.Shapes
             streams.FragPoints78 = float4(points[6], points[7]);
 
             streams.FragRadius = invScale * data.Radius;
+            streams.FragRingWidth = invScale * data.RingWidth;
             streams.FragCount = count;
+            streams.FragFlags = data.Flags;
             streams.FragColor = BitsToColor(data.Color);
             streams.FragFillColor = BitsToColor(data.FillColor);
             streams.FragFillAlpha = data.AxisY.w;
+            streams.FragGlowColor = BitsToColor(data.GlowColor);
+
+            // The cut's two edge directions, and the arc form of the same cut: rotate so the arc
+            // is symmetric about +Y, then the endpoint is a fixed half-sweep away from it
+            float start = data.AngleStart;
+            float sweep = data.AngleSweep;
+            float halfSweep = sweep > 0.0 ? 0.5 * sweep : 3.14159265;
+            float turn = 0.5 * 3.14159265 - (start + halfSweep);
+
+            streams.FragSweep = sweep;
+            streams.FragWedge = float4(cos(start), sin(start), cos(start + sweep), sin(start + sweep));
+            streams.FragArc = float4(cos(turn), sin(turn), sin(halfSweep), cos(halfSweep));
 
             // A uniform scale multiplies the shape's world footprint only: every point, the centre
             // and the radius scale together, so the normalized SDF above comes out identical
             float worldScale = localScale * data.Scale;
             float2 worldCenter = center * data.Scale;
 
-            // Border thickness in the normalized local space, before the perspective term. Under an
-            // orthographic projection the pixel shader's w is 1 and this is already final.
-            streams.FragThickness = data.AxisX.w / (PixelScale * worldScale);
+            // Border and glow widths in the normalized local space, before the perspective term.
+            // Under an orthographic projection the pixel shader's w is 1 and these are already final.
+            float pixelToLocal = 1.0 / (PixelScale * worldScale);
+            streams.FragThickness = data.AxisX.w * pixelToLocal;
+            streams.FragGlow = data.GlowWidth * pixelToLocal;
 
             // Resolve the plane the shape lives in
             float mode = data.Position.w;
@@ -153,10 +190,11 @@ namespace Stride.CommunityToolkit.Shapes
             }
 
             // The quad needs a margin around the shape or a thick border is clipped at the edge.
-            // The border straddles the outline, so half its thickness has to fit outside.
+            // The border straddles the outline, so half its thickness has to fit outside, and the
+            // glow sits entirely outside it.
             float3 centerWorld = origin + worldCenter.x * axisX + worldCenter.y * axisY;
             float centerW = mul(float4(centerWorld, 1.0), ViewProjection).w;
-            float margin = 1.0 + max(0.1, streams.FragThickness * max(centerW, 0.0001));
+            float margin = 1.0 + max(0.1, (streams.FragThickness + streams.FragGlow) * max(centerW, 0.0001));
 
             float2 local = margin * streams.LocalPosition;
 
@@ -186,6 +224,10 @@ namespace Stride.CommunityToolkit.Shapes
             points[7] = streams.FragPoints78.zw;
 
             int count = (int)round(streams.FragCount);
+            int flags = (int)round(streams.FragFlags);
+            bool hollow = (flags & 1) != 0;
+            bool roundCaps = (flags & 2) != 0;
+            bool cut = streams.FragSweep > 0.0;
 
             float4 borderColor = streams.FragColor;
             float4 fillColor = streams.FragFillAlpha * streams.FragFillColor;
@@ -193,27 +235,69 @@ namespace Stride.CommunityToolkit.Shapes
             // Perspective term: near shapes have a large w, far ones a small one, so the same pixel
             // width maps to more or fewer world units with distance
             float thickness = max(streams.FragThickness * streams.FragClipW, 0.000001);
+            float glowWidth = streams.FragGlow * streams.FragClipW;
 
-            // A single point is a circle of FragRadius - the polygon SDF cannot handle it, the
-            // point distance trivially can. Two points + radius make a capsule through the loop.
-            float dw;
-            if (count == 1)
+            float2 p = streams.FragPosition;
+
+            // Signed distance to the shape's outline, negative inside. Everything below - fill,
+            // border, glow - is a function of this one number.
+            float s;
+
+            if (roundCaps && count == 1)
             {
-                dw = length(streams.FragPosition - points[0]);
+                // A round-capped arc is its own distance field: the band's centreline is an arc
+                // and the shape is everything within half the band width of it, which is what
+                // makes the ends semicircles. Only a circle has a centreline arc, hence count == 1.
+                float2 q = float2(p.x * streams.FragArc.x - p.y * streams.FragArc.y, p.x * streams.FragArc.y + p.y * streams.FragArc.x);
+                q.x = abs(q.x);
+
+                float2 sc = streams.FragArc.zw;
+                float halfBand = 0.5 * streams.FragRingWidth;
+                float centreline = streams.FragRadius - halfBand;
+
+                // Past the endpoint's direction the nearest point of the arc is the endpoint itself
+                float toArc = sc.y * q.x > sc.x * q.y ? length(q - sc * centreline) : abs(length(q) - centreline);
+
+                s = toArc - halfBand;
             }
             else
             {
-                dw = SdConvexPolygon(streams.FragPosition, points, count);
+                // A single point is a circle of FragRadius - the polygon SDF cannot handle it, the
+                // point distance trivially can. Two points + radius make a capsule through the loop.
+                float dw = count == 1 ? length(p - points[0]) : SdConvexPolygon(p, points, count);
+
+                s = dw - streams.FragRadius;
+
+                // Keep only the band RingWidth deep inside the outline: the inner edge is the
+                // outline pushed inward, so its distance is the same field with the sign flipped
+                if (hollow)
+                {
+                    s = max(s, -(s + streams.FragRingWidth));
+                }
+
+                // Intersect with the wedge between the two edge directions
+                if (cut)
+                {
+                    s = max(s, SdWedge(p, streams.FragWedge, streams.FragSweep));
+                }
             }
-            float d = abs(dw - streams.FragRadius);
+
+            // Outer glow: falls off quadratically from the outline outward. Inside, the fill and
+            // border own the pixels, so the glow stops at the outline.
+            float4 glow = float4(streams.FragGlowColor.rgb, 0.0);
+            if (glowWidth > 0.0 && s > 0.0)
+            {
+                float fade = 1.0 - saturate(s / glowWidth);
+                glow.a = streams.FragGlowColor.a * fade * fade;
+            }
 
             // Roll the fill alpha down at the border
-            float4 back = float4(fillColor.rgb, fillColor.a * smoothstep(streams.FragRadius + thickness, streams.FragRadius, dw));
+            float4 back = float4(fillColor.rgb, fillColor.a * smoothstep(thickness, 0.0, s));
 
             // Roll the border alpha down from 1 to 0 across the border thickness
-            float4 front = float4(borderColor.rgb, smoothstep(thickness, 0.0, d));
+            float4 front = float4(borderColor.rgb, smoothstep(thickness, 0.0, abs(s)));
 
-            float4 blended = BlendColors(front, back);
+            float4 blended = BlendColors(front, BlendColors(back, glow));
 
             // The palette is sRGB and the Box2D testbed's GL framebuffer passes it through; Stride's
             // sRGB backbuffer re-encodes linear values, so convert to linear here to land on the
@@ -241,6 +325,28 @@ namespace Stride.CommunityToolkit.Shapes
         float Cross2d(float2 v1, float2 v2)
         {
             return v1.x * v2.y - v1.y * v2.x;
+        }
+
+        // Signed distance to the wedge between two edge directions from the origin, sweeping
+        // counter-clockwise from the first to the second; negative inside. Exact along the edges
+        // and inside; outside a corner it is the Chebyshev distance, which keeps the corner sharp.
+        float SdWedge(float2 p, float4 edges, float sweep)
+        {
+            float2 u1 = edges.xy;
+            float2 u2 = edges.zw;
+
+            // Which side of each edge the point lies on, with the sign chosen so that positive
+            // means "on the wedge's side". Past a half turn the wedge is the complement of the
+            // narrow one between the same edges, and the test flips with it.
+            float c1 = Cross2d(u1, p);
+            float c2 = Cross2d(p, u2);
+            bool inside = sweep <= 3.14159265 ? (c1 >= 0.0 && c2 >= 0.0) : (c1 > 0.0 || c2 > 0.0);
+
+            // Distance to each edge as a ray: perpendicular while alongside it, to the origin behind it
+            float d1 = dot(p, u1) > 0.0 ? abs(c1) : length(p);
+            float d2 = dot(p, u2) > 0.0 ? abs(c2) : length(p);
+
+            return (inside ? -1.0 : 1.0) * min(d1, d2);
         }
 
         // Signed distance function for a convex polygon; relies on CCW winding of the points

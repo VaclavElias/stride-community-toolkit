@@ -27,23 +27,29 @@ public sealed class ShapeProcessor : EntityProcessor<ShapeComponent>
 
             if (batch is null) continue;
 
-            // The batch's colours, border and fill are current state shared with whoever else draws
+            // The batch's colours, border, fill and glow are current state shared with whoever else draws
             // through it, so put back whatever was there before moving on
             var borderWidth = batch.BorderWidth;
             var fillAlpha = batch.FillAlpha;
             var fillColor = batch.FillColor;
+            var glowWidth = batch.GlowWidth;
+            var glowColor = batch.GlowColor;
 
-            // Negative means "inherit"; a transparent fill colour means the same for the colour,
+            // Negative means "inherit"; a transparent colour means the same for the colours,
             // because Game Studio cannot edit nullable value types (see ShapeComponent.Inherit)
             batch.BorderWidth = component.BorderWidth < 0f ? borderWidth : component.BorderWidth;
             batch.FillAlpha = component.FillAlpha < 0f ? fillAlpha : component.FillAlpha;
             batch.FillColor = component.FillColor.A == 0 ? fillColor : component.FillColor;
+            batch.GlowWidth = component.GlowWidth < 0f ? glowWidth : component.GlowWidth;
+            batch.GlowColor = component.GlowColor.A == 0 ? glowColor : component.GlowColor;
 
             Draw(batch, component);
 
             batch.BorderWidth = borderWidth;
             batch.FillAlpha = fillAlpha;
             batch.FillColor = fillColor;
+            batch.GlowWidth = glowWidth;
+            batch.GlowColor = glowColor;
         }
     }
 

@@ -22,13 +22,17 @@ internal readonly struct ShapeInstance
     public readonly Color Color;
     public readonly float Scale;
     public readonly Color FillColor;
+    public readonly float RingWidth;
+    public readonly float AngleStart;
+    public readonly float AngleSweep;
+    public readonly float GlowWidth;
+    public readonly Color GlowColor;
+    public readonly int Flags;
 
     // Keeps the stride a multiple of 16 bytes, which every GPU is happy with
     private readonly float _pad0;
-    private readonly float _pad1;
-    private readonly float _pad2;
 
-    internal ShapeInstance(in ShapePlane plane, in ShapeStyle style, ReadOnlySpan<Vector4> packedPoints, int count, float radius, float scale)
+    internal ShapeInstance(in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, ReadOnlySpan<Vector4> packedPoints, int count, float radius, float scale)
     {
         // The spare w of each vector carries the per-shape values the layout has no other room for;
         // the shader unpacks them from the same slots
@@ -44,8 +48,12 @@ internal readonly struct ShapeInstance
         Color = style.Color;
         Scale = scale;
         FillColor = style.FillColor;
+        RingWidth = slice.RingWidth;
+        AngleStart = slice.StartAngle;
+        AngleSweep = slice.SweepAngle;
+        GlowWidth = style.GlowWidth;
+        GlowColor = style.GlowColor;
+        Flags = slice.Flags;
         _pad0 = 0;
-        _pad1 = 0;
-        _pad2 = 0;
     }
 }

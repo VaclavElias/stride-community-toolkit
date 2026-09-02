@@ -19,9 +19,9 @@ namespace Stride.CommunityToolkit.Shapes;
 /// order, and the batch resets itself after rendering. Register with <c>game.AddShapeBatch()</c>.
 /// </para>
 /// <para>
-/// <see cref="BorderWidth"/>, <see cref="FillAlpha"/> and <see cref="FillColor"/> are current state,
-/// captured by each draw call as it is made, so you can change them between calls the way you would
-/// with a sprite batch.
+/// <see cref="BorderWidth"/>, <see cref="FillAlpha"/>, <see cref="FillColor"/>, <see cref="GlowWidth"/>
+/// and <see cref="GlowColor"/> are current state, captured by each draw call as it is made, so you
+/// can change them between calls the way you would with a sprite batch.
 /// </para>
 /// </remarks>
 public sealed class ShapeBatch : RenderObject
@@ -63,6 +63,25 @@ public sealed class ShapeBatch : RenderObject
     public Color? FillColor { get; set; }
 
     /// <summary>
+    /// Width of a soft glow outside the outline, in on-screen pixels, constant at any distance like
+    /// the border. The default 0 draws none. It fades out quadratically from the outline, so a
+    /// few pixels reads as a crisp halo and a few dozen as a neon bloom. Captured by each draw
+    /// call as it is made.
+    /// </summary>
+    /// <remarks>
+    /// The glow lies outside the shape only, never under the fill. For a stroke-only ring or arc
+    /// the shape is the stroke, so the glow sits on both sides of it, which is what makes a light
+    /// ring with a dark glow readable on any background.
+    /// </remarks>
+    public float GlowWidth { get; set; }
+
+    /// <summary>
+    /// The glow's colour, or <c>null</c> (the default) to glow in the outline colour. Its alpha is
+    /// the glow's strength at the outline, before the fade. Captured by each draw call as it is made.
+    /// </summary>
+    public Color? GlowColor { get; set; }
+
+    /// <summary>
     /// Whether shapes are tested against the depth buffer, so scene geometry can occlude them. They
     /// never write depth. The default is <c>false</c>, which draws them as an overlay on top of
     /// everything - what you want for gizmos and 2D scenes, but not for decals on the ground.
@@ -92,7 +111,7 @@ public sealed class ShapeBatch : RenderObject
             new Vector3(-sin, cos, 0f),
             PlaneMode.Fixed);
 
-        Add(vertices, plane, CurrentStyle(color), radius, 1f);
+        Add(vertices, plane, CurrentStyle(color), ShapeSlice.Whole, radius, 1f);
     }
 
     /// <summary>
@@ -118,7 +137,7 @@ public sealed class ShapeBatch : RenderObject
     public void DrawSolidPolygon(ReadOnlySpan<Vector2> vertices, Vector3 position, Vector3 axisX, Vector3 axisY, Color color, float radius = 0f, float scale = 1f)
         => Add(vertices,
             new ShapePlane(position, Vector3.Normalize(axisX), Vector3.Normalize(axisY), PlaneMode.Fixed),
-            CurrentStyle(color), radius, scale);
+            CurrentStyle(color), ShapeSlice.Whole, radius, scale);
 
     /// <summary>
     /// Submits a convex polygon in the plane a rotation puts the XY plane in.
@@ -132,7 +151,7 @@ public sealed class ShapeBatch : RenderObject
     public void DrawSolidPolygon(ReadOnlySpan<Vector2> vertices, Vector3 position, Quaternion rotation, Color color, float radius = 0f)
         => Add(vertices,
             new ShapePlane(position, Vector3.Transform(Vector3.UnitX, rotation), Vector3.Transform(Vector3.UnitY, rotation), PlaneMode.Fixed),
-            CurrentStyle(color), radius, 1f);
+            CurrentStyle(color), ShapeSlice.Whole, radius, 1f);
 
     /// <summary>
     /// Submits a convex polygon that always faces the camera, screen-aligned - a marker that keeps
@@ -146,7 +165,7 @@ public sealed class ShapeBatch : RenderObject
     public void DrawBillboard(ReadOnlySpan<Vector2> vertices, Vector3 position, Color color, float radius = 0f)
         => Add(vertices,
             new ShapePlane(position, Vector3.UnitX, Vector3.UnitY, PlaneMode.Screen),
-            CurrentStyle(color), radius, 1f);
+            CurrentStyle(color), ShapeSlice.Whole, radius, 1f);
 
     /// <summary>
     /// Submits a camera-facing circle: a point marker that stays perfectly round from any angle.
@@ -166,11 +185,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="radius">Radius in world units.</param>
     /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
     public void DrawDisc(Vector3 center, Vector3 normal, float radius, Color color)
-    {
-        BuildBasis(normal, out var axisX, out var axisY);
-
-        Add([Vector2.Zero], new ShapePlane(center, axisX, axisY, PlaneMode.Fixed), CurrentStyle(color), radius, 1f);
-    }
+        => Add([Vector2.Zero], PlaneFromNormal(center, normal), CurrentStyle(color), ShapeSlice.Whole, radius, 1f);
 
     /// <summary>
     /// Submits an unfilled circle lying flat in the plane a normal defines - a selection ring or a
@@ -180,12 +195,101 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="normal">Normal of the plane the ring lies in.</param>
     /// <param name="radius">Radius in world units.</param>
     /// <param name="color">The ring colour.</param>
+    /// <remarks>
+    /// The ring is the shape, not the disc it encloses, so a <see cref="GlowWidth"/> glows on both
+    /// sides of it. <see cref="FillAlpha"/> does not apply.
+    /// </remarks>
     public void DrawRing(Vector3 center, Vector3 normal, float radius, Color color)
-    {
-        BuildBasis(normal, out var axisX, out var axisY);
+        => Add([Vector2.Zero], PlaneFromNormal(center, normal), OutlineStyle(color), Stroke, radius, 1f);
 
-        Add([Vector2.Zero], new ShapePlane(center, axisX, axisY, PlaneMode.Fixed), new ShapeStyle(color, color, BorderWidth, 0f), radius, 1f);
-    }
+    /// <summary>
+    /// Submits a filled ring - a disc with a hole - lying flat in the plane a normal defines, with
+    /// the outline drawn around both edges. A donut, a range band, a thick unit ring.
+    /// </summary>
+    /// <param name="center">World-space centre.</param>
+    /// <param name="normal">Normal of the plane the annulus lies in.</param>
+    /// <param name="outerRadius">Outer radius in world units.</param>
+    /// <param name="innerRadius">Radius of the hole in world units, smaller than the outer one.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    public void DrawAnnulus(Vector3 center, Vector3 normal, float outerRadius, float innerRadius, Color color)
+        => AddSector(PlaneFromNormal(center, normal), outerRadius, innerRadius, 0f, MathF.Tau, color);
+
+    /// <summary>
+    /// Submits a filled ring in the XY plane, the 2D case of <see cref="DrawAnnulus(Vector3, Vector3, float, float, Color)"/>.
+    /// </summary>
+    /// <param name="center">World-space centre.</param>
+    /// <param name="outerRadius">Outer radius in world units.</param>
+    /// <param name="innerRadius">Radius of the hole in world units, smaller than the outer one.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    public void DrawAnnulus(Vector2 center, float outerRadius, float innerRadius, Color color)
+        => AddSector(PlaneXY(center), outerRadius, innerRadius, 0f, MathF.Tau, color);
+
+    /// <summary>
+    /// Submits a filled slice of a disc, cut by two radial edges, lying flat in the plane a normal
+    /// defines: a pie wedge, a field-of-view cone, a cooldown sweep. With an inner radius it is a
+    /// slice of a ring instead - a donut chart segment, a radial progress bar with square ends.
+    /// </summary>
+    /// <param name="center">World-space centre the slice is cut from.</param>
+    /// <param name="normal">Normal of the plane the slice lies in.</param>
+    /// <param name="radius">Outer radius in world units.</param>
+    /// <param name="startAngle">Where the slice starts, in radians. See the remarks for where 0 is.</param>
+    /// <param name="sweepAngle">How far it extends, in radians. Positive is counter-clockwise, negative clockwise; a full turn or more is the whole ring or disc.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="innerRadius">Radius of the hole, in world units; 0 (the default) cuts from the centre.</param>
+    /// <remarks>
+    /// Angles increase counter-clockwise as seen from the side the normal points to. Zero lies
+    /// along the plane's X axis, which is world X for a slice lying on the ground (normal up) and
+    /// for one standing in the XY plane (normal +Z); add an offset to the start angle to turn it.
+    /// </remarks>
+    public void DrawSector(Vector3 center, Vector3 normal, float radius, float startAngle, float sweepAngle, Color color, float innerRadius = 0f)
+        => AddSector(PlaneFromNormal(center, normal), radius, innerRadius, startAngle, sweepAngle, color);
+
+    /// <summary>
+    /// Submits a filled slice of a disc or ring in the XY plane, the 2D case of
+    /// <see cref="DrawSector(Vector3, Vector3, float, float, float, Color, float)"/>. Angles are
+    /// counter-clockwise from the X axis.
+    /// </summary>
+    /// <param name="center">World-space centre the slice is cut from.</param>
+    /// <param name="radius">Outer radius in world units.</param>
+    /// <param name="startAngle">Where the slice starts, in radians from the X axis.</param>
+    /// <param name="sweepAngle">How far it extends, in radians. Positive is counter-clockwise, negative clockwise; a full turn or more is the whole ring or disc.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="innerRadius">Radius of the hole, in world units; 0 (the default) cuts from the centre.</param>
+    public void DrawSector(Vector2 center, float radius, float startAngle, float sweepAngle, Color color, float innerRadius = 0f)
+        => AddSector(PlaneXY(center), radius, innerRadius, startAngle, sweepAngle, color);
+
+    /// <summary>
+    /// Submits an arc of a circle with round ends, lying flat in the plane a normal defines. With no
+    /// width it is a stroke the border's pixel width - a partial <see cref="DrawRing"/>; with one it
+    /// is a filled, outlined band of that world width centred on the radius - a radial progress bar.
+    /// </summary>
+    /// <param name="center">World-space centre of the circle.</param>
+    /// <param name="normal">Normal of the plane the arc lies in.</param>
+    /// <param name="radius">Radius of the arc's centreline in world units.</param>
+    /// <param name="startAngle">Where the arc starts, in radians. Zero is along the plane's X axis; see <see cref="DrawSector(Vector3, Vector3, float, float, float, Color, float)"/>.</param>
+    /// <param name="sweepAngle">How far it extends, in radians. Positive is counter-clockwise, negative clockwise; a full turn or more closes the ring.</param>
+    /// <param name="color">The outline colour; with a width the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="width">Width of the band in world units, or 0 (the default) for a stroke.</param>
+    /// <remarks>
+    /// The ends are semicircles, which is what a progress ring wants. For square, radial ends use
+    /// <see cref="DrawSector(Vector3, Vector3, float, float, float, Color, float)"/> with an inner radius.
+    /// </remarks>
+    public void DrawArc(Vector3 center, Vector3 normal, float radius, float startAngle, float sweepAngle, Color color, float width = 0f)
+        => AddArc(PlaneFromNormal(center, normal), radius, startAngle, sweepAngle, color, width);
+
+    /// <summary>
+    /// Submits an arc of a circle with round ends in the XY plane, the 2D case of
+    /// <see cref="DrawArc(Vector3, Vector3, float, float, float, Color, float)"/>. Angles are
+    /// counter-clockwise from the X axis.
+    /// </summary>
+    /// <param name="center">World-space centre of the circle.</param>
+    /// <param name="radius">Radius of the arc's centreline in world units.</param>
+    /// <param name="startAngle">Where the arc starts, in radians from the X axis.</param>
+    /// <param name="sweepAngle">How far it extends, in radians. Positive is counter-clockwise, negative clockwise; a full turn or more closes the ring.</param>
+    /// <param name="color">The outline colour; with a width the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="width">Width of the band in world units, or 0 (the default) for a stroke.</param>
+    public void DrawArc(Vector2 center, float radius, float startAngle, float sweepAngle, Color color, float width = 0f)
+        => AddArc(PlaneXY(center), radius, startAngle, sweepAngle, color, width);
 
     /// <summary>
     /// Submits a rectangle lying in an arbitrary plane - a panel on a wall, a floor tile, a decal.
@@ -212,7 +316,7 @@ public sealed class ShapeBatch : RenderObject
 
         Add(corners,
             new ShapePlane(center, Vector3.Normalize(axisX), Vector3.Normalize(axisY), PlaneMode.Fixed),
-            CurrentStyle(color), cornerRadius, 1f);
+            CurrentStyle(color), ShapeSlice.Whole, cornerRadius, 1f);
     }
 
     /// <summary>
@@ -250,7 +354,7 @@ public sealed class ShapeBatch : RenderObject
         // Solid: an outline-only line would be two thin rails rather than a line
         Add(segment,
             new ShapePlane(center, direction / length, Vector3.UnitY, PlaneMode.Axial),
-            new ShapeStyle(color, color, BorderWidth, 1f), lineRadius, 1f);
+            SolidStyle(color), ShapeSlice.Whole, lineRadius, 1f);
     }
 
     /// <summary>
@@ -280,7 +384,7 @@ public sealed class ShapeBatch : RenderObject
 
         Add(segment,
             new ShapePlane((start + end) * 0.5f, direction / length, Vector3.UnitY, PlaneMode.Axial),
-            new ShapeStyle(color, color, pixelWidth, 0f), 0f, 1f);
+            OutlineStyle(color, pixelWidth), ShapeSlice.Whole, 0f, 1f);
     }
 
     /// <summary>
@@ -320,37 +424,99 @@ public sealed class ShapeBatch : RenderObject
     /// <summary>Called by the render feature once the batch is drawn; the next frame starts empty.</summary>
     internal void Reset() => Instances.Clear();
 
-    /// <summary>The colours, border and fill as they stand right now, which is what a draw call captures.</summary>
+    /// <summary>A stroke with no area: a hollow band of zero depth, which is what a ring or an arc is.</summary>
+    private static readonly ShapeSlice Stroke = new(Hollow: true, RingWidth: 0f, StartAngle: 0f, SweepAngle: 0f, RoundCaps: false);
+
+    private void AddSector(in ShapePlane plane, float radius, float innerRadius, float startAngle, float sweepAngle, Color color)
+    {
+        if (radius <= 0f || innerRadius >= radius || !TryNormalizeSweep(ref startAngle, ref sweepAngle)) return;
+
+        var slice = new ShapeSlice(Hollow: innerRadius > 0f, RingWidth: radius - innerRadius, startAngle, sweepAngle, RoundCaps: false);
+
+        Add([Vector2.Zero], plane, CurrentStyle(color), slice, radius, 1f);
+    }
+
+    private void AddArc(in ShapePlane plane, float radius, float startAngle, float sweepAngle, Color color, float width)
+    {
+        if (radius <= 0f || !TryNormalizeSweep(ref startAngle, ref sweepAngle)) return;
+
+        // The band straddles the radius, so its outer edge is half a width beyond it
+        var halfWidth = MathF.Max(width, 0f) * 0.5f;
+        var slice = new ShapeSlice(Hollow: true, RingWidth: width, startAngle, sweepAngle, RoundCaps: true);
+
+        // A stroke has no area to fill; a band takes the current fill like any other shape
+        Add([Vector2.Zero], plane, halfWidth > 0f ? CurrentStyle(color) : OutlineStyle(color), slice, radius + halfWidth, 1f);
+    }
+
+    /// <summary>
+    /// Puts a sweep into the form the shader reads: counter-clockwise, and 0 for a full turn.
+    /// Returns <c>false</c> for a sweep of nothing, which draws nothing.
+    /// </summary>
+    private static bool TryNormalizeSweep(ref float startAngle, ref float sweepAngle)
+    {
+        if (sweepAngle == 0f) return false;
+
+        // Clockwise is the same range walked from its other end
+        if (sweepAngle < 0f)
+        {
+            startAngle += sweepAngle;
+            sweepAngle = -sweepAngle;
+        }
+
+        if (sweepAngle >= MathF.Tau) sweepAngle = 0f;
+
+        return true;
+    }
+
+    /// <summary>The colours, border, fill and glow as they stand right now, which is what a draw call captures.</summary>
     private ShapeStyle CurrentStyle(Color color)
     {
         // No explicit fill colour: the testbed's own formula, where FillAlpha scales the outline
         // colour's brightness as well as its opacity. Keeping it verbatim is what makes the Box2D
         // examples match the testbed side by side.
-        if (FillColor is not { } fill) return new(color, color, BorderWidth, FillAlpha);
+        if (FillColor is not { } fill) return new(color, color, BorderWidth, FillAlpha, GlowWidth, GlowColor ?? color);
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
         // turn a chosen colour into a muddy version of itself, so FillAlpha scales opacity only.
         var alpha = (byte)Math.Clamp(fill.A * FillAlpha, 0f, 255f);
 
-        return new(color, new Color(fill.R, fill.G, fill.B, alpha), BorderWidth, 1f);
+        return new(color, new Color(fill.R, fill.G, fill.B, alpha), BorderWidth, 1f, GlowWidth, GlowColor ?? color);
     }
 
+    /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, GlowWidth, GlowColor ?? color);
+
+    /// <summary>The current style with the fill turned off and its own outline width.</summary>
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, GlowWidth, GlowColor ?? color);
+
+    /// <summary>The current style with the fill turned all the way up, for shapes that are drawn solid.</summary>
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, GlowWidth, GlowColor ?? color);
+
+    /// <summary>The XY plane at a 2D position, the plane every 2D call draws in.</summary>
+    private static ShapePlane PlaneXY(Vector2 center)
+        => new(new Vector3(center.X, center.Y, 0f), Vector3.UnitX, Vector3.UnitY, PlaneMode.Fixed);
+
     /// <summary>
-    /// Any two perpendicular unit axes spanning the plane a normal defines. Which two does not
-    /// matter for a disc, and for anything else the caller supplies its own axes.
+    /// The plane a normal defines, with any two perpendicular unit axes spanning it. Which two
+    /// only shows for shapes with an angular cut, so they are chosen so that angle 0 is world X
+    /// both for a shape lying on the ground and for one standing in the XY plane, and the pair is
+    /// right-handed about the normal so angles run counter-clockwise seen from its side.
     /// </summary>
-    private static void BuildBasis(Vector3 normal, out Vector3 axisX, out Vector3 axisY)
+    private static ShapePlane PlaneFromNormal(Vector3 center, Vector3 normal)
     {
         var n = Vector3.Normalize(normal);
 
         // Cross with whichever world axis is least aligned, so the result is never degenerate
-        var reference = MathF.Abs(n.Y) < 0.9f ? Vector3.UnitY : Vector3.UnitX;
+        var axisX = MathF.Abs(n.Y) < 0.9f
+            ? Vector3.Normalize(Vector3.Cross(Vector3.UnitY, n))
+            : Vector3.Normalize(Vector3.Cross(n, Vector3.UnitZ));
 
-        axisX = Vector3.Normalize(Vector3.Cross(reference, n));
-        axisY = Vector3.Cross(n, axisX);
+        var axisY = Vector3.Cross(n, axisX);
+
+        return new ShapePlane(center, axisX, axisY, PlaneMode.Fixed);
     }
 
-    private void Add(ReadOnlySpan<Vector2> vertices, in ShapePlane plane, in ShapeStyle style, float radius, float scale)
+    private void Add(ReadOnlySpan<Vector2> vertices, in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, float radius, float scale)
     {
         if (vertices.Length < 1 || vertices.Length > 8)
             throw new ArgumentException("A shape needs between 1 and 8 vertices.", nameof(vertices));
@@ -373,6 +539,6 @@ public sealed class ShapeBatch : RenderObject
             }
         }
 
-        Instances.Add(new ShapeInstance(plane, style, packed, vertices.Length, radius, scale));
+        Instances.Add(new ShapeInstance(plane, style, slice, packed, vertices.Length, radius, scale));
     }
 }

@@ -32,7 +32,7 @@ namespace Stride.CommunityToolkit.Shapes;
 public sealed class ShapeComponent : ActivableEntityComponent
 {
     /// <summary>
-    /// Assigned to <see cref="BorderWidth"/> or <see cref="FillAlpha"/> to take the batch's value
+    /// Assigned to <see cref="BorderWidth"/>, <see cref="FillAlpha"/> or <see cref="GlowWidth"/> to take the batch's value
     /// instead of one set here. A negative width or fill is meaningless, which is what makes it a
     /// safe sentinel - and Game Studio's property grid cannot edit a nullable value type at all,
     /// so an optional float has to be expressed this way rather than as float?.
@@ -94,4 +94,17 @@ public sealed class ShapeComponent : ActivableEntityComponent
     /// rather than a transparent colour here.
     /// </summary>
     public Color FillColor { get; set; }
+
+    /// <summary>
+    /// Width of a soft glow outside this shape's outline, in on-screen pixels, or Inherit to use
+    /// the batch's <see cref="ShapeBatch.GlowWidth"/>. Set 0 for none.
+    /// </summary>
+    public float GlowWidth { get; set; } = Inherit;
+
+    /// <summary>
+    /// The glow's colour for this shape. Leave it fully transparent - an alpha of zero, which is
+    /// the default - to use the batch's <see cref="ShapeBatch.GlowColor"/>, which itself defaults
+    /// to the outline colour.
+    /// </summary>
+    public Color GlowColor { get; set; }
 }
