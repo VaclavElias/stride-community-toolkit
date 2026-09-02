@@ -13,11 +13,20 @@ using System.Reflection;
 
 using var game = new Game();
 
+// The window size a Game Studio project would take from its GameSettings asset, written in code
+// instead. This runs before the device exists; game.Window.SetSize(...) inside Start would resize
+// an already-created window, which also works but shows a flash at the default size first.
+game.UseGameSettings(settings =>
+{
+    var rendering = settings.GetOrCreateConfiguration<RenderingSettings>();
+    rendering.DefaultBackBufferWidth = 1000;
+    rendering.DefaultBackBufferHeight = 1080;
+});
+
 game.Run(start: Start);
 
 void Start(Scene rootScene)
 {
-    game.Window.SetSize(new Int2(1000, 1080));
     game.SetupBase3D();
 
     var directory = Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)!;
