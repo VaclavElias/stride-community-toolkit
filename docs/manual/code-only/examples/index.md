@@ -344,6 +344,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/shapes-playground.webp" class="card-img-top" alt="Screenshot of the Shapes Playground example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="shapes-playground.md">Shapes Playground</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a plane, genuinely thick 3D lines and wire boxes, and...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/stride-game-engine-example03-stride-ui-basic-window.webp" class="card-img-top" alt="Screenshot of the Stride UI - Capsule and Window example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-ui-capsule-with-rigid-body.md">Stride UI - Capsule and Window</a></h3>
@@ -389,6 +399,26 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-ui-cube-clicker.md">Cube Clicker</a></h3>
                 <p><span class="badge text-bg-secondary">UI</span></p>
                 <p class="card-text">A small clicker game: cubes appear, left and right clicks are counted, and both the score and the cube positions are written to disk so the next run...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/charts-2d.webp" class="card-img-top" alt="Screenshot of the Charts 2D example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="charts-2d.md">Charts 2D</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">A flat, paper-like chart drawn entirely in code - no assets, no chart control, just meshes built at runtime.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/charts-3d.webp" class="card-img-top" alt="Screenshot of the Charts 3D example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="charts-3d.md">Charts 3D</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">The same code-only chart API as the 2D example, in a lit 3D scene.</p>
             </div>
         </div>
     </div>
@@ -454,6 +484,36 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stress-pile-2d.md">Basic2D Scene (Stress Pile)</a></h3>
                 <p><span class="badge text-bg-secondary">Performance</span></p>
                 <p class="card-text">Thousands of 2D physics bodies piling up, drawn in two instanced draw calls - awake bodies through one master, sleeping bodies tinted green through...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/stress-pile-2d-box2d.webp" class="card-img-top" alt="Screenshot of the Basic 2D Scene (Stress Pile, Box2D) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stress-pile-2d-box2d.md">Basic 2D Scene (Stress Pile, Box2D)</a></h3>
+                <p><span class="badge text-bg-secondary">Performance</span></p>
+                <p class="card-text">The Box2D twin of the stress pile: thousands of bodies piling up, drawn in two instanced draw calls - awake bodies through one master, sleeping bodies...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/junkyard-box2d.webp" class="card-img-top" alt="Screenshot of the Junkyard (Box2D) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="junkyard-box2d.md">Junkyard (Box2D)</a></h3>
+                <p><span class="badge text-bg-secondary">Performance</span></p>
+                <p class="card-text">A faithful replica of the Box2D.NET BenchmarkJunkyard sample: 8,000 small five-sided rocks rain into a walled yard and a kinematic plow sweeps back...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/junkyard-playground-box2d.webp" class="card-img-top" alt="Screenshot of the Junkyard Playground (Box2D) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="junkyard-playground-box2d.md">Junkyard Playground (Box2D)</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">The playground sibling of the Junkyard replica: the same walled yard and sweeping plow, built the Stride way - every shape is an entity carrying...</p>
             </div>
         </div>
     </div>

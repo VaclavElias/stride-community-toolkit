@@ -25,6 +25,8 @@ The `Program.cs` file shows how to:
 - Disabling contact events on fixtures nothing listens to
 - Switching shape, batch size and layout at runtime with DebugTextDropdown
 
+![Basic 2D Scene (Stress Pile, Box2D)](media/stress-pile-2d-box2d.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic2DScene_StressPile_Box2D).
 
 [!code-csharp[](../../../../examples/code-only/Example01_Basic2DScene_StressPile_Box2D/Program.cs?start=1&end=510)]

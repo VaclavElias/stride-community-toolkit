@@ -17,7 +17,7 @@
     href: code-only/create-project.md
   - name: Create File-Based App
     href: code-only/create-file-based-app.md
-  - name: Examples (61)
+  - name: Examples (66)
     # href supplies the children (the generated per-level toc); topicHref makes the node itself
     # clickable, landing on the visual gallery.
     href: code-only/examples/toc.yml

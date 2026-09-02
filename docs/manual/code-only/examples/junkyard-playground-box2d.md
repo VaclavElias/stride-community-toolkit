@@ -22,6 +22,8 @@ The `Program.cs` file shows how to:
 - Mouse picking with OverlapPoint, impulses with BodyForces
 - Camera follow through Basic2DCameraController.FollowTarget
 
+![Junkyard Playground (Box2D)](media/junkyard-playground-box2d.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example02_Junkyard_Playground_Box2D).
 
 [!code-csharp[](../../../../examples/code-only/Example02_Junkyard_Playground_Box2D/Program.cs?start=1&end=493)]

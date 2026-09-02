@@ -23,6 +23,8 @@ The `Program.cs` file shows how to:
 - Hooking per-fixed-step logic through IBox2DSimulationUpdate
 - Colour-coding awake, fast and sleeping bodies straight from body state
 
+![Junkyard (Box2D)](media/junkyard-box2d.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example02_Junkyard_Box2D).
 
 [!code-csharp[](../../../../examples/code-only/Example02_Junkyard_Box2D/Program.cs?start=1&end=297)]

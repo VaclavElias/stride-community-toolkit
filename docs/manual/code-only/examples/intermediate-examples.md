@@ -30,6 +30,8 @@ A Stride subsystem used directly, or several concepts combined. These assume you
 - [ImGui UI](imgui-ui.md): An ImGui overlay for in-game tools, debug panels and live tweaking.
 - [2D Spawn Menu](spawn-menu-2d.md): Drive a scene from the keyboard without filling the screen with instructions.
 - [Cube Clicker](stride-ui-cube-clicker.md): A small clicker game: cubes appear, left and right clicks are counted, and both the score and the cube positions are written to disk so the next run picks up where the last one stopped.
+- [Charts 2D](charts-2d.md): A flat, paper-like chart drawn entirely in code - no assets, no chart control, just meshes built at runtime.
+- [Charts 3D](charts-3d.md): The same code-only chart API as the 2D example, in a lit 3D scene.
 
 > [!NOTE]
 > Each example references a handful of toolkit packages. The `using` directives at the top of

@@ -19,6 +19,8 @@ The `Program.cs` file shows how to:
 - Billboards that keep their shape from any viewpoint
 - Why a signed distance function keeps an outline a constant pixel width
 
+![Shapes Playground](media/shapes-playground.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example_Shapes_Playground).
 
 [!code-csharp[](../../../../examples/code-only/Example_Shapes_Playground/Program.cs?start=1&end=347)]
