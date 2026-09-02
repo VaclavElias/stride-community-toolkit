@@ -8,11 +8,31 @@
 //      is excluded there, not here);
 //   3. only then add a targeted suppression below, with a real justification.
 //
-// Target format is "AssemblyName:CodeElementFullName" - the assembly prefix is mandatory,
-// wildcards are not supported. A suppression silently does nothing once its target is gone,
-// so prune entries when examples are removed.
+// Target format is "AssemblyName:CodeElementFullName" - the assembly prefix is mandatory, and
+// wildcards are not supported. Members of types in the global namespace cannot be targeted at all,
+// and Scope = "deep" reaches a type's own members but not its nested types or child namespaces.
+// A suppression silently does nothing once its target is gone, so prune entries when code moves.
+//
+// The file has two sections, and a new entry belongs in one of them depending on what its
+// justification asserts:
+//
+//   SETTLED - the justification states an intent. "This is a GPU payload and needs a blittable
+//             layout", "this mirrors the native API parameter for parameter", "this randomness is
+//             gameplay". It stays true for as long as the code exists, so there is nothing to
+//             revisit and no trigger to write down.
+//
+//   REVISIT - the justification states a measurement or points at work not done yet. "Six
+//             statements over the threshold", "the baseline counts this refactor as an addition".
+//             Those rot: a threshold suppression keeps the rule quiet as the type grows, so one
+//             accepted at six over stays silent at sixty over. Every entry there carries a trigger
+//             saying what should re-open it - a condition, never a date, because dated reviews do
+//             not happen.
 
 using System.Diagnostics.CodeAnalysis;
+
+// ==================================================================================================
+// SETTLED - the rule is wrong about this code, and will still be wrong next year.
+// ==================================================================================================
 
 // --- DebugShapes: GPU/interop payload structs ---------------------------------------------
 [assembly: SuppressMessage("NDepend", "ND1905:AFieldMustNotBeAssignedFromOutsideItsParentHierarchyTypes", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Circle", Scope = "field", Justification = "Interop/GPU payload - requires blittable sequential fields.")]
@@ -73,7 +93,6 @@ using System.Diagnostics.CodeAnalysis;
 // would only scatter one renderer's state across several types.
 [assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiSystem", Justification = "Rendering backend: pipeline, buffers, shader, io and input references are its state.")]
 [assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor", Justification = "Profiler window: graphs, per-thread samples and Stride profiler plumbing are its state.")]
-[assembly: SuppressMessage("NDepend", "ND1107:AvoidAddingInstanceFieldsToATypeThatAlreadyHadManyInstanceFields", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiSystem", Scope = "deep", Justification = "See ND1002 above; the baseline comparison counts the texture-manager refactor as an addition.")]
 [assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiExtension", Scope = "deep", Justification = "PlotLines mirrors the native Dear ImGui signature parameter for parameter.")]
 [assembly: SuppressMessage("NDepend", "ND1701:PotentiallyDeadMethods", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor+ThreadSampleCollection", Scope = "deep", Justification = "Instantiated through the generic new() constraint in PerfMonitorHelpers.Guaranteed, which static analysis cannot see.")]
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor+ThreadSampleCollection", Justification = "Instantiated through the generic new() constraint in PerfMonitorHelpers.Guaranteed, which static analysis cannot see.")]
@@ -143,17 +162,6 @@ using System.Diagnostics.CodeAnalysis;
 // --- ImGuiNet: the same two facts already recorded for the ImGui package -----------------------
 [assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend: pipeline, buffers, shader, context, DPI and input references are its state - same as ImGuiSystem above.")]
 [assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetExtensions.DrawText(ImGuiNetSystem,Int32,Int32,String,Byte,Byte,Byte,Byte)", Justification = "Byte-per-channel colour mirrors the Box2D.NET draw API this overload exists to match; the Vector4 overload on ImGuiNetSystem.DrawString is the shorter path.")]
-// ImGuiNetSystem is 206 statements against a 200 threshold, and gained two instance fields against
-// the baseline. Splitting RenderImGuiDrawData and Update into named steps - which is what cleared the
-// two "even more complex / even larger" regressions on them - is what carried it over: extraction
-// trades branches inside a method for a handful of call statements on the type. That is the better
-// shape to read, so it stays. The honest fix for the remaining size is to give the draw-data
-// rendering and the font atlas their own types, the way the ImGui package already did with
-// ImGuiTextureManager and ImGuiNetTextOverlay; the font atlas owns _fontTexture, which the renderer
-// and Destroy both use, so that is a real refactor of a graphics path and wants a run of
-// Example11_ImGuiNet behind it rather than a quiet edit.
-[assembly: SuppressMessage("NDepend", "ND1000:AvoidTypesTooBig", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend, 6 statements over the threshold; see the note above on the pending renderer/font-atlas extraction.")]
-[assembly: SuppressMessage("NDepend", "ND1107:AvoidAddingInstanceFieldsToATypeThatAlreadyHadManyInstanceFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Scope = "deep", Justification = "See ND1002 above; the baseline comparison counts the DPI/font-scaling state as an addition - same situation as ImGuiSystem.")]
 // --- Example17 SignalR ---
 [assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example17_SignalR:Example17_SignalR.SignalR.SignalRHubClient", Scope = "deep", Justification = "Jitter on the reconnect backoff delay, so a room full of clients does not retry in lockstep after a server restart; nothing security-related.")]
 [assembly: SuppressMessage("NDepend", "ND1313:OverrideEqualsAndOperatorEqualsOnValueTypes", Target = "Example17_SignalR:Example17_SignalR.SignalR.BufferedSubscription<T>", Justification = "A readonly handle around one queue, handed out by RegisterBuffered and only ever drained; instances are never compared, sorted or used as keys, so the equality contract would be dead code. A record struct would satisfy the rule but publishes the queue as a public member.")]
@@ -197,3 +205,43 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example02_Junkyard_Box2D:PusherDriver", Justification = "Shared with Example02_Junkyard_Playground_Box2D, which is the same scene with controls added.")]
 [assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example19_Jitter2Physics:CubeInstance", Justification = "Shared with Example19_Jitter2Physics_Constraints, which is the same scene constrained to 2D.")]
 [assembly: SuppressMessage("NDepend", "ND2102:AvoidDefiningMultipleTypesInASourceFile", Target = "Example02_Junkyard_Playground_Box2D:ShapeDefinition", Justification = "The example is deliberately one readable file; its catalogue entry, spawned-shape and sensor-watcher types sit at the end of it rather than in files a reader has to open separately.")]
+
+// ==================================================================================================
+// REVISIT - accepted for now. Each entry says what should re-open it.
+// ==================================================================================================
+
+// --- Rendering backends carried over a size threshold by their own refactoring ------------------
+// ImGuiNetSystem is 206 statements against a 200 threshold, and gained two instance fields against
+// the baseline. Splitting RenderImGuiDrawData and Update into named steps - which is what cleared the
+// two "even more complex / even larger" regressions on them - is what carried it over: extraction
+// trades branches inside a method for a handful of call statements on the type. That is the better
+// shape to read, so it stays. The honest fix for the remaining size is to give the draw-data
+// rendering and the font atlas their own types, the way the ImGui package already did with
+// ImGuiTextureManager and ImGuiNetTextOverlay; the font atlas owns _fontTexture, which the renderer
+// and Destroy both use, so that is a real refactor of a graphics path and wants a run of
+// Example11_ImGuiNet behind it rather than a quiet edit.
+//
+// TRIGGER: when that extraction lands, or if ImGuiNetSystem grows past roughly 230 statements -
+// six over a threshold is a rounding error, thirty over is a different type.
+[assembly: SuppressMessage("NDepend", "ND1000:AvoidTypesTooBig", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend, 6 statements over the threshold; see the note above on the pending renderer/font-atlas extraction.")]
+
+// --- Field counts the baseline diff reads as growth --------------------------------------------
+// These two are artefacts of comparing against the 2026-08-03 baseline: both systems were refactored
+// since, and the rule counts the fields that refactoring introduced as an addition to a type that
+// already had many. The types themselves are covered by the ND1002 entries in SETTLED above, which
+// record why a rendering backend holds that much state.
+//
+// TRIGGER: refresh the analysis baseline. These should then match nothing and can be deleted.
+[assembly: SuppressMessage("NDepend", "ND1107:AvoidAddingInstanceFieldsToATypeThatAlreadyHadManyInstanceFields", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiSystem", Scope = "deep", Justification = "Baseline diff counts the texture-manager refactor as an addition; the field count itself is covered by the ND1002 entry in SETTLED.")]
+[assembly: SuppressMessage("NDepend", "ND1107:AvoidAddingInstanceFieldsToATypeThatAlreadyHadManyInstanceFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Scope = "deep", Justification = "Baseline diff counts the DPI/font-scaling refactor as an addition; the field count itself is covered by the ND1002 entry in SETTLED.")]
+
+// --- Stateful builders with many small methods -------------------------------------------------
+// Both are stateful, so ND1001 is working as designed rather than misjudging a function library -
+// the static extension-method holders are handled in the rule itself, in Stride.CommunityToolkit.ndproj.
+// These two are a judgement call instead: a fluent builder is many small methods by nature, each of
+// them a few lines, and the toolkit is young enough that the right seams are not obvious yet. Accepting them now is not the same as saying they will never need splitting.
+//
+// TRIGGER: if either passes roughly 45 methods by that count, or gains a second responsibility -
+// a canvas that starts loading textures, a mesh builder that starts owning materials - split it then.
+[assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Utilities.MeshBuilder", Justification = "Fluent mesh builder: 24 methods by the rule's count over 121 lines, one responsibility.")]
+[assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Utilities.TextureCanvas", Justification = "Drawing surface: 32 methods by the rule's count over 200 lines, mostly Draw/Fill overloads over one canvas.")]

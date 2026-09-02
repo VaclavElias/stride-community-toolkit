@@ -110,7 +110,93 @@
     </Group>
     <Group Name="Code Smells" Active="True" ShownInReport="False">
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1000$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1001$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid types with too many methods</Name>
+// <Id>ND1001:AvoidTypesWithTooManyMethods</Id>
+warnif count > 0 from t in JustMyCode.Types 
+
+  // Optimization: Fast discard of non-relevant types 
+  where !t.IsInterface &&  // Specially handled by the rule 'Avoid interfaces too big'
+         t.NbMethods > 20 &&
+         // Require at least a non-constant field
+         // because it is ok to have a class with many stateless methods
+         //
+         // Stride Community Toolkit tweak: that carve-out is the right idea, but keying it on any
+         // non-constant field loses it the moment a static holder gains one configuration property.
+         // TransformExtensions was reported at 29 methods purely because of the compiler-generated
+         // backing field of its WorldUp property, while Easing (64 methods) and GameExtensions (28)
+         // were not, their only fields being const. Whether a holder is a function library is decided
+         // by its methods, not by whether its knobs are written as const or as properties. A static
+         // class with a hand-written mutable field still counts as stateful and is still reported.
+         t.Fields.Any(f => !f.IsLiteral && !(t.IsStatic && f.IsGeneratedByCompiler))
+
+  // Don't match these methods
+  let methods = t.Methods.Where(
+       m => !(m.IsGeneratedByCompiler ||
+              // m.IsConstructor || m.IsClassConstructor ||  // ctor/cctor not enumerated through IType.Methods
+              m.IsPropertyGetter || m.IsPropertySetter ||
+              m.IsEventAdder || m.IsEventRemover))
+
+  where methods.Count() > 20 
+  orderby methods.Count() descending
+
+  let isStaticWithNoMutableState = (t.IsStatic && t.Fields.Any(f => !f.IsImmutable))
+  let staticFactor = (isStaticWithNoMutableState ? 0.2 : 1)
+
+select new { 
+   t, 
+   nbMethods = methods.Count(),
+   instanceMethods = methods.Where(m => !m.IsStatic), 
+   staticMethods = methods.Where(m => m.IsStatic),
+
+   t.NbLinesOfCode,
+
+   Debt = (staticFactor*methods.Count().Linear(20, 1, 200, 10)).ToHours().ToDebt(),
+
+   // The annual interest varies linearly from interest for severity major for 30 methods
+   // to interest for severity critical for 200 methods
+   AnnualInterest = (staticFactor*methods.Count().Linear(
+                              20,  Severity.Medium.AnnualInterestThreshold().Value.TotalMinutes, 
+                              200, Severity.Critical.AnnualInterestThreshold().Value.TotalMinutes)).ToMinutes().ToAnnualInterest()
+}
+
+//<Expl>The *{0}* has {1} methods. This is too many suggesting 
+// the need to divide it into multiple smaller implementations, 
+// each focused on a single responsibility.</Expl>
+
+//<Desc>
+// This rule matches types with more than 20 methods. 
+// Such type might be hard to understand and maintain.
+//
+// This rule doesn't match type with at least a non-constant
+// field because it is ok to have a class with many 
+// stateless methods
+
+//
+// Notice that methods like constructors or property 
+// and event accessors are not taken account.
+//
+// Having many methods for a type might be a symptom
+// of too many responsibilities implemented.
+//
+// Maybe you are facing the **God Class** phenomenon:
+// A **God Class** is a class that controls way too many other classes 
+// in the system and has grown beyond all logic to become 
+// *The Class That Does Everything*.
+//</Desc>
+
+//<HowToFix>
+// To refactor properly a *God Class* please read *HowToFix advices* 
+// from the default rule **Types too Big**.
+//
+// The estimated Debt, which means the effort to fix such issue,
+// varies linearly from 1 hour for a type with 20 methods,
+// up to 10 hours for a type with 200 or more methods.
+//
+// In Debt and Interest computation, this rule takes account of the fact 
+// that static types with no mutable fields are just a collection of 
+// static methods that can be easily split and moved from one type 
+// to another.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1002$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1003$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1004$]]></Query>
