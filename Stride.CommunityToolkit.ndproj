@@ -1347,8 +1347,17 @@ select new {
 // <Id>ND2000:InstanceFieldsNamingConvention</Id>
 
 warnif count > 0 
+// Stride Community Toolkit tweak: the conventions below are this repo's C# ones (.editorconfig).
+// The F# and VB examples follow their own languages' conventions instead, so this rule does not
+// apply to them. An assembly built from one of those languages is recognised by the compiler
+// runtime it necessarily references. Paste this guard into any other naming rule that starts
+// reporting F# or VB code.
+let nonCSharpAssemblies = Application.Assemblies.Where(a =>
+   a.IsUsing("FSharp.Core".AllowNoMatch()) ||
+   a.IsUsing("Microsoft.VisualBasic.Core".AllowNoMatch())).ToHashSet()
 let isUnityProject = ThirdParty.Assemblies.Any(a => a.Name.StartsWith("UnityEngine"))
 from f in JustMyCode.Fields where 
+  !nonCSharpAssemblies.Contains(f.ParentAssembly) &&
   !f.IsStatic && 
   !f.IsLiteral && 
   !f.IsGeneratedByCompiler  && 
@@ -1433,7 +1442,16 @@ select new {
 // <Id>ND2001:StaticFieldsNamingConvention</Id>
 
 warnif count > 0 
+// Stride Community Toolkit tweak: the conventions below are this repo's C# ones (.editorconfig).
+// The F# and VB examples follow their own languages' conventions instead, so this rule does not
+// apply to them. An assembly built from one of those languages is recognised by the compiler
+// runtime it necessarily references. Paste this guard into any other naming rule that starts
+// reporting F# or VB code.
+let nonCSharpAssemblies = Application.Assemblies.Where(a =>
+   a.IsUsing("FSharp.Core".AllowNoMatch()) ||
+   a.IsUsing("Microsoft.VisualBasic.Core".AllowNoMatch())).ToHashSet()
 from f in JustMyCode.Fields where 
+  !nonCSharpAssemblies.Contains(f.ParentAssembly) &&
    f.IsStatic && 
   !f.IsLiteral && 
   !f.IsGeneratedByCompiler && 
@@ -1501,7 +1519,54 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2004$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2005$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2006$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2007$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Methods name should begin with an Upper character</Name>
+// <Id>ND2007:MethodsNameShouldBeginWithAnUpperCharacter</Id>
+
+warnif count > 0 
+// Stride Community Toolkit tweak: the conventions below are this repo's C# ones (.editorconfig).
+// The F# and VB examples follow their own languages' conventions instead, so this rule does not
+// apply to them. An assembly built from one of those languages is recognised by the compiler
+// runtime it necessarily references. Paste this guard into any other naming rule that starts
+// reporting F# or VB code.
+let nonCSharpAssemblies = Application.Assemblies.Where(a =>
+   a.IsUsing("FSharp.Core".AllowNoMatch()) ||
+   a.IsUsing("Microsoft.VisualBasic.Core".AllowNoMatch())).ToHashSet()
+from m in JustMyCode.Methods where 
+  !nonCSharpAssemblies.Contains(m.ParentAssembly) &&
+  !m.NameLike (@"^[A-Z]") && 
+  !m.IsSpecialName && 
+  !m.IsGeneratedByCompiler &&
+  !m.IsExplicitInterfaceImpl && // This can generate unexpected method name.
+
+  // For records some generated methods are not marked as generated
+  !(m.SimpleName.Length > 0 && m.SimpleName[0] == '<') &&
+
+  // Some extension property accessors must start with these
+  !m.SimpleName.StartsWithAny("get_", "set_")
+  
+select new {
+   m,
+   Debt = 3.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+}
+
+//<Expl>
+// The *{0}'s name* should begin with an uppercase letter.
+//</Expl>
+
+//<Desc>
+// This rule warns about *methods* whose names don't start
+// with an Upper character. It is a common practice in the .NET 
+// world to use **Pascal Casing Style** to name methods.
+//
+// **Pascal Casing Style** : The first letter in the identifier 
+// and the first letter of each subsequent concatenated word 
+// are capitalized. For example:  *ComputeSize*
+//</Desc>
+
+//<HowToFix>
+// *Pascal Case* the names of matched methods.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2008$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2009$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2010$]]></Query>
@@ -1651,7 +1716,78 @@ select new {
       <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2017$]]></Query>
       <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2018$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2019$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2020$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid various capitalizations for method name</Name>
+// <Id>ND2020:AvoidVariousCapitalizationsForMethodName</Id>
+
+warnif count > 0
+
+// Stride Community Toolkit tweak: the conventions below are this repo's C# ones (.editorconfig).
+// The F# and VB examples follow their own languages' conventions instead, so this rule does not
+// apply to them. An assembly built from one of those languages is recognised by the compiler
+// runtime it necessarily references. Paste this guard into any other naming rule that starts
+// reporting F# or VB code.
+let nonCSharpAssemblies = Application.Assemblies.Where(a =>
+   a.IsUsing("FSharp.Core".AllowNoMatch()) ||
+   a.IsUsing("Microsoft.VisualBasic.Core".AllowNoMatch())).ToHashSet()
+
+let lookup = JustMyCode.Methods.Where(m => !nonCSharpAssemblies.Contains(m.ParentAssembly)).ToLookup(m => m.SimpleName, StringComparer.OrdinalIgnoreCase)
+from grouping in lookup
+where grouping.Count() > 1
+let name = grouping.First().SimpleName
+let method = grouping.FirstOrDefault(m => m.SimpleName != name)
+where method != null
+let nbCapitalizations = grouping.ToLookup(m => m.SimpleName).Count
+
+// Increase the severity if various capitalizations are found in same class
+let differentCapitalizationInSameType = 
+   grouping.ToLookup(m => m.ParentType)
+           .Any(groupingPerType => groupingPerType.ToLookup(m => m.SimpleName).Count > 1)
+
+select new { 
+  method, 
+  methods = grouping.Distinct(m => m.SimpleName).ToArray(),
+  nbCapitalizations,
+  Debt = (nbCapitalizations * 6).ToMinutes().ToDebt(),
+  Severity = differentCapitalizationInSameType  ? Severity.Critical : Severity.Medium
+}
+
+//<Expl>
+// Several capitalizations for this method name are used:
+// *{1}*. Choose a single capitalization to improve 
+// overall readability, maintainability, team collaboration
+// and consistency.
+//</Expl>
+
+//<Desc>
+// This rule matches application methods whose names differ 
+// only in capitalization.
+//
+// With this rule you'll discover various names like 
+// *ProcessOrderId* and *ProcessOrderID*. It is important to 
+// choose a single capitalization used accross the whole application
+// to improve  overall readability, maintainability, team
+// collaboration and consistency.
+//
+// Matched methods are not necessarily declared in the same type.
+// However if various capitalizations of a method name are found
+// within the same type, the issue severity goes from *Medium*
+// to *Critical*. Indeed, this situation is not just a matter
+// of convention, it is error-prone. It forces type's clients 
+// to investigate which version of the method to call.
+//</Desc>
+
+//<HowToFix>
+// Choose a single capitalization for the method name
+// used accross the whole application.
+//
+// Or alternatively make the distinction clear by having
+// different method names that don't only differ by 
+// capitalization.
+//
+// The technical-debt for each issue, the estimated cost
+// to fix an issue, is proportional to the number
+// of capitalizations found (2 minimum).
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2021$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2022$]]></Query>
     </Group>
