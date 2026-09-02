@@ -972,7 +972,53 @@ select new {
     </Group>
     <Group Name="Security" Active="True" ShownInReport="False">
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3100$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3101$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Don't use System.Random for security purposes</Name>
+// <Id>ND3101:DontUseSystemRandomForSecurityPurposes</Id>
+warnif count > 0 
+
+// Stride Community Toolkit tweak: JustMyCode rather than Application, so the rule stops reporting
+// compiler-generated closures. A captured "new Random()" is hoisted into a <>c__DisplayClass, which
+// ND3002 already discards from JustMyCode but the stock rule never consulted. Every hand-written use
+// still matches - verified against all 16 of them at the time of the change.
+from m in JustMyCode.Methods
+where m.CreateA("System.Random".AllowNoMatch())
+select new { 
+  m,
+  Debt = 15.ToMinutes().ToDebt(),
+  AnnualInterest = 1.ToHours().ToAnnualInterest()
+}
+
+//<Expl>
+// The *{0}* should not use *System.Random* because it is a
+// *weak* pseudo-random number generator. 
+// This can potentially allow an attacker to predict security-sensitive
+// values that are generated.
+//</Expl>
+
+//<Desc>
+// The algorithm used by the implementation of **System.Random** is weak
+// because random numbers generated can be predicted.
+//
+// Using predictable random values in a security critical context
+// can lead to vulnerabilities.
+//</Desc>
+
+//<HowToFix>
+// If the matched method is meant to be executed in a security 
+// critical context use **System.Security.Cryptography.RandomNumberGenerator** 
+// or **System.Security.Cryptography.RNGCryptoServiceProvider** instead.
+// These random implementations are slower to execute but the random numbers 
+// generated cannot be predicted.
+//
+// Find more on using *RNGCryptoServiceProvider* to generate random values here:
+// https://stackoverflow.com/questions/32932679/using-rngcryptoserviceprovider-to-generate-random-string
+// 
+// Otherwise you can use the faster **System.Random** implementation and 
+// suppress corresponding issues.
+//
+// More information about the weakness of *System.Random* implementation
+// can be found here: https://stackoverflow.com/a/6842191/27194
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3102$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3103$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3104$]]></Query>

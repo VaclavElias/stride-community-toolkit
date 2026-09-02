@@ -169,3 +169,31 @@ using System.Diagnostics.CodeAnalysis;
 // audio, the four scripts, simulation and scene. Splitting it would scatter one game's wiring across
 // several types and cost exactly the readability the example is for.
 [assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Example_CubicleCalamity:Example_CubicleCalamity.CubicleCalamityGame", Justification = "Game root: one field per part it owns, which is what makes the startup order readable in one place.")]
+// --- Examples: gameplay randomness -------------------------------------------------------------
+// Every System.Random below places, colours or shuffles something on screen. None of it is security
+// related, and the seedable constructor is wanted rather than tolerated: an example that seeds gets
+// the same scene every run, which is what makes a screenshot or a stress measurement repeatable.
+// Kept as one entry per example, so a genuinely security-sensitive use in a future example is still
+// reported rather than silently covered.
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_DebugRender:Program", Scope = "deep", Justification = "Spawn positions for the debug-rendered shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_Primitives:Program", Scope = "deep", Justification = "Spawn positions for the primitive shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_SpawnMenu:Program", Scope = "deep", Justification = "Spawn positions for menu-created shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_StressPile:Program", Scope = "deep", Justification = "Spawn positions and colours for the stress pile; seeding it is what makes one run comparable to the next.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_StressPile_Box2D:Program", Scope = "deep", Justification = "The Box2D twin of the stress pile above, and seeded for the same reason.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example02_Junkyard_Playground_Box2D:Program", Scope = "deep", Justification = "Spawn positions and shape choice for the rocks raining into the yard.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example07_CubeClicker:Example07_CubeClicker.Scripts.ClickHandlerComponent", Scope = "deep", Justification = "Where a clicked cube is replaced; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example08_DebugShapes:Example08_DebugShapes.Scripts.ShapeUpdater", Scope = "deep", Justification = "Positions, rotations and velocities for the debug shapes on screen.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example22_Instancing_EntityTransform:Program", Scope = "deep", Justification = "Transforms for the instanced entities.")]
+
+// --- Examples: helper types that live beside top-level statements -------------------------------
+// A code-only example is one file: top-level statements, plus the few small types they need. Two
+// examples that teach the same scene through different physics engines therefore declare the same
+// helper type, which reads as duplication across assemblies but is the point - each example has to
+// stand alone and be runnable on its own. The matching CA1050 (types outside a namespace) is turned
+// off for examples/ in examples/.editorconfig.
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example01_Basic2DScene_Primitives:ShapeItem", Justification = "Shared with Example01_Basic2DScene_SpawnMenu, which teaches the same catalogue through a menu.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example01_Basic2DScene_StressPile:SpawnLayout", Justification = "Shared with the Box2D twin of the same stress pile.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example01_Basic3DScene_FSharp:Program", Justification = "The F# examples each compile a module named Program, as F# requires for an entry point.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example02_Junkyard_Box2D:PusherDriver", Justification = "Shared with Example02_Junkyard_Playground_Box2D, which is the same scene with controls added.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example19_Jitter2Physics:CubeInstance", Justification = "Shared with Example19_Jitter2Physics_Constraints, which is the same scene constrained to 2D.")]
+[assembly: SuppressMessage("NDepend", "ND2102:AvoidDefiningMultipleTypesInASourceFile", Target = "Example02_Junkyard_Playground_Box2D:ShapeDefinition", Justification = "The example is deliberately one readable file; its catalogue entry, spawned-shape and sensor-watcher types sit at the end of it rather than in files a reader has to open separately.")]
