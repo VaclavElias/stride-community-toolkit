@@ -405,5 +405,4 @@ public static class MathUtilEx
     {
         return Color.Lerp(start, end, Easing.Ease(amount, easingFunction));
     }
-
 }
