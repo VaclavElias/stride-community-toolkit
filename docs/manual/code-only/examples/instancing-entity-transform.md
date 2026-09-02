@@ -34,4 +34,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example22_Instancing_EntityTransform).
 
-[!code-csharp[](../../../../examples/code-only/Example22_Instancing_EntityTransform/Program.cs?start=1&end=379)]
+[!code-csharp[](../../../../examples/code-only/Example22_Instancing_EntityTransform/Program.cs?start=1&end=378)]

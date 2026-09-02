@@ -23,4 +23,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example19_Jitter2Physics_Constraints).
 
-[!code-csharp[](../../../../examples/code-only/Example19_Jitter2Physics_Constraints/Program.cs?start=1&end=168)]
+[!code-csharp[](../../../../examples/code-only/Example19_Jitter2Physics_Constraints/Program.cs?start=1&end=167)]

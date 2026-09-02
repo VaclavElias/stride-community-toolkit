@@ -24,4 +24,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_EntityText).
 
-[!code-csharp[](../../../../examples/code-only/Example01_EntityText/Program.cs?start=1&end=169)]
+[!code-csharp[](../../../../examples/code-only/Example01_EntityText/Program.cs?start=1&end=168)]

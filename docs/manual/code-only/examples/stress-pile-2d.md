@@ -29,4 +29,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic2DScene_StressPile).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic2DScene_StressPile/Program.cs?start=1&end=465)]
+[!code-csharp[](../../../../examples/code-only/Example01_Basic2DScene_StressPile/Program.cs?start=1&end=464)]
