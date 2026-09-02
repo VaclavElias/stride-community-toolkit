@@ -165,7 +165,7 @@ void SyncPhysicsToEntities()
 /// <summary>
 /// Pairs a cube's visual entity with its physics body, so the two can never drift out of sync.
 /// </summary>
-record CubeInstance(Entity Entity, RigidBody Body);
+sealed record CubeInstance(Entity Entity, RigidBody Body);
 
 /*
 ---example-metadata

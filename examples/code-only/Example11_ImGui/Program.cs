@@ -25,9 +25,11 @@ void Start(Scene scene)
     game.AddSkybox();
     game.AddProfiler();
 
-    new ImGuiSystem(game.Services, game.GraphicsDeviceManager);
-    new HierarchyView(game.Services);
-    new PerfMonitor(game.Services);
+    // Each of these registers itself with the game on construction, so the instance is deliberately
+    // not kept: the game owns them from here on.
+    _ = new ImGuiSystem(game.Services, game.GraphicsDeviceManager);
+    _ = new HierarchyView(game.Services);
+    _ = new PerfMonitor(game.Services);
     Inspector.FindFreeInspector(game.Services).Target = game.SceneSystem.SceneInstance;
 
     // makes the profiling much easier to read.

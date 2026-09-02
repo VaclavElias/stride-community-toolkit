@@ -10,6 +10,7 @@ using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Input;
+using System.Globalization;
 
 // Bepu constraints come in three flavours, and picking the wrong one is the usual reason a joint
 // "does nothing" or "never stops". This example puts all three on screen at once:
@@ -401,7 +402,7 @@ IReadOnlyList<TextElement> BuildInstructions()
 
 static string OnOff(bool? enabled) => enabled == true ? "ON" : "OFF";
 
-static string Spin(BodyComponent? body) => body is null ? "-" : MathF.Abs(body.AngularVelocity.Y).ToString("0.0");
+static string Spin(BodyComponent? body) => body is null ? "-" : MathF.Abs(body.AngularVelocity.Y).ToString("0.0", CultureInfo.InvariantCulture);
 
 void InitializeDebugOverlay()
 {

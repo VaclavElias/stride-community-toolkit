@@ -28,9 +28,8 @@ public class SceneManager
     private readonly ShapeFactory _shapeFactory;
     private readonly UiHelper _uiHelper;
     private readonly InputManager _inputManager;
-    private readonly B2WorldId _worldId;
+    private readonly ShapeSpawner _shapeSpawner;
 
-    private int _totalShapesCreated;
     private string _lastAction = "Initialized";
     private DateTime _lastActionTime = DateTime.Now;
 
@@ -45,11 +44,10 @@ public class SceneManager
 
         _simulation = simulation;
         _camera = camera;
-        _worldId = simulation.GetWorldId();
-
         _shapeFactory = new ShapeFactory(scene);
         _uiHelper = new UiHelper(game);
         _inputManager = new InputManager(game, _camera);
+        _shapeSpawner = new ShapeSpawner(scene, simulation, _shapeFactory);
     }
 
     /// <summary>
@@ -86,7 +84,7 @@ public class SceneManager
             // Set zero gravity for this body to demonstrate weightless behavior
             b2Body_SetGravityScale(bodyId, 0);
 
-            ShapeFixtureBuilder.AttachShape(shape.Type, shape.Size, bodyId, DefaultShapeDef());
+            ShapeFixtureBuilder.AttachShape(shape.Type, shape.Size, bodyId, ShapeSpawner.DefaultShapeDef());
         }
 
         AddInitialShapes();
@@ -97,7 +95,7 @@ public class SceneManager
         // Junkyard-style yard: one static body carrying rows of slightly overlapping squares,
         // each square also an entity drawn by the Box2D debug-draw component
         var groundId = _simulation.CreateStaticBody(Vector3.Zero);
-        var shapeDef = DefaultShapeDef();
+        var shapeDef = ShapeSpawner.DefaultShapeDef();
 
         for (var i = 0; i <= 50; i++)
         {
@@ -159,7 +157,7 @@ public class SceneManager
     public void AddInitialShapes()
     {
         // Add some demo shapes with different properties
-        AddShapes(Primitive2DModelType.Rectangle, 10, Color.Black);
+        _shapeSpawner.Add(Primitive2DModelType.Rectangle, 10, Color.Black);
         LogAction($"Added {10} initial demo shapes");
     }
 
@@ -176,37 +174,37 @@ public class SceneManager
         // Shape creation commands
         if (input.IsKeyPressed(Keys.M))
         {
-            AddShapes(Primitive2DModelType.Square, GameConfig.DefaultSpawnCount);
+            _shapeSpawner.Add(Primitive2DModelType.Square, GameConfig.DefaultSpawnCount);
             LogAction("Added squares");
         }
         else if (input.IsKeyPressed(Keys.R))
         {
-            AddShapes(Primitive2DModelType.Rectangle, GameConfig.DefaultSpawnCount);
+            _shapeSpawner.Add(Primitive2DModelType.Rectangle, GameConfig.DefaultSpawnCount);
             LogAction("Added rectangles");
         }
         else if (input.IsKeyPressed(Keys.C))
         {
-            AddShapes(Primitive2DModelType.Circle, GameConfig.DefaultSpawnCount);
+            _shapeSpawner.Add(Primitive2DModelType.Circle, GameConfig.DefaultSpawnCount);
             LogAction("Added circles");
         }
         else if (input.IsKeyPressed(Keys.T))
         {
-            AddShapes(Primitive2DModelType.Triangle, GameConfig.DefaultSpawnCount);
+            _shapeSpawner.Add(Primitive2DModelType.Triangle, GameConfig.DefaultSpawnCount);
             LogAction("Added triangles");
         }
         else if (input.IsKeyPressed(Keys.V))
         {
-            AddShapes(Primitive2DModelType.Capsule, GameConfig.DefaultSpawnCount);
+            _shapeSpawner.Add(Primitive2DModelType.Capsule, GameConfig.DefaultSpawnCount);
             LogAction("Added capsules");
         }
         else if (input.IsKeyPressed(Keys.P))
         {
-            AddRandomShapes(GameConfig.MassSpawnCount);
+            _shapeSpawner.AddRandom(GameConfig.MassSpawnCount);
             LogAction($"Added {GameConfig.MassSpawnCount} random shapes");
         }
         else if (input.IsKeyPressed(Keys.J))
         {
-            AddShapesWithJoints(GameConfig.DefaultSpawnCount);
+            _shapeSpawner.AddWithJoints(GameConfig.DefaultSpawnCount);
             LogAction("Added shapes with joints");
         }
         else if (input.IsKeyPressed(Keys.G))
@@ -218,7 +216,7 @@ public class SceneManager
         // Control commands
         else if (input.IsKeyPressed(Keys.X))
         {
-            ClearAllShapes();
+            _shapeSpawner.Clear();
             LogAction("Cleared all shapes");
         }
         else if (input.IsKeyPressed(Keys.Space))
@@ -252,128 +250,12 @@ public class SceneManager
         }
         else
         {
-            // Could create a new shape at mouse position
-            CreateShapeAtPosition(worldPoint.Value);
+            // Nothing under the cursor, so the click spawns something instead of throwing it
+            if (_shapeSpawner.AddAtPosition(worldPoint.Value) is { } spawned)
+            {
+                LogAction($"Created {spawned} at mouse position");
+            }
         }
-    }
-
-    private void AddShapes(Primitive2DModelType type, int count, Color? color = null)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            var shapeModel = _shapeFactory.GetShapeModel(type);
-            if (shapeModel == null) continue;
-
-            var entity = _shapeFactory.CreateEntity(shapeModel, color);
-            var bodyId = _simulation.CreateDynamicBody(entity, entity.Transform.Position);
-
-            ShapeFixtureBuilder.AttachShape(shapeModel.Type, shapeModel.Size, bodyId, DefaultShapeDef());
-
-            _totalShapesCreated++;
-        }
-    }
-
-    private void AddRandomShapes(int count)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            var shapeModel = _shapeFactory.GetRandomShapeModel();
-
-            if (shapeModel is null) continue;
-
-            var entity = _shapeFactory.CreateEntity(shapeModel, overrideColor: GameConfig.ShapeColor);
-            var bodyId = _simulation.CreateDynamicBody(entity, entity.Transform.Position);
-
-            ShapeFixtureBuilder.AttachShape(shapeModel.Type, shapeModel.Size, bodyId, DefaultShapeDef());
-            _totalShapesCreated++;
-        }
-    }
-
-    private void AddShapesWithJoints(int count)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            CreateConnectedShapePair();
-        }
-    }
-
-    private void CreateConnectedShapePair()
-    {
-        // Create two shapes
-        var shapeModel1 = _shapeFactory.GetRandomShapeModel();
-        var shapeModel2 = _shapeFactory.GetRandomShapeModel();
-
-        if (shapeModel1 == null || shapeModel2 == null) return;
-
-        var entity1 = _shapeFactory.CreateEntity(shapeModel1, GameConfig.ConstraintColor);
-        var entity2 = _shapeFactory.CreateEntity(shapeModel2, GameConfig.ConstraintColor);
-
-        // Position second shape relative to first
-        entity2.Transform.Position = new Vector3(
-            entity1.Transform.Position.X + GameConfig.DefaultJointLength,
-            entity1.Transform.Position.Y,
-            entity1.Transform.Position.Z);
-
-        // Create physics bodies
-        var bodyIdA = _simulation.CreateDynamicBody(entity1, entity1.Transform.Position);
-        var bodyIdB = _simulation.CreateDynamicBody(entity2, entity2.Transform.Position);
-
-        ShapeFixtureBuilder.AttachShape(shapeModel1.Type, shapeModel1.Size, bodyIdA, DefaultShapeDef());
-        ShapeFixtureBuilder.AttachShape(shapeModel2.Type, shapeModel2.Size, bodyIdB, DefaultShapeDef());
-
-        // Create distance joint
-        CreateDistanceJoint(bodyIdA, bodyIdB);
-
-        _totalShapesCreated += 2;
-    }
-
-    private void CreateDistanceJoint(B2BodyId bodyA, B2BodyId bodyB)
-    {
-        var jointDef = b2DefaultDistanceJointDef();
-        jointDef.hertz = GameConfig.JointHertz;
-        jointDef.dampingRatio = GameConfig.JointDampingRatio;
-        jointDef.length = GameConfig.DefaultJointLength;
-        jointDef.maxLength = GameConfig.DefaultJointLength;
-        jointDef.minLength = GameConfig.DefaultJointLength;
-        jointDef.enableSpring = true;
-        jointDef.enableLimit = true;
-
-        jointDef.@base.bodyIdA = bodyA;
-        jointDef.@base.bodyIdB = bodyB;
-        jointDef.@base.localFrameA.p = new B2Vec2(0, 0);
-        jointDef.@base.localFrameB.p = new B2Vec2(0, 0);
-
-        b2CreateDistanceJoint(_worldId, in jointDef);
-    }
-
-    private void CreateShapeAtPosition(Vector2 position)
-    {
-        var shapeModel = _shapeFactory.GetRandomShapeModel();
-
-        if (shapeModel == null) return;
-
-        var entity = _shapeFactory.CreateEntity(shapeModel, GameConfig.SelectedShapeColor, position);
-        var bodyId = _simulation.CreateDynamicBody(entity, entity.Transform.Position);
-
-        ShapeFixtureBuilder.AttachShape(shapeModel.Type, shapeModel.Size, bodyId, DefaultShapeDef());
-        _totalShapesCreated++;
-
-        LogAction($"Created {shapeModel.Type} at mouse position");
-    }
-
-    private void ClearAllShapes()
-    {
-        var shapesToRemove = _scene.Entities
-            .Where(e => e.Name.EndsWith(GameConfig.ShapeName))
-            .ToList();
-
-        foreach (var entity in shapesToRemove)
-        {
-            _simulation.RemoveBody(entity);
-            entity.Remove();
-        }
-
-        _totalShapesCreated = 0;
     }
 
     private void ApplyMouseImpulse(B2BodyId bodyId, Vector2 worldPoint)
@@ -401,7 +283,7 @@ public class SceneManager
 
     private void UpdateUI()
     {
-        _uiHelper.RenderNavigation(ShapeCount, _totalShapesCreated, _simulation);
+        _uiHelper.RenderNavigation(ShapeCount, _shapeSpawner.TotalCreated, _simulation);
 
         // Show last action
         if ((DateTime.Now - _lastActionTime).TotalSeconds < 3)
@@ -412,13 +294,6 @@ public class SceneManager
         // Could add more UI elements here
         // Performance metrics, physics debug info, etc.
     }
-
-    /// <summary>
-    /// The shape definition used for every fixture in this demo, built from the
-    /// <see cref="GameConfig"/> material values.
-    /// </summary>
-    private static B2ShapeDef DefaultShapeDef()
-        => ShapeFixtureBuilder.CreateCustomShapeDef(GameConfig.DefaultDensity, GameConfig.DefaultFriction, GameConfig.DefaultRestitution);
 
     private void LogAction(string action)
     {

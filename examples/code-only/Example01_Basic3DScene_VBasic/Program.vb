@@ -7,18 +7,18 @@ Imports Stride.Engine
 Imports GameExtensions = Stride.CommunityToolkit.Engine.GameExtensions
 
 Module Program
-    Private ReadOnly game As New Game()
+    Private ReadOnly _game As New Game()
 
     Sub Main()
-        GameExtensions.Run(game, AddressOf StartGame)
+        GameExtensions.Run(_game, AddressOf StartGame)
     End Sub
 
     Private Sub StartGame(rootScene As Scene)
-        game.SetupBase3DScene()
-        game.AddSkybox()
-        game.AddProfiler()
+        _game.SetupBase3DScene()
+        _game.AddSkybox()
+        _game.AddProfiler()
 
-        Dim entity = game.Create3DPrimitive(PrimitiveModelType.Capsule)
+        Dim entity = _game.Create3DPrimitive(PrimitiveModelType.Capsule)
         entity.Transform.Position = New Vector3(0, 8, 0)
         entity.Scene = rootScene
     End Sub

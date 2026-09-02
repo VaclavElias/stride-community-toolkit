@@ -7,8 +7,8 @@ namespace Example01_Basic3DScene_SyncScript;
 public class RotationComponentScript : SyncScript
 {
     private Vector3 _initialPosition = Vector3.Zero;
-    private float _rotateSpeed = 2f;
-    private float _radius = 3f;
+    private readonly float _rotateSpeed = 2f;
+    private readonly float _radius = 3f;
     private float _angle;
     BodyComponent? _sphereBody;
 

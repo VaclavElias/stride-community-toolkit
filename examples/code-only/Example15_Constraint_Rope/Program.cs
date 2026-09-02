@@ -9,6 +9,7 @@ using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Input;
+using System.Globalization;
 
 // Bepu has no rope type. A rope is a chain of small bodies you build yourself, and the interesting
 // part is not stringing them together - it is stopping the result from thrashing itself apart.
@@ -206,7 +207,7 @@ IReadOnlyList<TextElement> BuildInstructions()
     ];
 }
 
-static string Length(Rope? rope) => rope is null ? "-" : rope.Length.ToString("0.00");
+static string Length(Rope? rope) => rope is null ? "-" : rope.Length.ToString("0.00", CultureInfo.InvariantCulture);
 
 void InitializeDebugOverlay()
 {
