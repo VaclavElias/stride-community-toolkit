@@ -9,7 +9,7 @@ namespace Stride.CommunityToolkit.Engine;
 /// <para>This base type contains rendering, identification, and positioning options shared by 2D and 3D primitive creation helpers.</para>
 /// <para>Physics-specific options are defined by derived types such as <c>Bepu2DPhysicsOptions</c>, <c>Bepu3DPhysicsOptions</c>, <c>Bullet2DPhysicsOptions</c>, and <c>Bullet3DPhysicsOptions</c>.</para>
 /// </remarks>
-public abstract class PrimitiveEntityOptions
+public abstract class PrimitiveEntityOptionsBase
 {
     /// <summary>
     /// Gets or sets the optional name assigned to the created entity.

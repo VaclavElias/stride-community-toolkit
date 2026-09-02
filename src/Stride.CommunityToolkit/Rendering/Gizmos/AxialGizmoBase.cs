@@ -9,7 +9,7 @@ namespace Stride.CommunityToolkit.Rendering.Gizmos;
 /// The Gizmo consists of three axes (X, Y, Z), each represented by a different color (Red, Green, Blue).
 /// This class provides the foundational functionality for rendering and configuring the visual aspects of the Gizmo.
 /// </summary>
-public abstract class AxialGizmo
+public abstract class AxialGizmoBase
 {
     /// <summary>
     /// Gets or sets the render group of the Gizmo. This determines which render group the Gizmo will belong to.
@@ -109,13 +109,13 @@ public abstract class AxialGizmo
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AxialGizmo"/> class with optional custom axis colors.
+    /// Initializes a new instance of the <see cref="AxialGizmoBase"/> class with optional custom axis colors.
     /// </summary>
     /// <param name="graphicsDevice">The graphics device used to render the Gizmo.</param>
     /// <param name="redColor">Optional custom color for the X-axis (Red). If null, a default red color is used.</param>
     /// <param name="greenColor">Optional custom color for the Y-axis (Green). If null, a default green color is used.</param>
     /// <param name="blueColor">Optional custom color for the Z-axis (Blue). If null, a default blue color is used.</param>
-    protected AxialGizmo(GraphicsDevice graphicsDevice, Color? redColor = null, Color? greenColor = null, Color? blueColor = null)
+    protected AxialGizmoBase(GraphicsDevice graphicsDevice, Color? redColor = null, Color? greenColor = null, Color? blueColor = null)
     {
         GraphicsDevice = graphicsDevice;
         _redColor = redColor;

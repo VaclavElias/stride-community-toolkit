@@ -15,7 +15,7 @@ namespace Stride.CommunityToolkit.Rendering.Gizmos;
 /// which can be used to indicate or manipulate movement along specific axes or planes.
 /// It is designed as an extension and can be added to any entity in a scene for visual feedback.
 /// </remarks>
-public class TranslationGizmo : AxialGizmo
+public class TranslationGizmo : AxialGizmoBase
 {
     private const float AxisConeRadius = GizmoExtremitySize / 3f;
     private const float AxisConeHeight = GizmoExtremitySize;

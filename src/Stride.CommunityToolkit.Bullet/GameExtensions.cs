@@ -52,7 +52,7 @@ public static class GameExtensions
     /// </summary>
     /// <param name="game">The game instance to which the ground entity will be added.</param>
     /// <param name="options">
-    /// Optional 2D physics options used to configure the ground. When provided, <see cref="Primitive2DEntityOptions.Size"/> is mapped to X/Y while Z uses <see cref="GameDefaults.Default2DGroundSize"/>, and <see cref="PrimitiveEntityOptions.Position"/> defaults to <see cref="GameDefaults.Default2DGroundPosition"/>.
+    /// Optional 2D physics options used to configure the ground. When provided, <see cref="Primitive2DEntityOptions.Size"/> is mapped to X/Y while Z uses <see cref="GameDefaults.Default2DGroundSize"/>, and <see cref="PrimitiveEntityOptionsBase.Position"/> defaults to <see cref="GameDefaults.Default2DGroundPosition"/>.
     /// </param>
     /// <returns>The newly created ground <see cref="Entity"/> added to the game.</returns>
     /// <remarks>
@@ -81,7 +81,7 @@ public static class GameExtensions
     /// <param name="options">Optional 3D physics options used to configure the ground. If <c>null</c>, defaults will be used.</param>
     /// <returns>The newly created ground <see cref="Entity"/> added to the game.</returns>
     /// <remarks>
-    /// When <paramref name="options"/> is <see langword="null"/>, default options are created with a <see cref="StaticColliderComponent"/>. If <see cref="PrimitiveEntityOptions.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
+    /// When <paramref name="options"/> is <see langword="null"/>, default options are created with a <see cref="StaticColliderComponent"/>. If <see cref="PrimitiveEntityOptionsBase.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
     /// </remarks>
     public static Entity Add3DGround(this Game game, Bullet3DPhysicsOptions? options = null)
     {
@@ -100,7 +100,7 @@ public static class GameExtensions
     /// <param name="options">Optional 3D physics options used to configure the ground. If <c>null</c>, defaults will be used.</param>
     /// <returns>The newly created infinite ground <see cref="Entity"/> added to the game.</returns>
     /// <remarks>
-    /// When <paramref name="options"/> is <see langword="null"/>, default options are created with a <see cref="StaticColliderComponent"/>. If <see cref="PrimitiveEntityOptions.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
+    /// When <paramref name="options"/> is <see langword="null"/>, default options are created with a <see cref="StaticColliderComponent"/>. If <see cref="PrimitiveEntityOptionsBase.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
     /// The visible part of the ground is defined by <paramref name="options"/>, while the collider is infinite and extends beyond the visible ground.
     /// </remarks>
     public static Entity AddInfinite3DGround(this Game game, Bullet3DPhysicsOptions? options = null)

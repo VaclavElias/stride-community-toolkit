@@ -4,10 +4,10 @@ namespace Stride.CommunityToolkit.Engine;
 /// Option set for creating a 3D primitive entity (cube, sphere, capsule, plane, etc.).
 /// </summary>
 /// <remarks>
-/// Extends <see cref="PrimitiveEntityOptions"/> with a size override. If <see cref="Size"/> is not provided,
+/// Extends <see cref="PrimitiveEntityOptionsBase"/> with a size override. If <see cref="Size"/> is not provided,
 /// the primitive factory chooses shape‑specific defaults (e.g., unit cube, radius 0.5 sphere).
 /// </remarks>
-public class Primitive3DEntityOptions : PrimitiveEntityOptions
+public class Primitive3DEntityOptions : PrimitiveEntityOptionsBase
 {
     /// <summary>
     /// Gets or sets the desired size/dimensions for the 3D primitive model. When <c>null</c>, the creation helper

@@ -53,7 +53,7 @@ public static class GameExtensions
     /// </summary>
     /// <param name="game">The game instance to which the ground entity will be added.</param>
     /// <param name="options">
-    /// Optional 2D physics options used to configure the ground. When provided, <see cref="Primitive2DEntityOptions.Size"/> is mapped to X/Y while Z uses <see cref="GameDefaults.Default2DGroundSize"/>, and <see cref="PrimitiveEntityOptions.Position"/> defaults to <see cref="GameDefaults.Default2DGroundPosition"/>.
+    /// Optional 2D physics options used to configure the ground. When provided, <see cref="Primitive2DEntityOptions.Size"/> is mapped to X/Y while Z uses <see cref="GameDefaults.Default2DGroundSize"/>, and <see cref="PrimitiveEntityOptionsBase.Position"/> defaults to <see cref="GameDefaults.Default2DGroundPosition"/>.
     /// </param>
     /// <returns>The newly created ground <see cref="Entity"/> added to the game.</returns>
     /// <remarks>
@@ -82,7 +82,7 @@ public static class GameExtensions
     /// <param name="options">Optional 3D physics options used to configure the ground. If <c>null</c>, defaults will be used.</param>
     /// <returns>The newly created ground <see cref="Entity"/> added to the game.</returns>
     /// <remarks>
-    /// Unless <see cref="Bepu3DPhysicsOptions.Component"/> is set explicitly, the ground gets a <see cref="StaticComponent"/> with a <see cref="CompoundCollider"/> - including when other options such as <see cref="Primitive3DEntityOptions.Size"/> are provided. If <see cref="PrimitiveEntityOptions.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
+    /// Unless <see cref="Bepu3DPhysicsOptions.Component"/> is set explicitly, the ground gets a <see cref="StaticComponent"/> with a <see cref="CompoundCollider"/> - including when other options such as <see cref="Primitive3DEntityOptions.Size"/> are provided. If <see cref="PrimitiveEntityOptionsBase.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
     /// </remarks>
     public static Entity Add3DGround(this Game game, Bepu3DPhysicsOptions? options = null)
     {
