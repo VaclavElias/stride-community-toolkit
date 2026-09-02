@@ -377,7 +377,10 @@ undocumented — evidence and tuned values for those examples.
 **Not used by Starbreach**, despite being on the sweep's list — don't expect this repo to help:
 `IBlendTreeBuilder` (hand-rolled instead), virtual buttons (raw `IsKeyDown` + `List<Keys>`),
 gestures, code-built `AnimationClip`, save games, `DynamicSoundSource`/spatial audio beyond the
-emitter component, GPU picking, orbit camera, `IInputEventListener`.
+emitter component, GPU picking, orbit camera, `IInputEventListener`. (The bundled templates and
+tutorials *do* use the first four — see [samples-example-opportunities.md](samples-example-opportunities.md):
+three `IBlendTreeBuilder` state machines, `VirtualButtonsDemo.cs`, `TouchInputsScript.cs`, and a
+dead-but-complete procedural `AnimationClip` in the AnimatedModel sample.)
 
 ---
 
