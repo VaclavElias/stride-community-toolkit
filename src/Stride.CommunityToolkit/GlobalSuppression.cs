@@ -161,6 +161,13 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DCollisionMatrix", Justification = "Library API instantiated by consumers; nothing in the toolkit itself needs one yet.")]
 [assembly: SuppressMessage("NDepend", "ND2500:DontCreateThreadsExplicitly", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DTaskScheduler..ctor(Int32)", Justification = "Deliberate: Box2D requires each concurrently running task callback to hold a distinct worker index, which dedicated threads guarantee structurally; the workers also park in a blocking dequeue for the world lifetime, which thread-pool threads must never do.")]
 [assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeComponent.Vertices", Justification = "A runtime-swappable shape outline is the point of the component; the next frame draws whatever array is assigned.")]
+// The other two Vertices properties are inputs, not live collections: an options bag filled in an object
+// initializer and handed to a builder, and a procedural model's outline, shaped like Stride's own
+// procedural models. Nothing is wired to the array, so replacing it breaks nothing; an outline's length
+// is the polygon's, so a get-only array could not be filled by the caller; and on the options bag null
+// means "no custom outline, use Size", which a get-only collection cannot say.
+[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.Primitive2DEntityOptions.Vertices", Justification = "Options bag: the outline is assigned in an object initializer and read once by the builder; null means use Size.")]
+[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.ProceduralModels.PolygonProceduralModel.Vertices", Justification = "Procedural model input, null-guarded in the setter; mirrors how Stride's own procedural models expose their parameters.")]
 
 // --- Examples.Core: one set of sources compiled into both launchers -------------------------
 // Constants/Levels/ExampleManifest/ManifestExample/ExampleEntry/ManifestLoader live in the console

@@ -2095,7 +2095,84 @@ select new {
         <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2211$]]></Query>
       </Group>
       <Group Name="System.Collections" Active="True" ShownInReport="False">
-        <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2300$]]></Query>
+        <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Collection properties should be read only</Name>
+// <Id>ND2300:CollectionPropertiesShouldBeReadOnly</Id>
+
+warnif count > 0
+
+// First find collectionTypes 
+let collectionInterfaces = ThirdParty.Types.WithFullNameIn(
+      "System.Collections.ICollection", 
+      "System.Collections.Generic.ICollection<T>")
+
+let collectionTypes = Types.ThatImplementAny(collectionInterfaces)
+                           .Union(collectionInterfaces)
+                           .Union(Types.WithFullName("System.Array"))
+                           .ToHashSetEx()
+where collectionTypes.Count() > 0
+
+// Find all Read/Write property that is typed with a collection type
+from property in JustMyCode.Properties.Where(
+   p =>
+        // Stride Community Toolkit tweak: skip properties declared on records. The rule wants a
+        // collection that cannot be replaced after construction, and a positional record property is
+        // exactly that - init-only - but an init accessor is indistinguishable from a setter in the
+        // model this rule sees, so it reports what it asked for. IsRecord is the same proxy ND1903 uses
+        // for init-only state. At the time of the change this spares three example records and nothing
+        // else; a record that declares a genuinely settable collection would slip through, which is the
+        // trade accepted here.
+        !p.ParentType.IsRecord &&
+        p.IsReadWrite &&
+        p.PropertyType != null &&
+        collectionTypes.Contains(p.PropertyType))
+
+let propSetter = property.SetMethod
+
+where  propSetter != null &&
+      !propSetter.IsPrivate && // Ignore private setters since this is private implementation detail
+      !propSetter.ParentType.IsPrivate && // Ignore setters of private types
+
+       // Ignore properties of serializable types
+      !propSetter.ParentType.TypesUsed.Any(t1 => t1.IsAttributeClass && 
+        (t1.ParentNamespace.Name == "Newtonsoft.Json" || t1.ParentNamespace.Name == "System.Text.Json")
+       ) &&
+      !propSetter.ParentType.HasAttribute("System.Runtime.Serialization.DataContractAttribute".AllowNoMatch()) &&
+      !propSetter.ParentType.HasAttribute("System.Xml.Serialization.XmlRootAttribute".AllowNoMatch()) &&
+      !propSetter.ParentType.HasAttribute("System.SerializableAttribute".AllowNoMatch())
+
+select new { 
+   property, 
+   CollectionType = property.PropertyType,
+   Debt = 10.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+}
+
+//<Expl>
+// The *{0}* should be read-only because it is typed with the collection *{1}*.
+// Doing so favors *encapsulation*, *predictable behavior* and *consistency*.
+//</Expl>
+
+//<Desc>
+// A writable collection property allows a user to replace the collection with 
+// a completely different collection. A read-only property stops the collection 
+// from being replaced but still allows the individual members to be set. If 
+// replacing the collection is a goal, the preferred *design pattern* is to include
+// a method to remove all the elements from the collection and a method to 
+// re-populate the collection. See the *Clear()* and *AddRange()* methods of the 
+// *System.Collections.Generic.List<T>* class for an example of this pattern.
+// 
+// Both binary and XML serialization support read-only properties that are 
+// collections. The *System.Xml.Serialization.XmlSerializer* class has specific 
+// requirements for types that implement *ICollection* and *System.Collections.IEnumerable*
+// in order to be serializable.
+//
+// This rule matches property setter methods that assign a collection object.
+//</Desc>
+
+//<HowToFix>
+// To fix a violation of this rule, make the property read-only and, if 
+// the design requires it, add methods to clear and re-populate the collection.
+//</HowToFix>]]></Query>
         <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2301$]]></Query>
         <Query Active="True" DisplayList="False" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2302$]]></Query>
         <Query Active="True" DisplayList="False" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2303$]]></Query>
