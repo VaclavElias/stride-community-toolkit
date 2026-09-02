@@ -488,7 +488,52 @@ select new {
 //</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1308$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1309$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1310$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Attribute classes should be sealed</Name>
+// <Id>ND1310:AttributeClassesShouldBeSealed</Id>
+
+warnif count > 0 from t in Application.Types where 
+  t.IsAttributeClass && 
+  // Stride Community Toolkit tweak: Stride's assembly processor injects its own
+  // Stride.Core.AssemblyProcessedAttribute into every assembly it touches, so the stock rule reports
+  // the same non-toolkit type 82 times. Nothing without a source declaration was written here, and
+  // the ND3002 notmycode discard cannot help because this rule reads Application.Types directly.
+  t.SourceFileDeclAvailable &&
+ !t.IsSealed && 
+ !t.IsAbstract && 
+  t.IsPublic
+select new {
+   t, 
+   t.NbLinesOfCode,
+   Debt = 2.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+} 
+
+//<Expl>
+// To potentially enhance the performance of .NET 
+// methods designed for custom attributes, it is 
+// advisable to seal the attribute *{0}*.
+//</Expl>
+
+//<Desc>
+// .NET offers methods to fetch custom attributes. 
+// By default, these methods explore the attribute 
+// inheritance hierarchy. For instance, the 
+// *System.Attribute.GetCustomAttribute()* method 
+// scans for the specified attribute type or any 
+// attribute type that inherits from it. 
+// If the attribute is sealed, this removes the
+// search within the inheritance hierarchy, 
+// potentially enhancing performance.
+//
+// Sealing the attribute removes the need to search 
+// through the inheritance hierarchy, which 
+// can result in performance improvements.
+//</Desc>
+
+//<HowToFix>
+// To fix a violation of this rule, seal the attribute 
+// type or make it abstract.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1311$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1312$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Override equals and operator equals on value types</Name>

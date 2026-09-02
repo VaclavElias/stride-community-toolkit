@@ -175,15 +175,20 @@ public class PolygonProceduralModel : PrimitiveProceduralModelBase
 
         var vertexCount = points.Length;
 
+        // A convex polygon of n vertices is n-2 triangles, all fanned from vertex 0 below.
         Span<VertexPositionNormalTexture> vertices = new VertexPositionNormalTexture[vertexCount];
         Span<int> indices = new int[(vertexCount - 2) * 3];
 
+        // UVs are measured from the polygon's own centre, not from the origin, so the same shape
+        // maps the same texture wherever it sits in the XY plane.
         Vector2 centroid = Vector2.Zero;
         foreach (var point in points)
             centroid += point;
 
         centroid /= vertexCount;
 
+        // The half-extents around that centre, which normalise the UVs into 0..1 below. A polygon
+        // flat against one axis would give a zero extent here, hence the check that follows.
         var maxX = 0f;
         var maxY = 0f;
 
@@ -199,6 +204,7 @@ public class PolygonProceduralModel : PrimitiveProceduralModelBase
 
         for (var i = 0; i < vertexCount; i++)
         {
+            // Map the position from -max..max to 0..1, then scale by the caller's tiling factors.
             var relativePosition = points[i] - centroid;
 
             Vector2 textureCoordinates = new(
@@ -213,6 +219,8 @@ public class PolygonProceduralModel : PrimitiveProceduralModelBase
             );
         }
 
+        // Triangle fan from vertex 0. Correct for convex polygons only, which is what this model is
+        // for; a concave outline would produce triangles outside its own silhouette.
         for (var i = 0; i < vertexCount - 2; i++)
         {
             indices[i * 3] = 0;

@@ -409,16 +409,22 @@ public class TextureCanvas : IDisposable
         using var effect = new ColorTransformGroup();
 
         if (transforms is not null)
+        {
             foreach (var transform in transforms)
                 effect.Transforms.Add(transform);
+        }
 
         if (preTransforms is not null)
+        {
             foreach (var transform in preTransforms)
                 effect.PreTransforms.Add(transform);
+        }
 
         if (postTransforms is not null)
+        {
             foreach (var transform in postTransforms)
                 effect.PostTransforms.Add(transform);
+        }
 
         Apply(effect);
     }
@@ -479,10 +485,14 @@ public class TextureCanvas : IDisposable
 
         // Apply the effect
         if (inputs is not { Length: > 0 })
+        {
             effect.SetInput(primaryBuffer);
+        }
         else
+        {
             for (var i = 0; i < inputs.Length; i++)
                 effect.SetInput(i, inputs[i] ?? primaryBuffer);
+        }
 
         effect.SetOutput(secondaryBuffer);
         effect.Draw(RenderDrawContext);
@@ -560,6 +570,9 @@ public class TextureCanvas : IDisposable
     private static (Viewport viewport, Rectangle scissor) GetViewportAndScissor(Texture sourceTexture,
         Rectangle sourceRect, Rectangle destinationRect, Stretch stretch, Anchor anchor)
     {
+        // How much the source rectangle is scaled on each axis. Contain fits the whole source inside
+        // the destination and leaves letterboxing; Cover fills the destination and crops the overflow,
+        // which the scissor below is what actually enforces.
         float widthScale, heightScale;
         switch (stretch)
         {
@@ -588,6 +601,8 @@ public class TextureCanvas : IDisposable
         var finalWidth = (int)(sourceRect.Width * widthScale);
         var finalHeight = (int)(sourceRect.Height * heightScale);
 
+        // Where the scaled image sits inside the destination on each axis: flush at one edge, or
+        // centred on the leftover space. The two switches are separate because Anchor combines both.
         int alignmentX;
         switch (anchor)
         {
@@ -635,11 +650,14 @@ public class TextureCanvas : IDisposable
         var finalX = destinationRect.X + alignmentX;
         var finalY = destinationRect.Y + alignmentY;
 
+        // The scissor is the destination clipped to itself, so a Cover image cannot paint outside it.
         var scissorX = Math.Max(finalX, destinationRect.X);
         var scissorY = Math.Max(finalY, destinationRect.Y);
         var scissorWidth = Math.Min(finalWidth, destinationRect.Width);
         var scissorHeight = Math.Min(finalHeight, destinationRect.Height);
 
+        // The viewport covers the whole source texture, shifted so that the requested source
+        // rectangle - not the texture origin - lands at the aligned destination position.
         var viewportX = finalX - sourceRect.X * widthScale;
         var viewportY = finalY - sourceRect.Y * heightScale;
         var viewportWidth = (int)(sourceTexture.Width * widthScale);

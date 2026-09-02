@@ -39,18 +39,38 @@ public static class WindowsDpiManager
     public static void EnablePerMonitorV2()
     {
         if (!OperatingSystem.IsWindows()) return;
+
+        // Per-Monitor-V2 is the Windows 10 API and the one worth having. Where it is unavailable the
+        // older per-monitor call is still better than leaving the process DPI-unaware.
+        if (TrySetPerMonitorV2Context()) return;
+
+        FallBackToPerMonitorAwareness();
+    }
+
+    /// <summary>
+    /// Asks for Per-Monitor-V2 awareness through the Windows 10 context API.
+    /// </summary>
+    /// <returns><c>true</c> when the process is now Per-Monitor-V2 aware.</returns>
+    private static bool TrySetPerMonitorV2Context()
+    {
         try
         {
-            if (NativeMethods.SetProcessDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2))
-                return;
+            return NativeMethods.SetProcessDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2);
         }
         catch (Exception ex)
         {
 #if DEBUG
             Debug.WriteLine($"WindowsDpiManager.EnablePerMonitorV2 primary attempt failed: {ex.Message}");
 #endif
+            return false;
         }
+    }
 
+    /// <summary>
+    /// Falls back to the older per-monitor awareness call, for Windows versions without the context API.
+    /// </summary>
+    private static void FallBackToPerMonitorAwareness()
+    {
         try
         {
             // 0=Unaware, 1=System, 2=PerMonitor. Returns an HRESULT; E_ACCESSDENIED (0x80070005) means the
