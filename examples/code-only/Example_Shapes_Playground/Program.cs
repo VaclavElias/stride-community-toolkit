@@ -1,5 +1,6 @@
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
 using Stride.CommunityToolkit.Skyboxes;
@@ -14,7 +15,7 @@ using Stride.Input;
 //
 //   discs and rings on the floor      area-of-effect and selection markers
 //   decals                            flat art laid onto the ground
-//   panels                            rectangles standing in the world
+//   panels                            rectangles standing in the world, with glowing HUD text on them
 //   lines and wire boxes              a capsule swung to face the camera is a thick 3D line
 //   billboards                        markers that stay the same shape from any angle
 //   arcs, sectors and annuli          pie wedges, donut charts, radial progress, cooldown sweeps
@@ -29,13 +30,16 @@ const int PillarCount = 6;
 const float PillarRing = 12f;
 const float GroundLift = 0.02f;
 const int DemoCount = 9;
+const int PanelCount = 4;
+const float PanelRing = 17f;
+const float PanelHeight = 3.4f;
 
 var demoNames = new[]
 {
     "Ground discs (area of effect)",
     "Selection rings",
     "Decals",
-    "Panels on a plane",
+    "HUD panels on a plane, with world text",
     "Thick 3D lines and wire boxes",
     "Camera-facing billboards",
     "Distance proof (a corridor of rings)",
@@ -52,6 +56,10 @@ Array.Fill(enabled, true);
 
 var pillars = new Entity[PillarCount];
 var pillarHeights = new float[PillarCount];
+
+// One world-text component per panel; text is component-based rather than immediate-mode because
+// measuring a string and filling the glyph cache is too expensive to redo every frame
+var panelLabels = new WorldTextComponent[PanelCount];
 
 var depthTested = true;
 var borderWidth = 3f;
@@ -82,7 +90,12 @@ void Start(Scene rootScene)
     sceneShapes = game.AddShapeBatch(depthTest: true);
     overlayShapes = game.AddShapeBatch(depthTest: false);
 
+    // World text is a separate renderer, appended after the camera renderer that draws the shapes,
+    // so it always lands on top of a panel's fill. Neither writes depth, so coplanar is fine.
+    game.AddWorldTextRenderer();
+
     BuildScene(rootScene);
+    BuildPanelLabels(rootScene);
 
     DebugOverlay.GetOrCreate(game).AddSection("Shapes", BuildOverlayLines);
 }
@@ -126,9 +139,94 @@ void BuildScene(Scene scene)
     }
 }
 
+/// <summary>
+/// Text on the panels. A WorldTextComponent with Billboard off draws in its entity's own XY plane,
+/// so an entity rotated to the panel's plane puts the text flat onto it; Height sizes it in world
+/// units. The entity carries the pose, the shape is still drawn immediate-mode each frame. The glow
+/// is the component's own: offset copies of the string in the glow colour under the crisp text.
+/// </summary>
+void BuildPanelLabels(Scene scene)
+{
+    for (var i = 0; i < PanelCount; i++)
+    {
+        var (position, right, normal) = PanelPose(i);
+
+        // The entity's X and Y become the text's plane; Z is the side it reads from
+        var basis = Matrix.Identity;
+        basis.Right = right;
+        basis.Up = Vector3.UnitY;
+        basis.Backward = normal;
+
+        var label = new WorldTextComponent
+        {
+            Text = "",
+            FontSize = 48,
+            Height = 1.5f,
+            TextColor = new Color(130, 205, 255),
+            GlowColor = new Color(0, 140, 255, 170),
+            GlowSize = 4f,
+            Alignment = Stride.Graphics.TextAlignment.Center,
+            Billboard = false,
+        };
+
+        var entity = new Entity($"Panel label {i}")
+        {
+            Transform =
+            {
+                // A hair in front of the panel, so the text is unambiguously the nearer surface
+                Position = position + normal * 0.01f,
+                Rotation = Quaternion.RotationMatrix(basis),
+            },
+        };
+
+        entity.Add(label);
+        entity.Scene = scene;
+
+        panelLabels[i] = label;
+    }
+}
+
+/// <summary>
+/// Where panel i stands: its centre, its X axis along the ring, and the side it faces. Every panel
+/// faces the camera side of the arena (+Z), so the text reads correctly from the start position.
+/// </summary>
+(Vector3 Position, Vector3 Right, Vector3 Normal) PanelPose(int i)
+{
+    var angle = i * MathF.PI * 0.5f + MathF.PI * 0.25f;
+    var (sin, cos) = MathF.SinCos(angle);
+    var position = new Vector3(cos * PanelRing, PanelHeight, sin * PanelRing);
+
+    // Radially outward, flipped for the far panels so they face inward towards the camera
+    var normal = new Vector3(cos, 0, sin);
+
+    if (normal.Z < 0) normal = -normal;
+
+    // Right-handed with the world up, so the text reads left to right from the normal's side
+    var right = Vector3.Cross(Vector3.UnitY, normal);
+
+    return (position, right, normal);
+}
+
+void UpdatePanelLabels(float seconds)
+{
+    // A counter that ticks up, formatted with thousands separators so the digits keep moving
+    var count = (long)(seconds * 137.5f);
+
+    panelLabels[0].Text = "STRIDE\nCOMMUNITY TOOLKIT";
+    panelLabels[1].Text = $"COUNTING\n{count:N0}";
+    panelLabels[2].Text = $"{submitted} SHAPES\n1 DRAW CALL";
+    panelLabels[3].Text = depthTested ? "DEPTH TESTED\npress T" : "OVERLAY\npress T";
+
+    foreach (var label in panelLabels)
+    {
+        label.IsVisible = enabled[3];
+    }
+}
+
 void Update(Scene scene, GameTime gameTime)
 {
     HandleInput();
+    UpdatePanelLabels((float)gameTime.Total.TotalSeconds);
 
     var shapes = depthTested ? sceneShapes : overlayShapes;
 
@@ -214,28 +312,47 @@ void DrawDecals(ShapeBatch shapes, float seconds)
 }
 
 /// <summary>
-/// Rectangles standing upright in the world, facing outward from the centre - a sign, a screen, a
-/// portal. Rounded corners come free: the rounding radius is the same term that makes a capsule.
+/// Rectangles standing upright in the world, facing the camera side - a sign, a screen, a portal.
+/// Rounded corners come free: the rounding radius is the same term that makes a capsule. Styled as
+/// a ship's HUD: a near-opaque dark fill, a cyan edge and a cyan glow outside it, with the text on
+/// them the toolkit's WorldTextComponent, placed once in BuildPanelLabels and updated by text.
 /// </summary>
 void DrawPanels(ShapeBatch shapes)
 {
-    // Fill and outline are independent colours: a dark panel with a light edge, which deriving the
-    // fill from the outline colour cannot produce
-    shapes.FillColor = new Color(16, 28, 52);
+    // Fill and outline are independent colours: a faint dark panel with a thin light edge, which
+    // deriving the fill from the outline colour cannot produce. The glow is the same one every
+    // shape can have; kept narrow, so the edge reads as lit rather than smeared.
+    var hudBlue = new Color(110, 200, 255);
 
-    for (var i = 0; i < 4; i++)
+    shapes.FillColor = new Color(4, 14, 30);
+    shapes.FillAlpha = 0.45f;
+    shapes.BorderWidth = 1.5f;
+    shapes.GlowWidth = 7f;
+    shapes.GlowColor = new Color(0, 150, 255, 160);
+
+    for (var i = 0; i < PanelCount; i++)
     {
-        var angle = i * MathF.PI * 0.5f + MathF.PI * 0.25f;
-        var (sin, cos) = MathF.SinCos(angle);
+        var (position, right, _) = PanelPose(i);
 
         // Upright: the panel's Y is the world's up, its X the tangent around the circle
-        var tangent = new Vector3(-sin, 0, cos);
-        var position = new Vector3(cos * 17f, 3.4f, sin * 17f);
+        shapes.DrawRectangle(position, right, Vector3.UnitY, new Vector2(6f, 3.6f), hudBlue, cornerRadius: 0.35f);
 
-        shapes.DrawRectangle(position, tangent, Vector3.UnitY, new Vector2(6f, 3.6f), Color.LightSkyBlue, cornerRadius: 0.5f);
+        // Corner brackets, the HUD cliche: pixel-wide lines just inside two opposite corners
+        var up = Vector3.UnitY;
+        var topLeft = position - right * 2.7f + up * 1.5f;
+        var bottomRight = position + right * 2.7f - up * 1.5f;
+
+        shapes.DrawPixelLine(topLeft, topLeft + right * 0.8f, 1.5f, hudBlue);
+        shapes.DrawPixelLine(topLeft, topLeft - up * 0.5f, 1.5f, hudBlue);
+        shapes.DrawPixelLine(bottomRight, bottomRight - right * 0.8f, 1.5f, hudBlue);
+        shapes.DrawPixelLine(bottomRight, bottomRight + up * 0.5f, 1.5f, hudBlue);
     }
 
     shapes.FillColor = null;
+    shapes.FillAlpha = fillAlpha;
+    shapes.BorderWidth = borderWidth;
+    shapes.GlowWidth = glowWidth;
+    shapes.GlowColor = null;
 }
 
 /// <summary>
@@ -467,8 +584,8 @@ complexity: 3
 order: 165
 description:
   en: |-
-    The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a
-    plane, genuinely thick 3D lines and wire boxes, camera-facing billboards, pie wedges, donut
+    The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, glowing HUD panels
+    with world text on them, genuinely thick 3D lines and wire boxes, camera-facing billboards, pie wedges, donut
     charts and radial progress arcs, and a glow that halos any of them. Every shape is flat and
     evaluated per fragment as a signed distance function, so its outline stays a constant number of
     pixels wide however far away it is - press 7 and fly down the corridor of rings to see it.
@@ -482,6 +599,7 @@ concepts:
   - Registering a shape renderer with AddShapeBatch
   - Depth-tested shapes versus overlay shapes from two batches
   - Discs, rings and polygons lying on an arbitrary plane in 3D
+  - HUD panels with glowing edges and glowing world text, including a live counter
   - Thick 3D lines and wire boxes from camera-facing capsules
   - Billboards that keep their shape from any viewpoint
   - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
