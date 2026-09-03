@@ -75,6 +75,75 @@ public static class GraphicsCompositorExtensions
     }
 
     /// <summary>
+    /// The compositor's post effects, or <see langword="null"/> when it has none.
+    /// </summary>
+    /// <param name="graphicsCompositor">The compositor to look in.</param>
+    /// <returns>
+    /// The <see cref="PostProcessingEffects"/> on the compositor's forward renderer, or <see langword="null"/>
+    /// when the single view is not a <see cref="ForwardRenderer"/>, has no post effects, or has post effects
+    /// of some other type.
+    /// </returns>
+    /// <remarks>
+    /// Two casts stand between a compositor and its post effects - <see cref="GraphicsCompositor.SingleView"/>
+    /// is an <c>ISceneRenderer</c> and <see cref="ForwardRenderer.PostEffects"/> an <c>IPostProcessingEffects</c> -
+    /// and every example that wanted to touch bloom at runtime wrote them out by hand. This is that, once.
+    /// The 2D compositor from <c>Add2DGraphicsCompositor</c> has no post effects, so it returns
+    /// <see langword="null"/>.
+    /// </remarks>
+    public static PostProcessingEffects? GetPostEffects(this GraphicsCompositor graphicsCompositor)
+    {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+
+        return graphicsCompositor.SingleView is ForwardRenderer { PostEffects: PostProcessingEffects effects } ? effects : null;
+    }
+
+    /// <summary>
+    /// Runs <paramref name="configure"/> against the compositor's post effects - the place to switch on
+    /// bloom, fog, ambient occlusion and the rest, all of which start disabled.
+    /// </summary>
+    /// <param name="graphicsCompositor">The compositor to configure.</param>
+    /// <param name="configure">Receives the live <see cref="PostProcessingEffects"/>; set <c>Enabled</c> and tune as needed.</param>
+    /// <returns>The compositor, for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// The default compositor ships every effect switched off and only a <see cref="ToneMap"/> in the
+    /// colour transforms, so enabling is always explicit: <c>fx.Bloom.Enabled = true</c>. Colour transforms
+    /// other than tone mapping - <see cref="Vignetting"/>, <c>FilmGrain</c>, <c>Dither</c> - are not present
+    /// at all and must be added: <c>fx.ColorTransforms.Transforms.Add(new Vignetting())</c>.
+    /// </para>
+    /// <para>
+    /// Call this after <see cref="AddCleanUIStage"/>, which resets the post effects to tone mapping only;
+    /// anything enabled before it is lost.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> or <paramref name="configure"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The compositor has no post effects to configure.</exception>
+    /// <example>
+    /// <code>
+    /// game.AddGraphicsCompositor()
+    ///     .AddCleanUIStage()
+    ///     .ConfigurePostEffects(fx =>
+    ///     {
+    ///         fx.Bloom.Enabled = true;
+    ///         fx.Fog.Enabled = true;
+    ///         fx.ColorTransforms.Transforms.Add(new Vignetting());
+    ///     });
+    /// </code>
+    /// </example>
+    public static GraphicsCompositor ConfigurePostEffects(this GraphicsCompositor graphicsCompositor, Action<PostProcessingEffects> configure)
+    {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var effects = graphicsCompositor.GetPostEffects()
+            ?? throw new InvalidOperationException("The graphics compositor has no post effects to configure. AddGraphicsCompositor() creates them; the 2D compositor has none.");
+
+        configure(effects);
+
+        return graphicsCompositor;
+    }
+
+    /// <summary>
     /// Adds a scene renderer only if one of the same type is not already present.
     /// </summary>
     /// <typeparam name="TRenderer">Type of renderer to ensure.</typeparam>

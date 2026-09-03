@@ -72,6 +72,7 @@
     <Project Path="examples/code-only/Example23_Charts2D/Example23_Charts2D.csproj" />
     <Project Path="examples/code-only/Example23_Charts3D/Example23_Charts3D.csproj" />
     <Project Path="examples/code-only/Example26_MultipleSimulations/Example26_MultipleSimulations.csproj" />
+    <Project Path="examples/code-only/Example40_PostEffects/Example40_PostEffects.csproj" />
     <Project Path="examples/code-only/Example_2D_Playground/Example_2D_Playground.csproj" />
     <Project Path="examples/code-only/Example_Bepu_Playground/Example_Bepu_Playground.csproj" />
     <Project Path="examples/code-only/Example_Shapes_Playground/Example_Shapes_Playground.csproj" />

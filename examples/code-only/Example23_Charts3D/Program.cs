@@ -8,9 +8,7 @@ using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Rendering.Compositing;
 using Stride.Rendering.Images;
-using Stride.Rendering.Lights;
 using Stride.Games;
 using Stride.Input;
 
@@ -74,11 +72,13 @@ void Start(Scene rootScene)
     // intensity 1 only look like they glow against something dark
     game.AddGraphicsCompositor(clearColor: new Color(16, 18, 28)).AddCleanUIStage();
 
-    // The bloom the showcase look widens later; the default is tuned for a scene, not for thin bright lines
-    if (game.SceneSystem.GraphicsCompositor.SingleView is ForwardRenderer { PostEffects: PostProcessingEffects effects })
+    // Bloom is off by default, like every post effect; the glow look needs it on. The showcase widens
+    // it later, since the default is tuned for a scene, not for thin bright lines.
+    game.ConfigurePostEffects(fx =>
     {
-        bloom = effects.Bloom;
-    }
+        fx.Bloom.Enabled = true;
+        bloom = fx.Bloom;
+    });
     game.Add3DCamera();
     game.Add3DCameraController();
     keyLight = game.AddDirectionalLight(intensity: ChartLight).Get<LightComponent>();
