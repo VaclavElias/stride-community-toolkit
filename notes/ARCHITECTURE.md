@@ -631,15 +631,42 @@ configuration surface is small and fixed — builders earn their keep where *sys
   a provider — one bundle, no CS0121, the "import one namespace" rule disappears; (c) distinct
   names per package (`SetupBepu3DScene`). (b) is recommended and is the only one that lets a
   no-physics setup (7 examples) be first-class instead of "call `SetupBase3D` and hope".
+
+  **Constraint on (b), from Vaclav (2026-09-02): selecting physics at setup must not prevent using
+  both engines in one game.** It may rarely make sense, but it must stay possible. So:
+
+  - **The provider is a default, not a gate.** `Physics = Physics.Bepu` decides only what the
+    *implicit* calls mean — `game.Create3DPrimitive(type)` with no engine named, the bundled ground,
+    the setup sequence. An implicit call can only ever have one meaning (that is exactly why it is
+    ambiguous today with two packages imported); choosing that meaning at setup says nothing about
+    what else the game references.
+  - **Mixing is the explicit route**, which already exists: the engine-named entity extensions.
+    Bepu's `Create3DPrimitive` is core's model-only call followed by `entity.AddBepu3DPhysics(...)`,
+    and those names never collide across packages. With shape records the mixed form reads
+    `game.Create3DPrimitive(shape).AddBepuPhysics()` beside `game.Create3DPrimitive(shape).AddBulletPhysics()`.
+    A deliberately mixed game sets `Physics = Physics.None` so nothing implicit happens and calls
+    both engines' world setup explicitly — better than today, where mixing means fully-qualified
+    static calls to dodge the collision.
+  - **Therefore:** the per-engine entity extensions stay public and are the supported mixing route;
+    the setup record must not validate that only one physics package is referenced; and
+    `Physics.None` plus explicit calls is a supported shape, not a fallback.
+  - **Two limits, stated honestly:** whether two simulations coexist cleanly at runtime is an
+    engine question nobody has tested (Bullet's and Bepu's processors are independent and keyed on
+    different component types, so nothing suggests a conflict, but the toolkit's job is only to not
+    be the thing that prevents it); and in a mixed game the second engine's world setup is the
+    caller's explicit call, consistent with everything else on the explicit route.
 - **Q4 — packaging.** Rename `Stride.CommunityToolkit.Windows` to what it is
   (`Stride.CommunityToolkit.Build` or `.AssetCompiler`), or fold the asset-compiler reference into
   the core package (item 14 option 2)? Either way the docs' first step becomes one package. Keep
   `WindowsDpiManager` where it is or move it to core behind an OS check?
-- **Q5 — engine defaults the toolkit should set on everyone's behalf.** `Run` could call
-  `EffectSystem.SetCompilationMode(Release)` and register a `GameSettings` (both found by the
-  engine sweep: code-only games otherwise compile shaders in Debug/opt-0 forever and get the
-  no-settings fallbacks). Should that be part of `Run` unconditionally, part of the setup record,
-  or opt-in?
+- **Q5 — engine defaults the toolkit should set on everyone's behalf.** `Run` could register a
+  `GameSettings` so the no-settings fallbacks (HRTF, physics, navigation, Bepu, rendering
+  settings) become configurable. Should that be part of `Run` unconditionally, part of the setup
+  record, or opt-in? *Answered 2026-09-03:* opt-in via `UseGameSettings` (registering
+  unconditionally would collide with a project that has the asset — `ServiceRegistry.AddService`
+  throws on a duplicate). The shader-compilation-mode half of the original question is moot: on
+  D3D11 `Debug` and `Release` produce identical bytecode and Vulkan/D3D12 ignore the level (engine
+  doc, correction 4).
 - **Q6 — scope of the break.** One release that (i) introduces the record, (ii) fixes return types
   and the two-route duplicates, (iii) renames the package, (iv) migrates all 69 examples — with a
   migration note — or stage it across two releases with `[Obsolete]` forwarding?
@@ -654,6 +681,9 @@ Small, non-breaking, and true whatever shape wins:
 
 - `extensions.md:22-23` (skybox claim) and the `"MainCamera"`/`"Main"` XML docs.
 - `AddCleanUIStage`: start from `DisableAll()` (the post-effects bug) and keep existing renderers.
+  *Done 2026-09-03.* Measured on `Example01_Basic3DScene_Primitives`, vsync off, warm shader
+  cache: 116 FPS (8.6 ms) before, 202–211 FPS (4.7–5.0 ms) after. Every example screenshot will
+  shift slightly (no SSAO contact darkening, no bloom); regenerate them in one pass.
 - Idempotent `AddSkybox`/`AddWorldTextRenderer`/`AddEntityTextRenderer`.
 - One `RequireCompositor()` guard with a message naming the call to make.
 - Example hygiene already in `TODO.md` §6, plus: `Example12_Particles` double skybox,
@@ -827,10 +857,17 @@ toolkit currently works around; none is scheduled.*
 2. **Post-load hook on `Game`** (= item 16). An instance event after `LoadContent`, or
    `Run(Action<Scene> start, Action<Scene, GameTime> update)` overloads on `Game` itself — the
    toolkit's `RunCore` transplants as-is. Toolkit effect: `Run` becomes sugar or disappears.
-3. **Release shader compilation without a settings asset.** `Game.cs:383-386` calls
-   `EffectSystem.SetCompilationMode` only when `Settings != null`; `EffectCompilerParameters.Default`
-   is `Debug = true, OptimizationLevel = 0`. Every code-only game compiles every shader unoptimised
-   forever. Default to `Release` (or `Debug` under `#if DEBUG`) when settings are absent.
+3. **Make `CompilationMode` mean what it says.** `Game.cs:383-386` calls
+   `EffectSystem.SetCompilationMode` only when `Settings != null`, so code-only games run on
+   `EffectCompilerParameters.Default` (`Debug = true, OptimizationLevel = 0`). That sounded like
+   "unoptimised forever" until it was built and measured (2026-09-03): the D3D11 compiler applies
+   the level only when `Debug` is false (`Direct3D/ShaderCompiler.cs:84-96`), so `Debug` and
+   `Release` both compile at FXC's default level 1 with symbols and yield identical stripped
+   bytecode; only `AppStore` differs, and Vulkan/D3D12 never read the level. The honest upstream
+   ask is smaller: fix the `Debug` branch (or the enum's docs) so the modes are distinct, and apply
+   a mode when settings are absent so `AppStore` is reachable without an asset. *Toolkit-side:*
+   `UseGameSettings` (2026-09-03) covers item 4 below for everything except the asset URLs and
+   lets a code-only game choose `AppStore`.
 4. **A public way to supply `GameSettings`.** `Game.Settings` is private-set (`Game.cs:56`); the only
    route is registering an `IGameSettingsService` before `Run`. A `Game(GameSettings)` constructor or
    setter fixes the whole no-settings fallback table at once: rendering profile, `CompilationMode`,

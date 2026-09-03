@@ -288,6 +288,16 @@ live `PoseGravity` changes.
 
 *Source:* `TimeControlComponent`.
 
+#### 10. `Example26_MultipleSimulations` · Intermediate · complexity 3 — **DONE** (2026-09-03)
+
+Two simulations with different gravity side by side, a body from one world sinking through the
+other's ground. Built out of order because it is the showcase for `UseGameSettings`
+(`BepuConfiguration.BepuSimulations` is only reachable through game settings, and a code-only game
+has none). Family 26 with `TimeControl`: both are about the simulation itself rather than bodies.
+Also retires the commented-out `BepuConfiguration` poking in `Example_Bepu_Playground`.
+
+*Source:* engine `Stride.BepuPhysics.Tests/BepuTests.cs:305-350` (`IndexBasedSimulationSelector`).
+
 ### Edit to an existing example
 
 - **`Example14_Raycast`** — add `RayCastPenetrating` (multi-hit raycast passing through objects),

@@ -55,10 +55,17 @@ The headline corrections, so a reader of the first version knows what to un-lear
    A bare `new PostProcessingEffects()` has bloom, SSAO, SSR, DoF, light streaks, lens flare and
    FXAA **enabled** (`RendererCoreBase.cs:44`). The toolkit's own `AddCleanUIStage()` builds
    exactly that — see [toolkit-side findings](#toolkit-side-findings).
-4. **Code-only games compile every shader in Debug at optimisation level 0, forever.** `Game.cs:383-386`
-   calls `EffectSystem.SetCompilationMode` only when a GameSettings asset exists;
-   `EffectCompilerParameters.Default` is `Debug = true, OptimizationLevel = 0`. The fix is one
-   public call (`EffectSystem.cs:78`). Nobody has ever mentioned this.
+4. **Code-only games never get a shader compilation mode — but it matters less than it looks.**
+   `Game.cs:383-386` calls `EffectSystem.SetCompilationMode` only when a GameSettings asset exists,
+   and `EffectCompilerParameters.Default` is `Debug = true, OptimizationLevel = 0`. *Corrected
+   2026-09-03 by building it:* the D3D11 compiler applies the optimisation level only when `Debug`
+   is false (`Direct3D/ShaderCompiler.cs:84-96`; `D3DCOMPILE_OPTIMIZATION_LEVEL1` is `0`, FXC's
+   default), so `Debug` and `Release` both compile at FXC level 1 with debug info and produce
+   byte-identical stripped bytecode — proven by identical cache hashes. Only `AppStore`
+   (`Debug = false`, level 2, no symbols) changes the output, and only on D3D11: Vulkan and D3D12
+   consume the SPIR-V directly and the level is never read. The real value of the settings gap is
+   elsewhere (correction 11 in the toolkit findings: HRTF, physics, navigation, Bepu, rendering
+   settings all read `IGameSettingsService`).
 5. **Desktop `/roaming`, `/local`, `/cache` resolve to folders next to the executable**
    (`PlatformFolders.cs:80-134`, with a `// TODO`), not to the user profile. Spec 8 is reframed.
 6. **The transparency explanation in the published manual page is wrong about mechanism.**
@@ -106,8 +113,10 @@ Worth recording even where no example follows — several are "stop looking for 
   `Vignetting`, `FilmGrain`, `Dither` exist but are *not added* by default — `CreateDefault` puts
   only `ToneMap` in `ColorTransforms.Transforms`. `GraphicsCompositorHelper2D.CreateDefault` does
   call `DisableAll()`.
-- **Code-only shader compilation is Debug/Opt-0** unless `game.EffectSystem.SetCompilationMode(CompilationMode.Release)`
-  is called before `Run` (see correction 4). Runtime-compiled effects are cached under
+- **Code-only shader compilation runs with the engine's default parameters** (`Debug = true`,
+  level 0 as a *parameter*), which on D3D11 means FXC's default level 1 with debug info — the same
+  bytecode `CompilationMode.Release` gives; only `AppStore` changes the output, and Vulkan/D3D12
+  ignore the level entirely (see correction 4). Runtime-compiled effects are cached under
   `<exe>/cache/effects/<Effect>/<hash>.sdfxbc` and, on desktop, the compiler also dumps the
   generated `_vs.hlsl`/`_ps.hlsl`, `.spv`/`.spvdis`, and a `_meta.txt` containing the parameters
   and a reproducible C# `ShaderSource` (`EffectCompiler.cs:343-375, 644-652`;
@@ -555,8 +564,8 @@ Performance — specs are grouped to attack the empty ones first.
 - **What it shows:** `new ImageEffectShader("MyShader")` — one `.sdsl`, `SetInput`/`SetOutput`/
   `Draw`. Open with the `DrawTexture`/`DrawQuad` one-liners before introducing the class. The
   screen-space sibling of `Example13_RootRendererShader`'s mesh effect. Sidebar: where the
-  compiled shader and its dumped HLSL end up (`cache/effects/`), and why to call
-  `SetCompilationMode(Release)`.
+  compiled shader and its dumped HLSL end up (`cache/effects/`), and what the compilation modes
+  really do on each graphics API (correction 4).
 - **Toolkit piece:** the toolkit already has `TextureCanvas.Apply(ImageEffect, params Texture?[]?)`
   (`Rendering/Utilities/TextureCanvas.cs:474`) — start the `ScreenEffect` compositor helper there.
 
@@ -1076,7 +1085,10 @@ this". Bugs first.
   — no `DisableAll()`, so SSAO, SSR (which also forces normal + specular-roughness MRTs), bloom,
   light streaks, lens flare and FXAA are on in every example that calls it. `AddGraphicsCompositor()`
   itself is fine (goes through `CreateDefault`). Fix: `DisableAll()` first, then enable what the
-  UI stage needs — and measure the frame-time difference for the changelog.
+  UI stage needs — and measure the frame-time difference for the changelog. *Fixed 2026-09-03:*
+  `Example01_Basic3DScene_Primitives`, vsync off, warm cache: 8.6 ms → 4.8 ms per frame
+  (116 → ~205 FPS). The same change also stops `AddCleanUIStage`/`AddUIStage` discarding
+  renderers attached before them.
 - **`HeightmapExtensions.GetHeightAt` contract mismatch** (`src/Stride.CommunityToolkit/Physics/HeightmapExtensions.cs:78`):
   divides `Shorts[index]` by a magic 255 and ignores `HeightScale`; NRE for `Float`/`Byte`
   heightmaps. The whole extension file is unused by any example (spec 27 would be the first).
@@ -1326,8 +1338,14 @@ Bugs and doc gaps found while verifying — candidates for `notes/upstream/` dra
    non-Bullet users can feed geometry (`NavigationMeshInputBuilder`/`NavigationBuilder` are internal).
 5. **HRTF parameters are dead on OpenAL** (`OpenAL.cpp:378-410`) — Linux/macOS only. The docs
    should say HRTF is Windows-only, and that `AudioEngineSettings.HrtfSupport` is the gate.
-6. **Code-only games never get `EffectSystem.SetCompilationMode`** (`Game.cs:383-386`): Debug,
-   optimisation level 0, forever. Either apply a default in `Game` or document the one-line fix.
+6. **`CompilationMode.Debug` and `Release` produce identical D3D11 bytecode.** The D3D compiler
+   applies `OptimizationLevel` only when `Debug` is false (`Direct3D/ShaderCompiler.cs:84-96`), and
+   both modes set `Debug = true`; `D3DCOMPILE_SKIP_OPTIMIZATION` is commented out. So the
+   parameter's own documentation ("level 0 with debug information" vs "level 1 with debug
+   information") is wrong for D3D11, Vulkan/D3D12 never read the level, and code-only games
+   (which never get `SetCompilationMode`, `Game.cs:383-386`) lose nothing except the option of
+   `AppStore`. Doc fix at minimum; the `Debug` branch should probably set
+   `D3DCOMPILE_OPTIMIZATION_LEVEL0` (or skip optimisation) so the mode means what it says.
 7. **`ProcessorManager` labels every flexible processor with its own type name** in profiling keys
    (`ProcessorManager.cs:95,97` uses `GetType().Name`).
 8. **`AudioSystem.OnActivated/OnDeactivated` NRE** when native audio init failed (`AudioSystem.cs:139,145`).
@@ -1419,6 +1437,6 @@ Suggested first five, balancing quick wins against gap-filling:
 `Example40_PostEffects` (biggest visible payoff per line — and it fixes `AddCleanUIStage`),
 `Example48_Headless` (Integration unlocked, the CI story starts here, and the toolkit's own test
 fixture is already half of it), `Example29_PickingNoPhysics` (Interaction unlocked, zero
-dependencies), and the `GameTime.Factor` + `SetCompilationMode` + `UseGameSettings` trio of
-one-line fixes folded into existing examples (near-free, and two of them are things every
-code-only Stride game gets wrong today).
+dependencies), and the `GameTime.Factor` + `UseGameSettings` pair of one-line additions folded
+into existing examples (near-free; `UseGameSettings` is what gives a code-only game HRTF, physics
+and navigation settings — the shader-mode half turned out to be moot, see correction 4).
