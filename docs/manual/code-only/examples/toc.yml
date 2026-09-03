@@ -14,13 +14,15 @@
     href: basic-2d-scene-bullet.md
   - name: Basic3D Scene (Capsule) - Bullet Physics
     href: capsule-with-rigid-body-bullet.md
-- name: C# Beginner (11)
+- name: C# Beginner (12)
   href: beginner-examples.md
   items:
   - name: Basic3D Scene (Every Primitive)
     href: primitives-3d.md
   - name: Material
     href: material.md
+  - name: Post Effects
+    href: post-effects.md
   - name: Mesh Line
     href: mesh-line.md
   - name: Give me a cube
