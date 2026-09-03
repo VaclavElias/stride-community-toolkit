@@ -523,6 +523,12 @@ Performance — specs are grouped to attack the empty ones first.
   which must also fix `AddCleanUIStage()` (see toolkit-side findings: it replaces `PostEffects`
   with a bare `new PostProcessingEffects { ... }` and therefore silently runs SSAO, SSR, bloom,
   light streaks, lens flare and FXAA in every example that calls it).
+- **Built 2026-09-03** as `Example40_PostEffects` (`ConfigurePostEffects`/`GetPostEffects` on both
+  `GraphicsCompositor` and `Game`; twelve keys, first set on at start, `DebugOverlay` state list).
+  Two scene lessons worth reusing: the default directional light backlights a camera on the +Z
+  side, so put the camera at −Z looking along +Z (then +X is screen-left); and a floor at
+  `specular: 1` turns metallic and mirrors the skybox's dark underside as a hard black band —
+  `specular: 0.5, microSurface: 0.85` is glossy enough for SSR without that.
 
 ### 18. `Example41_Shadows` — tuning the shadows you already have (downgraded)
 
