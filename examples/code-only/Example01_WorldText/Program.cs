@@ -115,6 +115,54 @@ void Start(Scene scene)
         text.FadeStartDistance = 10;
         text.MaxDistance = 18;
     });
+
+    // --- Row 5: glow (behind row 1, on the far side of the ground, in the default camera view) --
+
+    // A glow is the text drawn again in GlowColor, offset in a ring behind the letters, so it
+    // follows every glyph and scales with the text. GlowSize is in font pixels at FontSize, so the
+    // same value looks the same at any Height; the glow colour's alpha is its strength.
+
+    AddText(scene, new Vector3(-5.5f, 1.1f, -5), text =>
+    {
+        // The HUD look: light text over a deeper glow of the same hue reads as lit, not painted
+        text.Text = "GlowColor = DeepSkyBlue\nGlowSize = 4";
+        text.Height = 0.4f;
+        text.TextColor = new Color(170, 225, 255);
+        text.GlowColor = Color.DeepSkyBlue;
+        text.GlowSize = 4;
+    });
+
+    AddText(scene, new Vector3(-2.5f, 1.1f, -5), text =>
+    {
+        // Neon: a contrasting glow, wide enough to bleed well past the letters
+        text.Text = "GlowColor = OrangeRed\nGlowSize = 8";
+        text.Height = 0.4f;
+        text.TextColor = Color.Yellow;
+        text.GlowColor = Color.OrangeRed;
+        text.GlowSize = 8;
+    });
+
+    AddText(scene, new Vector3(0.5f, 1.1f, -5), text =>
+    {
+        // Readability rather than looks: dark text with a tight light halo stays legible over a
+        // busy or dark background, the way a subtitle does
+        text.Text = "GlowColor = White\nGlowSize = 2";
+        text.Height = 0.4f;
+        text.TextColor = Color.Black;
+        text.GlowColor = Color.White;
+        text.GlowSize = 2;
+    });
+
+    AddText(scene, new Vector3(3.5f, 1.1f, -5), text =>
+    {
+        // Bloom: the same colour as the text, wide and half strength - the alpha sets how strong
+        // the glow is at the letters before it fades
+        text.Text = "GlowColor = Magenta, alpha 128\nGlowSize = 12";
+        text.Height = 0.4f;
+        text.TextColor = Color.Magenta;
+        text.GlowColor = new Color(255, 0, 255, 128);
+        text.GlowSize = 12;
+    });
 }
 
 // Creates one gallery station: an entity carrying a world text, handed over for its own settings.
@@ -151,12 +199,15 @@ description:
   en: |-
     A gallery of everything WorldTextComponent can do, one setting per station: billboarding that
     stays upright, free billboarding, text fixed in place, text lying flat on the ground, world-unit
-    sizing, depth-tested text hidden behind a wall next to text drawn through it, and distance fading.
-    World text lives inside the scene - it shrinks with distance and geometry can hide it.
+    sizing, depth-tested text hidden behind a wall next to text drawn through it, distance fading,
+    and a glow behind the letters in a few colour combinations - a HUD blue, neon, a readability
+    halo and a soft bloom. World text lives inside the scene - it shrinks with distance and geometry
+    can hide it.
   cs: |-
     Galerie všeho, co WorldTextComponent umí, jedno nastavení na stanoviště: billboard držící se
     vzpřímeně, volný billboard, pevně umístěný text, text ležící na zemi, velikost ve světových
-    jednotkách, text skrytý za zdí vedle textu kresleného skrz ni a mizení s vzdáleností.
+    jednotkách, text skrytý za zdí vedle textu kresleného skrz ni, mizení s vzdáleností a záře za
+    písmeny v několika barevných kombinacích - HUD modrá, neon, čitelnostní halo a měkký bloom.
     Text ve světě žije uvnitř scény - zmenšuje se s vzdáleností a geometrie ho může zakrýt.
 concepts:
   - "Registering the text renderer once: AddWorldTextRenderer"
@@ -165,6 +216,7 @@ concepts:
   - "Height in world units versus FontSize as sharpness"
   - Depth-tested text hidden by geometry, and DepthTest = false to draw through
   - Distance fading with FadeStartDistance and MaxDistance
+  - A glow behind the letters with GlowColor and GlowSize, from HUD halo to neon bloom
 tags:
   - 3D
   - Text
