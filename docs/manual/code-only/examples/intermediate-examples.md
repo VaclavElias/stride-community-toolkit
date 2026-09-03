@@ -25,7 +25,7 @@ A Stride subsystem used directly, or several concepts combined. These assume you
 - [Particles](particles.md): A blue fountain: fifty particles a second launched upward from a small area, pulled back down by gravity, each rendered as a camera-facing billboard.
 - [Debug Shapes](debug-shapes.md): The full tour of the DebugShapes package: every immediate-mode primitive it can draw, exercised from a ShapeUpdater component so the shapes animate and the batching can be seen under load.
 - [Debug Shapes Usage](debug-shapes-usage.md): The short version of the debug shapes example: turn the system on, draw a sphere and a circle, done.
-- [Shapes Playground](shapes-playground.md): The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a plane, genuinely thick 3D lines and wire boxes, camera-facing billboards, pie wedges, donut charts and radial progress arcs, and a glow that halos any of them.
+- [Shapes Playground](shapes-playground.md): The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a plane with world text on them, genuinely thick 3D lines and wire boxes, camera-facing billboards, pie wedges, donut charts and radial progress arcs, and a glow that halos any of them.
 - [Stride UI - Capsule and Window](stride-ui-capsule-with-rigid-body.md): A capsule in a 3D scene with a "Hello, World" panel drawn over it using Stride's built-in UI.
 - [Stride UI - Button Hover Animation](stride-ui-button-hover-animation.md): A main menu built from code whose buttons grow a blue underline while the pointer is over them.
 - [ImGui UI](imgui-ui.md): An ImGui overlay for in-game tools, debug panels and live tweaking.
