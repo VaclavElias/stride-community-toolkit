@@ -161,6 +161,10 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DCollisionMatrix", Justification = "Library API instantiated by consumers; nothing in the toolkit itself needs one yet.")]
 [assembly: SuppressMessage("NDepend", "ND2500:DontCreateThreadsExplicitly", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DTaskScheduler..ctor(Int32)", Justification = "Deliberate: Box2D requires each concurrently running task callback to hold a distinct worker index, which dedicated threads guarantee structurally; the workers also park in a blocking dequeue for the world lifetime, which thread-pool threads must never do.")]
 [assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeComponent.Vertices", Justification = "A runtime-swappable shape outline is the point of the component; the next frame draws whatever array is assigned.")]
+// ShapeInstance is a wire format: the shader's ShapeData struct field for field, 160 bytes, uploaded
+// as-is through a structured buffer. Grouping the fields into smaller types would be a layout change,
+// not a design improvement, and the shader would have to change with it.
+[assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeInstance", Justification = "GPU instance layout mirrored by ShapeShader.sdsl; the field list is the byte layout.")]
 // The other two Vertices properties are inputs, not live collections: an options bag filled in an object
 // initializer and handed to a builder, and a procedural model's outline, shaped like Stride's own
 // procedural models. Nothing is wired to the array, so replacing it breaks nothing; an outline's length
@@ -286,6 +290,7 @@ using System.Diagnostics.CodeAnalysis;
 // a canvas that starts loading textures, a mesh builder that starts owning materials - split it then.
 [assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Utilities.MeshBuilder", Justification = "Fluent mesh builder: 24 methods by the rule's count over 121 lines, one responsibility.")]
 [assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Utilities.TextureCanvas", Justification = "Drawing surface: 32 methods by the rule's count over 200 lines, mostly Draw/Fill overloads over one canvas.")]
+[assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeBatch", Justification = "Immediate-mode batch in the SpriteBatch mould: 29 methods by the rule's count, of which 13 are the accessors of its current-state properties and the rest one Draw overload per shape family over one instance list.")]
 
 // --- Prefab instantiation: the one overload family with a real remedy --------------------------
 // Unlike the three ND1005 families in SETTLED, this one the rule could be right about. Half of each
