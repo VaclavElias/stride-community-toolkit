@@ -358,7 +358,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="shapes-playground.md">Shapes Playground</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
-                <p class="card-text">The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a plane with world text on them, genuinely thick 3D...</p>
+                <p class="card-text">The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, glowing HUD panels with world text on them, genuinely thick 3D lines and...</p>
             </div>
         </div>
     </div>

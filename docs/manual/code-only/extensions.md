@@ -48,5 +48,7 @@ See [Camera Controllers](../camera-extensions/camera-controllers.md) for the key
 
 ## Rendering and debugging
 
+- [`ConfigurePostEffects()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.ConfigurePostEffects(Stride.Engine.Game,System.Action{Stride.Rendering.Images.PostProcessingEffects})) - Turns post effects on: `fx.Bloom.Enabled = true`. Everything starts disabled, and the colour transforms other than tone mapping must be added rather than enabled. Call it after `AddCleanUIStage()`.
+
 - [`AddCleanUIStage()`](xref:Stride.CommunityToolkit.Rendering.Compositing.GraphicsCompositorExtensions.AddCleanUIStage(Stride.Rendering.Compositing.GraphicsCompositor)) - Adds a UI render stage to the `GraphicsCompositor` and resets its post effects to tone mapping only, so UI text stays clean and white. Enable bloom or other effects *after* this call. (Until September 2026 it silently left bloom, ambient occlusion, screen-space reflections, light streaks, lens flare and FXAA running - roughly half the frame time of a simple scene.)
 - [`AddDebugShapes()`](xref:Stride.CommunityToolkit.DebugShapes.Code.DebugShapeExtensions.AddDebugShapes(Stride.Engine.Game,Stride.Rendering.RenderGroup)) - Registers the immediate-mode debug shape renderer, for drawing lines, spheres and boxes each frame.

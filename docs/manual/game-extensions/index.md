@@ -36,6 +36,8 @@ Nothing renders without a compositor. These add one, or hang extra renderers off
 - [`AddSceneRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddSceneRenderer(Stride.Engine.Game,Stride.Rendering.Compositing.SceneRendererBase)) - Appends your own `SceneRendererBase` to the compositor's render chain.
 - [`AddRootRenderFeature()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddRootRenderFeature(Stride.Engine.Game,Stride.Rendering.RootRenderFeature)) - Registers a `RootRenderFeature`, for drawing a component type the engine does not know about.
 - [`AddParticleRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddParticleRenderer(Stride.Engine.Game)) - Adds the particle stages and features, which the default code-only compositor leaves out.
+- [`ConfigurePostEffects()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.ConfigurePostEffects(Stride.Engine.Game,System.Action{Stride.Rendering.Images.PostProcessingEffects})) - Switches post effects on and tunes them. The default compositor has bloom, ambient occlusion, depth of field, screen-space reflections, fog, outline and FXAA all present but *disabled*, and only tone mapping in its colour transforms; vignette, film grain and dither are not there at all until added to `ColorTransforms.Transforms`. See the [Post Effects](../code-only/examples/post-effects.md) example.
+- [`GetPostEffects()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.GetPostEffects(Stride.Engine.Game)) - The live `PostProcessingEffects`, or `null` for a compositor without any (the 2D one), for toggling an effect at runtime.
 
 ## Cameras
 
