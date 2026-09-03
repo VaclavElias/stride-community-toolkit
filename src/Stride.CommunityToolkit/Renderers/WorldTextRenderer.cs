@@ -108,22 +108,68 @@ public class WorldTextRenderer : SceneRendererBase
         // Drawn at the origin of its own space, because that space has already been placed in the
         // world; the anchor is expressed as the SpriteBatch origin, in unscaled text pixels
         var anchorFactor = ScreenTextDrawer.GetAnchorFactor(component.Anchor);
+        var anchorOrigin = new Vector2(textSize.X * anchorFactor.X, textSize.Y * anchorFactor.Y);
 
-        _spriteBatch.DrawString(
+        if (component.GlowSize > 0f && component.GlowColor.A > 0)
+        {
+            DrawGlow(font, component, anchorOrigin, opacity);
+        }
+
+        DrawText(font, component, Vector2.Zero, anchorOrigin, ToColor4(component.TextColor, opacity));
+
+        _spriteBatch.End();
+    }
+
+    /// <summary>
+    /// A glow without a blur pass: the string drawn again in the glow colour at offsets around the
+    /// letters, on two rings. The copies overlap most near the glyphs and least at the outer edge,
+    /// so the alpha stacks into a falloff. All in the same batch, so it costs no extra draw calls.
+    /// </summary>
+    private void DrawGlow(SpriteFont font, WorldTextComponent component, Vector2 anchorOrigin, float opacity)
+    {
+        const int OuterCopies = 12;
+        const int InnerCopies = 6;
+
+        var strength = component.GlowColor.A / 255f * opacity;
+        var outer = ToColor4(component.GlowColor, strength * 0.22f);
+        var inner = ToColor4(component.GlowColor, strength * 0.35f);
+
+        for (var i = 0; i < OuterCopies; i++)
+        {
+            var (sin, cos) = MathF.SinCos(i * MathF.Tau / OuterCopies);
+
+            DrawText(font, component, new Vector2(cos, sin) * component.GlowSize, anchorOrigin, outer);
+        }
+
+        for (var i = 0; i < InnerCopies; i++)
+        {
+            var (sin, cos) = MathF.SinCos((i + 0.5f) * MathF.Tau / InnerCopies);
+
+            DrawText(font, component, new Vector2(cos, sin) * component.GlowSize * 0.5f, anchorOrigin, inner);
+        }
+    }
+
+    /// <summary>
+    /// Draws the string at an offset from the origin of its own space, which has already been placed
+    /// in the world; the anchor is expressed as the SpriteBatch origin, in unscaled text pixels.
+    /// </summary>
+    private void DrawText(SpriteFont font, WorldTextComponent component, Vector2 offset, Vector2 anchorOrigin, Color4 color)
+        => _spriteBatch!.DrawString(
             font,
             component.Text,
             component.FontSize,
-            Vector2.Zero,
-            new Color4(component.TextColor.R / 255f, component.TextColor.G / 255f, component.TextColor.B / 255f, component.TextColor.A / 255f * opacity),
+            offset,
+            color,
             0f,
-            new Vector2(textSize.X * anchorFactor.X, textSize.Y * anchorFactor.Y),
+            anchorOrigin,
             Vector2.One,
             SpriteEffects.None,
             0f,
             component.Alignment);
 
-        _spriteBatch.End();
-    }
+    /// <summary>The colour as SpriteBatch takes it, with its alpha replaced by the given one.</summary>
+    private static Color4 ToColor4(Color color, float alpha)
+        => new(color.R / 255f, color.G / 255f, color.B / 255f, alpha);
 
     /// <summary>
     /// Builds the rotation part of the text's world matrix.

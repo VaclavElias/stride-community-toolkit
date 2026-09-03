@@ -132,6 +132,23 @@ public class WorldTextComponent : EntityComponent
     public bool IsVisible { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets the colour of a soft glow drawn behind the letters. Leave it fully transparent -
+    /// an alpha of zero, the default - for no glow. Its alpha is the glow's strength.
+    /// </summary>
+    /// <remarks>
+    /// A HUD or a neon sign: light text on a glow of a deeper hue reads as lit rather than painted.
+    /// The glow is the text itself drawn again in this colour, offset in a ring around the letters,
+    /// so it scales with the text and follows every glyph exactly.
+    /// </remarks>
+    public Color GlowColor { get; set; }
+
+    /// <summary>
+    /// Gets or sets how far the glow reaches from the letters, in font pixels at <see cref="FontSize"/>.
+    /// Defaults to 0. A tenth of the font size is a crisp halo; a quarter is a bloom.
+    /// </summary>
+    public float GlowSize { get; set; }
+
+    /// <summary>
     /// Gets or sets the distance from the camera at which the text starts fading out, in world units.
     /// </summary>
     public float? FadeStartDistance { get; set; }
