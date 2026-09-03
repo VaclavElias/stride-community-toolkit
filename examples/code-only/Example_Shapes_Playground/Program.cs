@@ -464,7 +464,7 @@ title:
 level: Intermediate
 category: Rendering
 complexity: 3
-order: 160
+order: 165
 description:
   en: |-
     The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, panels standing on a
