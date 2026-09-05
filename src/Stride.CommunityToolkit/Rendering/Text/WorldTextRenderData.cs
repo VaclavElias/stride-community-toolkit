@@ -28,21 +28,33 @@ public class WorldTextRenderData(WorldTextComponent component)
     public Entity Entity => Component.Entity;
 
     /// <summary>
-    /// Returns the size of the text in font pixels, measuring only when the text, size or font changed.
+    /// Returns the size of the text in font pixels at <see cref="WorldTextComponent.FontSize"/>,
+    /// measuring only when the text, size or font changed.
     /// </summary>
     /// <param name="spriteBatch">The batch used to measure.</param>
     /// <param name="font">The font the text will be drawn with.</param>
     /// <returns>The width and height of the text, in font pixels.</returns>
-    public Vector2 GetMeasuredSize(SpriteBatch spriteBatch, SpriteFont font)
+    public Vector2 GetMeasuredSize(SpriteBatch spriteBatch, SpriteFont font) => GetMeasuredSize(spriteBatch, font, Component.FontSize);
+
+    /// <summary>
+    /// Returns the size of the text in font pixels at a given font size - the component's own size
+    /// times the display's scale, when the renderer is following it - measuring only when the text,
+    /// size or font changed.
+    /// </summary>
+    /// <param name="spriteBatch">The batch used to measure.</param>
+    /// <param name="font">The font the text will be drawn with.</param>
+    /// <param name="fontSize">The size the glyphs are rasterised at, in pixels.</param>
+    /// <returns>The width and height of the text, in font pixels.</returns>
+    public Vector2 GetMeasuredSize(SpriteBatch spriteBatch, SpriteFont font, float fontSize)
     {
-        if (_measuredText == Component.Text && _measuredFontSize == Component.FontSize && _measuredFont == font)
+        if (_measuredText == Component.Text && _measuredFontSize == fontSize && _measuredFont == font)
         {
             return _measuredSize;
         }
 
-        _measuredSize = spriteBatch.MeasureString(font, Component.Text, Component.FontSize);
+        _measuredSize = spriteBatch.MeasureString(font, Component.Text, fontSize);
         _measuredText = Component.Text;
-        _measuredFontSize = Component.FontSize;
+        _measuredFontSize = fontSize;
         _measuredFont = font;
 
         return _measuredSize;

@@ -54,9 +54,24 @@ public class WorldTextComponent : EntityComponent
     /// </summary>
     /// <remarks>
     /// This is sharpness, not size on screen - <see cref="Height"/> decides how big the text is in the
-    /// world. Raise it when text is viewed close up and looks soft; it costs glyph cache space.
+    /// world. Raise it when text is viewed close up and looks soft; it costs glyph cache space. On a
+    /// scaled display the glyphs are rasterised that much larger while <see cref="AutoScale"/> is on,
+    /// because the same world height covers that many more pixels there.
     /// </remarks>
     public float FontSize { get; set; } = 32;
+
+    /// <summary>
+    /// Gets or sets whether the rasterisation size follows the display's scale, so text on a 150%
+    /// display is drawn from glyphs 1.5x the size and stays as sharp as it is on a 100% monitor.
+    /// Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// Sharpness only: the text is <see cref="Height"/> tall in the world whatever the display, so
+    /// nothing moves or resizes. The factor comes from <c>DisplayScale</c>, shared with everything else
+    /// in the toolkit that follows the display, and only applies when the process is DPI aware.
+    /// <see cref="GlowSize"/> is in font pixels and scales along, so the glow keeps its reach.
+    /// </remarks>
+    public bool AutoScale { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the height of the text in world units. Defaults to 1.

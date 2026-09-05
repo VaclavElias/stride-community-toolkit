@@ -1,5 +1,7 @@
+using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Engine;
+using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Rendering.Compositing;
@@ -31,6 +33,7 @@ public class WorldTextRenderer : SceneRendererBase
 {
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _defaultFont;
+    private DisplayScale? _displayScale;
 
     /// <inheritdoc />
     protected override void InitializeCore()
@@ -39,6 +42,13 @@ public class WorldTextRenderer : SceneRendererBase
 
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _defaultFont = Content.Load<SpriteFont>(RendererDefaults.DefaultFontPath);
+
+        // The display's scale, for components whose rasterisation size follows it. Absent outside a
+        // game, which leaves every text rasterised at exactly the FontSize asked for.
+        if (Services.GetService<IGame>() is { } game)
+        {
+            _displayScale = DisplayScale.GetOrCreate(game);
+        }
     }
 
     /// <inheritdoc />
@@ -83,7 +93,13 @@ public class WorldTextRenderer : SceneRendererBase
         if (!TryApplyDistance(component, cameraPosition, origin, ref opacity)) return;
 
         var font = component.Font ?? _defaultFont!;
-        var textSize = data.GetMeasuredSize(_spriteBatch!, font);
+
+        // Rasterised that much larger on a scaled display, where the same world height covers that
+        // many more pixels. Sharpness only: Height still decides the size in the world, and the scale
+        // below divides the larger measurement straight back out
+        var display = component.AutoScale && _displayScale is not null ? _displayScale.Value : 1f;
+        var fontSize = component.FontSize * display;
+        var textSize = data.GetMeasuredSize(_spriteBatch!, font, fontSize);
 
         if (textSize.Y <= 0f) return;
 
@@ -112,12 +128,14 @@ public class WorldTextRenderer : SceneRendererBase
 
         if (component.GlowSize > 0f && component.GlowColor.A > 0)
         {
-            DrawGlow(font, component, anchorOrigin, opacity);
+            // The reach is in font pixels at FontSize, so it grows with the rasterisation to keep
+            // the same distance in the world
+            DrawGlow(font, component, fontSize, component.GlowSize * display, anchorOrigin, opacity);
         }
 
         // Both alphas count: the colour's own says how transparent this text is by nature, Opacity is
         // the dimmer on top of it - and distance fading has already been folded into that dimmer
-        DrawText(font, component, Vector2.Zero, anchorOrigin, ToColor4(component.TextColor, opacity * component.TextColor.A / 255f));
+        DrawText(font, component, fontSize, Vector2.Zero, anchorOrigin, ToColor4(component.TextColor, opacity * component.TextColor.A / 255f));
 
         _spriteBatch.End();
     }
@@ -127,7 +145,7 @@ public class WorldTextRenderer : SceneRendererBase
     /// letters, on two rings. The copies overlap most near the glyphs and least at the outer edge,
     /// so the alpha stacks into a falloff. All in the same batch, so it costs no extra draw calls.
     /// </summary>
-    private void DrawGlow(SpriteFont font, WorldTextComponent component, Vector2 anchorOrigin, float opacity)
+    private void DrawGlow(SpriteFont font, WorldTextComponent component, float fontSize, float glowSize, Vector2 anchorOrigin, float opacity)
     {
         const int OuterCopies = 12;
         const int InnerCopies = 6;
@@ -140,14 +158,14 @@ public class WorldTextRenderer : SceneRendererBase
         {
             var (sin, cos) = MathF.SinCos(i * MathF.Tau / OuterCopies);
 
-            DrawText(font, component, new Vector2(cos, sin) * component.GlowSize, anchorOrigin, outer);
+            DrawText(font, component, fontSize, new Vector2(cos, sin) * glowSize, anchorOrigin, outer);
         }
 
         for (var i = 0; i < InnerCopies; i++)
         {
             var (sin, cos) = MathF.SinCos((i + 0.5f) * MathF.Tau / InnerCopies);
 
-            DrawText(font, component, new Vector2(cos, sin) * component.GlowSize * 0.5f, anchorOrigin, inner);
+            DrawText(font, component, fontSize, new Vector2(cos, sin) * glowSize * 0.5f, anchorOrigin, inner);
         }
     }
 
@@ -155,11 +173,12 @@ public class WorldTextRenderer : SceneRendererBase
     /// Draws the string at an offset from the origin of its own space, which has already been placed
     /// in the world; the anchor is expressed as the SpriteBatch origin, in unscaled text pixels.
     /// </summary>
-    private void DrawText(SpriteFont font, WorldTextComponent component, Vector2 offset, Vector2 anchorOrigin, Color4 color)
+    // fontSize: the rasterisation size, the component's own times the display's scale
+    private void DrawText(SpriteFont font, WorldTextComponent component, float fontSize, Vector2 offset, Vector2 anchorOrigin, Color4 color)
         => _spriteBatch!.DrawString(
             font,
             component.Text,
-            component.FontSize,
+            fontSize,
             offset,
             color,
             0f,
