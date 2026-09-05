@@ -117,7 +117,7 @@ public static class AudioSystemExtensions
             entity.Add(component);
         }
 
-        return AudioListenerAccess.GetListener(component)
+        return AudioInternals.GetListener(component)
             ?? throw new InvalidOperationException($"'{entity.Name}' has no listener yet: the engine creates one when the entity is in a scene. Add the entity to the scene first.");
     }
 

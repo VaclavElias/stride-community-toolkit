@@ -65,6 +65,10 @@ public class SoundEmitterScript : SyncScript
         Emitter.Forward = SafeNormalize((Vector3)world.Row3, Vector3.UnitZ);
         Emitter.Up = SafeNormalize((Vector3)world.Row2, Vector3.UnitY);
 
+        // The plain 3D path reads the fields above; the HRTF path reads the world matrix instead,
+        // and is silent when it is left at zero.
+        AudioInternals.SetWorldTransform(Emitter, world);
+
         _previousPosition = position;
 
         Instance?.Apply3D(Emitter);
