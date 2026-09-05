@@ -570,5 +570,4 @@ public class ImGuiNetSystem : GameSystemBase
         }
         base.Destroy();
     }
-
 }
