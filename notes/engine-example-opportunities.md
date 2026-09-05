@@ -1397,6 +1397,25 @@ Bugs and doc gaps found while verifying — candidates for `notes/upstream/` dra
     provider/factory; templates ship dead files (TPP `BasicCameraController.cs`, TopDownRPG's
     buggy unused `InputManagerExtensions.cs`) and Platformer2D calls `HandleAnimation` twice per frame.
 
+24. **Streamed sounds never report `Stopped` on XAudio2.** A streamed source that ends on its own
+    (the `EndOfStream` buffer, then `StopInternal(false)` as `CompressedSoundSource` does) leaves
+    the native `playing_` flag set, so `SoundInstance.PlayState` stays `Playing` for ever; and
+    `StopInternal` -> `RestartInternal` replaces `ReadyToPlay` before the voice has started, so a
+    sound shorter than the prebuffer target never plays at all. Measured 2026-09-05 with the
+    toolkit's `PcmSoundSource` (which now drains explicitly and stops with `SourceStop`);
+    `Sound` assets streamed from disk should show the same symptom.
+25. **`AudioEngine.DefaultListener` is never updated** - nothing calls its internal `Update()`, so a
+    runtime `SoundInstance` is heard from the origin facing +Z. Either update it from the first
+    `AudioListenerComponent` or document it as a static listener. `AudioListenerComponent.Listener`
+    and `SoundInstance.Source` being internal is what forces the toolkit's `[UnsafeAccessor]`s.
+26. **The XAudio2 HRTF path positions from `AudioEmitter.WorldTransform`**, an internal field, not
+    from the public `Position`/`Forward`/`Up`; an emitter driven through the public API only is
+    silent under HRTF. Either derive the matrix from the public fields in `Apply3D` or make the
+    field settable.
+27. **`AudioSystem.OnActivated/OnDeactivated`** dereference a null `AudioEngine` when initialisation
+    failed (`AudioSystem.cs:139,145`); and `Stride.Audio.Tests/SoundGenerator.cs` computes
+    `Sin(freq * t)` with no 2π, so its "440 Hz" is 70 Hz.
+
 ## Toolkit infrastructure (not examples)
 
 - **`Stride.Games.AutoTesting`** (`engine/Stride.Games.AutoTesting/`, **published on nuget.org**,
