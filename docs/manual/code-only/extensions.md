@@ -43,6 +43,7 @@ The `SetupBase*` methods are the shortcut: one call instead of assembling the pi
 - [`Add3DCameraController()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Add3DCameraController(Stride.Engine.Game,System.Nullable{Stride.CommunityToolkit.Rendering.Text.DisplayPosition},System.String,Stride.Input.Keys,System.Boolean)) - Adds free-look movement to the 3D camera. The <kbd>F2</kbd> panel also prints the camera's live position and rotation, which is the quickest way to find numbers worth hard-coding.
 
 See [Camera Controllers](../camera-extensions/camera-controllers.md) for the keys, the on-screen help and every option on both scripts.
+- [`GrabberScript`](xref:Stride.CommunityToolkit.Bepu.GrabberScript) - On the camera entity too: left mouse picks up any dynamic body, carries it, and throws it on release, through servo constraints so the body still collides. One line that makes any Bepu scene a toy.
 - [`SetCameraPosition()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetCameraPosition(Stride.Engine.Game,Stride.Core.Mathematics.Vector3,System.String)) - Moves the existing camera. Use this after `SetupBase3DScene()` rather than calling `Add3DCamera()` again, which would create a second camera competing for the same slot.
 - [`SetCameraRotation()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetCameraRotation(Stride.Engine.Game,Stride.Core.Mathematics.Vector3,System.String)) - Aims the existing camera, taking yaw, pitch and roll in degrees.
 

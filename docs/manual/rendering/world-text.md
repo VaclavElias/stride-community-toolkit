@@ -48,6 +48,13 @@ The two size properties answer different questions, and keeping them apart is th
 - **`FontSize`** is how sharply the glyphs are **rasterised**, in pixels. Raise it when text viewed
   close up looks soft; it spends glyph-cache space and changes nothing about the size in the world.
 
+On a scaled display the same `Height` covers that many more pixels, so the renderer rasterises at
+`FontSize` times the toolkit's shared `DisplayScale` - text on a 150% laptop is drawn from glyphs
+1.5x the size and stays as sharp as on a 100% monitor. Nothing moves or resizes; `GlowSize`, being
+in font pixels, scales along so the glow keeps its reach. `AutoScale = false` on the component
+rasterises at exactly `FontSize`. This only works when the process is DPI aware; see
+[the debug overlay page](debug-overlay.md#size-and-high-dpi-displays) for the manifest.
+
 ## Orientation
 
 | Setup | Behaviour |

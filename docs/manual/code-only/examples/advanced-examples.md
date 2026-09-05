@@ -25,7 +25,7 @@ Custom engine extension points, third-party integration and multi-project archit
 - [Stride UI - Draggable Window](stride-ui-draggable-window.md): A windowing system built on Stride's UI: windows with title bars and close buttons that can be dragged around, and that come to the front when clicked.
 - [Stride UI - Draggable Window - Bullet Physics](stride-ui-draggable-window-bullet.md): The draggable window example running on the legacy Bullet physics engine.
 - [ImGui.NET Text Rendering](imgui-net.md): Render debug text with ImGui.NET, both in screen space and anchored to positions in the 3D scene.
-- [Stride + SignalR](stride-signalr.md): A Stride game and a Blazor web page talking to each other in real time over a SignalR hub, so a button in a browser can spawn an entity in the running game and the game can report back.
+- [Stride + SignalR - Orbital Cargo Deck](stride-signalr.md): A Stride game and a Blazor web page as two consoles of the same orbital cargo deck, talking both ways over a SignalR hub.
 - [Game - Cube Collapse](cube-collapse.md): A colour-match collapse puzzle built entirely from code.
 
 > [!NOTE]

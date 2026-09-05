@@ -15,6 +15,7 @@ One new idea at a time, on top of the base scene. Toolkit helpers only, with no 
 - [Wav File](wav-file.md): Play a .wav read from disk at runtime, with no compiled asset: LoadWav decodes the file into memory and each CreateInstance is an independent playback.
 - [Procedural Sound](procedural-sound.md): A tone with no sound file: a callback computes the samples as they play.
 - [Give Me a Cube](give-me-cube-body.md): Add behaviour to an entity with a SyncScript component instead of the update callback of game.Run.
+- [Grabber](grabber.md): A gravity gun: click any body to pick it up, carry it on the end of the camera ray, and let go - with its velocity, so a flick throws it.
 - [SyncScript - moving a body every frame](sync-script.md): A cube driven in a circle by a SyncScript, which is the ordinary way to run code every frame.
 - [Entity Text (Screen-Space)](entity-text.md): A gallery of everything EntityTextComponent can do, one feature per pole: anchoring, shadows, backgrounds, scaling, rotation, opacity, distance fading, several texts on one entity, and HUD text pinned to window corners that survives resizing.
 - [World Text (In-Scene)](world-text.md): A gallery of everything WorldTextComponent can do, one setting per station: billboarding that stays upright, free billboarding, text fixed in place, text lying flat on the ground, world-unit sizing, depth-tested text hidden behind a wall next to text drawn through it, distance fading, and a glow behind the letters in a few colour combinations - a HUD blue, neon, a readability halo and a soft bloom.

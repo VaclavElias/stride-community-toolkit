@@ -139,6 +139,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/grabber.webp" class="card-img-top" alt="Screenshot of the Grabber example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="grabber.md">Grabber</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A gravity gun: click any body to pick it up, carry it on the end of the camera ray, and let go - with its velocity, so a flick throws it.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/sync-script.webp" class="card-img-top" alt="Screenshot of the SyncScript - moving a body every frame example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="sync-script.md">SyncScript - moving a body every frame</a></h3>
@@ -669,11 +679,11 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example17-signalr.webp" class="card-img-top" alt="Screenshot of the Stride + SignalR example" width="1280" height="720" loading="lazy">
+            <img src="media/stride-game-engine-example17-signalr.webp" class="card-img-top" alt="Screenshot of the Stride + SignalR - Orbital Cargo Deck example" width="1280" height="720" loading="lazy">
             <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-signalr.md">Stride + SignalR</a></h3>
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-signalr.md">Stride + SignalR - Orbital Cargo Deck</a></h3>
                 <p><span class="badge text-bg-secondary">Networking</span></p>
-                <p class="card-text">A Stride game and a Blazor web page talking to each other in real time over a SignalR hub, so a button in a browser can spawn an entity in the running...</p>
+                <p class="card-text">A Stride game and a Blazor web page as two consoles of the same orbital cargo deck, talking both ways over a SignalR hub.</p>
             </div>
         </div>
     </div>

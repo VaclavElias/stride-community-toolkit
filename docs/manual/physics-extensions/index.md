@@ -34,6 +34,16 @@ Bepu is the newer engine and the toolkit's default; the examples and the `SetupB
 - [`BepuSimulation.RayCast()`](xref:Stride.CommunityToolkit.Bepu.SimulationExtensions.RayCast(Stride.BepuPhysics.BepuSimulation,Stride.CommunityToolkit.Mathematics.RaySegment@,Stride.BepuPhysics.HitInfo@,Stride.BepuPhysics.CollisionMask)) - Casts a `RaySegment` directly, with no camera and no maximum distance to choose: the segment's own length is the limit. Pairs with `ScreenToWorldRaySegment()`.
 - [`RayCastPenetrating()`](xref:Stride.CommunityToolkit.Bepu.SimulationExtensions.RayCastPenetrating(Stride.BepuPhysics.BepuSimulation,Stride.CommunityToolkit.Mathematics.RaySegment@,System.Collections.Generic.ICollection{Stride.BepuPhysics.HitInfo},Stride.BepuPhysics.CollisionMask)) - Returns every hit along the segment rather than stopping at the first. An overload fills a collection you supply, to avoid allocating.
 
+### Grabbing bodies
+
+- [`GrabberScript`](xref:Stride.CommunityToolkit.Bepu.GrabberScript) - Put it on the camera entity and any dynamic body can be picked up with the mouse, carried on the end of the camera ray, and thrown. The wheel changes the carry distance; <kbd>T</kbd> plus mouse movement turns the held body. It works through a linear and an angular servo constraint rather than by moving the body, so the held body still collides and pushes, and its force caps scale with mass so heavy and light bodies drag alike. [`Grab()`](xref:Stride.CommunityToolkit.Bepu.GrabberScript.Grab(Stride.BepuPhysics.BodyComponent,Stride.Core.Mathematics.Vector3,System.Single)) and [`Release()`](xref:Stride.CommunityToolkit.Bepu.GrabberScript.Release) do the same from code.
+
+```csharp
+game.GetCameraEntity().Add(new GrabberScript());
+```
+
+For a precise placement with no fling on release, teleporting a kinematic body each frame is the other tool; `E05_3D_Constraints` shows that one.
+
 ### Convex hulls
 
 In the `Stride.CommunityToolkit.Bepu.Extensions` namespace, for giving an arbitrary mesh a collider.
