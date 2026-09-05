@@ -51,10 +51,10 @@ Still open:
   from four unavoidable differences (licence header, namespace and the extra `using`, the paragraph
   explaining why the copy exists, and the velocity block, since `BodyComponent.BodyReference` is
   `internal` and unreachable from outside the engine assembly). That makes the toolkit the place to
-  test the engine change. Worth a look, in order: `Example01_Basic2DScene_StressPile` on
+  test the engine change. Worth a look, in order: `E10_2D_StressPile` on
   TriangularPrism at 10k and 20k, which is the exact configuration behind the inertia measurements;
   then Cone, Teapot and Torus in the same example; then Triangle and Polygon in
-  `Example01_Basic2DScene_SpawnMenu`. Expect piles to be bouncier and to settle less readily — that is
+  `E04_2D_SpawnMenu`. Expect piles to be bouncier and to settle less readily — that is
   the tuning doing what it did. What would change the plan is a *runaway*, since the measurement says
   `MaximumRecoveryVelocity` made no difference to that, 3/3.
 
@@ -78,7 +78,7 @@ repro in `examples/code-only/_Temp2DProbe`. Only what is left to *do* is repeate
 - **Nothing in the toolkit contributes to the freeze** — the chain is traced end to end, so the
   upstream fix closes it here with no change on our side. Recorded so it is not re-investigated.
 - **Letter meshes use box colliders on purpose** — letter-shaped convex hulls jostling each other is
-  exactly the configuration above. Do not "improve" `Example_CubicleCalamity/Setup/FallingLetters.cs`
+  exactly the configuration above. Do not "improve" `E20_3D_CubeCollapse/Setup/FallingLetters.cs`
   into hull colliders.
 - ~~**Decide what the toolkit does in the meantime**~~ — settled and **done** (Aug 2026). There is no
   safe `Sides` value to dodge it, so the default stays and the hazard is documented instead: the
@@ -216,8 +216,8 @@ Small, found while auditing every 2D example. All nine build clean.
   unused usings (`System.Xml.Linq`, `System.Reflection`), and it calls `Add3DGround` and
   `Add3DCameraController` in a 2D playground. It deliberately carries no metadata block (D42), so it
   is invisible to the docs and both launchers either way — this is only about whether it stays.
-- **Two examples are `enabled: false` until they build again** — `Example04_MyraUI` (blocked on the
-  Stride 4.4 package split) and `Example07_CubeClicker` (not in the `.slnx`, so nothing builds it).
+- **Two examples are `enabled: false` until they build again** — `E04_Myra_DraggableWindow` (blocked on the
+  Stride 4.4 package split) and `E04_CubeClicker` (not in the `.slnx`, so nothing builds it).
   Both keep their hand-written doc pages, which the generator never touches.
 - **Two example folders break the `Example<NN>_<Name>` convention** — the `Example_`-prefixed demo
   games. Renaming touches the `.slnx`, `.sdpkg`, `.csproj` and namespace. Decide rather than drift.
@@ -227,11 +227,11 @@ Small, found while auditing every 2D example. All nine build clean.
 Distilled from `notes/plans/cubicle-calamity-scoring.md` when that plan was retired (Aug 2026). The
 API-shape items that came with it moved to [ARCHITECTURE.md](ARCHITECTURE.md) 11-13.
 Only toolkit-level work lives here; game-specific features and decisions are tracked in
-`examples/code-only/Example_CubicleCalamity/README.md` under "Future improvements".
+`examples/code-only/E20_3D_CubeCollapse/README.md` under "Future improvements".
 
 - **Lighting for solid lettering / model showcases** — `AddAllDirectionLighting` (six directionals
   down the world axes) turned out to be the difference between black-faced letters and a readable
-  gallery in `Example01_Letters3D`, same as in Cubicle Calamity. `AddStudioLighting` (key/fill/rim,
+  gallery in `E03_3D_MeshText`, same as in Cube Collapse. `AddStudioLighting` (key/fill/rim,
   yaw-steerable, key-only shadows) now exists in `GameExtensions` next to it — verified against the
   letters gallery, where it models shape visibly better than uniform light. Still open: (a) the
   cheaper all-direction equivalent — three lights plus an ambient term instead of six directionals —

@@ -21,7 +21,7 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 ### G1 - Cloth from a constraint lattice
 - **Source:** `Demos/Demos/ClothDemo.cs:114-281` (`CreateBodyGrid` :121, `CreateDistanceConstraints` :164, `CreateAreaConstraints` :143); variant `Demos/SpecializedTests/ClothLatticeDemo.cs`.
 - **What it does:** four 10x30 sheets differing only in stiffness and whether area constraints are present, then a 96x96 sheet draped over two static capsules. Render text says it: "the library has no special case for cloth; standard bodies and constraints work well." Distance constraints use a limit with minimum = 15 % of rest length so the cloth bunches but never stretches (:176); area constraints (3-body) stop the shear that distance-only lattices show.
-- **Toolkit form:** `Example27_Cloth` (or `Example15_Constraint_Cloth`), 4-way comparison + one big sheet.
+- **Toolkit form:** `Example27_Cloth` (or `E05_3D_Constraints_Cloth`), 4-way comparison + one big sheet.
 - **Covered?** No. **Access:** components - `AreaConstraintComponent` and `CenterDistanceLimitConstraintComponent` exist in `Stride.BepuPhysics/Constraints/`. Caveat: the demo suppresses self-collision between nodes within 3 lattice steps via a custom narrow-phase filter; Stride's `CollisionGroup` rule is hard-wired to "absolute index difference < 2" (`Definitions/CollisionGroup.cs:9-23`), so only immediate neighbours can be excluded. Accept that or make the nodes non-colliding.
 - **Effort:** M. **Why:** cloth is a top-5 "can Stride do X" question and the answer is undiscoverable.
 
@@ -64,7 +64,7 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 - **Source:** `Demos/Demos/RopeTwistDemo.cs:15-79` (`RopeFilter`, `RopeNarrowPhaseCallbacks`), scene :80-170.
 - **What it does:** four 130-link ropes with a 10 000:1 wrecking ball spun at 20 rad/s; adjacent links within N indices never collide. `SolveDescription(1, 60)` - 60 substeps, 1 iteration.
 - **Access:** components, and the mapping is clean: Stride's `CollisionGroup` docs use this exact chain example (`Definitions/CollisionGroup.cs:19-23`), `Id` = rope index, `IndexA` = link index.
-- **Toolkit form:** a Z-toggle for link self-collision in the shipped `Example15_Constraint_Rope`, or a cross-link from `Example16_CollisionGroup`. **Covered?** No. **Effort:** S. **Why:** "my chain links collide with themselves and jitter" is the next bug after building a rope.
+- **Toolkit form:** a Z-toggle for link self-collision in the shipped `E05_3D_Constraints_Rope`, or a cross-link from `E05_3D_CollisionGroup`. **Covered?** No. **Effort:** S. **Why:** "my chain links collide with themselves and jitter" is the next bug after building a rope.
 
 ### G9 - Chain fountain (Mould effect)
 - **Source:** `Demos/Demos/ChainFountainDemo.cs` - 4096 capsule beads coiled in a bin, `BallSocket` + `SwingLimit` per link, the tip kicked at 20 m/s.
@@ -98,12 +98,12 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 ### G15 - Physics-driven animation (Dancers)
 - **Source:** `Demos/Demos/Dancers/DemoDancers.cs` (`DancerControl` :45-60, per-dancer simulations :85-90, :236-250), `DancerDemo.cs`, `PlumpDancerDemo.cs`.
 - **What it does:** a ragdoll whose limbs are pulled toward animated control points by `OneBodyLinearServo`, so it dances while fully simulated; a ball-lattice dress draped on it. Each background dancer gets its own single-threaded `Simulation` run in parallel - comment at :87 names it: "cosmetic physics - simulations that don't interact with the main simulation".
-- **Access:** `OneBodyLinearServoConstraintComponent` exists; multiple simulations shown by `Example26_MultipleSimulations`. **Toolkit form:** `Example36_ActiveRagdoll` and a manual note "use a second simulation for cosmetic physics". **Covered?** No. **Effort:** L.
+- **Access:** `OneBodyLinearServoConstraintComponent` exists; multiple simulations shown by `E05_3D_MultipleSimulations`. **Toolkit form:** `Example36_ActiveRagdoll` and a manual note "use a second simulation for cosmetic physics". **Covered?** No. **Effort:** L.
 
 ### G16 - Contact events: the caveats block
 - **Source:** `Demos/Demos/ContactEventsDemo.cs:21-39` (eight-point comment), particle-spawn handler :668-705.
 - **Why:** the best explanation anywhere of: handlers run on worker threads; a contact existing != touching (speculative contacts have negative depth); pairs of sleeping bodies fire nothing; impact force must be pulled from the solver, not the event.
-- **Access:** Stride's `IContactHandler` (`Definitions/Contacts/IContactHandler.cs`) mirrors `OnStartedTouching`/`OnTouching`/`OnStoppedTouching`; the older `IContactEventHandler` is `[Obsolete]` - **`Example17_SignalR` uses the obsolete one.**
+- **Access:** Stride's `IContactHandler` (`Definitions/Contacts/IContactHandler.cs`) mirrors `OnStartedTouching`/`OnTouching`/`OnStoppedTouching`; the older `IContactEventHandler` is `[Obsolete]` - **`E13_SignalR` uses the obsolete one.**
 - **Toolkit form:** feeds plan item #7 `Example16_TriggerZones` and a manual page. **Effort:** S.
 
 ### G17 - Impact force visualisation / impact sounds
@@ -140,13 +140,13 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 - **Source:** `Demos/Grabber.cs` (135 lines); wired in `DemoHarness.cs:231-271` and :407.
 - **What it does:** raycast from the camera through the cursor, keep the hit distance, add `OneBodyLinearServo` (anchored at the local grab point) + `OneBodyAngularServo`, re-`ApplyDescription` each frame at the new target, remove on release. Servo max force scaled by 1 / inverseMass so heavy things stay draggable (:59,65), spring (5, 2), angular servo skipped for locked-inertia bodies (:82,104), grab dropped if the body turns kinematic or is removed (:73-86), `TimestepsUnderThresholdCount = 0` keeps it awake (:118). Q + mouse rotates the held object (`DemoHarness.cs:251-265`).
 - **Toolkit form:** `GrabberScript` (SyncScript) or `TryGrab/UpdateGrab/ReleaseGrab` in `Stride.CommunityToolkit.Bepu`, on top of `CameraComponentExtensions.RaycastMouse`.
-- **Covered?** Partial and worth fixing - plan item #8 `Example15_Constraint_GravityGun` is the same technique as an example only, and the shipped `Example15_Constraint` drags by `Teleport` (`Program.cs:141`), which fights the solver.
+- **Covered?** Partial and worth fixing - plan item #8 `E05_3D_Constraints_GravityGun` is the same technique as an example only, and the shipped `E05_3D_Constraints` drags by `Teleport` (`Program.cs:141`), which fights the solver.
 - **Access:** components (`OneBodyLinearServoConstraintComponent`, `OneBodyAngularServoConstraintComponent`); `TimestepsUnderThresholdCount` -> `BodyComponent.Awake = true`. **Effort:** M. **Why:** every physics demo becomes playable in two lines.
 
 ### I2 - `RolloverInfo` (world-anchored labels that expand on hover)
 - **Source:** `Demos/RolloverInfo.cs` (70 lines); used by `SubsteppingDemo`, `ContinuousCollisionDetectionDemo` (:99-114), `ClothDemo` (:230-266).
 - **What it does:** register (worldPosition, description, previewText); each projects to screen as a small stub, and only the one nearest the mouse expands. Side-by-side comparisons get labelled without a wall of text.
-- **Toolkit form:** a `WorldLabelOverlay` script in core (not Bepu-specific), on `DebugOverlay`/`DebugTextPrinter` plus world-to-screen projection. **Covered?** No - `Example01_EntityText`/`Example01_WorldText` have no proximity reveal; plan Decision 15 wants live values. **Effort:** S-M. **Why:** every "naive vs stabilised" example needs exactly this.
+- **Toolkit form:** a `WorldLabelOverlay` script in core (not Bepu-specific), on `DebugOverlay`/`DebugTextPrinter` plus world-to-screen projection. **Covered?** No - `E03_3D_EntityText`/`E03_3D_WorldText` have no proximity reveal; plan Decision 15 wants live values. **Effort:** S-M. **Why:** every "naive vs stabilised" example needs exactly this.
 
 ### I3 - Physics timing HUD: `SimulationTimeSamples` + `TimingsRingBuffer` + `Graph`
 - **Source:** `Demos/SimulationTimeSamples.cs` (:41-52), `Demos/TimingsRingBuffer.cs` (`ComputeStats` :53-73), `Demos/UI/Graph.cs`, wiring `DemoHarness.cs:69-104`, display modes :112-140 / :395-406.
@@ -183,7 +183,7 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 
 ## 3. Documentation folder (`Documentation/`)
 
-- **D1 `StabilityTips.md` (57 lines) - the most valuable file.** Two failure modes (incomplete force propagation -> bouncing; excessive stiffness -> explosions), the mass-ratio pathology, and a four-step debugging ladder (raise the rate to 600 Hz to prove it's convergence -> raise iterations -> raise substeps and drop iterations -> if only a higher full rate helps, it's collision detection). Rules: keep constraint frequency below `0.5 / timeStepDuration`; with aggressive substepping, `substepCount ~ 6 x constraintFrequency x timeStepDuration`; "avoid making heavy objects depend on light objects"; ">4 velocity iterations with 4+ substeps is often pointless." -> manual page `docs/manual/physics-extensions/bepu-stability.md`; it explains every tuning finding recorded in `Example15_Constraint_Rope`.
+- **D1 `StabilityTips.md` (57 lines) - the most valuable file.** Two failure modes (incomplete force propagation -> bouncing; excessive stiffness -> explosions), the mass-ratio pathology, and a four-step debugging ladder (raise the rate to 600 Hz to prove it's convergence -> raise iterations -> raise substeps and drop iterations -> if only a higher full rate helps, it's collision detection). Rules: keep constraint frequency below `0.5 / timeStepDuration`; with aggressive substepping, `substepCount ~ 6 x constraintFrequency x timeStepDuration`; "avoid making heavy objects depend on light objects"; ">4 velocity iterations with 4+ substeps is often pointless." -> manual page `docs/manual/physics-extensions/bepu-stability.md`; it explains every tuning finding recorded in `E05_3D_Constraints_Rope`.
 - **D2 `Substepping.md` (78 lines).** How substepping sits inside `Timestep` (only solver/integrator repeat, not collision detection), per-substep iteration scheduling (`new SolveDescription(new[]{2,1,1})`), why changing substep counts at runtime is risky (`ScaleAccumulatedImpulses`), and the limitation: contacts are only incrementally updated between substeps and can inject energy - five mitigations. Note Stride's `SolverSubStep`/`SolverIteration` are init-only.
 - **D3 `ContinuousCollisionDetection.md` (93 lines).** Speculative contacts and margins; ghost collisions with diagrams (`Documentation/images/ContinuousCollisionDetection/*.png`); `Discrete`/`Passive`/`Continuous` precisely ("if max margin is `float.MaxValue`, Discrete and Passive are identical"; a Discrete body with a small margin can make other bodies' CCD miss it); `minimumSweepTimestep` and `sweepConvergenceThreshold`; speculative contacts are why there is no coefficient of restitution. Anchors G4 and plan item #4.
 - **D4 `QuestionsAndAnswers.md` (100 lines) - symptom-first, the toolkit's manual style.** Offset a shape's rotation centre (a `Compound` with one child at a local pose); kinematics are "both unstoppable forces and immovable objects" and a dynamic caught between a kinematic and a static gets pushed out of the level; two kinematics never generate a constraint; zero inverse mass + nonzero inverse inertia opens "a portal to NaNland"; determinism is single-machine and needs `Deterministic = true` when multithreaded (`BepuSimulation.Deterministic`); where restitution went; swept tests hit mesh backfaces while collisions don't.
@@ -196,7 +196,7 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 
 | # | Gem | Form | Effort | Covered? |
 |---|---|---|---|---|
-| 1 | I1 Grabber - servo-constraint mouse drag | helper in Bepu library + fixes `Example15_Constraint`'s `Teleport` drag | M | partial |
+| 1 | I1 Grabber - servo-constraint mouse drag | helper in Bepu library + fixes `E05_3D_Constraints`'s `Teleport` drag | M | partial |
 | 2 | G12 Car - the four-constraint wheel recipe | `Example35_Vehicle` | L | partial |
 | 3 | G1 Cloth - distance-limit + area-constraint lattice | `Example27_Cloth` | M | no |
 | 4 | I3 Physics timing HUD - per-stage Bepu profiler | `DebugOverlay` section | M | no |
@@ -215,4 +215,4 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 - `BepuSimulation.SolverIteration`/`SolverSubStep` are init-only; runtime tuning needs the raw `Simulation`.
 - `SoftBodyComponent`'s volume constraints are commented out (`BepuThings.cs:607`).
 - `CollisionGroup` filtering is hard-wired to index difference < 2.
-- `Example17_SignalR` uses the obsolete `IContactEventHandler` (toolkit-side fix).
+- `E13_SignalR` uses the obsolete `IContactEventHandler` (toolkit-side fix).

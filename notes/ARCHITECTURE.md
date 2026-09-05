@@ -30,7 +30,7 @@ game.Create3DPrimitive(PrimitiveModelType.Sphere, new() { Size = new Vector3(1f)
 **Impact.** Silent and visual-only. Passing a diameter to a sphere produces a model at twice the
 intended size with no error. It is worst when a collider is supplied by hand, because the mesh and
 collider then disagree and objects appear to pass through one another - encountered while writing
-`Example15_Constraint_Rope`.
+`E05_3D_Constraints_Rope`.
 
 The generated mesh and generated collider *do* read the value identically, so the toolkit is
 internally consistent. The trap is entirely in the caller's expectation.
@@ -131,7 +131,7 @@ specificity is only consulted for generic candidates).
 **What was hiding it (found 2026-09-02, during the `Games`→`Engine` merge).** The physics-free
 pair lived in `Stride.CommunityToolkit.Games`, and almost no example imported that namespace, so
 Bepu/Bullet callers never had both candidates in scope. The `Games` namespace was load-bearing and
-nobody had written it down; the only record was a comment in `Example11_ImGuiNet` calling
+nobody had written it down; the only record was a comment in `E04_ImGuiNet` calling
 `SetMaxFPS` by its fully qualified name "because importing Games would make Create3DPrimitive
 ambiguous", which read as a workaround. Merging the two `GameExtensions` classes into `Engine`
 (the right move — see item 19) put both pairs in scope for every example and surfaced 18 `CS0121`
@@ -184,7 +184,7 @@ options. To set it, a caller must switch off `IncludeCollider` and build the who
 mesh convention.
 
 **Impact.** Setting one common property costs the entire convenience of the helper.
-`Example15_Constraint_Rope` does this, and it is the longest part of `RopeBuilder`.
+`E05_3D_Constraints_Rope` does this, and it is the longest part of `RopeBuilder`.
 
 **Options.** Surface `Mass` (or `Density`) on `Bepu3DPhysicsOptions` and apply it to the generated
 shapes. Additive, not breaking.
@@ -276,7 +276,7 @@ keep their own list and have no such hook.
 **Impact.** An entity removed from the scene stays registered, so the master keeps reading its
 transform and drawing it - ghosts of objects that are no longer there. The caller has to remember to
 call `Clear()` or remove the instance explicitly, and to do it *before* detaching the entities.
-Encountered while adding runtime shape switching to `Example01_Basic2DScene_StressPile`.
+Encountered while adding runtime shape switching to `E10_2D_StressPile`.
 
 **Options.** Subscribe to the entity's scene changes and unregister automatically, matching
 `InstanceComponent`'s behaviour; or keep the manual model and make the asymmetry loud in the XML docs
@@ -295,7 +295,7 @@ an implementation detail of `DebugOverlay`, which is why it sits in
 namespace that has nothing to do with what it is doing. Adding `ScreenAnchor` to
 `EntityTextComponent` meant every consumer of that property picks up
 `using Stride.CommunityToolkit.Scripts.Utilities;` for an enum naming a corner of the screen, which
-reads as a mistake at the call site. Hit while migrating `Example_CubicleCalamity`'s HUD.
+reads as a mistake at the call site. Hit while migrating `E20_3D_CubeCollapse`'s HUD.
 
 The `None` and `Custom` members compound it. They exist for `DebugOverlay`'s needs - opting out
 entirely, and deferring to a separate `CustomPosition` property - and mean nothing to a component that
@@ -309,7 +309,7 @@ toolkit is in Preview and breaking changes are acceptable; and/or split the four
 `Custom` extras. The second is more churn but stops components offering values they cannot honour.
 
 **The same enum cannot say "centre", either.** `TextPositionMode` offers corners and explicit pixels
-and nothing else, so Cubicle Calamity's game-over banner needs a four-line `ScreenCentreTextScript`
+and nothing else, so Cube Collapse's game-over banner needs a four-line `ScreenCentreTextScript`
 that recomputes its position every frame. Centring on screen is not an exotic request for a HUD, and
 a component that can anchor to four corners but not the middle will be asked for it again. Whatever
 shape the corner enum settles into should carry it.
@@ -451,11 +451,11 @@ How the 69 example programs actually use it (the whole population, not a sample)
 So the *entry point* is not the problem: nobody subclasses, nobody fights `Run`, and the pattern is
 literally the one MonoGame and Foster document (`using var game = new X(); game.Run();`). The
 problem is that **a third of the examples cannot use the bundle and copy its body by hand**, with
-drift: one hand-rolled copy omits the UI stage (`Example08_DebugShapes\Program.cs:21`), one adds the
-skybox twice (`Example12_Particles\Program.cs:24,37`), one defines a local function *named*
-`SetupBase3DScene` that shadows the toolkit's (`Example04_MyraUI\Program.cs:26`), and two reach
+drift: one hand-rolled copy omits the UI stage (`E08_3D_DebugShapes\Program.cs:21`), one adds the
+skybox twice (`E09_3D_Particles\Program.cs:24,37`), one defines a local function *named*
+`SetupBase3DScene` that shadows the toolkit's (`E04_Myra_DraggableWindow\Program.cs:26`), and two reach
 through the public API with casts to get at things the bundle built but does not hand back
-(`Example23_Charts3D\Program.cs:76-79` for `Bloom`; `Charts2D:73-83` for the camera controller).
+(`E11_3D_Charts\Program.cs:76-79` for `Bloom`; `Charts2D:73-83` for the camera controller).
 
 ### How everyone else does it
 
@@ -504,7 +504,7 @@ Order-dependence that fails late, silently, or three different ways:
 - `AddGroundGizmo` and `ShowColliders` silently do nothing when their precondition is missing
   (`GameExtensions.cs:634-636`, `Bullet\GameExtensions.cs:161-163`).
 - The camera must be aimed *before* `Add3DCameraController` because the controller caches its
-  reset pose in `Start`; documented only inside an example (`Example_CubicleCalamity\CubicleCalamityGame.cs:225-231`).
+  reset pose in `Start`; documented only inside an example (`E20_3D_CubeCollapse\CubeCollapseGame.cs:225-231`).
 - `AddSkybox` is not idempotent; the text renderers are mandatory-but-forgettable to the point that
   a component's display name says "(call AddEntityTextRenderer)" (`EntityTextComponent.cs:58`).
 
@@ -685,15 +685,15 @@ Small, non-breaking, and true whatever shape wins:
 
 - `extensions.md:22-23` (skybox claim) and the `"MainCamera"`/`"Main"` XML docs.
 - `AddCleanUIStage`: start from `DisableAll()` (the post-effects bug) and keep existing renderers.
-  *Done 2026-09-03.* Measured on `Example01_Basic3DScene_Primitives`, vsync off, warm shader
+  *Done 2026-09-03.* Measured on `E02_3D_Primitives`, vsync off, warm shader
   cache: 116 FPS (8.6 ms) before, 202–211 FPS (4.7–5.0 ms) after. Every example screenshot will
   shift slightly (no SSAO contact darkening, no bloom); regenerate them in one pass.
 - Idempotent `AddSkybox`/`AddWorldTextRenderer`/`AddEntityTextRenderer`.
 - One `RequireCompositor()` guard with a message naming the call to make.
-- Example hygiene already in `TODO.md` §6, plus: `Example12_Particles` double skybox,
-  `Example04_MyraUI` shadowing local function, `Example_Bepu_Playground:50` leftover cast,
-  `Example18_Box2DPhysics:32-36` dead alternatives incl. a method that does not exist,
-  `Example08_DebugShapes` missing UI stage, `Example_CubicleCalamity_BulletPhysics` (bin/obj only).
+- Example hygiene already in `TODO.md` §6, plus: `E09_3D_Particles` double skybox,
+  `E04_Myra_DraggableWindow` shadowing local function, `Example_Bepu_Playground:50` leftover cast,
+  `E06_Box2D:32-36` dead alternatives incl. a method that does not exist,
+  `E08_3D_DebugShapes` missing UI stage, `E20_3D_CubeCollapse_BulletPhysics` (bin/obj only).
 - A test for `SetupBase3D`/`Add3DCamera` slot handling — today only `Run` is tested.
 
 ---
@@ -720,7 +720,7 @@ and the splash screen from `Stride.Engine.sdpkg` - nothing project-specific. At 
 `ShaderSourceManager` (`Stride.Shaders.Compilers`) resolves shader sources only through the
 `IVirtualFileProvider` backed by that database; there is no embedded-resource fallback.
 
-Verified on 4.4.0-beta5 by renaming `data/` under a built `Example01_Basic3DScene` and running it:
+Verified on 4.4.0-beta5 by renaming `data/` under a built `E01_3D_BasicScene` and running it:
 
 ```
 [EffectCompilerCache]: Warning: Failed to load effect bytecode from application cache: Unable to find shader [LambertianPrefilteringSHNoComputePass1]

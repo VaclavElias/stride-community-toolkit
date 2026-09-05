@@ -1,6 +1,6 @@
 # Plan: Stride.CommunityToolkit.Box2D library
 
-This began as `Example18_Box2DPhysics/IMPROVEMENTS.md`, a wish list for `Box2DSimulation.cs` back
+This began as `E06_Box2D/IMPROVEMENTS.md`, a wish list for `Box2DSimulation.cs` back
 when it lived inside that example. The library was extracted into
 [`src/Stride.CommunityToolkit.Box2D`](../../src/Stride.CommunityToolkit.Box2D) on 2026-08-31 and
 most of the list has since been built, so the document has been rewritten against the code as it
@@ -73,7 +73,7 @@ match on both sides.
 
 **Joint helpers** (originally item 12). Nothing in the library; `Example18`'s `SceneManager` calls
 `B2Joints` directly. Distance, revolute and motor joints would be the obvious three, and they would
-give the Bepu constraint examples (`Example15_Constraint_*`) natural Box2D twins.
+give the Bepu constraint examples (`E05_3D_Constraints_*`) natural Box2D twins.
 
 **Performance stats** (originally item 13). No wrapper over `b2World_GetProfile` or the world
 counters. Worth having — all of the multithreading tuning so far was done with a throwaway
@@ -96,18 +96,18 @@ shader, which gives an outline that stays a constant few *pixels* wide at any zo
 geometry structurally cannot do. It outgrew Box2D entirely and became its own package on 2026-08-31,
 [`Stride.CommunityToolkit.Shapes`](../../src/Stride.CommunityToolkit.Shapes), so it is no longer a
 Box2D concern at all — the Box2D examples reference that package directly. See
-[`Example_Shapes_Playground`](../../examples/code-only/Example_Shapes_Playground).
+[`E11_3D_ShapeBatch`](../../examples/code-only/E11_3D_ShapeBatch).
 
 **Exposing `EnableContactEvents` / `EnableHitEvents` / `EnableSensorEvents` as properties.**
 Misconceived: Box2D enables these per fixture on the shape def, not per world, so there is no
 world-level property to expose. Captured as a gotcha above instead.
 
-**"Add comprehensive examples in `Example18_Box2DPhysics2/Program.cs`."** That project never
+**"Add comprehensive examples in `E06_Box2D2/Program.cs`."** That project never
 existed. The Box2D examples that do:
-[`Example18_Box2DPhysics`](../../examples/code-only/Example18_Box2DPhysics),
-[`Example01_Basic2DScene_StressPile_Box2D`](../../examples/code-only/Example01_Basic2DScene_StressPile_Box2D),
-[`Example02_Junkyard_Box2D`](../../examples/code-only/Example02_Junkyard_Box2D) and
-[`Example02_Junkyard_Playground_Box2D`](../../examples/code-only/Example02_Junkyard_Playground_Box2D).
+[`E06_Box2D`](../../examples/code-only/E06_Box2D),
+[`E10_2D_StressPile_Box2D`](../../examples/code-only/E10_2D_StressPile_Box2D),
+[`E06_Box2D_Junkyard`](../../examples/code-only/E06_Box2D_Junkyard) and
+[`E06_Box2D_JunkyardInteractive`](../../examples/code-only/E06_Box2D_JunkyardInteractive).
 
 **The trailing "Status" checklist.** It declared contact events, sensor events, kinematic and static
 body creation, raycasting, filtering and debug draw all unimplemented, contradicting the checkboxes

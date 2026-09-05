@@ -185,12 +185,12 @@ Worth recording even where no example follows — several are "stop looking for 
 
 Ordered roughly by (category gap × payoff ÷ effort). The current
 [coverage snapshot](example-backlog.md#coverage-snapshot) has **zero** examples in Interaction,
-Audio, Gameplay and Integration, one in Input (`Example01_Basic2DScene_SpawnMenu`) and five in
+Audio, Gameplay and Integration, one in Input (`E04_2D_SpawnMenu`) and five in
 Performance — specs are grouped to attack the empty ones first.
 
-### 1. `Example27_Audio_ProceduralSound` — a sound with no sound file
+### 1. `E12_Audio_Procedural` — a sound with no sound file
 
-- **Built 2026-09-05** as `Example27_Audio_ProceduralSound` on `AudioSystemExtensions.CreateProceduralSound`; see [plans/audio-examples.md](plans/audio-examples.md).
+- **Built 2026-09-05** as `E12_Audio_Procedural` on `AudioSystemExtensions.CreateProceduralSound`; see [plans/audio-examples.md](plans/audio-examples.md).
 - **Level:** Beginners (with helper) · **Category:** Audio · **Complexity:** 4 · **Verdict:** both
 - **Sources:** `engine/Stride.Audio/DynamicSoundSource.cs` (protected ctor `:109-124`,
   `soundInstance` `:80`, `NewSources` `:22`, `FillBuffer` `:300/:324/:338`, `ExtractAndFillData`
@@ -214,9 +214,9 @@ Performance — specs are grouped to attack the empty ones first.
 - **Why it matters:** Audio has zero examples, this is the *only* way to get audio into a
   code-only Stride game, and it is completely undocumented.
 
-### 2. `Example27_Audio_WavFile` — play a .wav from disk, no compiled asset
+### 2. `E12_Audio_WavFile` — play a .wav from disk, no compiled asset
 
-- **Built 2026-09-05** as `Example27_Audio_WavFile` on `game.Audio.LoadWav` / `WavSound.CreateInstance`, in-memory PCM only.
+- **Built 2026-09-05** as `E12_Audio_WavFile` on `game.Audio.LoadWav` / `WavSound.CreateInstance`, in-memory PCM only.
 - **Level:** Beginners · **Category:** Audio · **Complexity:** 3 · **Verdict:** both
 - **Sources:** as above (`FillBuffer(byte[], int, BufferType)` `:338`; `BufferType.EndOfStream/EndOfLoop`
   in `AudioLayer.cs:40-46`), contrasted against `engine/Stride.Assets/Media/SoundAssetCompiler.cs`
@@ -228,9 +228,9 @@ Performance — specs are grouped to attack the empty ones first.
   (`XAudio2.cpp:1514-1516`).
 - **Toolkit piece:** `game.LoadSound(path)` in the same Audio library.
 
-### 3. `Example27_Audio_Spatial` — 3D positional audio, honestly
+### 3. `E12_Audio_Spatial` — 3D positional audio, honestly
 
-- **Built 2026-09-05** as `Example27_Audio_Spatial`. The listener fix went the other way from the spec: `AttachListener` puts an `AudioListenerComponent` on the camera and reads its internal listener with `[UnsafeAccessor]`, so the engine moves it; `SoundEmitterScript` does the emitter side. HRTF is a runtime toggle (instance recreated).
+- **Built 2026-09-05** as `E12_Audio_Spatial`. The listener fix went the other way from the spec: `AttachListener` puts an `AudioListenerComponent` on the camera and reads its internal listener with `[UnsafeAccessor]`, so the engine moves it; `SoundEmitterScript` does the emitter side. HRTF is a runtime toggle (instance recreated).
 - **Level:** Intermediate · **Category:** Audio · **Complexity:** 5 · **Verdict:** both
 - **Sources:** `engine/Stride.Audio/AudioEmitter.cs`, `AudioListener.cs` (public
   `AudioListener(AudioEngine)` ctor `:19` leaves Forward/Up zero; internal `Update()` `:135`),
@@ -305,7 +305,7 @@ Performance — specs are grouped to attack the empty ones first.
 - **Toolkit piece:** a `RayPicking` helper in `Stride.CommunityToolkit` pairing the existing
   `ScreenToWorldRay` camera extensions with `GetNearestHit` over entity bounds; companion to the
   existing `RaySegment` type.
-- **Cross-link:** frame as the deliberate opposite of `Example14_Raycast`. The SpaceEscape sample's
+- **Cross-link:** frame as the deliberate opposite of `E05_3D_Raycast`. The SpaceEscape sample's
   physics-free AABB runner (samples doc #69) is the gameplay-scale demo.
 
 ### 7. `Example30_TransformGizmos` — finish the gizmo family, interactively
@@ -351,7 +351,7 @@ Performance — specs are grouped to attack the empty ones first.
   clone; `ObjectId.FromObject` as a cheap content hash; `ListStore<T>` as the sibling store.
 - **Alternative route:** spec 28 (`Example49_SceneSaveLoad`) uses `Content.Save` for whole
   entity graphs; this spec is the small-POCO version.
-- **Overlap:** `Example07_CubeClicker` saves clicks with its own code (third-party `NexVYaml` —
+- **Overlap:** `E04_CubeClicker` saves clicks with its own code (third-party `NexVYaml` —
   `Stride.Core.Yaml` is runtime-usable, depends only on `Stride.Core.Reflection`) — cross-link,
   don't merge.
 
@@ -499,7 +499,7 @@ Performance — specs are grouped to attack the empty ones first.
   Explain `[Pooled]` delegate pooling and `ConcurrentCollector<T>`. The toolkit already calls
   `Dispatcher.For` in DebugShapes (`DebugPrimitiveRenderer.cs:129`) without a word of explanation.
 
-### 17. `Example40_PostEffects` — bloom, fog, vignette and friends, six lines each
+### 17. `E09_3D_PostEffects` — bloom, fog, vignette and friends, six lines each
 
 - **Level:** Beginners → Intermediate · **Category:** Rendering · **Complexity:** 4 ·
   **Verdict:** both — **and it starts with a toolkit bug fix**
@@ -514,7 +514,7 @@ Performance — specs are grouped to attack the empty ones first.
   switches: bloom, ambient occlusion, depth of field, screen-space reflections, the depth-based
   `Fog` and `Outline` nobody knows exist, and the `ColorTransform`s (vignette, film grain, dither)
   that must be **added** to `ColorTransforms.Transforms` (only `ToneMap` is there by default) and
-  then cost nothing extra. A keyboard-cycled tour with the same scene. `Example13_MeshOutline`
+  then cost nothing extra. A keyboard-cycled tour with the same scene. `E09_3D_MeshOutline`
   (per-object) vs the full-screen `Outline` makes a good contrast pair. Also: HDR auto-exposure via
   `LuminanceEffect` and the nine tonemap operators (ACES, Drago, Exponential, Hejl2, HejlDawson,
   Logarithmic, MikeDay, Reinhard, U2Filmic); `LightStreak` (`StreakCount`, `IsAnamorphic`),
@@ -526,7 +526,7 @@ Performance — specs are grouped to attack the empty ones first.
   which must also fix `AddCleanUIStage()` (see toolkit-side findings: it replaces `PostEffects`
   with a bare `new PostProcessingEffects { ... }` and therefore silently runs SSAO, SSR, bloom,
   light streaks, lens flare and FXAA in every example that calls it).
-- **Built 2026-09-03** as `Example40_PostEffects` (`ConfigurePostEffects`/`GetPostEffects` on both
+- **Built 2026-09-03** as `E09_3D_PostEffects` (`ConfigurePostEffects`/`GetPostEffects` on both
   `GraphicsCompositor` and `Game`; twelve keys, first set on at start, `DebugOverlay` state list).
   Two scene lessons worth reusing: the default directional light backlights a camera on the +Z
   side, so put the camera at −Z looking along +Z (then +X is screen-left); and a floor at
@@ -572,7 +572,7 @@ Performance — specs are grouped to attack the empty ones first.
   (`DynamicEffectInstance` + `[Link]`-bound custom keys + `DrawQuad(effectInstance)`).
 - **What it shows:** `new ImageEffectShader("MyShader")` — one `.sdsl`, `SetInput`/`SetOutput`/
   `Draw`. Open with the `DrawTexture`/`DrawQuad` one-liners before introducing the class. The
-  screen-space sibling of `Example13_RootRendererShader`'s mesh effect. Sidebar: where the
+  screen-space sibling of `E09_3D_RootRendererShader`'s mesh effect. Sidebar: where the
   compiled shader and its dumped HLSL end up (`cache/effects/`), and what the compilation modes
   really do on each graphics API (correction 4).
 - **Toolkit piece:** the toolkit already has `TextureCanvas.Apply(ImageEffect, params Texture?[]?)`
@@ -602,7 +602,7 @@ Performance — specs are grouped to attack the empty ones first.
   toolkit's `capture-screenshots.cs` already applies it. The editor's thumbnail system
   (`editor/Stride.Editor/Thumbnails/ThumbnailGenerator.cs`) supplies known-good framing and
   lighting constants for an item-icon variant.
-- **Extends** `Example09_Renderer` rather than replacing it.
+- **Extends** `E09_3D_SceneRenderer` rather than replacing it.
 
 ### 21. `Example44_GpuPicking` — pixel-perfect picking, the Game Studio way
 
@@ -653,7 +653,7 @@ Performance — specs are grouped to attack the empty ones first.
   (spec 30) as the big consumer.
 - **Reads** what the Example05 family writes.
 
-### 23. `Example12_Particles_ForceFields` — particles, part two
+### 23. `E09_3D_Particles_ForceFields` — particles, part two
 
 - **Level:** Intermediate · **Category:** Rendering · **Complexity:** 5 · **Verdict:** example
 - **Sources:** `engine/Stride.Particles/Updaters/UpdaterForceField.cs:48-153,180-186`,
@@ -915,7 +915,7 @@ Performance — specs are grouped to attack the empty ones first.
   handles as `Border`s, per-axis magnet snapping parent → container → siblings, alignment
   re-derived from the drop position. Reveals two runtime facts: overlapping `UIComponent`s all
   receive pointer events (`Handled` doesn't cross components), and `RenderSize`/`WorldMatrix` are
-  one frame stale inside `Update`. Sequel to `Example10_StrideUI_DragAndDrop`.
+  one frame stale inside `Update`. Sequel to `E04_StrideUI_DragAndDrop`.
 - **Toolkit piece:** `UILayoutHelper` port; hit-testing one-liner.
 
 ### 36. `Example58_SDSL_FeatureTour` — the shader language, by example (new)
@@ -1000,7 +1000,7 @@ and `Stride.BepuPhysics`. Shorter than the specs above; promote to full specs wh
   glossiness `Invert`, energy-conserving specular, swappable BRDF terms (`MaterialSpecularMicrofacetModelFeature.Fresnel/Visibility/NormalDistribution/Environment`
   — 2/9/3/3 implementations), thin glass (`RefractiveIndex`, multipass), `MaterialAttributes.CullMode/DepthFunction`,
   stochastic tiling (`ComputeTextureBase.UseRandomTextureCoordinates`), `ComputeTextureColor.Swizzle/FallbackValue`,
-  31 `BinaryOperator` blend modes, `MaterialCelShadingLightRamp.RampTexture`. First slice belongs in `Example01_Material`.
+  31 `BinaryOperator` blend modes, `MaterialCelShadingLightRamp.RampTexture`. First slice belongs in `E02_3D_Material`.
 - **`Example84_Letterbox`** — Beginners (3) · Rendering · both. `Compositing/ForceAspectRatioSceneRenderer.cs`
   (`Child`, `FixedAspectRatio`, `ForceAspectRatio`; viewport-only maths `:40-60`, so the bars are
   whatever `ClearRenderer` painted). Wrap the forward renderer; pair with `CameraComponent.UseCustomAspectRatio`.
@@ -1050,7 +1050,7 @@ and `Stride.BepuPhysics`. Shorter than the specs above; promote to full specs wh
   (`AddPacketHandler<T>`, `Send(object)` through Stride's binary serializer, `SendReceiveAsync`
   request/response). The engine's own TCP layer (built for the connection router — no
   reconnect/backoff; payload types need generated serializers). The no-ASP.NET alternative to
-  `Example17_SignalR`; pairs with spec 26's headless server.
+  `E13_SignalR`; pairs with spec 26's headless server.
 - **`Example93_CustomProjection`** — Advanced (8) · Rendering · example. `CameraComponent.cs:161-200`
   (`UseCustomViewMatrix`, `UseCustomProjectionMatrix`, `UseCustomAspectRatio`, `Frustum`), consumed
   at `SceneCameraRenderer.cs:112-150`; `ForwardRenderer.cs:369-373` (VR eyes) is the in-tree
@@ -1095,7 +1095,7 @@ this". Bugs first.
   light streaks, lens flare and FXAA are on in every example that calls it. `AddGraphicsCompositor()`
   itself is fine (goes through `CreateDefault`). Fix: `DisableAll()` first, then enable what the
   UI stage needs — and measure the frame-time difference for the changelog. *Fixed 2026-09-03:*
-  `Example01_Basic3DScene_Primitives`, vsync off, warm cache: 8.6 ms → 4.8 ms per frame
+  `E02_3D_Primitives`, vsync off, warm cache: 8.6 ms → 4.8 ms per frame
   (116 → ~205 FPS). The same change also stops `AddCleanUIStage`/`AddUIStage` discarding
   renderers attached before them.
 - **`HeightmapExtensions.GetHeightAt` contract mismatch** (`src/Stride.CommunityToolkit/Physics/HeightmapExtensions.cs:78`):
@@ -1188,7 +1188,7 @@ by area. Rows marked ✱ were added or re-verdicted by the cross-check.
 | Selection wireframe + tint highlight | editor `WireframeRenderFeature.cs` (111), `HighlightRenderFeature.cs` (99); `AssetHighlighter` colours `(1,0.35,0.25,0.8)`, micro-thread fade | example/toolkit · Advanced · Rendering | How GS really draws selection (filtered stage, depth off, front/back colour); per-material-slot tinting; `HighlightFlash` helper. |
 | Overlay scene (2nd SceneSystem) | `engine\Stride.Engine\Rendering\Compositing\EditorTopLevelCompositor.cs` (engine-side!) + editor `EntityHierarchyEditorGame.cs:363-367`; `ExecutionMode.Preview` makes scripts inert | toolkit · Advanced · Rendering | Own lighting (ambient 0.1 + two directionals at 0.45), no clear, gizmo group mask — would simplify every gizmo/debug example. |
 | Shader-compile feedback ✱ | `RootEffectRenderFeature.cs:75` (`ComputeFallbackEffect`, public), `RenderEffect.cs:28,68`; engine shaders `Rendering\Editor\EffectCompiling.sdsl`, `CompilationErrorShader.sdsl`, `LightConstantWhite.sdsl`; editor `EntityHierarchyEditorGame.cs:151-213` | example · Advanced · Rendering | Game Studio's pulsing green "compiling" / red "error" placeholder: a fallback effect with lighting forced to `LightConstantWhite`, retried every 5 s. Code-only apps compile at runtime and draw nothing for the first frames — this is the honest fix. Only a 15-line `.sdfx` is editor-side. |
-| Skybox material ball ✱ | editor `Preview\SkyboxPreview.cs:39-127`, `MaterialPreview.cs`; engine `SharedTextureCoordinate.sdsl` | example · Intermediate · Rendering | A sphere lit only by `LightSkybox`, metalness/glossiness sliders on a code-built material; `SharedTextureCoordinate` lets multi-UV materials preview on one-UV primitives. Companion to Example01_Material and the Skyboxes library. |
+| Skybox material ball ✱ | editor `Preview\SkyboxPreview.cs:39-127`, `MaterialPreview.cs`; engine `SharedTextureCoordinate.sdsl` | example · Intermediate · Rendering | A sphere lit only by `LightSkybox`, metalness/glossiness sliders on a code-built material; `SharedTextureCoordinate` lets multi-UV materials preview on one-UV primitives. Companion to E02_3D_Material and the Skyboxes library. |
 | Planar shadows / mirrors ✱ | `core\Stride.Core.Mathematics\Matrix.cs:2362-2444` (`Shadow`, `Reflection`; zero engine consumers) | example · Intermediate · Rendering | The classic projected-shadow and mirror-world tricks; needs `UseTRS = false` and `CullMode.Front` for the mirror. |
 | Preview/thumbnail camera + light rigs ✱ | editor `Preview\PreviewFromEntity.cs:70-130,171-294` (fit `r + r/tan(fov/2)`, `Far = 2.5·max(distance,r)`, headlight rig children of the camera, HDR ×2.22, clear colours), `PrefabEditorLightService.cs` (ambient 0.3 + two directionals 2.5), `ThumbnailGenerator.cs` | toolkit · Beginners · Rendering | Known-good numbers for "why is my scene flat" — but the toolkit already has `AddStudioLighting`; add the *preview orbit camera* and the headlight rig only. |
 | Sprite sheet animation in code ✱ | `Rendering\Sprites\SpriteAnimationSystem.cs:109-214`; `Stride.Engine.Tests\SpriteAnimationTest.cs:23-224`, `SpriteRenderer2DTests.cs:56-114` | example · Beginners · Rendering | `new SpriteSheet { Sprites = { new Sprite(name, texture, region) } }` + `SpriteFromSheet`, `SpriteAnimation.Play/Queue/Pause`; the toolkit has zero `SpriteAnimation` uses; pairs with spec 33 and the samples' 2D platformer (#71). |
@@ -1233,7 +1233,7 @@ by area. Rows marked ✱ were added or re-verdicted by the cross-check.
 | Frustum & light-shape wireframes | editor `CameraGizmo.cs:126-162`, `LightSpotGizmo.cs`, `LightPointGizmo.cs` | example · Intermediate · Shapes | Dynamic line-mesh recipe + frustum corner math. |
 | Bounding-box gizmo ✱ | editor `ModelGizmo.cs:52-61`, `NavigationBoundingBoxGizmo.cs:53-69` | toolkit · Beginners · Shapes | Unit line box at `ModelComponent.BoundingBox.Center × Extent`; shown only while selected. |
 | Constraint visualiser | editor `PhysicsConstraintGizmo.cs` (569) | example · Advanced · Physics | Adapt to Bepu; would upgrade the whole Example15 family; also the clearest `GeometricPrimitive` lifetime warning. |
-| Gizmo registry (`GizmoManager`) | editor `EditorGameComponentGizmoService.cs` (397) + engine `Engine\Gizmos\` | toolkit · Intermediate · Gameplay | Attribute-driven auto-gizmos on component add; generalises `Example08_CollidableGizmo`. |
+| Gizmo registry (`GizmoManager`) | editor `EditorGameComponentGizmoService.cs` (397) + engine `Engine\Gizmos\` | toolkit · Intermediate · Gameplay | Attribute-driven auto-gizmos on component add; generalises `E08_3D_CollidableGizmo`. |
 | Navmesh debug visual ✱ | editor `EditorGameNavigationMeshService.cs:224-366` | toolkit · Intermediate · Gameplay | Two materials per group (updated tiles highlighted), `offset.Y = 0.05·group`, alpha 0.33; `NavigationMeshTile.GetTileVertices` is internal — fan-triangulate public `Data` yourself. Pairs with spec 11. |
 | `CalculateBoundSphere` | `editor\Stride.Editor\Engine\EntityExtensions.cs:67`; engine-side `Stride.Graphics.Regression\TestCamera.cs:359-423` | toolkit · Beginners · Gameplay | Needed by spec 24; handles skinned/sprite/particle bounds; drop the SpriteStudio block. |
 | Frustum culling visualiser | `core\...\BoundingFrustum.cs:11,47,104`, `BoundingBoxExt.cs` | both · Intermediate · Rendering | Cull against a second camera, green/red debug boxes; `IsVisible(entity)` helper. |
@@ -1265,7 +1265,7 @@ reasons, is preserved in its report; this is the merged short form.)
 fonts, `ViewportGridGizmo` + grid services (only the plane-switch/colour-space details are new —
 a docs addendum to engine-patterns.md, not an example), `AxialGizmo` (ported verbatim),
 `EditorGameHelper` picking, gizmo colour materials, `InstancingRenderFeature`,
-`DebugTextSystem`, editor `DebugShapes\` (overlaps `Example08_DebugShapes`), three-point lighting
+`DebugTextSystem`, editor `DebugShapes\` (overlaps `E08_3D_DebugShapes`), three-point lighting
 (`AddStudioLighting` exists), orbit camera (exists — extend), GPU-stats overlay (exists).
 
 **Asset-pipeline-bound, unreachable code-only:** `Sound`/`CompressedSoundSource` construction
@@ -1461,8 +1461,8 @@ heightmap, breakable joints, interpolation), **UI** +3, plus a lot of Rendering/
 (the compact specs are mostly Rendering).
 
 Suggested first five, balancing quick wins against gap-filling:
-`Example27_Audio_ProceduralSound` + `Example27_Audio_WavFile` (one PR, new category, new library),
-`Example40_PostEffects` (biggest visible payoff per line — and it fixes `AddCleanUIStage`),
+`E12_Audio_Procedural` + `E12_Audio_WavFile` (one PR, new category, new library),
+`E09_3D_PostEffects` (biggest visible payoff per line — and it fixes `AddCleanUIStage`),
 `Example48_Headless` (Integration unlocked, the CI story starts here, and the toolkit's own test
 fixture is already half of it), `Example29_PickingNoPhysics` (Interaction unlocked, zero
 dependencies), and the `GameTime.Factor` + `UseGameSettings` pair of one-line additions folded

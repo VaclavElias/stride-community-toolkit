@@ -176,7 +176,7 @@ Integration are at zero; Input has one). Verdicts: **example** / **toolkit** / *
   Esc-to-unlock mouse (`:100-115`).
 - **Rebuild:** capsule + Bepu `CharacterComponent` (`Move(Vector3)`, `TryJump()`, `IsGrounded` —
   `sources\engine\Stride.BepuPhysics\Stride.BepuPhysics\CharacterComponent.cs:93,148,159`), the
-  toolkit's `Example20_BepuFirstPersonCharacter` as the base. Zero assets.
+  toolkit's `E05_3D_FirstPersonCharacter` as the base. Zero assets.
 - **Toolkit piece:** the `InputManagerExtensions` `GetLeftThumbAny(deadZone)` family (FPS
   `Core\InputManagerExtensions.cs:38-53`) — averages every pad past the dead zone; fills the
   backlog's gamepad-helpers row. **Wart to fix in the example:** the keys are `static` ("TODO
@@ -356,7 +356,7 @@ Integration are at zero; Input has one). Verdicts: **example** / **toolkit** / *
 
 ### 70. `Example70_WorldBend_SubRenderFeature` — per-mesh effect permutations and constant uploads
 
-- **Level:** Advanced · **Category:** Rendering · **Complexity:** 8 · **Verdict:** example — successor to `Example13_RootRendererShader`
+- **Level:** Advanced · **Category:** Rendering · **Complexity:** 8 · **Verdict:** example — successor to `E09_3D_RootRendererShader`
 - **Source:** `Games\SpaceEscape…\Rendering\BendFogRenderFeature.cs` (126 lines),
   `Effects\SpaceEscapeEffectMain.sdfx` (params `EnableFog/EnableBend/EnableOnflyTextureUVChange`,
   conditional `mixin`s over `StrideForwardShadingEffect`), `TransformationBendWorld.sdsl`

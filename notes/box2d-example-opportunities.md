@@ -21,10 +21,10 @@ Toolkit wrapper (src/Stride.CommunityToolkit.Box2D) surfaces today:
 - Events/PhysicsEventRouter2D - contact begin/end/hit + sensor begin/end only (55-114). No joint events, no body-move events, no pre-solve, no custom filter.
 - Box2DStrideBridge.SyncTransformsFromPhysics (96-115) already uses b2World_GetBodyEvents move events.
 - BodyForces - impulse, impulse-at-point, get/set velocity. Box2DBodyComponent - force/impulse/torque, damping, velocities.
-- No joint API anywhere in the library. Joints only hand-rolled in Example18_Box2DPhysics/Helpers/ShapeSpawner.cs:149 (one distance joint).
+- No joint API anywhere in the library. Joints only hand-rolled in E06_Box2D/Helpers/ShapeSpawner.cs:149 (one distance joint).
 - No b2World_Explode, b2World_CastShape, b2World_CastMover/b2SolvePlanes, b2CreateChain, B2DebugDraw adapter anywhere.
 
-Existing Box2D examples: Example18 (integration basics + distance joints), Example02_Junkyard (testbed replica, ShapeBatch, kinematic SetTargetTransform), Example02_Junkyard_Playground (entity-per-shape, sensor gate, OverlapPoint picking, camera follow), Example01_Basic2DScene_StressPile_Box2D (instancing, sleep split). Covered: contact/sensor events, kinematic driving, picking, impulses, instancing, stress. Untouched: everything joint-, character-, cast- and callback-related.
+Existing Box2D examples: Example18 (integration basics + distance joints), Example02_Junkyard (testbed replica, ShapeBatch, kinematic SetTargetTransform), Example02_Junkyard_Playground (entity-per-shape, sensor gate, OverlapPoint picking, camera follow), E10_2D_StressPile_Box2D (instancing, sleep split). Covered: contact/sensor events, kinematic driving, picking, impulses, instancing, stress. Untouched: everything joint-, character-, cast- and callback-related.
 
 ## Gems
 
@@ -189,7 +189,7 @@ Existing Box2D examples: Example18 (integration basics + distance joints), Examp
 ## Package version & licensing
 - Toolkit pins Box2D.NET 3.1.654 (Stride.CommunityToolkit.Box2D.csproj:22).
 - Local checkout: 3.1.1.557-131-g8f5e816; CHANGELOG last titled release [3.1.0.500] 2025-04-26. Action: verify b2World_CollideMover, b2SolvePlanes, b2Shape_ApplyWind, b2World_GetJointEvents, b2Joint_SetLocalFrameA, b2Body_SetTargetTransform and the def.@base.localFrameA joint layout against 3.1.654 before porting (b2Body_SetTargetTransform confirmed present - Junkyard uses it).
-- Licence: MIT, (c) Erin Catto 2022, (c) Choi Ikpil 2025; SPDX headers on every sample. Keep an origin header in ported Program.cs naming the file and copyright; Example02_Junkyard_Box2D header is the precedent but lacks the copyright line - tighten.
+- Licence: MIT, (c) Erin Catto 2022, (c) Choi Ikpil 2025; SPDX headers on every sample. Keep an origin header in ported Program.cs naming the file and copyright; E06_Box2D_Junkyard header is the precedent but lacks the copyright line - tighten.
 - Not portable: sample harness (ImGuiNET, Silk.NET/GLFW, Serilog). Port scene-building and step logic only.
 
 ## Top 10, ranked

@@ -8,8 +8,8 @@ every utility component, the harvest list grew — see [Build list](#build-list)
 [Open questions](#open-questions) have `**Your answer:**` placeholders. Answer them, and I move
 them up into Decisions.
 
-**Status:** all questions answered. **2 of 9 built** — `Example15_Constraint_Motors` and
-`Example15_Constraint_Rope`. Next is `Example23_CubeFountain`.
+**Status:** all questions answered. **2 of 9 built** — `E05_3D_Constraints_Motors` and
+`E05_3D_Constraints_Rope`. Next is `Example23_CubeFountain`.
 
 ### Where this sits among the other planning documents
 
@@ -37,27 +37,27 @@ Settled. No need to re-read unless you want to change one.
    otherwise. Not critical — it may all be reorganised later.
 3. **No `Bepu` prefix.** Bepu is the default physics engine; only non-default engines get named
    (`_BulletPhysics`, `_Jitter2Physics`, `_Box2DPhysics`). Existing
-   `Example20_BepuFirstPersonCharacter` predates this and stays.
+   `E05_3D_FirstPersonCharacter` predates this and stays.
 4. **Family membership is by domain, not by shared word.** Physics examples do not join rendering
-   families. Specifically: physics material properties do *not* join `Example01_Material`
-   (rendering materials), and `MeshCollider` does *not* join `Example01_Basic3DScene_MeshLine`
+   families. Specifically: physics material properties do *not* join `E02_3D_Material`
+   (rendering materials), and `MeshCollider` does *not* join `E07_3D_MeshLine`
    (line rendering via vertex buffers). Both are false friends.
 5. **Cube Fountain is not an Example15** — spawning/simulation-tick topic, not a constraint topic.
 6. **No csproj categorisation.** Drop `ExampleTitle` / `ExampleOrder` / `ExampleEnabled` /
    `ExampleCategory` from new `.csproj` files — the `---example-metadata` block in `Program.cs` is
-   the single source of truth. Matches `Example19_Jitter2Physics_Constraints` and `Example21/22`.
+   the single source of truth. Matches `E06_Jitter2_ConstrainedTo2D` and `Example21/22`.
 
 ### Scope
 
-7. **Motors get a standalone example**, not folded into `Example15_Constraint` (already ~590 lines
+7. **Motors get a standalone example**, not folded into `E05_3D_Constraints` (already ~590 lines
    and unfocused).
-8. **Gravity gun gets its own example** (`Example15_Constraint_GravityGun`) — it is servo-constraint
+8. **Gravity gun gets its own example** (`E05_3D_Constraints_GravityGun`) — it is servo-constraint
    driven, so it joins the constraint family. Click-to-throw stays in the fountain; that drops the
    fountain from complexity 8 to 6.
-9. **Trigger zones get a standalone example** despite `Example17_SignalR` already containing a
+9. **Trigger zones get a standalone example** despite `E13_SignalR` already containing a
    working `IContactEventHandler` — nobody searching for collision detection will find it inside a
    networking example.
-10. **`Example14_Raycast` gets `RayCastPenetrating` added now** — small addition to a shipped
+10. **`E05_3D_Raycast` gets `RayCastPenetrating` added now** — small addition to a shipped
     example, not a new project.
 11. **Rope chain-builder stays local to its example** (a separate `.cs` beside `Program.cs`, as
     Example02/18/20 already do). Promote to `src/Stride.CommunityToolkit.Bepu` later only if useful.
@@ -102,7 +102,7 @@ the matching demo *before* writing each example:
 
 | Backlog item | Bepu demo |
 |---|---|
-| `Example15_Constraint_Rope` | `RopeStabilityDemo`, `RopeTwistDemo`, `ChainFountainDemo` |
+| `E05_3D_Constraints_Rope` | `RopeStabilityDemo`, `RopeTwistDemo`, `ChainFountainDemo` |
 | `Example24_PhysicsMaterials` | `BouncinessDemo`, `FrictionDemo` |
 | `Example25_MeshColliders` | `CompoundDemo`, `CustomVoxelCollidableDemo` |
 | `Example14_ShapeQueries` | `SweepDemo`, `CollisionQueryDemo` |
@@ -116,7 +116,7 @@ Also there and not yet on the backlog: `ClothDemo`, `RagdollDemo`, `PlanetDemo` 
 
 ### Tier 1
 
-#### 1. `Example15_Constraint_Motors` · Beginners · complexity 5 — **DONE**
+#### 1. `E05_3D_Constraints_Motors` · Beginners · complexity 5 — **DONE**
 
 Built, verified by measuring angular velocities, and merged into the solution. Findings from building
 it are written up in [`docs/manual/physics-extensions/bepu-constraints.md`](../../docs/manual/physics-extensions/bepu-constraints.md)
@@ -143,7 +143,7 @@ Deviations from the spec below, all forced by measurement:
 
 Original spec follows.
 
-The **servo vs. motor vs. limit** distinction, which `Example15_Constraint` never teaches (it shows
+The **servo vs. motor vs. limit** distinction, which `E05_3D_Constraints` never teaches (it shows
 only servos and limits). A *servo* drives toward a target pose and stops; a *motor* drives a target
 *velocity* continuously; a *limit* just clamps range.
 
@@ -156,7 +156,7 @@ only servos and limits). A *servo* drives toward a target pose and stops; a *mot
 *Source:* `Constraint.sdscene`, `Cube Mixer.sdscene`, `ConstraintToggleComponent`,
 `ConstraintEditorComponent`.
 
-#### 2. `Example15_Constraint_Rope` · Intermediate · complexity 7 — **DONE**
+#### 2. `E05_3D_Constraints_Rope` · Intermediate · complexity 7 — **DONE**
 
 Built to the revised spec below. 20 links, weight 10x a link, a stack of loose boxes beside each rope
 to be swung into. Measured across repeated swings: the naive rope swings between 5.57 and 10.57
@@ -234,7 +234,7 @@ Continuous spawner driven by the **physics clock**, not the render loop.
 - Click-to-throw — spawn a cube and launch it along the camera forward vector.
 
 *Source:* `Cube Fountain.sdscene`, `SpawnerComponent`, `_Spawner`, `ThrowerComponent`.
-*Cross-link, don't re-teach:* `Example02_GiveMeACube_SimulationUpdate` covers `ISimulationUpdate`;
+*Cross-link, don't re-teach:* `E02_3D_GiveMeACube_SimulationUpdate` covers `ISimulationUpdate`;
 `Example22` covers instancing.
 
 ### Tier 2
@@ -260,7 +260,7 @@ explain the convex-vs-concave tradeoff and why a mesh collider must usually be s
 
 Queries that are *not* raycasts: `simulation.Overlap(shape, pose, buffer)` (what is inside this box
 right now) and `simulation.SweepCast(shape, pose, velocity, maxT, out hit)` (what would this shape
-hit if moved). Family-grouped with `Example14_Raycast`.
+hit if moved). Family-grouped with `E05_3D_Raycast`.
 
 *Source:* `OverlapTesterComponent`.
 
@@ -268,16 +268,16 @@ hit if moved). Family-grouped with `Example14_Raycast`.
 
 Sensor volumes and collision callbacks: `Trigger` with `OnEnter`/`OnLeave`, `NoContactResponse` for
 pass-through volumes, and `IContactHandler.OnStartedTouching/OnStoppedTouching`. Family-grouped with
-`Example16_CollisionGroup`/`_CollisionLayer` — those cover *what* collides, this covers *reacting*
+`E05_3D_CollisionGroup`/`_CollisionLayer` — those cover *what* collides, this covers *reacting*
 to it.
 
 *Source:* `TriggerUsageComponent`, `CollisionComponent`.
 
-#### 8. `Example15_Constraint_GravityGun` · Intermediate · complexity 7
+#### 8. `E05_3D_Constraints_GravityGun` · Intermediate · complexity 7
 
 Grab, hold, move and release a body using constraints — raycast to pick, then attach
 `OneBodyLinearServoConstraintComponent` + `OneBodyAngularServoConstraintComponent`, tracking a local
-grab point and mouse-wheel distance; release removes them. Builds on `Example14_Raycast` for picking.
+grab point and mouse-wheel distance; release removes them. Builds on `E05_3D_Raycast` for picking.
 
 *Source:* `GravityGunComponent`.
 
@@ -288,7 +288,7 @@ live `PoseGravity` changes.
 
 *Source:* `TimeControlComponent`.
 
-#### 10. `Example26_MultipleSimulations` · Intermediate · complexity 3 — **DONE** (2026-09-03)
+#### 10. `E05_3D_MultipleSimulations` · Intermediate · complexity 3 — **DONE** (2026-09-03)
 
 Two simulations with different gravity side by side, a body from one world sinking through the
 other's ground. Built out of order because it is the showcase for `UseGameSettings`
@@ -300,7 +300,7 @@ Also retires the commented-out `BepuConfiguration` poking in `Example_Bepu_Playg
 
 ### Edit to an existing example
 
-- **`Example14_Raycast`** — add `RayCastPenetrating` (multi-hit raycast passing through objects),
+- **`E05_3D_Raycast`** — add `RayCastPenetrating` (multi-hit raycast passing through objects),
   with a metadata `concepts` entry to match.
 
 ### Deliberately not harvested
@@ -315,15 +315,15 @@ Tier 1 cheapest-to-most-complex so the pattern is proven before the big one, the
 
 `Constraint_Motors` → `Constraint_Rope` → `CubeFountain` → `PhysicsMaterials` → `MeshColliders` →
 `ShapeQueries` → `TriggerZones` → `Constraint_GravityGun` → `TimeControl`, with the
-`Example14_Raycast` edit folded in alongside `ShapeQueries` (same family, same session).
+`E05_3D_Raycast` edit folded in alongside `ShapeQueries` (same family, same session).
 
 ---
 
 ## Open questions
 
-**Q1. Final name for example #4.** You asked whether it should sit near `Example01_Material` — I
+**Q1. Final name for example #4.** You asked whether it should sit near `E02_3D_Material` — I
 recommend not (see Decision 4: that is rendering materials, this is contact response). But you did
-surface a real problem with my name: `MaterialProperties` collides with `Example01_Material`
+surface a real problem with my name: `MaterialProperties` collides with `E02_3D_Material`
 regardless of number, and "material" in Stride overwhelmingly means the rendering kind. Options:
 
 | Name | Notes |
