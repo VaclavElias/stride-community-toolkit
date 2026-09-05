@@ -8,7 +8,7 @@ slug: simulation-update
 Drive an entity from the physics clock instead of the render loop. The script is a StartupScript with
 no per-frame Update at all: it implements ISimulationUpdate, so Bepu calls it once per fixed physics
 step and Stride registers it automatically. That is what makes SetTargetPose safe, because exactly one
-step consumes the velocity it sets. Compare with Example02_GiveMeACube, which sets a bounded velocity
+step consumes the velocity it sets. Compare with E02_3D_GiveMeACube, which sets a bounded velocity
 every frame instead.
 
 The `Program.cs` file shows how to:
@@ -23,6 +23,6 @@ The `Program.cs` file shows how to:
 
 ![Give Me a Cube (SimulationUpdate)](media/simulation-update.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example02_GiveMeACube_SimulationUpdate).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_3D_GiveMeACube_SimulationUpdate).
 
-[!code-csharp[](../../../../examples/code-only/Example02_GiveMeACube_SimulationUpdate/Program.cs?start=1&end=110)]
+[!code-csharp[](../../../../examples/code-only/E02_3D_GiveMeACube_SimulationUpdate/Program.cs?start=1&end=110)]

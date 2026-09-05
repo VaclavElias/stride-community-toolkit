@@ -160,16 +160,16 @@ an example against the local packages instead:
 Code-only examples are GUI applications. Run one directly:
 
 ```bash
-dotnet run --project examples/code-only/Example01_Basic3DScene/Example01_Basic3DScene.csproj
+dotnet run --project examples/code-only/E01_3D_BasicScene/E01_3D_BasicScene.csproj
 ```
 
-`Example01_Basic3DScene_FileBasedApp` is a [file-based app](https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps):
+`E01_3D_BasicScene_FileBasedApp` is a [file-based app](https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps):
 a single `.cs` file with no project file, which declares its dependencies inline with `#:package`
 and `#:project` directives. It has no `.csproj`, so it is not part of the solution and Visual Studio
 will not build it alongside the other projects. Run it from the command line instead:
 
 ```bash
-dotnet run --file examples/code-only/Example01_Basic3DScene_FileBasedApp/Program.cs
+dotnet run --file examples/code-only/E01_3D_BasicScene_FileBasedApp/Program.cs
 ```
 
 ## Debugging an example
@@ -179,8 +179,8 @@ Build first, then launch the executable with redirected output, wait, terminate,
 
 ```powershell
 $out = "$env:TEMP\example-run.txt"
-dotnet build examples\code-only\Example02_GiveMeACube\Example02_GiveMeACube.csproj -v q --nologo
-$exe = "examples\code-only\Example02_GiveMeACube\bin\Debug\net10.0\Example02_GiveMeACube.exe"
+dotnet build examples\code-only\E02_3D_GiveMeACube\E02_3D_GiveMeACube.csproj -v q --nologo
+$exe = "examples\code-only\E02_3D_GiveMeACube\bin\Debug\net10.0\E02_3D_GiveMeACube.exe"
 $process = Start-Process $exe -PassThru -RedirectStandardOutput $out -WorkingDirectory (Split-Path $exe)
 Start-Sleep -Seconds 12
 if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }

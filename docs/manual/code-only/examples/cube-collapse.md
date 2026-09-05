@@ -1,9 +1,9 @@
 ---
 generated: true
-slug: cubicle-calamity
+slug: cube-collapse
 ---
 
-# Game - Cubicle Calamity
+# Game - Cube Collapse
 
 A colour-match collapse puzzle built entirely from code. A 10x10x10 platform of cubes builds
 itself one layer at a time, clicking a cube clears every same-coloured cube connected to it, and
@@ -23,8 +23,8 @@ The `Program.cs` file shows how to:
 - Flood filling a grid to find connected same-coloured neighbours
 - Using helpers: Add3DCamera, Add3DGround, AddGizmo, Create3DPrimitive
 
-![Game - Cubicle Calamity](media/cubicle-calamity.webp)
+![Game - Cube Collapse](media/cube-collapse.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example_CubicleCalamity).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E20_3D_CubeCollapse).
 
-[!code-csharp[](../../../../examples/code-only/Example_CubicleCalamity/Program.cs?start=1&end=9)]
+[!code-csharp[](../../../../examples/code-only/E20_3D_CubeCollapse/Program.cs?start=1&end=9)]

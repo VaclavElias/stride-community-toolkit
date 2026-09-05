@@ -11,6 +11,6 @@ The `Program.cs` file shows how to:
 
 ![DebugShapes Usage Example](media/stride-game-engine-example08-debugshapes-usage.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example08_DebugShapes_Usage).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E08_3D_DebugShapes_QuickStart).
 
-[!code-csharp[](../../../../examples/code-only/Example08_DebugShapes_Usage/Program.cs?start=1&end=63)]
+[!code-csharp[](../../../../examples/code-only/E08_3D_DebugShapes_QuickStart/Program.cs?start=1&end=63)]

@@ -22,6 +22,6 @@ The `Program.cs` file shows how to:
 
 ![Spatial Sound](media/spatial-sound.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example27_Audio_Spatial).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E12_Audio_Spatial).
 
-[!code-csharp[](../../../../examples/code-only/Example27_Audio_Spatial/Program.cs?start=1&end=168)]
+[!code-csharp[](../../../../examples/code-only/E12_Audio_Spatial/Program.cs?start=1&end=169)]

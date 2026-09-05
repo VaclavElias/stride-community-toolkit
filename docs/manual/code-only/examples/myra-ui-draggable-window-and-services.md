@@ -16,27 +16,27 @@ By following this example, you will gain insights into how to extend your game's
 
 ![Stride UI Example](media/stride-game-engine-example04-myra-ui-draggable-window.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example04_MyraUI).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_Myra_DraggableWindow).
 
-[!code-csharp[](../../../../examples/code-only/Example04_MyraUI/Program.cs?start=1&end=51)]
+[!code-csharp[](../../../../examples/code-only/E04_Myra_DraggableWindow/Program.cs?start=1&end=51)]
 
 ## MyraSceneRenderer.cs
 
 This class provides functionality for rendering Myra-based user interfaces in a Stride game.
 
-[!code-csharp[](../../../../examples/code-only/Example04_MyraUI/MyraSceneRenderer.cs)]
+[!code-csharp[](../../../../examples/code-only/E04_Myra_DraggableWindow/MyraSceneRenderer.cs)]
 
 ## MainView.cs
 
 This class creates the main UI window `MainView` and the health bar using `HorizontalProgressBar`.
 
-[!code-csharp[](../../../../examples/code-only/Example04_MyraUI/MainView.cs)]
+[!code-csharp[](../../../../examples/code-only/E04_Myra_DraggableWindow/MainView.cs)]
 
 ## UIUtils.cs
 
 This class contains helper methods to create UI elements, which are used in multiple places in the example.
 
-[!code-csharp[](../../../../examples/code-only/Example04_MyraUI/UIUtils.cs)]
+[!code-csharp[](../../../../examples/code-only/E04_Myra_DraggableWindow/UIUtils.cs)]
 
 ## Other Examples
 

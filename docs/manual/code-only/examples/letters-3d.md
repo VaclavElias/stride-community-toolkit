@@ -22,6 +22,6 @@ The `Program.cs` file shows how to:
 
 ![3D Letters (Mesh Text)](media/letters-3d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Letters3D).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E03_3D_MeshText).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Letters3D/Program.cs?start=1&end=86)]
+[!code-csharp[](../../../../examples/code-only/E03_3D_MeshText/Program.cs?start=1&end=86)]

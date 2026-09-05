@@ -36,7 +36,7 @@ This is the rationale; the rules themselves are in [Example Metadata Schema](met
 | D29 | `category` vocabulary | A closed set of twelve, listed in the schema page. A category names the lesson, not the scenery |
 | D30 | Level in `tags` | Strip it. `level` is a field, not a tag, and duplicating it puts the same fact somewhere nothing validates |
 | D31 | What "Getting Started" admits | Exactly the "your first code-only app" examples - 3D, 2D, file-based, plus the F#/VB ports. Everything else that builds on the base scene is Beginner |
-| D32 | `Example_CubicleCalamity` | **Advanced**, not `Other`. `Other` is for playgrounds and WIP; a complete game belongs on the Advanced page |
+| D32 | `E20_3D_CubeCollapse` | **Advanced**, not `Other`. `Other` is for playgrounds and WIP; a complete game belongs on the Advanced page |
 | D33 | Unknown frontmatter keys | **Reported, with a suggestion.** Proof it matters: `Order:` against `order:` was silently discarded from two examples under the camelCase convention, and both reached the manifest with no order at all |
 | D34 | `order` scale | Renumber per `(language, level)` group with gaps of 10. Do not carry a global scheme forward |
 | D36 | Scanned extensions | `.cs`, `.fs` **and** `.vb`, each with its own comment syntax. The `(language, level)` grouping needs F#/VB examples to carry frontmatter at all |
@@ -47,7 +47,7 @@ This is the rationale; the rules themselves are in [Example Metadata Schema](met
 | D41 | Missing translations | **Fall back to English**, encoded as `TitleFor` / `DescriptionFor` on the model so no consumer can forget it. A missing `cs` must read as "not translated yet", never as a blank label |
 | D42 | Playgrounds | `Example_2D_Playground` and `Example_Bepu_Playground` get **no metadata block at all**. They are scratch space, not examples |
 | D43 | Legacy Bullet variants | **They keep their docs.** Documented like any other example |
-| D45 | `Example17_SignalR_Blazor` | `docs: false`. It is the server half of a pair that one page documents, and it stays in the launchers so the pair can be started |
+| D45 | `E13_SignalR_Blazor` | `docs: false`. It is the server half of a pair that one page documents, and it stays in the launchers so the pair can be started |
 | D46 | Duplicate `order` | **Warning, not an error.** The tie breaks on `slug`, which is required and unique, so the order stays stable and reproducible - the author has just not chosen between the two |
 | D47 | Where findings are written | Warnings and errors to **stderr**, everything else to stdout. The pre-build hook raises `StandardErrorImportance` and lowers `StandardOutputImportance`, so a clean build prints one line and a build with something to say prints every finding |
 | D48 | Metadata block in the rendered code listing | Excluded with a DocFX **line range**, computed at generation time - see below |
@@ -105,7 +105,7 @@ A code include renders the whole file, metadata block and all - so every generat
 DocFX takes a **line range** on a code include, and the generator already knows where the block starts, because the extractor found it:
 
 ```markdown
-[!code-csharp[](../../../../examples/code-only/Example01_Letters3D/Program.cs?start=1&end=86)]
+[!code-csharp[](../../../../examples/code-only/E03_3D_MeshText/Program.cs?start=1&end=86)]
 ```
 
 Chosen over the two obvious alternatives: a DocFX post-processing plugin (a build-time dependency to maintain against DocFX versions) and a script rewriting the generated HTML (fragile, and skipped by anyone who rebuilds the site by hand). A line range needs neither and behaves identically under `docfx serve`.
@@ -124,7 +124,7 @@ If the depth ever does bother people, the options are:
 
 ## D55 - a deliberate outcome is not a warning
 
-Two examples list `Example07_CubeClicker` in their `related:`. It is `enabled: false`, so it never reaches the manifest and the link is dropped - and the validator warned about that on **every build**, twice, once per launcher project.
+Two examples list `E04_CubeClicker` in their `related:`. It is `enabled: false`, so it never reaches the manifest and the link is dropped - and the validator warned about that on **every build**, twice, once per launcher project.
 
 The warning was accurate and completely unactionable. Nothing is wrong: the link is meant to come back when the example does. Its old wording conflated two genuinely different situations - "this project has no metadata block yet" (an authoring gap worth fixing) and "this project is deliberately unpublished" (working as designed) - under one severity, so the only way to silence it was to delete information that should be kept.
 

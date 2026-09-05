@@ -25,6 +25,6 @@ The `Program.cs` file shows how to:
 
 ![Charts 3D](media/charts-3d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example23_Charts3D).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_Charts).
 
-[!code-csharp[](../../../../examples/code-only/Example23_Charts3D/Program.cs?start=1&end=305)]
+[!code-csharp[](../../../../examples/code-only/E11_3D_Charts/Program.cs?start=1&end=305)]

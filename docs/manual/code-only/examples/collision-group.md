@@ -18,6 +18,6 @@ This configuration ensures that:
 
 ![Stride UI Example](media/stride-game-engine-example16-collision-group.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example16_CollisionGroup).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_CollisionGroup).
 
-[!code-csharp[](../../../../examples/code-only/Example16_CollisionGroup/Program.cs?start=1&end=61)]
+[!code-csharp[](../../../../examples/code-only/E05_3D_CollisionGroup/Program.cs?start=1&end=61)]

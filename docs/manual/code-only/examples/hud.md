@@ -22,6 +22,6 @@ The `Program.cs` file shows how to:
 - A theme that leaves warning and danger colours alone
 - A simulated ship as functions of time, frozen by freezing the clock
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example03_HUD).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E03_2D_HUD).
 
-[!code-csharp[](../../../../examples/code-only/Example03_HUD/Program.cs?start=1&end=967)]
+[!code-csharp[](../../../../examples/code-only/E03_2D_HUD/Program.cs?start=1&end=980)]

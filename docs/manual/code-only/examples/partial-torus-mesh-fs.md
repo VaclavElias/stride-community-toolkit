@@ -20,6 +20,6 @@ For more details of `MeshBuilder`, refer to our [MeshBuilder manual](../../rende
 
 [!INCLUDE [back-culling](../../../includes/manual/examples/back-culling.md)]
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example05_PartialTorus_FSharp).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E07_3D_PartialTorus_FSharp).
 
-[!code-csharp[](../../../../examples/code-only/Example05_PartialTorus_FSharp/Program.fs?start=1&end=121)]
+[!code-csharp[](../../../../examples/code-only/E07_3D_PartialTorus_FSharp/Program.fs?start=1&end=121)]

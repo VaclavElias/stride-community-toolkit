@@ -10,6 +10,6 @@ The `Program.cs` file shows how to:
 
 ![Mesh Outline Example](media/stride-game-engine-example-13-mesh-outline.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example13_MeshOutline).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_MeshOutline).
 
-[!code-csharp[](../../../../examples/code-only/Example13_MeshOutline/Program.cs?start=1&end=66)]
+[!code-csharp[](../../../../examples/code-only/E09_3D_MeshOutline/Program.cs?start=1&end=66)]

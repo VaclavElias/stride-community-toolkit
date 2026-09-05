@@ -15,6 +15,6 @@ This example demonstrates fundamental concepts of particle systems in Stride, sh
 
 ![Stride UI Example](media/stride-game-engine-example-12-particles.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example12_Particles).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_Particles).
 
-[!code-csharp[](../../../../examples/code-only/Example12_Particles/Program.cs?start=1&end=112)]
+[!code-csharp[](../../../../examples/code-only/E09_3D_Particles/Program.cs?start=1&end=112)]

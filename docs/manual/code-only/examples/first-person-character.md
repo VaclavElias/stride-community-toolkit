@@ -24,6 +24,6 @@ The `Program.cs` file shows how to:
 
 ![First-Person Character (Bepu)](media/first-person-character.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example20_BepuFirstPersonCharacter).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_FirstPersonCharacter).
 
-[!code-csharp[](../../../../examples/code-only/Example20_BepuFirstPersonCharacter/Program.cs?start=1&end=68)]
+[!code-csharp[](../../../../examples/code-only/E05_3D_FirstPersonCharacter/Program.cs?start=1&end=68)]

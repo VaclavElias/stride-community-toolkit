@@ -37,6 +37,6 @@ The `Program.cs` file shows how to:
 
 ![Rope - building a stable chain of constraints](media/constraint-rope.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example15_Constraint_Rope).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_Constraints_Rope).
 
-[!code-csharp[](../../../../examples/code-only/Example15_Constraint_Rope/Program.cs?start=1&end=221)]
+[!code-csharp[](../../../../examples/code-only/E05_3D_Constraints_Rope/Program.cs?start=1&end=221)]

@@ -10,6 +10,6 @@ The example also includes an interactive environment where users can adjust the 
 
 ![Stride UI Example](media/stride-game-engine-example-01-material.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Material).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_3D_Material).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Material/Program.cs?start=1&end=166)]
+[!code-csharp[](../../../../examples/code-only/E02_3D_Material/Program.cs?start=1&end=166)]

@@ -25,6 +25,6 @@ The `Program.cs` file shows how to:
 
 ![Junkyard (Box2D)](media/junkyard-box2d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example02_Junkyard_Box2D).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E06_Box2D_Junkyard).
 
-[!code-csharp[](../../../../examples/code-only/Example02_Junkyard_Box2D/Program.cs?start=1&end=297)]
+[!code-csharp[](../../../../examples/code-only/E06_Box2D_Junkyard/Program.cs?start=1&end=297)]

@@ -89,7 +89,7 @@
   - name: Debug Shapes Usage
     href: debug-shapes-usage.md
   - name: Shapes playground
-    href: shapes-playground.md
+    href: shape-batch.md
   - name: Stride UI - Capsule with rigid body and Window
     href: stride-ui-capsule-with-rigid-body.md
   - name: Stride UI - Button Hover Animation
@@ -143,8 +143,8 @@
     href: imgui-net.md
   - name: Stride + SignalR
     href: stride-signalr.md
-  - name: Game - Cubicle Calamity
-    href: cubicle-calamity.md
+  - name: Game - Cube Collapse
+    href: cube-collapse.md
 - name: C# Other (2)
   href: other-examples.md
   items:

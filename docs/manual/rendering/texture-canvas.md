@@ -217,6 +217,6 @@ canvas.DrawTexture(
 | Cover   | AnyBottom   | ![](media/source.png) | ![](media/target-h.png) | ![](media/cover-bottom.png)       |
 | Cover   | AnyCenter   | ![](media/source.png) | ![](media/target.png)   | ![](media/cover-center.png)       |
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example06_ImageProcessing).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_2D_ImageProcessing).
 
-[!code-csharp[](../../../examples/code-only/Example06_ImageProcessing/Program.cs)]
+[!code-csharp[](../../../examples/code-only/E09_2D_ImageProcessing/Program.cs)]

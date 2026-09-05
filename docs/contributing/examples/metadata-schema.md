@@ -33,7 +33,7 @@ concepts:                          # Becomes the "The Program.cs file shows how 
   - Writing a custom RootRenderFeature
 tags: [3D, Rendering, Shader]
 related:                           # Project names; the generator resolves them to slugs
-  - Example13_RootRendererShader
+  - E09_3D_RootRendererShader
 
 # --- docs generation ------------------------------------------------------
 docs: true

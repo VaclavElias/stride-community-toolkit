@@ -22,6 +22,6 @@ The `Program.cs` file shows how to:
 
 ![Wav File](media/wav-file.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example27_Audio_WavFile).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E12_Audio_WavFile).
 
-[!code-csharp[](../../../../examples/code-only/Example27_Audio_WavFile/Program.cs?start=1&end=157)]
+[!code-csharp[](../../../../examples/code-only/E12_Audio_WavFile/Program.cs?start=1&end=157)]

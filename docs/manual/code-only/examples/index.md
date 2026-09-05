@@ -28,7 +28,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="file-based-app.md">Basic3D Scene (Capsule) - File-Based App</a></h3>
                 <p><span class="badge text-bg-secondary">Shapes</span></p>
-                <p class="card-text">The same minimal 3D scene as Example01_Basic3DScene, written as a .NET 10 file-based app: a single C# file with no .csproj.</p>
+                <p class="card-text">The same minimal 3D scene as E01_3D_BasicScene, written as a .NET 10 file-based app: a single C# file with no .csproj.</p>
             </div>
         </div>
     </div>
@@ -58,7 +58,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="capsule-with-rigid-body-bullet.md">Basic3D Scene (Capsule) - Bullet Physics</a></h3>
                 <p><span class="badge text-bg-secondary">Shapes</span></p>
-                <p class="card-text">The same first scene as Example01_Basic3DScene, running on the legacy Bullet physics engine instead of Bepu.</p>
+                <p class="card-text">The same first scene as E01_3D_BasicScene, running on the legacy Bullet physics engine instead of Bepu.</p>
             </div>
         </div>
     </div>
@@ -394,9 +394,9 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/shapes-playground.webp" class="card-img-top" alt="Screenshot of the Shapes Playground example" width="1280" height="720" loading="lazy">
+            <img src="media/shape-batch.webp" class="card-img-top" alt="Screenshot of the ShapeBatch Shapes example" width="1280" height="720" loading="lazy">
             <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="shapes-playground.md">Shapes Playground</a></h3>
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="shape-batch.md">ShapeBatch Shapes</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
                 <p class="card-text">The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, glowing HUD panels with world text on them, genuinely thick 3D lines and...</p>
             </div>
@@ -659,9 +659,9 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/cubicle-calamity.webp" class="card-img-top" alt="Screenshot of the Game - Cubicle Calamity example" width="1280" height="720" loading="lazy">
+            <img src="media/cube-collapse.webp" class="card-img-top" alt="Screenshot of the Game - Cube Collapse example" width="1280" height="720" loading="lazy">
             <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="cubicle-calamity.md">Game - Cubicle Calamity</a></h3>
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="cube-collapse.md">Game - Cube Collapse</a></h3>
                 <p><span class="badge text-bg-secondary">Game</span></p>
                 <p class="card-text">A colour-match collapse puzzle built entirely from code.</p>
             </div>

@@ -22,6 +22,6 @@ The `Program.cs` file shows how to:
 
 ![Simple Geometry (Labelled Triangle)](media/simple-geometry.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example05_SimpleGeometry).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E07_3D_SimpleGeometry).
 
-[!code-csharp[](../../../../examples/code-only/Example05_SimpleGeometry/Program.cs?start=1&end=162)]
+[!code-csharp[](../../../../examples/code-only/E07_3D_SimpleGeometry/Program.cs?start=1&end=162)]

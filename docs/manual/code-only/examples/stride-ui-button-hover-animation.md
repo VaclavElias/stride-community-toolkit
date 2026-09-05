@@ -24,6 +24,6 @@ The `Program.cs` file shows how to:
 
 ![Stride UI - Button Hover Animation](media/stride-ui-button-hover-animation.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example03_StrideUI_ButtonHoverAnimation).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_StrideUI_ButtonHoverAnimation).
 
-[!code-csharp[](../../../../examples/code-only/Example03_StrideUI_ButtonHoverAnimation/Program.cs?start=1&end=109)]
+[!code-csharp[](../../../../examples/code-only/E04_StrideUI_ButtonHoverAnimation/Program.cs?start=1&end=109)]

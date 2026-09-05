@@ -20,6 +20,6 @@ The `Program.cs` file shows how to:
 
 ![Jitter2 Physics Integration](media/jitter2-physics.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example19_Jitter2Physics).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E06_Jitter2).
 
-[!code-csharp[](../../../../examples/code-only/Example19_Jitter2Physics/Program.cs?start=1&end=136)]
+[!code-csharp[](../../../../examples/code-only/E06_Jitter2/Program.cs?start=1&end=136)]

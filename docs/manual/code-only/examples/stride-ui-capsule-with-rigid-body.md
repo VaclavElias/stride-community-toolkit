@@ -16,6 +16,6 @@ This modular approach makes the code easier to understand and maintain. Each met
 
 ![Stride UI Example](media/stride-game-engine-example03-stride-ui-basic-window.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example03_StrideUI_CapsuleAndWindow).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_StrideUI_BasicWindow).
 
-[!code-csharp[](../../../../examples/code-only/Example03_StrideUI_CapsuleAndWindow/Program.cs?start=1&end=88)]
+[!code-csharp[](../../../../examples/code-only/E04_StrideUI_BasicWindow/Program.cs?start=1&end=88)]

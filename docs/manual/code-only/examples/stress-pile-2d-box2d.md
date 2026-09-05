@@ -27,6 +27,6 @@ The `Program.cs` file shows how to:
 
 ![Basic 2D Scene (Stress Pile, Box2D)](media/stress-pile-2d-box2d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic2DScene_StressPile_Box2D).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E10_2D_StressPile_Box2D).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic2DScene_StressPile_Box2D/Program.cs?start=1&end=509)]
+[!code-csharp[](../../../../examples/code-only/E10_2D_StressPile_Box2D/Program.cs?start=1&end=509)]

@@ -6,6 +6,6 @@ The cube is positioned at `(1f, 0.5f, 3f)` in the 3D world space. This example i
 
 ![Stride UI Example](media/stride-game-engine-example02-give-me-cube.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example02_GiveMeACube).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_3D_GiveMeACube).
 
-[!code-csharp[](../../../../examples/code-only/Example02_GiveMeACube/Program.cs?start=1&end=110)]
+[!code-csharp[](../../../../examples/code-only/E02_3D_GiveMeACube/Program.cs?start=1&end=110)]

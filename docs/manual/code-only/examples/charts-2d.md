@@ -26,6 +26,6 @@ The `Program.cs` file shows how to:
 
 ![Charts 2D](media/charts-2d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example23_Charts2D).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_2D_Charts).
 
-[!code-csharp[](../../../../examples/code-only/Example23_Charts2D/Program.cs?start=1&end=270)]
+[!code-csharp[](../../../../examples/code-only/E11_2D_Charts/Program.cs?start=1&end=270)]

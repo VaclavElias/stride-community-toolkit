@@ -4,7 +4,7 @@ Constraints fail quietly. A joint that never moves, a motor that does nothing, a
 joint all produce the same output: no error, no warning, no log line.
 
 Every section below starts with what you actually observe. All of it was found by building
-`Example15_Constraint_Motors` and measuring the resulting angular velocities, not by reading the API.
+`E05_3D_Constraints_Motors` and measuring the resulting angular velocities, not by reading the API.
 
 > [!NOTE]
 > A companion to [Bepu: Who Owns the Transform?](bepu-transform-ownership.md), which covers the

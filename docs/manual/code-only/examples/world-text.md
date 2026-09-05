@@ -24,6 +24,6 @@ The `Program.cs` file shows how to:
 
 ![World Text (In-Scene)](media/world-text.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_WorldText).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E03_3D_WorldText).
 
-[!code-csharp[](../../../../examples/code-only/Example01_WorldText/Program.cs?start=1&end=186)]
+[!code-csharp[](../../../../examples/code-only/E03_3D_WorldText/Program.cs?start=1&end=186)]

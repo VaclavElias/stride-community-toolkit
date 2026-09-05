@@ -13,6 +13,6 @@ For the full solution, including both the Stride project and the minimal Blazor 
 
 ![Stride + SignalR Example](media/stride-game-engine-example17-signalr.webp)
 
-View the Stride example on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example17_SignalR), and the minimal Blazor server app with SignalR hub [here](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example17_SignalR_Blazor).
+View the Stride example on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E13_SignalR), and the minimal Blazor server app with SignalR hub [here](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E13_SignalR_Blazor).
 
-[!code-csharp[](../../../../examples/code-only/Example17_SignalR/Program.cs?start=1&end=22)]
+[!code-csharp[](../../../../examples/code-only/E13_SignalR/Program.cs?start=1&end=22)]

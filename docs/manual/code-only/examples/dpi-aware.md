@@ -25,6 +25,6 @@ The `Program.cs` file shows how to:
 
 ![DPI-Aware Window](media/dpi-aware.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic3DScene_DPI_Aware).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E08_DpiAware).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic3DScene_DPI_Aware/Program.cs?start=1&end=46)]
+[!code-csharp[](../../../../examples/code-only/E08_DpiAware/Program.cs?start=1&end=46)]

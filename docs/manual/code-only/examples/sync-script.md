@@ -23,6 +23,6 @@ The `Program.cs` file shows how to:
 
 ![SyncScript - moving a body every frame](media/sync-script.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic3DScene_SyncScript).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_3D_SyncScript).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic3DScene_SyncScript/Program.cs?start=1&end=27)]
+[!code-csharp[](../../../../examples/code-only/E02_3D_SyncScript/Program.cs?start=1&end=27)]

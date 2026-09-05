@@ -4,6 +4,6 @@ This example sets up a basic 3D scene and adds debugging visuals. A special enti
 
 ![Stride UI Example](media/stride-game-engine-example08-debug-shapes.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example08_DebugShapes).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E08_3D_DebugShapes).
 
-[!code-csharp[](../../../../examples/code-only/Example08_DebugShapes/Program.cs?start=1&end=38)]
+[!code-csharp[](../../../../examples/code-only/E08_3D_DebugShapes/Program.cs?start=1&end=38)]

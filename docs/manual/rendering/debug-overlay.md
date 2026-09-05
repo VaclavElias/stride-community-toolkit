@@ -16,7 +16,7 @@ pixel text that a 4K display makes unreadable. The overlay exists so that text h
 ## Adding text
 
 Get the shared instance and add a section. The callback runs every frame the overlay is drawn, so
-values that change need no pushing - this is `Example01_Basic3DScene_Primitives`:
+values that change need no pushing - this is `E02_3D_Primitives`:
 
 ```csharp
 var overlay = DebugOverlay.GetOrCreate(game);
@@ -48,7 +48,7 @@ section can be disabled, collapsed or removed later.
 > [!TIP]
 > Something that already knows how to describe itself as lines - `DebugTextDropdown.GetLines()`, for
 > example - plugs straight in: `overlay.AddSection("Spawn", () => spawnMenu.GetLines())`. That is what
-> keeps the spawn menu in `Example01_Basic2DScene_SpawnMenu` in the same block as the camera help
+> keeps the spawn menu in `E04_2D_SpawnMenu` in the same block as the camera help
 > instead of being a second patch of text somewhere else.
 
 ## Keys and position
@@ -110,7 +110,7 @@ picked by `FontFamily`:
 
 The first family found in the system font folders wins. Monospace is the default for the same reason
 Stride's own debug font is fixed-width: columns line up, a number does not shift its neighbours as its
-digits change, and text aligned with spaces keeps its shape - `Example22_Instancing_EntityTransform`
+digits change, and text aligned with spaces keeps its shape - `E10_3D_Instancing_EntityTransform`
 lays out its comparison table with `{count,6}` and would fall apart in a proportional font.
 
 To be specific rather than pick a family:
@@ -174,7 +174,7 @@ unscaled pixels overrides the calculation entirely.
 
 ## Where it is used in the toolkit
 
-| Piece | In `Example23_Charts2D` | Concept |
+| Piece | In `E11_2D_Charts` | Concept |
 |---|---|---|
 | `DebugOverlay.GetOrCreate(game)` | `Program.cs`, `Start` | one shared instance, registered as a service |
 | `WindowsDpiManager.EnablePerMonitorV2()` | `Program.cs`, before `new Game()` | a sharp window; the overlay's size then follows `DisplayScale` on its own |

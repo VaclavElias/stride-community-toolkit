@@ -32,7 +32,7 @@ One metadata block, in the example's own entry file. There is nothing else to up
       - 3D
       - Physics
     related:
-      - Example01_Basic3DScene
+      - E01_3D_BasicScene
     enabled: true
     created: 2026-08-23
     ---

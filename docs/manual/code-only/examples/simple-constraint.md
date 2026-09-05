@@ -11,6 +11,6 @@ The distance servo constraint connects the two spheres and enforces a target dis
 
 ![Stride UI Example](media/stride-game-engine-example-15-simple-constraint.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example15_Constraint_Simple).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_Constraints_Simple).
 
-[!code-csharp[](../../../../examples/code-only/Example15_Constraint_Simple/Program.cs?start=1&end=56)]
+[!code-csharp[](../../../../examples/code-only/E05_3D_Constraints_Simple/Program.cs?start=1&end=56)]

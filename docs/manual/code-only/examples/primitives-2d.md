@@ -17,6 +17,6 @@ The `Program.cs` file shows how to:
 
 ![Basic2D Scene (Multiple Primitives)](media/primitives-2d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic2DScene_Primitives).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_2D_Primitives).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic2DScene_Primitives/Program.cs?start=1&end=48)]
+[!code-csharp[](../../../../examples/code-only/E02_2D_Primitives/Program.cs?start=1&end=48)]

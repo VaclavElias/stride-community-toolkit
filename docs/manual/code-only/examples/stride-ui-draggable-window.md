@@ -25,6 +25,6 @@ The project also includes cleanup functionality to remove objects that fall belo
 
 ![Stride UI Example](media/stride-game-engine-example-10-draggable-window.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example10_StrideUI_DragAndDrop).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_StrideUI_DragAndDrop).
 
-[!code-csharp[](../../../../examples/code-only/Example10_StrideUI_DragAndDrop/Program.cs?start=1&end=84)]
+[!code-csharp[](../../../../examples/code-only/E04_StrideUI_DragAndDrop/Program.cs?start=1&end=84)]

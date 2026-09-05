@@ -22,6 +22,6 @@ The `Program.cs` file shows how to:
 
 ![Basic2D Scene (Debug Rendering)](media/debug-render-2d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic2DScene_DebugRender).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E08_2D_DebugRender).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic2DScene_DebugRender/Program.cs?start=1&end=91)]
+[!code-csharp[](../../../../examples/code-only/E08_2D_DebugRender/Program.cs?start=1&end=91)]

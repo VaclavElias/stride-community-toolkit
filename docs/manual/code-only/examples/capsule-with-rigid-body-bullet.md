@@ -5,7 +5,7 @@ slug: capsule-with-rigid-body-bullet
 
 # Basic3D Scene (Capsule) - Bullet Physics
 
-The same first scene as Example01_Basic3DScene, running on the legacy Bullet physics engine instead
+The same first scene as E01_3D_BasicScene, running on the legacy Bullet physics engine instead
 of Bepu. The scene code is character-for-character identical; the only difference is which toolkit
 package is referenced and which namespace is opened. That is the point of the example - physics is
 swapped at the project level, not by rewriting the scene.
@@ -19,6 +19,6 @@ The `Program.cs` file shows how to:
 
 ![Basic3D Scene (Capsule) - Bullet Physics](media/capsule-with-rigid-body-bullet.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic3DScene_BulletPhysics).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E01_3D_BasicScene_Bullet).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic3DScene_BulletPhysics/Program.cs?start=1&end=20)]
+[!code-csharp[](../../../../examples/code-only/E01_3D_BasicScene_Bullet/Program.cs?start=1&end=20)]

@@ -13,6 +13,6 @@ This example shows how to:
 
 ![Box2D Physics Example](media/stride-game-engine-example-18-box2d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example18_Box2DPhysics).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E06_Box2D).
 
-[!code-csharp[](../../../../examples/code-only/Example18_Box2DPhysics/Program.cs?start=1&end=72)]
+[!code-csharp[](../../../../examples/code-only/E06_Box2D/Program.cs?start=1&end=72)]
