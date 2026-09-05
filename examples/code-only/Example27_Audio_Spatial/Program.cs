@@ -29,7 +29,7 @@ using System.Reflection;
 // and spatialises with its own model. T recreates the instance with the flag flipped so the two
 // can be compared.
 
-const float OrbitRadius = 3.5f;
+const float OrbitRadius = 5f;
 const float OrbitSpeed = 0.6f;         // radians per second
 
 var angle = 0f;
@@ -58,7 +58,8 @@ void Start(Scene scene)
     game.AddSkybox();
     game.AddProfiler();
 
-    game.SetCameraPosition(new Vector3(0, 2.2f, -6.5f));
+    // Inside the orbit, so the orb passes beside and behind the listener on every lap.
+    game.SetCameraPosition(new Vector3(0, 2.2f, -4));
     game.SetCameraRotation(new Vector3(180, -10, 0));
 
     var pillar = game.Create3DPrimitive(PrimitiveModelType.Cylinder, new()
