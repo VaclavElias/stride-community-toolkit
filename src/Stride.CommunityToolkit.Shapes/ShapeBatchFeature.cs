@@ -1,4 +1,6 @@
+using Stride.CommunityToolkit.Rendering;
 using Stride.Core.Mathematics;
+using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using System.Runtime.InteropServices;
@@ -18,6 +20,7 @@ public class ShapeBatchFeature : RootRenderFeature
     private Buffer? _quadBuffer;
     private Buffer? _instanceBuffer;
     private VertexDeclaration? _vertexDeclaration;
+    private DisplayScale? _displayScale;
 
     /// <inheritdoc/>
     public override Type SupportedRenderObjectType => typeof(ShapeBatch);
@@ -28,6 +31,13 @@ public class ShapeBatchFeature : RootRenderFeature
         _effect = new DynamicEffectInstance("ShapeShader");
         _effect.Initialize(Context.Services);
         _effect.UpdateEffect(Context.GraphicsDevice);
+
+        // The display's scale, for batches whose pixel widths follow it. Absent outside a game -
+        // the editor, a test harness - which leaves the widths at exactly the pixels asked for.
+        if (Context.Services.GetService<IGame>() is { } game)
+        {
+            _displayScale = DisplayScale.GetOrCreate(game);
+        }
 
         _vertexDeclaration = new VertexDeclaration(VertexElement.Position<Vector2>());
 
@@ -85,9 +95,14 @@ public class ShapeBatchFeature : RootRenderFeature
 
             UploadInstances(context, instances);
 
+            // A display at 150% has 1.5 physical pixels where a 100% one has one, so the same width
+            // in "pixels" needs 1.5 of them: fewer pixels per world unit, as the shader sees it, is
+            // what makes every pixel-measured width - border, glow, dashes - come out that much wider
+            var displayScale = batch.AutoScale && _displayScale is not null ? _displayScale.Value : 1f;
+
             _effect.UpdateEffect(context.GraphicsDevice);
             _effect.Parameters.Set(ShapeShaderKeys.ViewProjection, renderView.ViewProjection);
-            _effect.Parameters.Set(ShapeShaderKeys.PixelScale, pixelScale);
+            _effect.Parameters.Set(ShapeShaderKeys.PixelScale, pixelScale / displayScale);
             _effect.Parameters.Set(ShapeShaderKeys.CameraRight, cameraRight);
             _effect.Parameters.Set(ShapeShaderKeys.CameraUp, cameraUp);
             _effect.Parameters.Set(ShapeShaderKeys.EyePosition, eyePosition);

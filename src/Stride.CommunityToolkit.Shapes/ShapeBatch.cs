@@ -6,7 +6,9 @@ namespace Stride.CommunityToolkit.Shapes;
 /// <summary>
 /// Immediate-mode drawing of filled convex shapes whose outline stays a constant number of pixels
 /// wide at any zoom, distance or window size, because the shader measures it per fragment from a
-/// signed distance function instead of building it as geometry.
+/// signed distance function instead of building it as geometry. "Pixels" here means pixels on a
+/// 100% display: the widths follow the display's scale by default (see <see cref="AutoScale"/>),
+/// so they are the same size to the eye everywhere.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -77,6 +79,20 @@ public sealed class ShapeBatch : RenderObject
     /// alpha under an opacity of a half draws at a quarter.
     /// </remarks>
     public float Opacity { get; set; } = 1f;
+
+    /// <summary>
+    /// Whether the pixel-measured widths - border, glow, dashes, pixel lines - follow the display's
+    /// scale, so a 2-pixel border is the same width to the eye on a 150% laptop as on a 100%
+    /// monitor. Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// The figure comes from <see cref="Rendering.DisplayScale"/>, shared with everything else in the
+    /// toolkit that draws in pixels, and is re-read when the window moves to another monitor. Turn
+    /// it off to get exactly the pixels asked for - a screenshot at a known size, or a game applying
+    /// its own UI-scale setting through <see cref="Rendering.DisplayScale.Override"/> and nothing
+    /// else should compound it. World-unit sizes are never affected either way.
+    /// </remarks>
+    public bool AutoScale { get; set; } = true;
 
     /// <summary>
     /// Whether shapes are tested against the depth buffer, so scene geometry can occlude them. They
