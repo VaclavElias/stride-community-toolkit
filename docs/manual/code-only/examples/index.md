@@ -109,6 +109,26 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/wav-file.webp" class="card-img-top" alt="Screenshot of the Wav File example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="wav-file.md">Wav File</a></h3>
+                <p><span class="badge text-bg-secondary">Audio</span></p>
+                <p class="card-text">Play a .wav read from disk at runtime, with no compiled asset: LoadWav decodes the file into memory and each CreateInstance is an independent...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/procedural-sound.webp" class="card-img-top" alt="Screenshot of the Procedural Sound example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="procedural-sound.md">Procedural Sound</a></h3>
+                <p><span class="badge text-bg-secondary">Audio</span></p>
+                <p class="card-text">A tone with no sound file: a callback computes the samples as they play.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/stride-game-engine-example02-give-me-cube.webp" class="card-img-top" alt="Screenshot of the Give Me a Cube example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="give-me-cube-body.md">Give Me a Cube</a></h3>
@@ -183,7 +203,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="dpi-aware.md">DPI-Aware Window</a></h3>
                 <p><span class="badge text-bg-secondary">Debug</span></p>
-                <p class="card-text">The capsule scene again, with one difference that is not in the C# at all: an app.manifest declaring the process per-monitor DPI aware, referenced...</p>
+                <p class="card-text">The capsule scene again, with two differences.</p>
             </div>
         </div>
     </div>
@@ -259,6 +279,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="raycast.md">Raycast</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
                 <p class="card-text">Click the ground and a sphere is kicked towards where you clicked; click the sphere and it stops dead.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/spatial-sound.webp" class="card-img-top" alt="Screenshot of the Spatial Sound example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="spatial-sound.md">Spatial Sound</a></h3>
+                <p><span class="badge text-bg-secondary">Audio</span></p>
+                <p class="card-text">3D positional audio for a runtime sound: a looping pad on an orb that circles a pillar, heard from the camera.</p>
             </div>
         </div>
     </div>

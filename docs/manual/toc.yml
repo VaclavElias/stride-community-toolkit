@@ -29,6 +29,8 @@
   items:
     - name: Animation
       href: animation-extensions/index.md
+    - name: Audio
+      href: audio-extensions/index.md
     - name: Camera
       topicHref: camera-extensions/index.md
       items:

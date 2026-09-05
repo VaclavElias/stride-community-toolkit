@@ -14,7 +14,7 @@
     href: basic-2d-scene-bullet.md
   - name: Basic3D Scene (Capsule) - Bullet Physics
     href: capsule-with-rigid-body-bullet.md
-- name: C# Beginner (12)
+- name: C# Beginner (15)
   href: beginner-examples.md
   items:
   - name: Basic3D Scene (Every Primitive)
@@ -25,6 +25,10 @@
     href: post-effects.md
   - name: Mesh Line
     href: mesh-line.md
+  - name: Wav File
+    href: wav-file.md
+  - name: Procedural Sound
+    href: procedural-sound.md
   - name: Give me a cube
     href: give-me-cube-body.md
   - name: SyncScript - moving a body every frame
@@ -33,6 +37,8 @@
     href: entity-text.md
   - name: World Text (In-Scene)
     href: world-text.md
+  - name: 2D Panels and Text
+    href: 2d-scene-panels.md
   - name: Basic2D Scene (Multiple Primitives)
     href: primitives-2d.md
   - name: Basic2D Scene (Falling Shapes)
@@ -41,7 +47,7 @@
     href: debug-render-2d.md
   - name: DPI-Aware Window
     href: dpi-aware.md
-- name: C# Intermediate (25)
+- name: C# Intermediate (27)
   href: intermediate-examples.md
   items:
   - name: Procedural Geometry
@@ -58,6 +64,10 @@
     href: simulation-update.md
   - name: Raycast
     href: raycast.md
+  - name: Ship HUD
+    href: hud.md
+  - name: Spatial Sound
+    href: spatial-sound.md
   - name: Collision Group
     href: collision-group.md
   - name: Collision Layer
