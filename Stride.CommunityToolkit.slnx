@@ -31,6 +31,7 @@
   <Project Path="examples/code-only/Example02_Junkyard_Playground_Box2D/Example02_Junkyard_Playground_Box2D.csproj" />
     <Project Path="examples/code-only/Example03_StrideUI_CapsuleAndWindow/Example03_StrideUI_CapsuleAndWindow.csproj" />
     <Project Path="examples/code-only/Example03_StrideUI_ButtonHoverAnimation/Example03_StrideUI_ButtonHoverAnimation.csproj" />
+    <Project Path="examples/code-only/Example03_2DScene_Panels/Example03_2DScene_Panels.csproj" />
     <Project Path="examples/code-only/Example04_MyraUI/Example04_MyraUI.csproj">
       <Build Solution="Debug|*" Project="false" />
     </Project>
