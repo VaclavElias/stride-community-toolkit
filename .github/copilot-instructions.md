@@ -310,7 +310,7 @@ Guidance for the Bepu demos specifically:
 ## Adding a new example
 
 - Create a folder under `examples/code-only/` named `Example<NN>_<Name>`, optionally with a
-  `_<Variant>` suffix. Existing variants each get their own folder (`Example01_Basic3DScene_Primitives`,
+  `_<Variant>` suffix. Existing variants each get their own folder (`E02_3D_Primitives`,
   `_MeshLine`, `_FSharp`), not sibling files in a shared folder.
 - Add the project to `Stride.CommunityToolkit.slnx`.
 - End `Program.cs` with an `---example-metadata` YAML block inside a block comment. Copy the shape
@@ -337,8 +337,8 @@ Code-only examples are GUI applications that run until the window is closed, so 
 
 ```powershell
 $out = "$env:TEMP\example-run.txt"
-dotnet build examples\code-only\Example02_GiveMeACube\Example02_GiveMeACube.csproj -v q --nologo
-$exe = "examples\code-only\Example02_GiveMeACube\bin\Debug\net10.0\Example02_GiveMeACube.exe"
+dotnet build examples\code-only\E02_3D_GiveMeACube\E02_3D_GiveMeACube.csproj -v q --nologo
+$exe = "examples\code-only\E02_3D_GiveMeACube\bin\Debug\net10.0\E02_3D_GiveMeACube.exe"
 $process = Start-Process $exe -PassThru -RedirectStandardOutput $out -WorkingDirectory (Split-Path $exe)
 Start-Sleep -Seconds 12
 if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
