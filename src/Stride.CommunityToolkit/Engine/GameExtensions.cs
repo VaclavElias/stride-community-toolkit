@@ -7,6 +7,7 @@ using Stride.Engine;
 using Stride.Engine.Processors;
 using Stride.Games;
 using Stride.Graphics;
+using Stride.Graphics.Font;
 using Stride.Input;
 using Stride.Rendering;
 using Stride.Rendering.Colors;
@@ -791,6 +792,28 @@ public static partial class GameExtensions
                                  throw new InvalidOperationException(GameDefaults.GraphicsCompositorNotSet);
 
         graphicsCompositor.EnsureSceneRenderer(() => new EntityTextRenderer());
+    }
+
+    /// <summary>
+    /// Loads a font installed on the machine, ready to hand to any component that takes a
+    /// <see cref="SpriteFont"/>.
+    /// </summary>
+    /// <param name="game">The game whose services provide Stride's font system.</param>
+    /// <param name="family">The family name as the system knows it, such as <c>"Segoe UI"</c>.</param>
+    /// <param name="size">The height the glyphs are rasterised at, in pixels.</param>
+    /// <param name="style">The weight and slant wanted. Defaults to <see cref="FontStyle.Regular"/>.</param>
+    /// <param name="fontFile">A TrueType file to load the family from, for fonts outside the system font folders.</param>
+    /// <returns>The font, or <see langword="null"/> if the family is not installed.</returns>
+    /// <remarks>
+    /// A code-only game has no compiled font assets, so this is how it gets any font other than
+    /// Stride's default one. Load each font once and keep it - see <see cref="SystemFonts"/>, which
+    /// this forwards to and which can also try a list of families in order.
+    /// </remarks>
+    public static SpriteFont? LoadSystemFont(this Game game, string family, float size, FontStyle style = FontStyle.Regular, string? fontFile = null)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+
+        return SystemFonts.Load(game.Services, family, size, style, fontFile);
     }
 
     /// <summary>
