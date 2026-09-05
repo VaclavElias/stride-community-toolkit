@@ -134,13 +134,14 @@ public class Basic3DCameraController : SyncScript
                 return
                 [
                     new("F3: Reposition Help", Color.LightGoldenrodYellow),
+                    new("F4: Hide Help", Color.LightGoldenrodYellow),
+                    new("H: Reset Camera", Color.LightGreen),
                     new("WASD: Move", Color.LightGreen),
                     new("Arrow Keys: Move", Color.LightGreen),
                     new("Q/E: Ascend/Descend", Color.LightGreen),
                     new("Hold Shift: Increase speed", Color.LightGreen),
                     new("Numpad 2/4/6/8: Rotation", Color.LightGreen),
                     new("Right Mouse Button: Rotate", Color.LightGreen),
-                    new("H: Reset Camera", Color.LightGreen),
                     new($"Position: {position.X:0.##}, {position.Y:0.##}, {position.Z:0.##}", Color.Yellow),
                     new($"Rotation (YPR): {MathUtil.RadiansToDegrees(rotation.X):0.##}, {MathUtil.RadiansToDegrees(rotation.Y):0.##}, {MathUtil.RadiansToDegrees(rotation.Z):0.##}", Color.Yellow),
                 ];

@@ -186,7 +186,7 @@ public class Basic2DCameraController : SyncScript
     /// <remarks>
     /// Only applies when <see cref="EnableMouseDragPan"/> is true.
     /// </remarks>
-    public MouseButton MouseDragButton { get; set; } = MouseButton.Middle;
+    public MouseButton MouseDragButton { get; set; } = MouseButton.Right;
 
     /// <summary>
     /// Gets or sets whether on-screen camera instructions are displayed.
@@ -254,6 +254,8 @@ public class Basic2DCameraController : SyncScript
                 var lines = new List<TextElement>
                 {
                     new("F3: Reposition Help", Color.LightGoldenrodYellow),
+                    new("F4: Hide Help", Color.LightGoldenrodYellow),
+                    new("H: Reset Camera"),
                     new(EnableWasdMovement ? "WASD / Arrow Keys: Move" : "Arrow Keys: Move"),
                     new("Hold Shift: Increase speed"),
                     new("Mouse Wheel: Zoom"),
@@ -261,8 +263,6 @@ public class Basic2DCameraController : SyncScript
 
                 if (EnableMouseDragPan)
                     lines.Add(new($"{MouseDragButton} Mouse Drag: Pan"));
-
-                lines.Add(new("H: Reset Camera"));
 
                 // Live state, matching the 3D controller's help: where the camera is and how much of
                 // the world is visible (OrthographicSize is the view height in world units)
