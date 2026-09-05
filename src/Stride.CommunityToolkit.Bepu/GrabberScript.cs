@@ -19,8 +19,8 @@ namespace Stride.CommunityToolkit.Bepu;
 /// the grabbed point toward the cursor and a <see cref="OneBodyAngularServoConstraintComponent"/>
 /// holds the orientation, so the solver stays in charge: the held body still collides, still
 /// pushes other bodies, and cannot be forced through a wall. Teleporting a kinematic body each
-/// frame, the other common way to drag, does none of that - see <c>E05_3D_Constraints</c> for
-/// where that is the right tool.
+/// frame, the other common way to drag, does none of that: the body stops colliding while held
+/// and has no velocity when let go.
 /// </para>
 /// <para>
 /// Tuning follows bepuphysics2's demo grabber: a soft spring (5 Hz, damping ratio 2), a force cap

@@ -92,6 +92,9 @@ game.Run(start: Start, update: Update);
 void Start(Scene scene)
 {
     game.SetupBase3DScene();
+
+    // Pick up and throw any body with the left mouse button (GrabberScript, see E05_3D_Grabber).
+    game.GetCameraEntity().Add(new GrabberScript());
     game.AddSkybox();
     game.AddProfiler();
     game.AddStudioLighting();
@@ -204,6 +207,7 @@ IReadOnlyList<TextElement> BuildInstructions()
         new($"Stable (right): length {Length(stableRope)}   {(stabilised ? $"zero lever arm, {SkipSpan - 1}x skip constraints" : "STABILISATION OFF - now built like the left one")}", Color.LimeGreen),
         new($"Z - Stabilise right rope: {(stabilised ? "ON" : "OFF")}", Color.Yellow),
         new("P - Swing both weights", Color.Yellow),
+        new("Left mouse - pick up a link or a weight and throw it", Color.Yellow),
     ];
 }
 
@@ -268,6 +272,7 @@ concepts:
   - Size for a sphere primitive is its radius, not its diameter
   - Making the topmost segment kinematic to hold the chain up
   - Applying an impulse from the update loop rather than a velocity at build time
+  - Picking up and throwing bodies with GrabberScript
   - "Using helpers: SetupBase3DScene, AddSkybox, AddProfiler"
 tags:
   - 3D

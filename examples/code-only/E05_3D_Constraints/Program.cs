@@ -13,18 +13,15 @@ using Stride.Games;
 using Stride.Input;
 
 // This example demonstrates these constraints: DistanceLimit, DistanceServo, BallSocket, PointOnLineServo
-// The user can drag a golden sphere horizontally and adjust its vertical position with Z and X keys
-// (a kinematic teleport: precise placement, no fling on release. For the other kind of drag - pick
-// up, carry and throw through servo constraints - see E05_3D_Grabber and GrabberScript.)
+// Any body can be picked up, carried and thrown with the left mouse button (GrabberScript on the
+// camera - see E05_3D_Grabber); a middle click on a stacked cube removes it so the stack above falls
 // The scene can be reset by pressing R
 // DistanceLimit: Connects two spheres with a minimum and maximum distance
 // DistanceServo: Connects two spheres with a target distance and spring settings
 // BallSocket: Connects two entities with a ball-and-socket joint
 // PointOnLineServo: Connects a cube to a line with a servo constraint
 
-// Constant vertical speed (units per second) for smooth vertical adjustments.
-const float VerticalSpeed = 4.0f;
-const string DraggableEntityName = "Draggable Sphere";
+const string GoldenSphereName = "Golden Sphere";
 const string ConnectedEntityName = "Connected Sphere";
 
 // Enhanced settings for better sliding
@@ -37,7 +34,6 @@ DebugOverlaySection? instructions = null;
 
 // Game entities and components
 CameraComponent? mainCamera = null;
-BodyComponent? draggableBody = null;
 
 List<Entity?> entities = [];
 List<BodyComponent?> bodies = [];
@@ -56,21 +52,6 @@ collisionMatrix.Set(otherLayer, otherLayer, shouldCollide: true);
 collisionMatrix.Set(cubeLayer, groundLayer, shouldCollide: true);
 collisionMatrix.Set(cubeLayer, otherLayer, shouldCollide: true);
 collisionMatrix.Set(cubeLayer, cubeLayer, shouldCollide: true);
-
-// The fixed Y level for horizontal dragging (captured at drag start)
-float initialDragY = 0;
-
-// The additional vertical offset applied via key presses (starts at 0)
-float verticalOffset = 0;
-
-// The offset between the sphere's center and the initial click point to avoid recentering
-Vector3 dragOffset = Vector3.Zero;
-
-// Last known valid sphere position (used as a fallback)
-Vector3 lastSpherePosition = Vector3.Zero;
-
-// Flag to indicate that the sphere is currently being dragged
-bool isDraggingSphere = false;
 
 // Initialize the game instance
 using var game = new Game();
@@ -94,6 +75,10 @@ void Start(Scene scene)
 
     // Retrieve the active camera from the scene
     mainCamera = scene.GetCamera();
+
+    // Pick up, carry and throw any body with the left mouse button - two servo constraints, so the
+    // held body still collides and the connected constraints still pull on it.
+    game.GetCameraEntity().Add(new GrabberScript());
 }
 
 void Update(Scene scene, GameTime time)
@@ -105,60 +90,10 @@ void Update(Scene scene, GameTime time)
         ResetTheScene(scene);
     }
 
-    // Display on-screen instructions for the user
-
-    // On mouse button press, attempt to select the sphere
-    if (game.Input.IsMouseButtonPressed(MouseButton.Left))
+    // The left button belongs to the grabber; removing a stacked cube is a middle click.
+    if (game.Input.IsMouseButtonPressed(MouseButton.Middle))
     {
-        ProcessMouseClick();
-    }
-
-    // While the mouse button is held down, update the sphere's position
-    if (isDraggingSphere && game.Input.IsMouseButtonDown(MouseButton.Left))
-    {
-        if (draggableBody is null) return;
-
-        // Get the horizontal (XZ) intersection point using the fixed initialDragY
-        var horizontalPos = GetNewPosition(game.Input.MousePosition);
-
-        // Add the stored drag offset to maintain the initial click offset.
-        var newPosition = horizontalPos + dragOffset;
-
-        // Adjust the vertical (Y-axis) position smoothly based on delta time and key presses.
-        if (game.Input.IsKeyDown(Keys.Z))
-        {
-            verticalOffset += VerticalSpeed * (float)time.Elapsed.TotalSeconds;
-        }
-
-        if (game.Input.IsKeyDown(Keys.X))
-        {
-            verticalOffset -= VerticalSpeed * (float)time.Elapsed.TotalSeconds;
-        }
-
-        // The final Y position is the initial drag level plus the vertical offset.
-        float finalY = initialDragY + verticalOffset;
-
-        // Update the sphere's position while locking the Y coordinate
-        // Teleport moves a kinematic body without giving it a velocity, so releasing it does not fling it
-        draggableBody.Teleport(new Vector3(newPosition.X, finalY, newPosition.Z), draggableBody.Orientation);
-
-        lastSpherePosition = draggableBody.Position;
-    }
-
-    // When the mouse button is released, stop dragging
-    if (isDraggingSphere && game.Input.IsMouseButtonReleased(MouseButton.Left))
-    {
-        isDraggingSphere = false;
-
-        if (draggableBody == null) return;
-
-        // Set the sphere back to non-kinematic so physics can resume
-        draggableBody.Kinematic = false;
-
-        // Wake the body to ensure physics updates
-        draggableBody.Awake = true;
-
-        draggableBody = null;
+        TryRemoveCubeStack(game.Input.MousePosition);
     }
 }
 
@@ -229,66 +164,64 @@ void CreateReferenceCapsule(Scene scene)
 
 void CreateDistanceLimitConstraintExamples(Scene scene)
 {
-    // Create the draggable sphere with a golden material
-    // Initially, the sphere is not kinematic. It will become kinematic while dragging
-    var draggableSphere = CreateEntity(PrimitiveModelType.Sphere, DraggableEntityName, Color.Gold, new Vector3(-2, 3, -2));
-    var draggableBody = draggableSphere.Get<BodyComponent>();
-    draggableBody.CollisionLayer = CollisionLayer.Layer5;
+    // Create the golden sphere
+    var goldenSphere = CreateEntity(PrimitiveModelType.Sphere, GoldenSphereName, Color.Gold, new Vector3(-2, 3, -2));
+    var goldenBody = goldenSphere.Get<BodyComponent>();
+    goldenBody.CollisionLayer = CollisionLayer.Layer5;
 
     // Create a second sphere to demonstrate a connected constraint
     var connectedSphere = CreateEntity(PrimitiveModelType.Sphere, ConnectedEntityName, Color.Blue, new Vector3(-2.1f, 3, -2.9f));
     var connectedBody = connectedSphere.Get<BodyComponent>();
     connectedBody.CollisionLayer = CollisionLayer.Layer5;
 
-    // Set up a distance limit constraint between the draggable and connected spheres
+    // Set up a distance limit constraint between the golden and connected spheres
     var distanceLimit = new DistanceLimitConstraintComponent
     {
-        A = draggableBody,
+        A = goldenBody,
         B = connectedBody,
         MinimumDistance = 1,
         MaximumDistance = 3.0f
     };
 
-    draggableSphere.Add(distanceLimit);
+    goldenSphere.Add(distanceLimit);
 
     // Add both entities to the scene
-    draggableSphere.Scene = scene;
+    goldenSphere.Scene = scene;
     connectedSphere.Scene = scene;
 
-    entities.AddRange([draggableSphere, connectedSphere]);
-    bodies.AddRange([draggableBody, connectedBody]);
+    entities.AddRange([goldenSphere, connectedSphere]);
+    bodies.AddRange([goldenBody, connectedBody]);
 }
 
 void CreateDistanceServoConstraintExamples(Scene scene)
 {
-    // Create the draggable sphere with a golden material
-    // Initially, the sphere is not kinematic. It will become kinematic while dragging
-    var draggableSphere = CreateEntity(PrimitiveModelType.Sphere, DraggableEntityName, Color.Gold, new Vector3(-2, 6, -2));
-    var draggableBody = draggableSphere.Get<BodyComponent>();
-    draggableBody.CollisionLayer = CollisionLayer.Layer5;
+    // Create the golden sphere
+    var goldenSphere = CreateEntity(PrimitiveModelType.Sphere, GoldenSphereName, Color.Gold, new Vector3(-2, 6, -2));
+    var goldenBody = goldenSphere.Get<BodyComponent>();
+    goldenBody.CollisionLayer = CollisionLayer.Layer5;
 
     var connectedSphere = CreateEntity(PrimitiveModelType.Sphere, ConnectedEntityName, Color.LightBlue, new Vector3(-2.1f, 6, -2.9f));
     var connectedBody = connectedSphere.Get<BodyComponent>();
     connectedBody.CollisionLayer = CollisionLayer.Layer5;
 
-    // Set up a distance servo constraint between the draggable and connected spheres
+    // Set up a distance servo constraint between the golden and connected spheres
     var distanceServo = new DistanceServoConstraintComponent
     {
-        A = draggableBody,
+        A = goldenBody,
         B = connectedBody,
         TargetDistance = 3.0f,
         SpringDampingRatio = 2,
         //SpringFrequency = 1,
     };
 
-    draggableSphere.Add(distanceServo);
+    goldenSphere.Add(distanceServo);
 
     // Add both entities to the scene
-    draggableSphere.Scene = scene;
+    goldenSphere.Scene = scene;
     connectedSphere.Scene = scene;
 
-    entities.AddRange([draggableSphere, connectedSphere]);
-    bodies.AddRange([draggableBody, connectedBody]);
+    entities.AddRange([goldenSphere, connectedSphere]);
+    bodies.AddRange([goldenBody, connectedBody]);
 }
 
 void CreateBallSocketConstraintExample(Scene scene)
@@ -391,13 +324,6 @@ void CreatePointOnLineServoConstraintExample(Scene scene)
     }
 }
 
-void ProcessMouseClick()
-{
-    TryRemoveCubeStack(game.Input.MousePosition);
-
-    TrySelectSphere(game.Input.MousePosition);
-}
-
 void TryRemoveCubeStack(Vector2 mousePosition)
 {
     var hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
@@ -440,61 +366,6 @@ void TryRemoveCubeStack(Vector2 mousePosition)
     //}
 }
 
-// Attempts to select the sphere by performing a raycast from the mouse position
-// If successful, calculates the offset between the sphere's center and the click point
-bool TrySelectSphere(Vector2 mousePosition)
-{
-    // Perform a raycast from the camera into the scene
-    var hit = mainCamera.Raycast(mousePosition, 100, out var hitInfo);
-
-    if (hit && hitInfo.Collidable.Entity.Name == DraggableEntityName)
-    {
-        Console.WriteLine($"Sphere selected for dragging: {hitInfo.Collidable.Entity.Transform.Position}");
-
-        draggableBody = hitInfo.Collidable.Entity.Get<BodyComponent>();
-
-        //if (draggableBody == null) return false;
-
-        // Calculate the offset between the sphere's center and the hit point
-        dragOffset = draggableBody!.Position - hitInfo.Point;
-
-        // Set the sphere to be kinematic while dragging
-        draggableBody.Kinematic = true;
-
-        isDraggingSphere = true;
-
-        // Capture the current Y level to use for horizontal dragging
-        initialDragY = draggableBody.Position.Y;
-
-        // Reset the vertical offset
-        verticalOffset = 0;
-
-        return true;
-    }
-
-    return false;
-}
-
-// Computes the intersection point between the camera's pick ray and a horizontal plane at dragYPosition
-// This is used to update the sphere's new position based on mouse movement
-Vector3 GetNewPosition(Vector2 mousePosition)
-{
-    // Create a pick ray from the camera through the given mouse position
-    var ray = mainCamera!.GetPickRay(mousePosition);
-
-    // Define a horizontal plane at Y = dragYPosition.
-    // For a plane defined by Normal and D, D must be -dragYPosition
-    var horizontalPlane = new Plane(Vector3.UnitY, -initialDragY);
-
-    if (ray.Intersects(in horizontalPlane, out float distance))
-    {
-        return ray.Position + ray.Direction * distance;
-    }
-
-    // If no intersection is found, return the last known sphere position
-    return lastSpherePosition;
-}
-
 // Resets the scene by removing all entities and reinitializing them
 void ResetTheScene(Scene scene)
 {
@@ -524,9 +395,10 @@ void InitializeDebugOverlay()
     instructions = overlay.AddSection("Game", static () =>
     [
         new("GAME INSTRUCTIONS"),
-        new("Click the golden sphere and drag to move it (Y-axis locked)"),
-        new("Hold Z to move up, X to move down the golden sphere", Color.Yellow),
-        new("Press R to reset the scene", Color.Yellow),
+        new("Left mouse   pick up any body, carry it, throw it - the constraints keep pulling", Color.Yellow),
+        new("Wheel        carry distance     T + mouse  turn the held body"),
+        new("Middle click a stacked cube to remove it; the cubes above collapse", Color.Yellow),
+        new("R            reset the scene", Color.Yellow),
     ]);
 }
 
@@ -599,9 +471,11 @@ description:
     The full tour of Bepu constraints in one interactive scene: a distance limit holding two spheres
     within a range, a distance servo actively driving a separation with spring settings, a ball socket
     pivoting a platform on a static foundation, and point-on-line servos confining cubes to vertical
-    tracks. It is meant to be played with - drag the golden sphere, Z and X raise and lower it, clicking
-    a cube removes it so the stack above collapses, R resets everything.
+    tracks. It is meant to be played with - pick up any body with the mouse and throw it while its
+    constraints keep pulling, middle-click a cube to remove it so the stack above collapses, R resets
+    everything.
 concepts:
+  - Picking up and throwing constrained bodies with GrabberScript
   - "Limiting a range with DistanceLimitConstraintComponent"
   - "Driving a target separation with DistanceServoConstraintComponent"
   - "Pivoting a body with BallSocketConstraintComponent"

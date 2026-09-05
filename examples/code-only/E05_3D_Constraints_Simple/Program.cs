@@ -21,6 +21,9 @@ void Start(Scene scene)
     game.AddProfiler();
     game.AddGroundGizmo(new(-5, 0, -5), showAxisName: true);
 
+    // Left mouse picks either sphere up; the servo drags the other one along (GrabberScript, see E05_3D_Grabber).
+    game.GetCameraEntity().Add(new GrabberScript());
+
     // Create an additional capsule for visual reference
     var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule);
     entity.Transform.Position = new Vector3(0, 3, 0);
@@ -74,6 +77,7 @@ concepts:
   - Setting a target distance and watching the solver reach it
   - How a constraint component attaches to an entity
   - Reading the result against a ground reference grid
+  - Picking a sphere up with GrabberScript and feeling the servo pull the other along
   - "Using helpers: SetupBase3DScene, AddSkybox, AddGroundGizmo, AddProfiler"
 tags:
   - 3D

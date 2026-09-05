@@ -102,6 +102,9 @@ game.Run(start: Start, update: Update);
 void Start(Scene scene)
 {
     game.SetupBase3DScene();
+
+    // Pick up and throw any body with the left mouse button (GrabberScript, see E05_3D_Grabber).
+    game.GetCameraEntity().Add(new GrabberScript());
     game.AddSkybox();
     game.AddProfiler();
     game.AddGroundGizmo(new Vector3(-9, 0, -9), showAxisName: true);
@@ -396,6 +399,7 @@ IReadOnlyList<TextElement> BuildInstructions()
         new($"M - Mixer motor: {OnOff(mixerMotor?.Enabled)}   (blade spin {Spin(mixerMotor?.A)} rad/s)", Color.Yellow),
         new($"N - Arm motor: {OnOff(armMotor?.Enabled)}   (arm spin {Spin(armMotor?.B)} rad/s)", Color.Yellow),
         new($"G - Swing limit: {OnOff(swingLimit?.Enabled)}", Color.Yellow),
+        new("Left mouse - pick up any body and throw it", Color.Yellow),
         new("P - Push both right-hand pendulums", Color.Yellow),
     ];
 }
@@ -462,6 +466,7 @@ concepts:
   - Enabling and disabling a constraint at runtime
   - Why a constraint anchor must be a kinematic body, not a static one
   - Why a velocity set from the start callback is lost
+  - Picking up and throwing bodies with GrabberScript
   - "Using helpers: SetupBase3DScene, AddSkybox, AddGroundGizmo, AddProfiler"
 tags:
   - 3D
