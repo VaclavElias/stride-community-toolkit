@@ -45,6 +45,11 @@ namespace Stride.CommunityToolkit.Shapes
             // 1: Hollow - only the band RingWidth deep inside the outline is the shape
             // 2: RoundCaps - the angular cut ends in semicircles rather than radial edges (circles only)
             int Flags;
+            // Dash pattern along the outline, in pixels: dash length (0 for solid), gap, and the
+            // phase the pattern starts at. Circles, arcs and two-point lines only.
+            float DashLength;
+            float DashGap;
+            float DashPhase;
             float Pad0;
         };
 
@@ -84,6 +89,10 @@ namespace Stride.CommunityToolkit.Shapes
         stream float FragGlow;
         stream float4 FragGlowColor;
         stream float FragFlags;
+        // Local units per pixel at clip w = 1, for anything the pixel shader measures in pixels
+        stream float FragPixelToLocal;
+        // xyz: dash length, gap and phase in pixels; x = 0 for solid
+        stream float4 FragDash;
 
         override stage void VSMain()
         {
@@ -158,6 +167,8 @@ namespace Stride.CommunityToolkit.Shapes
             float pixelToLocal = 1.0 / (PixelScale * worldScale);
             streams.FragThickness = data.AxisX.w * pixelToLocal;
             streams.FragGlow = data.GlowWidth * pixelToLocal;
+            streams.FragPixelToLocal = pixelToLocal;
+            streams.FragDash = float4(data.DashLength, data.DashGap, data.DashPhase, 0.0);
 
             // Resolve the plane the shape lives in
             float mode = data.Position.w;
@@ -282,6 +293,14 @@ namespace Stride.CommunityToolkit.Shapes
                 }
             }
 
+            // Dashes: the gaps are cuts through the shape along its outline, folded into the same
+            // distance field, so fill, border and glow all stop at a dash end and the ends are
+            // anti-aliased by the same smoothstep as every other edge
+            if (streams.FragDash.x > 0.0 && count <= 2)
+            {
+                s = max(s, SdDashes(p, points, count, hollow, cut));
+            }
+
             // Outer glow: falls off quadratically from the outline outward. Inside, the fill and
             // border own the pixels, so the glow stops at the outline.
             float4 glow = float4(streams.FragGlowColor.rgb, 0.0);
@@ -325,6 +344,55 @@ namespace Stride.CommunityToolkit.Shapes
         float Cross2d(float2 v1, float2 v2)
         {
             return v1.x * v2.y - v1.y * v2.x;
+        }
+
+        // Signed distance to the nearest gap in the dash pattern, measured along the outline and
+        // returned in local units, negative inside a dash. Around a circle the coordinate is the
+        // angle from the shape's start angle times the stroke's centreline radius; along a line it
+        // is the projection onto the segment. The pattern is fitted so a whole number of periods
+        // fills a circle or arc, so a tick ring never ends in a stub.
+        float SdDashes(float2 p, float2 v[8], int count, bool hollow, bool cut)
+        {
+            float localPerPixel = streams.FragPixelToLocal * streams.FragClipW;
+            float dash = streams.FragDash.x;
+            float gap = streams.FragDash.y;
+            float period = dash + gap;
+
+            float along;
+
+            if (count == 1)
+            {
+                float centreline = hollow ? streams.FragRadius - 0.5 * streams.FragRingWidth : streams.FragRadius;
+                float startAngle = atan2(streams.FragWedge.y, streams.FragWedge.x);
+                float angle = atan2(p.y, p.x) - startAngle;
+
+                angle -= 6.28318531 * floor(angle / 6.28318531);
+                along = angle * centreline;
+
+                // Fit: stretch or squeeze the period so the turn holds a whole number of them
+                float turnPixels = (cut ? streams.FragSweep : 6.28318531) * centreline / localPerPixel;
+                float periods = max(1.0, round(turnPixels / period));
+                float fitted = turnPixels / periods;
+
+                dash *= fitted / period;
+                period = fitted;
+            }
+            else
+            {
+                float2 direction = v[1] - v[0];
+                float segment = length(direction);
+
+                along = segment > 0.0 ? dot(p - v[0], direction / segment) : 0.0;
+            }
+
+            float u = along / localPerPixel + streams.FragDash.z;
+
+            u -= period * floor(u / period);
+
+            // Inside a dash the nearest edge is the closer of its two ends; in a gap likewise
+            float d = u < dash ? min(u, dash - u) : -min(u - dash, period - u);
+
+            return -d * localPerPixel;
         }
 
         // Signed distance to the wedge between two edge directions from the origin, sweeping

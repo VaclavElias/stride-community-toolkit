@@ -305,23 +305,11 @@ void DrawPitchLadder(Vector2 center, Theme theme)
         var arm = 1.4f;
         var gap = 0.9f;
 
-        if (pitch > 0)
-        {
-            shapes!.DrawPixelLine(new Vector3(center.X - arm - gap, y, 0f), new Vector3(center.X - gap, y, 0f), ThinLine, theme.Accent);
-            shapes.DrawPixelLine(new Vector3(center.X + gap, y, 0f), new Vector3(center.X + arm + gap, y, 0f), ThinLine, theme.Accent);
-        }
-        else
-        {
-            // Broken: three dashes a side
-            for (var segment = 0; segment < 3; segment++)
-            {
-                var from = gap + segment * arm / 3f;
-                var to = from + arm / 3f * 0.55f;
+        // Below the horizon the lines are dashed: the same two lines, with a dash pattern on
+        Style(ThinLine, 0f, dash: pitch > 0 ? 0f : 9f, gap: 6f);
 
-                shapes!.DrawPixelLine(new Vector3(center.X - to, y, 0f), new Vector3(center.X - from, y, 0f), ThinLine, theme.Accent);
-                shapes.DrawPixelLine(new Vector3(center.X + from, y, 0f), new Vector3(center.X + to, y, 0f), ThinLine, theme.Accent);
-            }
-        }
+        shapes!.DrawPixelLine(new Vector3(center.X - arm - gap, y, 0f), new Vector3(center.X - gap, y, 0f), ThinLine, theme.Accent);
+        shapes.DrawPixelLine(new Vector3(center.X + gap, y, 0f), new Vector3(center.X + arm + gap, y, 0f), ThinLine, theme.Accent);
     }
 }
 
@@ -390,11 +378,11 @@ void DrawRadar(Vector2 center, float radius, Theme theme)
     Style(ThinLine, 0.5f, theme.Fill);
     shapes!.DrawSolidCircle(center, radius, theme.Accent);
 
-    // Range rings, dashed
-    Style(ThinLine, 0f);
-    DashedRing(center, radius * 0.66f, 24, 0.5f, theme.Dim, 0f);
-    DashedRing(center, radius * 0.33f, 12, 0.5f, theme.Dim, 0f);
+    // Range rings, dashed - one shape each
+    DashedRing(center, radius * 0.66f, 7f, 6f, theme.Dim, 0f);
+    DashedRing(center, radius * 0.33f, 7f, 6f, theme.Dim, 0f);
 
+    Style(ThinLine, 0f);
     shapes.DrawPixelLine(new Vector3(center.X - radius, center.Y, 0f), new Vector3(center.X + radius, center.Y, 0f), ThinLine, theme.Dim);
     shapes.DrawPixelLine(new Vector3(center.X, center.Y - radius, 0f), new Vector3(center.X, center.Y + radius, 0f), ThinLine, theme.Dim);
 
@@ -428,9 +416,10 @@ void DrawRadar(Vector2 center, float radius, Theme theme)
         }
     }
 
-    // Bezel
+    // Bezel, and a slowly turning tick ring outside it: the phase advancing is the whole animation
     Style(ThickLine, 0f, null, 4f, theme.Glow);
     shapes.DrawArc(center, radius, 0f, MathF.Tau, theme.Accent);
+    DashedRing(center, radius + 0.22f, 4f, 10f, theme.Dim, time * 12f);
 
     SetLabel("radar-caption", "RADAR  5 KM", new Vector2(center.X, center.Y + radius + 0.42f));
 }
@@ -481,8 +470,7 @@ void DrawRingGauge(Vector2 center, float radius, float value, string key, Color 
     shapes.DrawSector(center, radius, MathF.PI / 2f, -MathF.Tau * value, colour, radius - 0.22f);
 
     // Tick ring outside, and the bezel
-    Style(ThinLine, 0f);
-    DashedRing(center, radius + 0.18f, 36, 0.35f, theme.Dim, 0f);
+    DashedRing(center, radius + 0.18f, 3f, 5f, theme.Dim, 0f);
 
     Style(ThinLine, 0f);
     shapes.DrawArc(center, radius + 0.02f, 0f, MathF.Tau, theme.Dim);
@@ -691,16 +679,15 @@ void ChamferedPanel(Vector2 center, Vector2 size, float cut, Color colour)
     shapes!.DrawSolidPolygon(corners, center, 0f, colour);
 }
 
-/// <summary>A ring drawn as short arcs with gaps: a tick ring, a range ring, a dial's scale.</summary>
-void DashedRing(Vector2 center, float radius, int segments, float gapFraction, Color colour, float phase)
+/// <summary>
+/// A dashed ring - a tick ring, a range ring, a dial's scale - as one shape. The dash and gap are
+/// pixels, the same at any zoom; the batch fits a whole number of them round the turn, so it never
+/// ends in a stub. The phase is pixels too: advance it and the ring turns.
+/// </summary>
+void DashedRing(Vector2 center, float radius, float dashPixels, float gapPixels, Color colour, float phasePixels)
 {
-    var step = MathF.Tau / segments;
-    var dash = step * (1f - gapFraction);
-
-    for (var i = 0; i < segments; i++)
-    {
-        shapes!.DrawArc(center, radius, phase + i * step, dash, colour);
-    }
+    Style(ThinLine, 0f, dash: dashPixels, gap: gapPixels, phase: phasePixels);
+    shapes!.DrawArc(center, radius, 0f, MathF.Tau, colour);
 }
 
 /// <summary>A bar made of cells, lit up to the value: the reference packs' "bar download".</summary>
@@ -720,13 +707,16 @@ void SegmentedBar(Vector2 center, Vector2 size, int cells, float value, Color co
 }
 
 /// <summary>Sets the whole of the batch's captured state at once, so no draw inherits a stale value.</summary>
-void Style(float border, float fillAlpha, Color? fill = null, float glow = 0f, Color? glowColour = null)
+void Style(float border, float fillAlpha, Color? fill = null, float glow = 0f, Color? glowColour = null, float dash = 0f, float gap = 0f, float phase = 0f)
 {
     shapes!.BorderWidth = border;
     shapes.FillAlpha = fillAlpha;
     shapes.FillColor = fill;
     shapes.GlowWidth = glow;
     shapes.GlowColor = glowColour;
+    shapes.DashLength = dash;
+    shapes.DashGap = gap;
+    shapes.DashPhase = phase;
 }
 
 // --- Text ------------------------------------------------------------------------------------

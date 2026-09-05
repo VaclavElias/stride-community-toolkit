@@ -19,8 +19,9 @@ namespace Stride.CommunityToolkit.Shapes;
 /// order, and the batch resets itself after rendering. Register with <c>game.AddShapeBatch()</c>.
 /// </para>
 /// <para>
-/// <see cref="BorderWidth"/>, <see cref="FillAlpha"/>, <see cref="FillColor"/>, <see cref="GlowWidth"/>
-/// and <see cref="GlowColor"/> are current state, captured by each draw call as it is made, so you
+/// <see cref="BorderWidth"/>, <see cref="FillAlpha"/>, <see cref="FillColor"/>, <see cref="GlowWidth"/>,
+/// <see cref="GlowColor"/> and the dash pattern (<see cref="DashLength"/>, <see cref="DashGap"/>,
+/// <see cref="DashPhase"/>) are current state, captured by each draw call as it is made, so you
 /// can change them between calls the way you would with a sprite batch.
 /// </para>
 /// </remarks>
@@ -80,6 +81,38 @@ public sealed class ShapeBatch : RenderObject
     /// the glow's strength at the outline, before the fade. Captured by each draw call as it is made.
     /// </summary>
     public Color? GlowColor { get; set; }
+
+    /// <summary>
+    /// Length of each dash along the outline, in on-screen pixels, constant at any zoom like the
+    /// border. The default 0 draws solid. Captured by each draw call as it is made.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Dashes run around circles, rings, annuli, sectors and arcs - starting at the start angle,
+    /// so a gauge's ticks begin where its sweep does - and along lines. A polygon with more than
+    /// two corners is always drawn solid; its outline has no single direction to dash along.
+    /// </para>
+    /// <para>
+    /// Around a circle or arc the pattern is stretched or squeezed by up to half a period so that a
+    /// whole number of dashes fills the turn, which is what makes a tick ring come out even at any
+    /// radius instead of ending in a stub. The gaps are cuts through the whole shape, so the fill
+    /// and glow stop at a dash end exactly as they stop at a sector's edge.
+    /// </para>
+    /// </remarks>
+    public float DashLength { get; set; }
+
+    /// <summary>
+    /// The gap between dashes, in on-screen pixels. The default 0 makes the gap the same length as
+    /// the dash. Captured by each draw call as it is made.
+    /// </summary>
+    public float DashGap { get; set; }
+
+    /// <summary>
+    /// Where along the outline the dash pattern starts, in on-screen pixels. Advance it every frame
+    /// and a dashed ring rotates, a dashed line marches - the cheapest animation a HUD has.
+    /// Captured by each draw call as it is made.
+    /// </summary>
+    public float DashPhase { get; set; }
 
     /// <summary>
     /// Whether shapes are tested against the depth buffer, so scene geometry can occlude them. They
@@ -474,23 +507,26 @@ public sealed class ShapeBatch : RenderObject
         // No explicit fill colour: the testbed's own formula, where FillAlpha scales the outline
         // colour's brightness as well as its opacity. Keeping it verbatim is what makes the Box2D
         // examples match the testbed side by side.
-        if (FillColor is not { } fill) return new(color, color, BorderWidth, FillAlpha, GlowWidth, GlowColor ?? color);
+        if (FillColor is not { } fill) return new(color, color, BorderWidth, FillAlpha, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
         // turn a chosen colour into a muddy version of itself, so FillAlpha scales opacity only.
         var alpha = (byte)Math.Clamp(fill.A * FillAlpha, 0f, 255f);
 
-        return new(color, new Color(fill.R, fill.G, fill.B, alpha), BorderWidth, 1f, GlowWidth, GlowColor ?? color);
+        return new(color, new Color(fill.R, fill.G, fill.B, alpha), BorderWidth, 1f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
     }
 
     /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
-    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, GlowWidth, GlowColor ?? color);
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
 
     /// <summary>The current style with the fill turned off and its own outline width.</summary>
-    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, GlowWidth, GlowColor ?? color);
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
 
     /// <summary>The current style with the fill turned all the way up, for shapes that are drawn solid.</summary>
-    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, GlowWidth, GlowColor ?? color);
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
+
+    /// <summary>The gap as the shader needs it: the dash's own length when none was given.</summary>
+    private float EffectiveDashGap => DashGap > 0f ? DashGap : DashLength;
 
     /// <summary>The XY plane at a 2D position, the plane every 2D call draws in.</summary>
     private static ShapePlane PlaneXY(Vector2 center)

@@ -28,6 +28,9 @@ internal readonly struct ShapeInstance
     public readonly float GlowWidth;
     public readonly Color GlowColor;
     public readonly int Flags;
+    public readonly float DashLength;
+    public readonly float DashGap;
+    public readonly float DashPhase;
 
     // Keeps the stride a multiple of 16 bytes, which every GPU is happy with
     private readonly float _pad0;
@@ -54,6 +57,9 @@ internal readonly struct ShapeInstance
         GlowWidth = style.GlowWidth;
         GlowColor = style.GlowColor;
         Flags = slice.Flags;
+        DashLength = style.DashLength;
+        DashGap = style.DashGap;
+        DashPhase = style.DashPhase;
         _pad0 = 0;
     }
 }
