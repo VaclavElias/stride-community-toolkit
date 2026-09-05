@@ -664,7 +664,11 @@ configuration surface is small and fixed — builders earn their keep where *sys
   settings) become configurable. Should that be part of `Run` unconditionally, part of the setup
   record, or opt-in? *Answered 2026-09-03:* opt-in via `UseGameSettings` (registering
   unconditionally would collide with a project that has the asset — `ServiceRegistry.AddService`
-  throws on a duplicate). The shader-compilation-mode half of the original question is moot: on
+  throws on a duplicate). *Amended 2026-09-05:* the collision hit even the opt-in path, because
+  `Game.PrepareContext` registers the loaded asset before any hook; `UseGameSettings` now defers its
+  registration to `GameBase.WindowCreated` (after `PrepareContext`, before `Initialize`) and, when
+  the asset exists, merges in only the configurations the asset lacks — so it is safe in both kinds
+  of project. The shader-compilation-mode half of the original question is moot: on
   D3D11 `Debug` and `Release` produce identical bytecode and Vulkan/D3D12 ignore the level (engine
   doc, correction 4).
 - **Q6 — scope of the break.** One release that (i) introduces the record, (ii) fixes return types
