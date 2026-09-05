@@ -44,9 +44,10 @@ static short[] Chime(int rate)
     return samples;
 }
 
-// Eight seconds of two detuned notes with a slow swell. Every frequency completes a whole number of
-// cycles in the loop length and the swell has a whole number of periods, so the end meets the start
-// with no seam.
+// Eight seconds of a steady organ-like chord. Steady on purpose: the spatial example uses it, and
+// any loudness change baked into the file would be heard as distance. That rules out a swell and
+// also detuned pairs, whose beating is a slow tremolo. Every frequency completes a whole number of
+// cycles in the loop length, so the end meets the start with no seam.
 static short[] PadLoop(int rate)
 {
     const int Seconds = 8;
@@ -54,9 +55,9 @@ static short[] PadLoop(int rate)
     var length = rate * Seconds;
     var samples = new short[length];
 
-    // Whole cycles over the loop: f = n / Seconds. 220 Hz needs n = 1760, 220.5 Hz would not loop; 220.25 does.
-    float[] notes = [220f, 220.25f, 330f, 329.75f, 440f];
-    float[] gains = [0.28f, 0.28f, 0.16f, 0.16f, 0.08f];
+    // Whole cycles over the loop: f = n / Seconds, which every multiple of 0.125 Hz satisfies.
+    float[] notes = [220f, 330f, 440f, 660f, 880f];
+    float[] gains = [0.34f, 0.22f, 0.16f, 0.10f, 0.05f];
 
     for (var i = 0; i < length; i++)
     {
@@ -66,10 +67,7 @@ static short[] PadLoop(int rate)
         for (var n = 0; n < notes.Length; n++)
             value += gains[n] * MathF.Sin(2 * MathF.PI * notes[n] * t);
 
-        // Swell: two full periods in the loop, never fully silent.
-        var swell = 0.65f + 0.35f * MathF.Sin(2 * MathF.PI * 2 * t / Seconds);
-
-        samples[i] = (short)(value * swell * short.MaxValue);
+        samples[i] = (short)(value * short.MaxValue);
     }
 
     return samples;
