@@ -69,66 +69,66 @@ Theme[] themes =
 // Panel settings are ShapeBatch state; text settings are WorldTextComponent properties.
 Station[] stations =
 [
-    new("Fill only\nBorderWidth 0", "Default text",
+    new(1, "Fill only\nBorderWidth 0", "Default text",
         (text, theme) => text.TextColor = theme.Text,
         BorderWidth: 0f),
 
-    new("Border only\nFill.Alpha 0", "Height 0.55",
+    new(2, "Border only\nFill.Alpha 0", "Height 0.55",
         (text, theme) => { text.TextColor = theme.Text; text.Height = 0.55f; },
         FillAlpha: 0f),
 
-    new("Border + fill\nthe default look", "FontSize 12\n(zoom in - it goes soft)",
+    new(3, "Border + fill\nthe default look", "FontSize 12\n(zoom in - it goes soft)",
         (text, theme) => { text.TextColor = theme.Text; text.FontSize = 12f; }),
 
-    new("Fill.Alpha 0.35\nthe stripe shows through", "TextColor alpha 128",
+    new(4, "Fill.Alpha 0.35\nthe stripe shows through", "TextColor alpha 128",
         (text, theme) => text.TextColor = new Color(theme.Text.R, theme.Text.G, theme.Text.B, (byte)128),
         FillAlpha: 0.35f),
 
-    new("Fill.Color null\nfill derives from the border", "Opacity 0.5",
+    new(5, "Fill.Color null\nfill derives from the border", "Opacity 0.5",
         (text, theme) => { text.TextColor = theme.Text; text.Opacity = 0.5f; },
         DerivedFill: true, FillAlpha: 0.45f),
 
-    new("cornerRadius 0.35\nrounded", "GlowSize 4\ncrisp halo",
+    new(6, "cornerRadius 0.35\nrounded", "GlowSize 4\ncrisp halo",
         (text, theme) => { text.TextColor = theme.Text; text.GlowColor = theme.Glow; text.GlowSize = 4f; },
         CornerRadius: 0.35f),
 
-    new("BorderWidth 6\nheavy, still pixel-exact", "GlowSize 12, glow alpha 90\nsoft bloom",
+    new(7, "BorderWidth 6\nheavy, still pixel-exact", "GlowSize 12, glow alpha 90\nsoft bloom",
         (text, theme) => { text.TextColor = theme.Text; text.GlowColor = new Color(theme.Glow.R, theme.Glow.G, theme.Glow.B, (byte)90); text.GlowSize = 12f; },
         BorderWidth: 6f),
 
-    new("Glow.Width 6\nin the accent colour", "Dark text, white halo\nlegible on anything",
+    new(8, "Glow.Width 6\nin the accent colour", "Dark text, white halo\nlegible on anything",
         (text, _) => { text.TextColor = new Color(10, 12, 18); text.GlowColor = Color.White; text.GlowSize = 7f; },
         GlowWidth: 6f),
 
-    new("Glow.Width 14, glow alpha 70\nwide and weak", "System sans font",
+    new(9, "Glow.Width 14, glow alpha 70\nwide and weak", "System sans font",
         (text, theme) => { text.TextColor = theme.Text; text.Font = sansFont; },
         GlowWidth: 14f, GlowAlpha: 70),
 
-    new("Glow.Color white\nindependent of the border", "System sans, bold",
+    new(10, "Glow.Color white\nindependent of the border", "System sans, bold",
         (text, theme) => { text.TextColor = theme.Text; text.Font = boldFont; },
         GlowWidth: 5f, WhiteGlow: true),
 
-    new("Glass\nFill.Alpha 0.18 + rounded + glow", "Monospace font\n0123456789",
+    new(11, "Glass\nFill.Alpha 0.18 + rounded + glow", "Monospace font\n0123456789",
         (text, theme) => { text.TextColor = theme.Text; text.Font = monoFont; },
         FillAlpha: 0.18f, CornerRadius: 0.3f, GlowWidth: 5f),
 
-    new("The lot, plus ticks and a gauge\n(the ship-HUD panel)", "DOCKING CLAMP\nSTATUS   NOMINAL",
+    new(12, "The lot, plus ticks and a gauge\n(the ship-HUD panel)", "DOCKING CLAMP\nSTATUS   NOMINAL",
         (text, theme) => { text.TextColor = theme.Text; text.Font = boldFont; text.GlowColor = theme.Glow; text.GlowSize = 5f; },
         BorderWidth: 1.5f, FillAlpha: 0.55f, CornerRadius: 0.25f, GlowWidth: 6f, Ornaments: true),
 
-    new("Dash.Length 6 on a ring and a line\n(polygons stay solid)", "System sans, italic",
+    new(13, "Dash.Length 6 on a ring and a line\n(polygons stay solid)", "System sans, italic",
         (text, theme) => { text.TextColor = theme.Text; text.Font = italicFont; },
         Dashed: true),
 
-    new("Gradient.Color = the text colour\nbottom to top", "Text over a gradient",
+    new(14, "Gradient.Color = the text colour\nbottom to top", "Text over a gradient",
         (text, theme) => { text.TextColor = theme.Fill; text.Font = boldFont; },
         GradientTo: GradientTarget.Text),
 
-    new("Gradient to alpha 0\nleft to right - a glass fade", "TextColor alpha 160\n+ GlowSize 3",
+    new(15, "Gradient to alpha 0\nleft to right - a glass fade", "TextColor alpha 160\n+ GlowSize 3",
         (text, theme) => { text.TextColor = new Color(theme.Text.R, theme.Text.G, theme.Text.B, (byte)160); text.GlowColor = theme.Glow; text.GlowSize = 3f; },
         FillAlpha: 0.6f, GradientTo: GradientTarget.Transparent),
 
-    new("Opacity 0.35\nthe whole panel, one number", "Opacity 0.35\non the text as well",
+    new(16, "Opacity 0.35\nthe whole panel, one number", "Opacity 0.35\non the text as well",
         (text, theme) => { text.TextColor = theme.Text; text.Opacity = 0.35f; },
         GlowWidth: 5f, Opacity: 0.35f),
 ];
@@ -197,6 +197,17 @@ void Start(Scene scene)
 
         // On the copy below it, the text names the setting that styles it - the station is its own label
         AddText(scene, CellCenter(i, withText: true), station.Label, 0.32f, station.StyleText);
+
+        // The station's number in the top-left corner of both copies, so a panel on screen and its
+        // entry in the stations array above can be matched at a glance
+        foreach (var withText in new[] { false, true })
+        {
+            var corner = CellCenter(i, withText) + new Vector3(-PanelWidth / 2f + 0.14f, PanelHeight / 2f - 0.1f, 0f);
+
+            AddText(scene, corner, $"{station.Number:00}", 0.2f,
+                (text, theme) => text.TextColor = WithAlpha(theme.Accent, 170),
+                anchor: TextAnchor.TopLeft, font: monoFont);
+        }
     }
 
     themeMenu = new DebugTextDropdown
@@ -349,7 +360,7 @@ void Reset()
 }
 
 /// <summary>Creates one text entity, styled through the same delegate a theme change re-runs.</summary>
-void AddText(Scene scene, Vector3 position, string content, float lineHeight, Action<WorldTextComponent, Theme> restyle, bool themed = true)
+void AddText(Scene scene, Vector3 position, string content, float lineHeight, Action<WorldTextComponent, Theme> restyle, bool themed = true, TextAnchor anchor = TextAnchor.MiddleCenter, SpriteFont? font = null)
 {
     var component = new WorldTextComponent
     {
@@ -358,6 +369,8 @@ void AddText(Scene scene, Vector3 position, string content, float lineHeight, Ac
         // stations at the same letter size - the point of a comparison gallery
         Height = lineHeight * (content.Count(character => character == '\n') + 1),
         FontSize = 48,
+        Font = font,
+        Anchor = anchor,
         Alignment = TextAlignment.Center,
     };
 
@@ -406,6 +419,7 @@ IReadOnlyList<TextElement> OverlayLines()
     [
         new("Panels: ShapeBatch, one draw call for all 32", Color.LightGreen),
         new("Upper row of each pair is the panel alone", Color.LightGray),
+        new("Corner numbers match the stations array in Program.cs", Color.LightGray),
         new("Wheel zooms - borders, glows and dashes keep their pixel size", Color.LightGray),
         new(string.Empty),
     ];
@@ -432,6 +446,7 @@ enum GradientTarget { None, Text, Transparent }
 /// second copy of the panel with the styling that names itself.
 /// </summary>
 sealed record Station(
+    int Number,
     string Caption,
     string Label,
     Action<WorldTextComponent, Theme> StyleText,

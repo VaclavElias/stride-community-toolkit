@@ -39,12 +39,12 @@ var lastShapeCount = 0;
 var ship = new ShipState();
 
 Dictionary<string, Label> labels = [];
-List<(WorldTextComponent Text, Action<WorldTextComponent, Theme> Restyle)> themedText = [];
+List<(WorldTextComponent Text, Action<WorldTextComponent, Scheme> Restyle)> themedText = [];
 DebugTextDropdown? themeMenu = null;
 
 // Dark ground, one bright accent, a text colour lighter than the accent, a glow deeper than it -
 // plus the two colours a HUD needs that a theme must not change: amber and red
-Theme[] themes =
+Scheme[] themes =
 [
     new("Blue", new Color(90, 190, 255), new Color(8, 22, 42), new Color(205, 238, 255), new Color(0, 140, 255)),
     new("Red", new Color(255, 95, 90), new Color(36, 10, 12), new Color(255, 210, 205), new Color(255, 40, 40)),
@@ -141,15 +141,15 @@ void Update(Scene scene, GameTime gameTime)
     DrawWarningStrip(new Vector2(0f, -2.3f), theme);
     DrawTargetBox(theme);
 
-    DrawVerticalGauge(new Vector2(-9.4f, 2.2f), 5.0f, ship.Speed / 300f, "speed", theme);
-    DrawVerticalGauge(new Vector2(9.4f, 2.2f), 5.0f, ship.Altitude / 2000f, "altitude", theme);
+    DrawVerticalGauge(new Vector2(-9.4f, 2.2f), 5.0f, ship.Flight.Speed / 300f, "speed", theme);
+    DrawVerticalGauge(new Vector2(9.4f, 2.2f), 5.0f, ship.Flight.Altitude / 2000f, "altitude", theme);
 
     DrawRadar(new Vector2(-12.6f, 0.4f), 2.7f, theme);
     DrawCommsPanel(new Vector2(-12.4f, -5.6f), new Vector2(7.2f, 5.2f), theme);
 
-    DrawRingGauge(new Vector2(-4.6f, -4.6f), 1.25f, ship.Power, "power", theme.Accent, theme);
-    DrawRingGauge(new Vector2(0f, -4.6f), 1.25f, ship.Temperature, "temperature", ship.Temperature > 0.8f ? Theme.Warning : theme.Accent, theme);
-    DrawRingGauge(new Vector2(4.6f, -4.6f), 1.25f, ship.Thrust, "thrust", theme.Accent, theme);
+    DrawRingGauge(new Vector2(-4.6f, -4.6f), 1.25f, ship.Systems.Power, "power", theme.Accent, theme);
+    DrawRingGauge(new Vector2(0f, -4.6f), 1.25f, ship.Systems.Temperature, "temperature", ship.Systems.Temperature > 0.8f ? Scheme.Warning : theme.Accent, theme);
+    DrawRingGauge(new Vector2(4.6f, -4.6f), 1.25f, ship.Systems.Thrust, "thrust", theme.Accent, theme);
 
     DrawSparkline(new Vector2(-6.8f, -1.6f), new Vector2(4.2f, 1.5f), theme);
     DrawBarChart(new Vector2(6.8f, -1.6f), new Vector2(4.2f, 1.5f), theme);
@@ -173,7 +173,7 @@ void Update(Scene scene, GameTime gameTime)
 // --- Widgets ---------------------------------------------------------------------------------
 
 /// <summary>Four L-brackets in the corners: the edge of the canopy glass, the frame of the whole thing.</summary>
-void DrawFrame(Theme theme)
+void DrawFrame(Scheme theme)
 {
     const float Arm = 1.6f;
 
@@ -193,7 +193,7 @@ void DrawFrame(Theme theme)
 /// the current heading boxed under a centre marker. The tick labels are ten text components reused
 /// for whichever multiples of ten are in the window this frame.
 /// </summary>
-void DrawHeadingTape(Vector2 center, float width, Theme theme)
+void DrawHeadingTape(Vector2 center, float width, Scheme theme)
 {
     const float DegreesShown = 80f;
     const float LabelHeight = 0.26f;
@@ -208,11 +208,11 @@ void DrawHeadingTape(Vector2 center, float width, Theme theme)
     shapes!.DrawPixelLine(new Vector3(center.X - half, center.Y, 0f), new Vector3(center.X + half, center.Y, 0f), ThinLine, theme.Accent);
 
     var labelIndex = 0;
-    var firstTick = MathF.Floor((ship.Heading - DegreesShown / 2f) / 5f) * 5f;
+    var firstTick = MathF.Floor((ship.Flight.Heading - DegreesShown / 2f) / 5f) * 5f;
 
-    for (var degrees = firstTick; degrees <= ship.Heading + DegreesShown / 2f; degrees += 5f)
+    for (var degrees = firstTick; degrees <= ship.Flight.Heading + DegreesShown / 2f; degrees += 5f)
     {
-        var x = center.X + (degrees - ship.Heading) * unitsPerDegree;
+        var x = center.X + (degrees - ship.Flight.Heading) * unitsPerDegree;
 
         if (MathF.Abs(x - center.X) > half) continue;
 
@@ -244,7 +244,7 @@ void DrawHeadingTape(Vector2 center, float width, Theme theme)
 
     Style(ThinLine, 0.9f, theme.Fill);
     ChamferedPanel(new Vector2(center.X, center.Y - 0.85f), new Vector2(1.6f, 0.62f), 0.12f, theme.Accent);
-    SetLabel("heading", $"{((ship.Heading % 360f) + 360f) % 360f:000}", new Vector2(center.X, center.Y - 0.85f));
+    SetLabel("heading", $"{((ship.Flight.Heading % 360f) + 360f) % 360f:000}", new Vector2(center.X, center.Y - 0.85f));
 
     // Three little mode glyph panels above the tape, as on the reference frame
     foreach (var (dx, glyph) in new[] { (-4.4f, "///"), (0f, "<>"), (4.4f, "^") })
@@ -258,7 +258,7 @@ void DrawHeadingTape(Vector2 center, float width, Theme theme)
 }
 
 /// <summary>The gun-sight: two rings, four gaps, a dot.</summary>
-void DrawReticle(Vector2 center, Theme theme)
+void DrawReticle(Vector2 center, Scheme theme)
 {
     Style(ThinLine, 0f);
 
@@ -285,7 +285,7 @@ void DrawReticle(Vector2 center, Theme theme)
 /// Pitch lines every ten degrees, sliding vertically with the ship's pitch. Positive lines are
 /// solid and negative ones broken, the convention every aircraft HUD shares.
 /// </summary>
-void DrawPitchLadder(Vector2 center, Theme theme)
+void DrawPitchLadder(Vector2 center, Scheme theme)
 {
     const float UnitsPerDegree = 0.115f;
     const float Window = 3.4f;
@@ -294,7 +294,7 @@ void DrawPitchLadder(Vector2 center, Theme theme)
 
     for (var pitch = -30; pitch <= 30; pitch += 10)
     {
-        var y = center.Y + (pitch - ship.Pitch) * UnitsPerDegree;
+        var y = center.Y + (pitch - ship.Flight.Pitch) * UnitsPerDegree;
         var visible = pitch != 0 && MathF.Abs(y - center.Y) < Window && MathF.Abs(y - center.Y) > 0.6f;
 
         SetLabel($"pitch-{pitch}", $"{pitch:+0;-0}", new Vector2(center.X + 3.1f, y), visible);
@@ -317,7 +317,7 @@ void DrawPitchLadder(Vector2 center, Theme theme)
 /// A vertical tape with a moving fill, a threshold mark and the value boxed beside it - the VEL
 /// and ALT tapes either side of the sight.
 /// </summary>
-void DrawVerticalGauge(Vector2 center, float height, float value, string key, Theme theme)
+void DrawVerticalGauge(Vector2 center, float height, float value, string key, Scheme theme)
 {
     const float Width = 0.42f;
 
@@ -351,7 +351,7 @@ void DrawVerticalGauge(Vector2 center, float height, float value, string key, Th
     var thresholdY = bottom + height * 0.88f;
 
     Style(ThinLine, 0f);
-    shapes.DrawRectangle(new Vector3(center.X - side * (Width / 2f + 0.16f), thresholdY, 0f), Vector3.UnitX, Vector3.UnitY, new Vector2(0.22f, 0.22f), Theme.Danger);
+    shapes.DrawRectangle(new Vector3(center.X - side * (Width / 2f + 0.16f), thresholdY, 0f), Vector3.UnitX, Vector3.UnitY, new Vector2(0.22f, 0.22f), Scheme.Danger);
 
     // The readout follows the fill
     var readoutY = MathUtil.Clamp(bottom + height * value, bottom + 0.35f, top - 0.35f);
@@ -359,7 +359,7 @@ void DrawVerticalGauge(Vector2 center, float height, float value, string key, Th
 
     Style(ThinLine, 0.95f, theme.Fill);
     ChamferedPanel(readoutCenter, new Vector2(1.3f, 0.56f), 0.1f, theme.Accent);
-    SetLabel(key, key == "speed" ? $"{ship.Speed:0}" : $"{ship.Altitude:0}", readoutCenter);
+    SetLabel(key, key == "speed" ? $"{ship.Flight.Speed:0}" : $"{ship.Flight.Altitude:0}", readoutCenter);
 
     // Caption above the tape
     Style(ThinLine, 0.6f, theme.Fill);
@@ -372,7 +372,7 @@ void DrawVerticalGauge(Vector2 center, float height, float value, string key, Th
 /// finds. The rings are drawn as broken arcs - a dozen short arcs each - which is what a dashed
 /// ring costs until the shader can dash one for us.
 /// </summary>
-void DrawRadar(Vector2 center, float radius, Theme theme)
+void DrawRadar(Vector2 center, float radius, Scheme theme)
 {
     // Ground disc
     Style(ThinLine, 0.5f, theme.Fill);
@@ -405,7 +405,7 @@ void DrawRadar(Vector2 center, float radius, Theme theme)
     {
         var contact = ship.Contacts[i];
         var position = center + new Vector2(MathF.Cos(contact.Angle), MathF.Sin(contact.Angle)) * contact.Distance * radius;
-        var colour = contact.Hostile ? Theme.Danger : theme.Text;
+        var colour = contact.Hostile ? Scheme.Danger : theme.Text;
 
         Style(0f, 1f, colour);
         shapes.DrawSolidCircle(position, 0.07f, colour);
@@ -429,7 +429,7 @@ void DrawRadar(Vector2 center, float radius, Theme theme)
 /// The chat-style log in the corner: a framed panel with a header strip and six lines that scroll
 /// as messages arrive. A panel inside a panel, which is how a real HUD groups things.
 /// </summary>
-void DrawCommsPanel(Vector2 center, Vector2 size, Theme theme)
+void DrawCommsPanel(Vector2 center, Vector2 size, Scheme theme)
 {
     Style(ThinLine, 0.55f, theme.Fill);
     ChamferedPanel(center, size, 0.25f, theme.Accent);
@@ -458,7 +458,7 @@ void DrawCommsPanel(Vector2 center, Vector2 size, Theme theme)
 /// A ring gauge: a dim track, a bright arc that grows clockwise from the top, a tick ring outside
 /// it and the figure in the middle. Three of them along the bottom, one of which turns amber.
 /// </summary>
-void DrawRingGauge(Vector2 center, float radius, float value, string key, Color colour, Theme theme)
+void DrawRingGauge(Vector2 center, float radius, float value, string key, Color colour, Scheme theme)
 {
     value = MathUtil.Clamp(value, 0f, 1f);
 
@@ -481,7 +481,7 @@ void DrawRingGauge(Vector2 center, float radius, float value, string key, Color 
 }
 
 /// <summary>A framed trace of the last few seconds of a signal, drawn as a chain of pixel lines.</summary>
-void DrawSparkline(Vector2 center, Vector2 size, Theme theme)
+void DrawSparkline(Vector2 center, Vector2 size, Scheme theme)
 {
     Style(ThinLine, 0.45f, theme.Fill);
     ChamferedPanel(center, size, 0.18f, theme.Accent);
@@ -509,7 +509,7 @@ void DrawSparkline(Vector2 center, Vector2 size, Theme theme)
 }
 
 /// <summary>A dozen bars from a moving spectrum, each one rectangle, the tallest in the text colour.</summary>
-void DrawBarChart(Vector2 center, Vector2 size, Theme theme)
+void DrawBarChart(Vector2 center, Vector2 size, Scheme theme)
 {
     Style(ThinLine, 0.45f, theme.Fill);
     ChamferedPanel(center, size, 0.18f, theme.Accent);
@@ -537,7 +537,7 @@ void DrawBarChart(Vector2 center, Vector2 size, Theme theme)
 /// The panel with a header and three labelled bars. Hull, shield and fuel: the shield is the one
 /// that moves, and the one whose colour is not the theme's when it is low.
 /// </summary>
-void DrawSystemsPanel(Vector2 center, Vector2 size, Theme theme)
+void DrawSystemsPanel(Vector2 center, Vector2 size, Scheme theme)
 {
     Style(ThinLine, 0.55f, theme.Fill);
     ChamferedPanel(center, size, 0.25f, theme.Accent);
@@ -548,7 +548,7 @@ void DrawSystemsPanel(Vector2 center, Vector2 size, Theme theme)
     shapes!.DrawRectangle(new Vector3(headerCenter, 0f), Vector3.UnitX, Vector3.UnitY, new Vector2(size.X - 0.5f, 0.4f), theme.Accent);
     SetLabel("systems-header", "SYSTEMS", headerCenter);
 
-    var rows = new[] { ("HULL", ship.Hull, theme.Accent), ("SHIELD", ship.Shield, ship.Shield < 0.35f ? Theme.Danger : theme.Accent), ("FUEL", ship.Fuel, ship.Fuel < 0.2f ? Theme.Warning : theme.Accent) };
+    var rows = new[] { ("HULL", ship.Systems.Hull, theme.Accent), ("SHIELD", ship.Systems.Shield, ship.Systems.Shield < 0.35f ? Scheme.Danger : theme.Accent), ("FUEL", ship.Systems.Fuel, ship.Systems.Fuel < 0.2f ? Scheme.Warning : theme.Accent) };
 
     for (var i = 0; i < rows.Length; i++)
     {
@@ -567,19 +567,19 @@ void DrawSystemsPanel(Vector2 center, Vector2 size, Theme theme)
 /// Amber when something needs attention, red when it needs it now, and quietly nominal the rest of
 /// the time. The one panel whose colour the theme never decides.
 /// </summary>
-void DrawWarningStrip(Vector2 center, Theme theme)
+void DrawWarningStrip(Vector2 center, Scheme theme)
 {
     var size = new Vector2(5.4f, 0.62f);
     var pulse = 0.5f + 0.5f * MathF.Sin(time * 6f);
 
-    if (ship.Shield < 0.35f)
+    if (ship.Systems.Shield < 0.35f)
     {
-        var colour = ship.Shield < 0.15f ? Theme.Danger : Theme.Warning;
+        var colour = ship.Systems.Shield < 0.15f ? Scheme.Danger : Scheme.Warning;
 
         // The panel is the colour; the lettering is dark on it, the way a lit annunciator reads
         Style(ThinLine, 0.55f + 0.35f * pulse, colour, 6f * pulse, colour);
         ChamferedPanel(center, size, 0.14f, colour);
-        SetLabel("warning", ship.Shield < 0.15f ? "SHIELD CRITICAL" : "SHIELD LOW", center, colour: new Color(12, 8, 8));
+        SetLabel("warning", ship.Systems.Shield < 0.15f ? "SHIELD CRITICAL" : "SHIELD LOW", center, colour: new Color(12, 8, 8));
 
         return;
     }
@@ -593,7 +593,7 @@ void DrawWarningStrip(Vector2 center, Theme theme)
 /// The bracket that follows a target: four corners with a gap between them, breathing on a sine,
 /// and the range under it. The one widget that moves across the whole sight.
 /// </summary>
-void DrawTargetBox(Theme theme)
+void DrawTargetBox(Scheme theme)
 {
     var center = ship.Target;
     var half = 0.5f + 0.05f * MathF.Sin(time * 4f);
@@ -617,7 +617,7 @@ void DrawTargetBox(Theme theme)
 /// bright and glows; the idle ones are dim. Selected against idle is the pair every UI needs, and it
 /// is all in three numbers - border width, fill alpha and glow.
 /// </summary>
-void DrawStatusTile(Vector2 center, Vector2 size, int index, Theme theme)
+void DrawStatusTile(Vector2 center, Vector2 size, int index, Scheme theme)
 {
     var selected = index == selectedTile;
     var pulse = 0.5f + 0.5f * MathF.Sin(time * 3f);
@@ -646,7 +646,7 @@ void DrawStatusTile(Vector2 center, Vector2 size, int index, Theme theme)
 /// The buttons along the bottom right: one active, one disabled at 35%, the rest idle. Disabled is
 /// every colour at a fraction of its alpha, which is the case that argues for an opacity on the batch.
 /// </summary>
-void DrawModeButton(Vector2 center, Vector2 size, int index, Theme theme)
+void DrawModeButton(Vector2 center, Vector2 size, int index, Scheme theme)
 {
     var active = index == 1;
     var disabled = index == 0;
@@ -693,7 +693,7 @@ void DashedRing(Vector2 center, float radius, float dashPixels, float gapPixels,
 }
 
 /// <summary>A bar made of cells, lit up to the value: the reference packs' "bar download".</summary>
-void SegmentedBar(Vector2 center, Vector2 size, int cells, float value, Color colour, Theme theme)
+void SegmentedBar(Vector2 center, Vector2 size, int cells, float value, Color colour, Scheme theme)
 {
     var pitch = size.X / cells;
     var left = center.X - size.X / 2f;
@@ -790,7 +790,7 @@ void CreateLabels(Scene scene)
     }
 }
 
-void AddLabel(Scene scene, string key, float lineHeight, SpriteFont? font, Action<WorldTextComponent, Theme> restyle, TextAnchor anchor = TextAnchor.MiddleCenter, float glow = 0f)
+void AddLabel(Scene scene, string key, float lineHeight, SpriteFont? font, Action<WorldTextComponent, Scheme> restyle, TextAnchor anchor = TextAnchor.MiddleCenter, float glow = 0f)
 {
     var component = new WorldTextComponent
     {
@@ -864,13 +864,13 @@ IReadOnlyList<TextElement> OverlayLines()
 static Color WithAlpha(Color colour, float alpha) => new(colour.R, colour.G, colour.B, (byte)(colour.A * MathUtil.Clamp(alpha, 0f, 1f)));
 
 /// <summary>A palette. Warning and danger are fixed: amber and red mean the same in every scheme.</summary>
-sealed record Theme(string Name, Color Accent, Color Fill, Color Text, Color Glow)
+sealed record Scheme(string Name, Color Accent, Color Fill, Color Text, Color Glow)
 {
     public static readonly Color Warning = new(255, 176, 40);
     public static readonly Color Danger = new(255, 64, 56);
 
     /// <summary>The accent at a third of its strength: tracks, idle frames, range rings.</summary>
-    public Color Dim => new(Accent.R, Accent.G, Accent.B, (byte)90);
+    internal Color Dim => new(Accent.R, Accent.G, Accent.B, (byte)90);
 }
 
 /// <summary>A text component with the entity that positions it and the size one line of it is.</summary>
@@ -886,16 +886,8 @@ readonly record struct Contact(float Angle, float Distance, bool Hostile);
 /// </summary>
 sealed class ShipState
 {
-    public float Speed;
-    public float Altitude;
-    public float Heading;
-    public float Pitch;
-    public float Hull = 0.87f;
-    public float Shield;
-    public float Fuel;
-    public float Power;
-    public float Temperature;
-    public float Thrust;
+    internal FlightState Flight { get; } = new();
+    internal SystemsState Systems { get; } = new();
     public float RadarSweep;
     public Vector2 Target;
     public float TargetRange;
@@ -908,21 +900,11 @@ sealed class ShipState
 
     private float _lastTraceTime;
 
-    public void Advance(float time)
+    internal void Advance(float time)
     {
-        Speed = 150f + 90f * MathF.Sin(time * 0.35f) + 15f * MathF.Sin(time * 2.1f);
-        Altitude = 1100f + 600f * MathF.Sin(time * 0.21f + 1f);
-        Heading = 150f + 40f * MathF.Sin(time * 0.17f) + 6f * MathF.Sin(time * 0.9f);
-        Pitch = 8f * MathF.Sin(time * 0.4f) + 3f * MathF.Sin(time * 1.3f);
+        Flight.Advance(time);
+        Systems.Advance(time, Flight.Speed);
 
-        // The shield takes a hit every 20 seconds and recharges over the next ten
-        var cycle = time % 20f;
-        Shield = cycle < 10f ? 1f - cycle / 10f * 0.9f : 0.1f + (cycle - 10f) / 10f * 0.9f;
-
-        Fuel = 0.9f - (time % 240f) / 240f * 0.8f;
-        Power = 0.55f + 0.35f * MathF.Sin(time * 0.6f);
-        Temperature = 0.5f + 0.4f * MathF.Sin(time * 0.25f + 2f);
-        Thrust = MathUtil.Clamp(Speed / 300f + 0.1f * MathF.Sin(time * 3f), 0f, 1f);
         RadarSweep = -time * 1.4f;
 
         Target = new Vector2(6.0f + 1.2f * MathF.Sin(time * 0.5f), 3.6f + 0.8f * MathF.Sin(time * 0.33f + 1f));
@@ -954,6 +936,46 @@ sealed class ShipState
         }
 
         TileValues[1] = 0.5f + 0.5f * MathF.Sin(time * 0.7f);
+    }
+}
+
+/// <summary>Where the ship is going: the four figures the sight, the tapes and the compass show.</summary>
+sealed class FlightState
+{
+    internal float Speed { get; private set; }
+    internal float Altitude { get; private set; }
+    internal float Heading { get; private set; }
+    internal float Pitch { get; private set; }
+
+    internal void Advance(float time)
+    {
+        Speed = 150f + 90f * MathF.Sin(time * 0.35f) + 15f * MathF.Sin(time * 2.1f);
+        Altitude = 1100f + 600f * MathF.Sin(time * 0.21f + 1f);
+        Heading = 150f + 40f * MathF.Sin(time * 0.17f) + 6f * MathF.Sin(time * 0.9f);
+        Pitch = 8f * MathF.Sin(time * 0.4f) + 3f * MathF.Sin(time * 1.3f);
+    }
+}
+
+/// <summary>How the ship is doing: the six figures the gauges, the bars and the warning strip show.</summary>
+sealed class SystemsState
+{
+    internal float Hull { get; private set; } = 0.87f;
+    internal float Shield { get; private set; }
+    internal float Fuel { get; private set; }
+    internal float Power { get; private set; }
+    internal float Temperature { get; private set; }
+    internal float Thrust { get; private set; }
+
+    internal void Advance(float time, float speed)
+    {
+        // The shield takes a hit every 20 seconds and recharges over the next ten
+        var cycle = time % 20f;
+
+        Shield = cycle < 10f ? 1f - cycle / 10f * 0.9f : 0.1f + (cycle - 10f) / 10f * 0.9f;
+        Fuel = 0.9f - (time % 240f) / 240f * 0.8f;
+        Power = 0.55f + 0.35f * MathF.Sin(time * 0.6f);
+        Temperature = 0.5f + 0.4f * MathF.Sin(time * 0.25f + 2f);
+        Thrust = MathUtil.Clamp(speed / 300f + 0.1f * MathF.Sin(time * 3f), 0f, 1f);
     }
 }
 
