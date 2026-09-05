@@ -188,6 +188,14 @@ Three conventions in the naming rules exist because a specific pair of examples 
   of a feature". That is why `Example_Shapes_Playground` became `E11_3D_ShapeBatch` and
   `Example02_Junkyard_Playground_Box2D` became `E06_Box2D_JunkyardInteractive`.
 
+**A Stride package file must be named after its project.** `E20_3D_CubeCollapse` is the only example
+with assets, and its `.sdpkg` is how they get compiled. Stride derives the asset URL prefix from the
+package, and at runtime resolves an unqualified `Content.Load<Sound>("cube-clear-1")` against the
+*project* name - so leaving `Example_CubicleCalamity.sdpkg` beside `E20_3D_CubeCollapse.csproj`
+compiled the assets to `/Example_CubicleCalamity/cube-clear-1` while the game asked for
+`/E20_3D_CubeCollapse/cube-clear-1`. The build stays green either way; it fails at load with
+`ContentManagerException: The asset ... could not be found`. Rename the `.sdpkg` with the project.
+
 The one thing a rename cannot be casually done to: **`related:` stores project names, not slugs**
 (D6), and an unresolvable name is a hard error under `--strict` (D10). Any future renaming has to
 move every `related:` entry in the same commit. `GlobalSuppression.cs` is the quieter hazard - its
