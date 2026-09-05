@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
 namespace E13_SignalR.SignalR;
 
 /// <summary>
-/// Reusable SignalR hub client that encapsulates connection lifecycle, reconnection,
-/// buffered receivers, and background queued senders.
-/// Keeps SignalR concerns isolated from engine/game threading concerns.
+/// Reusable SignalR hub client that encapsulates connection lifecycle, reconnection, receivers and
+/// the background sender. Keeps SignalR concerns isolated from engine/game threading concerns:
+/// handlers run on SignalR's threads, so they should only enqueue, and the game drains on its own.
 /// </summary>
 public sealed class SignalRHubClient : IAsyncDisposable
 {
@@ -321,45 +320,36 @@ public sealed class SignalRHubClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// Registers a buffered receiver for the given hub method that enqueues values for later draining on caller's thread.
+    /// Registers a receiver for a hub method that carries no payload.
     /// </summary>
-    /// <typeparam name="T">Payload type.</typeparam>
     /// <param name="methodName">Hub method name.</param>
-    /// <returns>Buffered subscription that exposes TryDequeue.</returns>
-    public BufferedSubscription<T> RegisterBuffered<T>(string methodName)
+    /// <param name="handler">Callback to invoke when the method is received.</param>
+    /// <returns>Disposable subscription.</returns>
+    public IDisposable RegisterHandler(string methodName, Action handler)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
+        ArgumentNullException.ThrowIfNull(handler);
 
-        var queue = new ConcurrentQueue<T>();
-        var sub = Connection.On<T>(methodName, (payload) =>
-        {
-            if (payload is null) return;
-
-            queue.Enqueue(payload);
-        });
+        var sub = Connection.On(methodName, handler);
 
         _subscriptions.Add(sub);
-        _logger?.LogDebug("Registered buffered handler for method {Method}", methodName);
+        _logger?.LogDebug("Registered handler for method {Method}", methodName);
 
-        return new BufferedSubscription<T>(queue);
+        return sub;
     }
 
     /// <summary>
-    /// Creates a background queued sender for the specified hub method name.
-    /// Call <see cref="OutgoingQueue{T}.Enqueue"/> to schedule items for sending.
+    /// Creates the background sender for this connection. Call <see cref="OutgoingQueue.Enqueue"/> to
+    /// schedule a hub call; it goes out in order with everything queued before it.
     /// </summary>
-    /// <typeparam name="T">Payload type.</typeparam>
-    /// <param name="methodName">Hub method to send to.</param>
     /// <returns>Outgoing queue instance.</returns>
-    public OutgoingQueue<T> CreateOutgoingQueue<T>(string methodName)
+    public OutgoingQueue CreateOutgoingQueue()
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
-
-        var q = new OutgoingQueue<T>(this, methodName);
+        var q = new OutgoingQueue(this);
 
         _sendQueues.Add(q);
 
-        _logger?.LogDebug("Created outgoing queue for method {Method}", methodName);
+        _logger?.LogDebug("Created outgoing queue");
 
         return q;
     }
