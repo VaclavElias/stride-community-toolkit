@@ -49,9 +49,11 @@ public class Basic2DCameraController : SyncScript
 
     // Zoom Properties
     /// <summary>
-    /// Gets or sets the default orthographic size used when resetting the camera with the 'H' key.
+    /// Gets or sets the orthographic size the 'H' key resets the camera to. <see langword="null"/>, the
+    /// default, restores the size the camera had when the controller started - so a scene that set
+    /// its own framing gets that framing back, not a fixed number.
     /// </summary>
-    public float OrthographicSizeDefault { get; set; } = 10.0f;
+    public float? OrthographicSizeDefault { get; set; }
 
     /// <summary>
     /// Gets or sets the fraction by which the visible area scales per mouse-wheel notch. Defaults to 0.1 (10 %).
@@ -203,6 +205,7 @@ public class Basic2DCameraController : SyncScript
 
     private CameraComponent? _camera;
     private Vector3 _defaultCameraPosition;
+    private float _defaultOrthographicSize = 10f;
     private Vector3 _targetPosition;
     private float _targetOrthographicSize;
     private Vector2? _lastMousePosition;
@@ -301,7 +304,10 @@ public class Basic2DCameraController : SyncScript
 
             if (_camera is null) return; // Ensure we have a camera component
 
+            // Captured here rather than in Start: a scene sets its framing in its own Start, which
+            // runs before this script's first update, and this is what H restores
             _targetOrthographicSize = _camera.OrthographicSize;
+            _defaultOrthographicSize = _camera.OrthographicSize;
         }
 
 
@@ -475,8 +481,9 @@ public class Basic2DCameraController : SyncScript
     /// Resets the camera to its default position and orthographic size when the 'H' key is pressed.
     /// </summary>
     /// <remarks>
-    /// <para>The camera is reset to a position of (0, 0, 50), and the orthographic size is set to <see cref="OrthographicSizeDefault"/>.
-    /// Both the target position (for smoothing) and the actual transform position are updated immediately.</para>
+    /// <para>The camera returns to the position it started at and to <see cref="OrthographicSizeDefault"/>, or
+    /// to the orthographic size it started with when that is not set. Both the target values (for
+    /// smoothing) and the actual camera are updated immediately.</para>
     /// </remarks>
     private void ResetCameraToDefault()
     {
@@ -485,8 +492,10 @@ public class Basic2DCameraController : SyncScript
         _targetPosition = _defaultCameraPosition;
         Entity.Transform.Position = _defaultCameraPosition;
 
-        _targetOrthographicSize = OrthographicSizeDefault;
-        _camera!.OrthographicSize = OrthographicSizeDefault;
+        var size = OrthographicSizeDefault ?? _defaultOrthographicSize;
+
+        _targetOrthographicSize = size;
+        _camera!.OrthographicSize = size;
     }
 
     /// <summary>
