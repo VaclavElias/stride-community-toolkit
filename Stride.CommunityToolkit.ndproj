@@ -1971,7 +1971,39 @@ select new {
     <Group Name="Source Files Organization" Active="True" ShownInReport="False">
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2100$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2101$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2102$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid defining multiple types in a source file</Name>
+// <Id>ND2102:AvoidDefiningMultipleTypesInASourceFile</Id>
+
+warnif count > 0
+
+// Stride Community Toolkit tweak - replaces the stock rule:
+//  - scoped to the shipped library assemblies. A code-only example is one Program.cs by
+//    design - top-level statements plus the few records and enums it needs - so several
+//    types in that file is the convention there, not a smell.
+//  - a source file linked into two assemblies (the launchers share their manifest code)
+//    yields the same type twice; that is one declaration, not two.
+//  - ignores nested and compiler-generated types, as the stock rule does.
+let candidates = JustMyCode.Types.Where(t =>
+      !t.IsGeneratedByCompiler &&
+      !t.IsNested &&
+      t.ParentAssembly.Name.StartsWith("Stride.CommunityToolkit") &&
+      t.SourceFileDeclAvailable &&
+      t.SourceDecls.Count() == 1).ToArray()
+
+let byFile = candidates.ToLookup(t => t.SourceDecls.Single().SourceFile.FilePathString, StringComparer.OrdinalIgnoreCase)
+
+from g in byFile
+let distinct = g.GroupBy(x => x.FullName).Select(x => x.First()).ToArray()
+where distinct.Length > 1
+let t = distinct[0]
+let others = distinct.Skip(1).ToArray()
+let debt = (3 * others.Length).ToMinutes().ToDebt()
+select new { t, Others = others, File = g.Key, Debt = debt }
+
+// <Expl>The source file *{2}* should contain only one type declaration: *{0}* shares it with *{1}*.</Expl>
+// <Desc>A source file that declares several top-level types is harder to find things in - the file name names one of them and hides the rest - and invites the small ones to grow unnoticed.</Desc>
+// <HowToFix>Move each additional type into its own file, named after the type. Nested types and the top-level-statements Program class are not counted.</HowToFix>
+]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2103$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Types with source files stored in the same directory, should be declared in the same namespace</Name>
 // <Id>ND2104:TypesWithSourceFilesStoredInTheSameDirectoryShouldBeDeclaredInTheSameNamespace</Id>
