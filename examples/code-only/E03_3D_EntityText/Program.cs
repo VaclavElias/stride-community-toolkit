@@ -3,6 +3,7 @@ using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Skyboxes;
+using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
@@ -15,12 +16,18 @@ using Stride.Graphics;
 // entity is, and it is never hidden by geometry. For text that lives inside the scene - shrinking
 // with distance, blocked by walls - see E03_3D_WorldText.
 
+// Before the window exists: a sharp window on a scaled display, and every label then sizes itself -
+// this is screen-space text, so a 150% display draws it 1.5x, rasterised at that size rather than stretched
+WindowsDpiManager.EnablePerMonitorV2();
+
 using var game = new Game();
 
 game.Run(start: Start);
 
 void Start(Scene scene)
 {
+    game.Window.AllowUserResizing = true;
+    //DisplayScale.GetOrCreate(game).Override = 1f;
     game.SetupBase3DScene();
     game.AddSkybox();
 
