@@ -23,11 +23,11 @@
     </ItemGroup>
     <ItemGroup>
         <!--
-            Cubicle Calamity keeps its rules in plain, scene-free classes precisely so they can be
+            Cube Collapse keeps its rules in plain, scene-free classes precisely so they can be
             tested here. Referencing an example project from tests is unusual, and is done because the
             alternative is game logic with no coverage at all.
         -->
-        <ProjectReference Include="..\..\examples\code-only\Example_CubicleCalamity\Example_CubicleCalamity.csproj" />
+        <ProjectReference Include="..\..\examples\code-only\E20_3D_CubeCollapse\E20_3D_CubeCollapse.csproj" />
     </ItemGroup>
     <ItemGroup>
         <!--

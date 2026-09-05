@@ -1,8 +1,8 @@
-using Example_CubicleCalamity.Gameplay;
-using Example_CubicleCalamity.Shared;
+using CubeCollapse.Gameplay;
+using CubeCollapse.Shared;
 using Xunit;
 
-namespace Stride.CommunityToolkit.Tests.CubicleCalamity;
+namespace Stride.CommunityToolkit.Tests.CubeCollapse;
 
 /// <summary>
 /// Covers how the board grows from level to level, and the shape rules the palettes must obey.
@@ -81,7 +81,7 @@ public class LevelRulesTests
     [Fact]
     public void JsonProgressStoreRoundTrips()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"cubicle-progress-{Guid.NewGuid():N}.json");
+        var path = Path.Combine(Path.GetTempPath(), $"cube-collapse-progress-{Guid.NewGuid():N}.json");
         var store = new JsonProgressStore(path);
 
         try

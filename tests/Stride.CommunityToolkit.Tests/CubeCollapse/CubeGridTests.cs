@@ -1,10 +1,10 @@
-using Example_CubicleCalamity.Components;
-using Example_CubicleCalamity.Gameplay;
+using CubeCollapse.Components;
+using CubeCollapse.Gameplay;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Xunit;
 
-namespace Stride.CommunityToolkit.Tests.CubicleCalamity;
+namespace Stride.CommunityToolkit.Tests.CubeCollapse;
 
 /// <summary>
 /// Covers the logical grid and the column collapse that follows a clear.

@@ -189,14 +189,14 @@ using System.Diagnostics.CodeAnalysis;
 // --- Example10: the Bepu and Bullet twins -----------------------------------------------------
 // The two Example10 projects are the same scene on two physics engines, kept side by side so the
 // difference between them is the diff. They deliberately share namespace and type names.
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example10_StrideUI_DragAndDrop:Example10_StrideUI_DragAndDrop", Scope = "deep", Justification = "Bepu twin of Example10_StrideUI_DragAndDrop_BulletPhysics; same scene, different engine, on purpose.")]
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example10_StrideUI_DragAndDrop_BulletPhysics:Example10_StrideUI_DragAndDrop", Scope = "deep", Justification = "Bullet twin of Example10_StrideUI_DragAndDrop; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E04_StrideUI_DragAndDrop:E04_StrideUI_DragAndDrop", Scope = "deep", Justification = "Bepu twin of E04_StrideUI_DragAndDrop_Bullet; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E04_StrideUI_DragAndDrop_Bullet:E04_StrideUI_DragAndDrop", Scope = "deep", Justification = "Bullet twin of E04_StrideUI_DragAndDrop; same scene, different engine, on purpose.")]
 // Scope="deep" on a namespace covers its own types, not those of a child namespace, so the .UI
 // namespace needs its own pair of entries.
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example10_StrideUI_DragAndDrop:Example10_StrideUI_DragAndDrop.UI", Scope = "deep", Justification = "Bepu twin of Example10_StrideUI_DragAndDrop_BulletPhysics; same scene, different engine, on purpose.")]
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example10_StrideUI_DragAndDrop_BulletPhysics:Example10_StrideUI_DragAndDrop.UI", Scope = "deep", Justification = "Bullet twin of Example10_StrideUI_DragAndDrop; same scene, different engine, on purpose.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example10_StrideUI_DragAndDrop:Example10_StrideUI_DragAndDrop.PrimitiveGenerator", Scope = "deep", Justification = "Scatters cubes around the scene; nothing security-related, same as Helpers.VectorHelper above.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example10_StrideUI_DragAndDrop_BulletPhysics:Example10_StrideUI_DragAndDrop.PrimitiveGenerator", Scope = "deep", Justification = "Scatters cubes around the scene; nothing security-related, same as Helpers.VectorHelper above.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E04_StrideUI_DragAndDrop:E04_StrideUI_DragAndDrop.UI", Scope = "deep", Justification = "Bepu twin of E04_StrideUI_DragAndDrop_Bullet; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E04_StrideUI_DragAndDrop_Bullet:E04_StrideUI_DragAndDrop.UI", Scope = "deep", Justification = "Bullet twin of E04_StrideUI_DragAndDrop; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_StrideUI_DragAndDrop:E04_StrideUI_DragAndDrop.PrimitiveGenerator", Scope = "deep", Justification = "Scatters cubes around the scene; nothing security-related, same as Helpers.VectorHelper above.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_StrideUI_DragAndDrop_Bullet:E04_StrideUI_DragAndDrop.PrimitiveGenerator", Scope = "deep", Justification = "Scatters cubes around the scene; nothing security-related, same as Helpers.VectorHelper above.")]
 
 // --- Launcher: the Avalonia entry-point contract -----------------------------------------------
 // Avalonia's project template declares BuildAvaloniaApp as a public static method on an internal
@@ -210,35 +210,35 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend: pipeline, buffers, shader, context, DPI and input references are its state - same as ImGuiSystem above.")]
 [assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetExtensions.DrawText(ImGuiNetSystem,Int32,Int32,String,Byte,Byte,Byte,Byte)", Justification = "Byte-per-channel colour mirrors the Box2D.NET draw API this overload exists to match; the Vector4 overload on ImGuiNetSystem.DrawString is the shorter path.")]
 // --- Example17 SignalR ---
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example17_SignalR:Example17_SignalR.SignalR.SignalRHubClient", Scope = "deep", Justification = "Jitter on the reconnect backoff delay, so a room full of clients does not retry in lockstep after a server restart; nothing security-related.")]
-[assembly: SuppressMessage("NDepend", "ND1313:OverrideEqualsAndOperatorEqualsOnValueTypes", Target = "Example17_SignalR:Example17_SignalR.SignalR.BufferedSubscription<T>", Justification = "A readonly handle around one queue, handed out by RegisterBuffered and only ever drained; instances are never compared, sorted or used as keys, so the equality contract would be dead code. A record struct would satisfy the rule but publishes the queue as a public member.")]
-// --- Cubicle Calamity: a game example ---
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E13_SignalR:E13_SignalR.SignalR.SignalRHubClient", Scope = "deep", Justification = "Jitter on the reconnect backoff delay, so a room full of clients does not retry in lockstep after a server restart; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND1313:OverrideEqualsAndOperatorEqualsOnValueTypes", Target = "E13_SignalR:E13_SignalR.SignalR.BufferedSubscription<T>", Justification = "A readonly handle around one queue, handed out by RegisterBuffered and only ever drained; instances are never compared, sorted or used as keys, so the equality contract would be dead code. A record struct would satisfy the rule but publishes the queue as a public member.")]
+// --- Cube Collapse: a game example ---
 // Colours for the board, positions for the falling game-over letters, and the shuffle behind a
 // spawn. Gameplay randomness, same as Helpers.VectorHelper above; a seedable System.Random is the
 // point, and CubeSpawner deliberately seeds it so the same board comes up while tuning.
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example_CubicleCalamity:Example_CubicleCalamity.Setup.CubeSpawner", Scope = "deep", Justification = "Cube colours; nothing security-related.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example_CubicleCalamity:Example_CubicleCalamity.Setup.FallingLetters", Scope = "deep", Justification = "Scatter on the game-over letters; nothing security-related.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example_CubicleCalamity:Example_CubicleCalamity.Scripts.CubeClickScript", Scope = "deep", Justification = "Picks which of the interchangeable click sounds to play; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E20_3D_CubeCollapse:CubeCollapse.Setup.CubeSpawner", Scope = "deep", Justification = "Cube colours; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E20_3D_CubeCollapse:CubeCollapse.Setup.FallingLetters", Scope = "deep", Justification = "Scatter on the game-over letters; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E20_3D_CubeCollapse:CubeCollapse.Scripts.CubeClickScript", Scope = "deep", Justification = "Picks which of the interchangeable click sounds to play; nothing security-related.")]
 // The class the example's own docs tell a reader to start from: it owns the order things happen in
 // and holds one reference per part it drives - grid, score, levels, progress, materials, spawner,
 // audio, the four scripts, simulation and scene. Splitting it would scatter one game's wiring across
 // several types and cost exactly the readability the example is for.
-[assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Example_CubicleCalamity:Example_CubicleCalamity.CubicleCalamityGame", Justification = "Game root: one field per part it owns, which is what makes the startup order readable in one place.")]
+[assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "E20_3D_CubeCollapse:CubeCollapse.CubeCollapseGame", Justification = "Game root: one field per part it owns, which is what makes the startup order readable in one place.")]
 // --- Examples: gameplay randomness -------------------------------------------------------------
 // Every System.Random below places, colours or shuffles something on screen. None of it is security
 // related, and the seedable constructor is wanted rather than tolerated: an example that seeds gets
 // the same scene every run, which is what makes a screenshot or a stress measurement repeatable.
 // Kept as one entry per example, so a genuinely security-sensitive use in a future example is still
 // reported rather than silently covered.
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_DebugRender:Program", Scope = "deep", Justification = "Spawn positions for the debug-rendered shapes.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_Primitives:Program", Scope = "deep", Justification = "Spawn positions for the primitive shapes.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_SpawnMenu:Program", Scope = "deep", Justification = "Spawn positions for menu-created shapes.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_StressPile:Program", Scope = "deep", Justification = "Spawn positions and colours for the stress pile; seeding it is what makes one run comparable to the next.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example01_Basic2DScene_StressPile_Box2D:Program", Scope = "deep", Justification = "The Box2D twin of the stress pile above, and seeded for the same reason.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example02_Junkyard_Playground_Box2D:Program", Scope = "deep", Justification = "Spawn positions and shape choice for the rocks raining into the yard.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example07_CubeClicker:Example07_CubeClicker.Scripts.ClickHandlerComponent", Scope = "deep", Justification = "Where a clicked cube is replaced; nothing security-related.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example08_DebugShapes:Example08_DebugShapes.Scripts.ShapeUpdater", Scope = "deep", Justification = "Positions, rotations and velocities for the debug shapes on screen.")]
-[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "Example22_Instancing_EntityTransform:Program", Scope = "deep", Justification = "Transforms for the instanced entities.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E08_2D_DebugRender:Program", Scope = "deep", Justification = "Spawn positions for the debug-rendered shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E02_2D_Primitives:Program", Scope = "deep", Justification = "Spawn positions for the primitive shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_2D_SpawnMenu:Program", Scope = "deep", Justification = "Spawn positions for menu-created shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E10_2D_StressPile:Program", Scope = "deep", Justification = "Spawn positions and colours for the stress pile; seeding it is what makes one run comparable to the next.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E10_2D_StressPile_Box2D:Program", Scope = "deep", Justification = "The Box2D twin of the stress pile above, and seeded for the same reason.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E06_Box2D_JunkyardInteractive:Program", Scope = "deep", Justification = "Spawn positions and shape choice for the rocks raining into the yard.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_CubeClicker:E04_CubeClicker.Scripts.ClickHandlerComponent", Scope = "deep", Justification = "Where a clicked cube is replaced; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E08_3D_DebugShapes:E08_3D_DebugShapes.Scripts.ShapeUpdater", Scope = "deep", Justification = "Positions, rotations and velocities for the debug shapes on screen.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E10_3D_Instancing_EntityTransform:Program", Scope = "deep", Justification = "Transforms for the instanced entities.")]
 
 // --- Examples: helper types that live beside top-level statements -------------------------------
 // A code-only example is one file: top-level statements, plus the few small types they need. Two
@@ -246,12 +246,12 @@ using System.Diagnostics.CodeAnalysis;
 // helper type, which reads as duplication across assemblies but is the point - each example has to
 // stand alone and be runnable on its own. The matching CA1050 (types outside a namespace) is turned
 // off for examples/ in examples/.editorconfig.
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example01_Basic2DScene_Primitives:ShapeItem", Justification = "Shared with Example01_Basic2DScene_SpawnMenu, which teaches the same catalogue through a menu.")]
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example01_Basic2DScene_StressPile:SpawnLayout", Justification = "Shared with the Box2D twin of the same stress pile.")]
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example01_Basic3DScene_FSharp:Program", Justification = "The F# examples each compile a module named Program, as F# requires for an entry point.")]
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example02_Junkyard_Box2D:PusherDriver", Justification = "Shared with Example02_Junkyard_Playground_Box2D, which is the same scene with controls added.")]
-[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Example19_Jitter2Physics:CubeInstance", Justification = "Shared with Example19_Jitter2Physics_Constraints, which is the same scene constrained to 2D.")]
-[assembly: SuppressMessage("NDepend", "ND2102:AvoidDefiningMultipleTypesInASourceFile", Target = "Example02_Junkyard_Playground_Box2D:ShapeDefinition", Justification = "The example is deliberately one readable file; its catalogue entry, spawned-shape and sensor-watcher types sit at the end of it rather than in files a reader has to open separately.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E02_2D_Primitives:ShapeItem", Justification = "Shared with E04_2D_SpawnMenu, which teaches the same catalogue through a menu.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E10_2D_StressPile:SpawnLayout", Justification = "Shared with the Box2D twin of the same stress pile.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E01_3D_BasicScene_FSharp:Program", Justification = "The F# examples each compile a module named Program, as F# requires for an entry point.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E06_Box2D_Junkyard:PusherDriver", Justification = "Shared with E06_Box2D_JunkyardInteractive, which is the same scene with controls added.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E06_Jitter2:CubeInstance", Justification = "Shared with E06_Jitter2_ConstrainedTo2D, which is the same scene constrained to 2D.")]
+[assembly: SuppressMessage("NDepend", "ND2102:AvoidDefiningMultipleTypesInASourceFile", Target = "E06_Box2D_JunkyardInteractive:ShapeDefinition", Justification = "The example is deliberately one readable file; its catalogue entry, spawned-shape and sensor-watcher types sit at the end of it rather than in files a reader has to open separately.")]
 
 // ==================================================================================================
 // REVISIT - accepted for now. Each entry says what should re-open it.
@@ -266,7 +266,7 @@ using System.Diagnostics.CodeAnalysis;
 // rendering and the font atlas their own types, the way the ImGui package already did with
 // ImGuiTextureManager and ImGuiNetTextOverlay; the font atlas owns _fontTexture, which the renderer
 // and Destroy both use, so that is a real refactor of a graphics path and wants a run of
-// Example11_ImGuiNet behind it rather than a quiet edit.
+// E04_ImGuiNet behind it rather than a quiet edit.
 //
 // TRIGGER: when that extraction lands, or if ImGuiNetSystem grows past roughly 230 statements -
 // six over a threshold is a rounding error, thirty over is a different type.

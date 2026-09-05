@@ -1,11 +1,11 @@
-using Example_CubicleCalamity.Gameplay;
-using Example_CubicleCalamity.Shared;
+using CubeCollapse.Gameplay;
+using CubeCollapse.Shared;
 using Xunit;
 
-namespace Stride.CommunityToolkit.Tests.CubicleCalamity;
+namespace Stride.CommunityToolkit.Tests.CubeCollapse;
 
 /// <summary>
-/// Covers the scoring arithmetic for Cubicle Calamity.
+/// Covers the scoring arithmetic for Cube Collapse.
 /// </summary>
 public class ScoreRulesTests
 {

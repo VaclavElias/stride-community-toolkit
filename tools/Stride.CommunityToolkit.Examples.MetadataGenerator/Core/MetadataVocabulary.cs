@@ -43,8 +43,8 @@ public static class MetadataVocabulary
     /// <summary>
     /// Topic categories. A category names the *lesson*, not the scenery: a keyboard-menu example that
     /// happens to spawn shapes is <c>Input</c>, and an instancing example is <c>Performance</c> whether it
-    /// draws cubes or physics bodies. <c>Geometry</c> and <c>Debug</c> have no members yet but are
-    /// earmarked for the <c>Example05_*</c> and <c>Example08_*</c> families.
+    /// draws cubes or physics bodies. <c>Geometry</c> and <c>Debug</c> are carried by the
+    /// <c>E07_*</c> and <c>E08_*</c> families.
     /// </summary>
     public static readonly ImmutableArray<string> Categories =
     [

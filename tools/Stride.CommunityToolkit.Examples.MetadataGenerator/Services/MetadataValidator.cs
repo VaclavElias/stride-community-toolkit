@@ -263,7 +263,7 @@ public partial class MetadataValidator(ILogger<MetadataValidator> logger)
     /// example in manifest order and writes to the declared filename, so a shared name means the second
     /// capture overwrites the first and one example's page ends up showing another example's scene. It
     /// was found by counting: 49 captures produced 48 files, because
-    /// <c>Example05_PartialTorus</c> and <c>Example05_PartialTorus_FSharp</c> both claimed
+    /// <c>E07_3D_PartialTorus</c> and <c>E07_3D_PartialTorus_FSharp</c> both claimed
     /// <c>stride-game-engine-example-05-partial-torus-mesh.webp</c>.
     /// </para>
     /// <para>

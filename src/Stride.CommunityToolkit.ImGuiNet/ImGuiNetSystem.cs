@@ -67,7 +67,7 @@ public class ImGuiNetSystem : GameSystemBase
 
     /// <summary>
     /// Optional path to a custom TTF font. If the file exists, it will be used instead of the default font.
-    /// Defaults to 'data/droid_sans.ttf' to match Example11_ImGuiNet.
+    /// Defaults to 'data/droid_sans.ttf'.
     /// </summary>
     public string? FontPath { get; set; } = Path.Combine("data", "droid_sans.ttf");
 
