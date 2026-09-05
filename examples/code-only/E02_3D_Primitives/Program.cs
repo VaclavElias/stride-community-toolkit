@@ -25,6 +25,10 @@ void Start(Scene scene)
     game.AddSkybox();
     game.AddProfiler();
 
+    // The one line. Left mouse grabs, the wheel changes the carry distance, T + mouse turns the body.
+    var grabber = new GrabberScript();
+    game.GetCameraEntity().Add(grabber);
+
     InitializeDebugOverlay();
     Add3DPrimitives(scene);
 }
