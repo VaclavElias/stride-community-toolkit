@@ -17,6 +17,7 @@ not here. That is the reason this folder exists at the repository root rather th
 | [`plans/`](plans) | One document per piece of committed work, settled before building | Retire into the docs when the work lands |
 | [`upstream/`](upstream) | Drafts of issues and PRs aimed at Stride, Bepu or elsewhere | Delete once filed |
 | [`engine-example-opportunities.md`](engine-example-opportunities.md), [`samples-example-opportunities.md`](samples-example-opportunities.md), [`starbreach-example-opportunities.md`](starbreach-example-opportunities.md) | Research: example and toolkit opportunities mined from the Stride sources, the bundled samples, and the Starbreach demo (all cross-checked 2026-09-02) | Graduate items into `example-backlog.md` / `TODO.md`; keep the docs as the rejected-and-why record |
+| [`box2d-example-opportunities.md`](box2d-example-opportunities.md), [`bepu-demos-opportunities.md`](bepu-demos-opportunities.md) | Research: the same harvest over the Box2D.NET samples and the bepuphysics2 demos, docs and harness (2026-09-05, agent-produced, line numbers unverified) | Verify the Box2D items against the pinned NuGet before porting; graduate into `plans/box2d-library.md` and `plans/bepu-examples.md` |
 
 ## Reading order for the research docs
 
@@ -70,6 +71,14 @@ what to build afterwards, against `example-backlog.md`.
     changed"). Reproduce the original failure before rewording the manual page.
 12. `engine-example-opportunities.md` — **"Coverage impact"** — the suggested first five, to
     compare against your own list after all of the above.
+
+**Part 4 — the physics libraries (2026-09-05, read after Part 1)**
+
+13. `bepu-demos-opportunities.md` — **Top 10** table first, then **§3 Documentation** (the
+    stability ladder and CCD pages are manual material as much as example material), then §1/§2.
+    Every "Access" line says whether a Stride component covers it or raw Bepu is needed.
+14. `box2d-example-opportunities.md` — **Top 10** table, then gem 12 (the joint façade) since it
+    blocks most of the rest, then gems 3, 15 and 21, which are pure API with no example needed.
 
 The distinction between `TODO.md` and `ARCHITECTURE.md` is agreement, not size: an item moves from
 `ARCHITECTURE.md` to `TODO.md` once it has been decided that it should be done.
