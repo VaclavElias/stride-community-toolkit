@@ -168,9 +168,6 @@ void Start(Scene rootScene)
 
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    // Debug text is 16 pixels tall at scale 1, which is tiny on a high-DPI display
-    overlay.Scale = MathF.Max(1f, WindowsDpiManager.GetPrimaryScale() ?? 1f);
-
     // The default box is Stride's 49% black, tuned for dark scenes; on paper white it needs to be darker
     overlay.BackgroundColor = new Color(0, 0, 0, 200);
     overlay.FontSize = 16;

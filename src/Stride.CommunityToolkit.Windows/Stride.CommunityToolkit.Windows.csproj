@@ -6,7 +6,7 @@
 
 What's inside:
 - Brings in Stride.AssetCompiler as a build-only dependency. A code-only project has no assets, but the engine's shaders and default font still have to be compiled into its data folder, and this is the package that makes that happen
-- WindowsDpiManager: opt the process into per-monitor DPI awareness from code, no app.manifest needed, and read a monitor's DPI and scale factor to size UI and debug text correctly on high-DPI displays
+- WindowsDpiManager: opt the process into per-monitor DPI awareness from code, no app.manifest needed - for file-based apps and anything else without a project file - and check that the declaration took. Reading the display's scale is cross-platform and lives in the core package's DisplayScale
 
 Use Stride.CommunityToolkit.Linux on Linux.$(StrideVersionNote)</Description>
         <!-- LibraryImport (NativeMethods.cs) generates marshalling code that uses pointers. -->

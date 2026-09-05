@@ -1,6 +1,8 @@
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -20,6 +22,21 @@ game.Run(start: (Scene rootScene) =>
     entity.Transform.Position = new Vector3(0, 8, 0);
 
     entity.Scene = rootScene;
+
+    // The manifest makes the window sharp; this is the other half. With the process DPI-aware,
+    // Windows no longer enlarges anything, so 16-pixel text on a 150% display is two thirds the
+    // height it should be. DisplayScale reads the display's factor - from SDL here, from Stride's
+    // ScaleFactor on a Retina screen - and the overlay follows it by default, which is why the
+    // help text you are reading is the same size to the eye on any monitor. Drag the window to a
+    // differently scaled monitor and the figure below follows.
+    var displayScale = DisplayScale.GetOrCreate(game);
+
+    DebugOverlay.GetOrCreate(game).AddSection("DPI", () =>
+    [
+        new($"Display scale: {displayScale.Value:0.##}  (detected {displayScale.Detected:0.##})", Color.Yellow),
+        new("This text is drawn that much larger than its 16px design", Color.LightGray),
+        new("Without the manifest it would read 1: Windows would be stretching", Color.LightGray),
+    ]);
 });
 
 /*
@@ -33,15 +50,19 @@ complexity: 1
 order: 110
 description:
   en: |-
-    The capsule scene again, with one difference that is not in the C# at all: an app.manifest declaring
+    The capsule scene again, with two differences. One is not in the C# at all: an app.manifest declaring
     the process per-monitor DPI aware, referenced from the csproj. Without it Windows scales the window
-    itself on a high-DPI display and the result is a blurred, upscaled image. The example exists because
-    the fix is invisible in the source, so it is easy to conclude that Stride renders badly when the
-    real cause is a missing manifest.
+    itself on a high-DPI display and the result is a blurred, upscaled image. The other is what a sharp
+    window then needs: with Windows no longer enlarging anything, 16-pixel text on a 150% display is two
+    thirds the height it should be, so DisplayScale reads the display's factor and the overlay follows
+    it - the help text is the same size to the eye on any monitor. The example exists because the first
+    fix is invisible in the source, so it is easy to conclude that Stride renders badly when the real
+    cause is a missing manifest.
 concepts:
   - Why a high-DPI display renders a blurred window without a manifest
   - "Declaring per-monitor DPI awareness in app.manifest"
   - "Wiring the manifest in with <ApplicationManifest>"
+  - "Reading the display's scale factor with DisplayScale, and why the overlay follows it by default"
   - Referencing Stride.CommunityToolkit.Windows for Windows-only concerns
   - "Using helpers: SetupBase3DScene, AddSkybox, Create3DPrimitive"
 tags:

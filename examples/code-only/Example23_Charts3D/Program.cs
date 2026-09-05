@@ -180,8 +180,6 @@ void Start(Scene rootScene)
 
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Scale = MathF.Max(1f, WindowsDpiManager.GetPrimaryScale() ?? 1f);
-
     // The chart fills the window, so the help goes in a corner rather than across the figure (F3 moves it)
     overlay.Position = DisplayPosition.BottomLeft;
 

@@ -3,6 +3,7 @@ using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.ImGuiNet;
+using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.CommunityToolkit.Windows;
@@ -70,9 +71,6 @@ void Start(Scene rootScene)
 void Update(Scene rootScene, GameTime gameTime)
 {
     if (imGuiSystem is null || orbitingCube is null) return;
-
-    // The window has its final size and monitor only once the first frame runs
-    if (gameTime.FrameCount == 1) ApplyDisplayDpi(imGuiSystem);
 
     elapsedSeconds += (float)gameTime.Elapsed.TotalSeconds;
 
@@ -149,29 +147,6 @@ void MoveOrbitingCube()
 }
 
 /// <summary>
-/// Reports the DPI of the monitor the window opened on and rebuilds the ImGui font atlas at that
-/// scale, which keeps the text crisp instead of upscaling a 96 DPI atlas.
-/// </summary>
-void ApplyDisplayDpi(ImGuiNetSystem imGui)
-{
-    var primaryDpi = WindowsDpiManager.GetPrimaryDpi();
-    var windowDpi = WindowsDpiManager.GetWindowDpi(game.Window.NativeWindow.Handle);
-    var awareness = WindowsDpiManager.GetProcessDpiAwareness();
-
-    Console.WriteLine($"Primary DPI: {primaryDpi?.ToString() ?? "n/a"}");
-    Console.WriteLine($"Window  DPI: {windowDpi?.ToString() ?? "n/a"}");
-    Console.WriteLine($"Process awareness: {awareness?.ToString() ?? "Unknown"}");
-
-    if (primaryDpi is { } primary && windowDpi is { } window &&
-        (primary.DpiX != window.DpiX || primary.DpiY != window.DpiY))
-    {
-        Console.WriteLine("Window is on a different monitor than primary.");
-    }
-
-    imGui.SetDpiScale(windowDpi?.Scale ?? 1f);
-}
-
-/// <summary>
 /// Draws the status lines in screen space, growing downwards from the top-left corner.
 /// </summary>
 void DrawTopLeftPanel(ImGuiNetSystem imGui, GameTime gameTime)
@@ -209,14 +184,15 @@ void DrawWorldLabels(ImGuiNetSystem imGui, Entity cube)
 /// </summary>
 void DrawBottomLeftPanel(ImGuiNetSystem imGui, Scene rootScene)
 {
-    var windowDpi = WindowsDpiManager.GetWindowDpi(game.Window.NativeWindow.Handle);
+    // The font atlas follows this by itself - ImGuiNetSystem rebuilds it when the value changes,
+    // which is what happens when the window is dragged to a differently scaled monitor
+    var displayScale = DisplayScale.GetOrCreate(game).Value;
+    var awareness = WindowsDpiManager.GetProcessDpiAwareness();
     var cameraPosition = rootScene.GetCamera()?.Entity.Transform.Position;
 
     string[] lines =
     [
-        windowDpi is { } dpi
-            ? $"DPI: {dpi.DpiX}x{dpi.DpiY} (Scale: {dpi.Scale:F2}x){(dpi.IsFallback ? " Fallback" : "")}"
-            : "DPI: n/a",
+        $"Display scale: {displayScale:F2}x  (process {awareness?.ToString() ?? "unknown"})",
         $"Camera Position: {cameraPosition?.ToString() ?? "n/a"}",
         $"Entities: {rootScene.Entities.Count}",
         $"Time: {elapsedSeconds:F1}s"

@@ -1,5 +1,6 @@
 using ImGuiNET;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Rendering;
 using Stride.Core;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
@@ -62,7 +63,6 @@ public class ImGuiNetSystem : GameSystemBase
 
     // DPI / scaling state
     private float _dpiScale = 1.0f;
-    private Vector2 _lastFramebufferScale = Vector2.One;
     private bool _pendingFontRebuild;
 
     /// <summary>
@@ -193,21 +193,19 @@ public class ImGuiNetSystem : GameSystemBase
             var io = ImGui.GetIO();
             io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
 
-            // Compute initial DPI / framebuffer scale using Stride backbuffer vs client bounds
-            var clientBounds = _game.Window.ClientBounds;
-            var back = _graphicsDevice.Presenter?.BackBuffer;
-            float initialScale = 1.0f;
-            if (back != null && clientBounds.Width > 0 && clientBounds.Height > 0)
-            {
-                float scaleX = back.Width / (float)clientBounds.Width;
-                float scaleY = back.Height / (float)clientBounds.Height;
-                initialScale = MathF.Max(1.0f, (scaleX + scaleY) * 0.5f);
-                _lastFramebufferScale = new Vector2(scaleX, scaleY);
-                Logger.Info($"ImGuiNetSystem: Initial detected framebuffer scale via Stride: {scaleX:F2} x {scaleY:F2} -> using {initialScale:F2}");
-            }
+            // The backbuffer-to-window ratio alone is 1 on Windows at any scaling; the display
+            // scale service also knows the monitor's DPI, and says when the window moves
+            var displayScale = DisplayScale.GetOrCreate(_game);
 
-            // Store and use initial DPI scale
-            _dpiScale = initialScale;
+            displayScale.Refresh();
+            _dpiScale = displayScale.Value;
+
+            displayScale.Changed += (_, _) =>
+            {
+                if (AutoScaleFonts) SetDpiScale(displayScale.Value);
+            };
+
+            Logger.Info($"ImGuiNetSystem: display scale {_dpiScale:F2}");
 
             // Build the font atlas at the current DPI - this keeps fonts crisp
             SetupFontAtlas(_dpiScale);
@@ -396,8 +394,9 @@ public class ImGuiNetSystem : GameSystemBase
     }
 
     /// <summary>
-    /// Tells ImGui the size of the surface it is drawing on, and rebuilds the font atlas when the
-    /// window moves to a display with a different DPI.
+    /// Tells ImGui the size of the surface it is drawing on. The font atlas is rebuilt from
+    /// <see cref="DisplayScale.Changed"/>, not from here: the backbuffer-to-window ratio this reads
+    /// is 1 on Windows however the display is scaled.
     /// </summary>
     private void UpdateDisplayMetrics(ImGuiIOPtr io)
     {
@@ -410,25 +409,10 @@ public class ImGuiNetSystem : GameSystemBase
         if (clientBounds.Width <= 0 || clientBounds.Height <= 0) return;
 
         var back = _graphicsDevice.Presenter.BackBuffer;
-        var fbScale = new Vector2(
+
+        io.DisplayFramebufferScale = new Vector2(
             back.Width / (float)clientBounds.Width,
             back.Height / (float)clientBounds.Height);
-
-        io.DisplayFramebufferScale = fbScale;
-
-        // Auto font scaling: rebuild atlas when the framebuffer scale changes significantly
-        if (!AutoScaleFonts) return;
-
-        // Use average scale to keep sizing intuitive
-        float avgScale = MathF.Max(1.0f, (fbScale.X + fbScale.Y) * 0.5f);
-        float oldAvg = MathF.Max(1.0f, (_lastFramebufferScale.X + _lastFramebufferScale.Y) * 0.5f);
-
-        // Detect meaningful change (for example, window moved to a monitor with different DPI)
-        if (MathF.Abs(avgScale - oldAvg) > 0.05f)
-        {
-            SetDpiScale(avgScale);
-            _lastFramebufferScale = fbScale;
-        }
     }
 
     /// <inheritdoc/>
