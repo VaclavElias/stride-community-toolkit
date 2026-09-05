@@ -4,11 +4,65 @@ All examples live in the [examples](https://github.com/stride3d/stride-community
 
 Suggested and in-progress examples are tracked in the [example backlog](https://github.com/stride3d/stride-community-toolkit/blob/main/notes/example-backlog.md). Check it before you start, and add your idea there if it is not listed.
 
+## Naming the project
+
+```
+E{NN}_[{Dimension}_]{Subject}[_{Qualifier}...]
+```
+
+`E05_3D_Constraints_Motors`, `E01_2D_BasicScene_Bullet`, `E12_Audio_Spatial`, `E04_ImGuiNet`.
+
+**The number is a shelf, not a classification.** It groups related examples so the folder listing and
+Visual Studio's Solution Explorer stay navigable. Nothing in the build derives ordering or meaning
+from it - `level`, `category` and `tags` in the metadata block are what the launchers, the table of
+contents and the landing pages actually read. Pick the shelf an example belongs on and take the next
+free name on it; there is no "next available number" to claim.
+
+| # | Shelf | | # | Shelf |
+|---|---|---|---|---|
+| 01 | Getting started - the base scene, every language and host | | 09 | Rendering and shaders |
+| 02 | First concepts on top of the base scene | | 10 | Performance |
+| 03 | Text and on-screen composition | | 11 | Toolkit rendering packages - ShapeBatch, charts |
+| 04 | UI and input | | 12 | Audio |
+| 05 | Physics (Bepu) | | 13 | Networking |
+| 06 | Physics - other engines | | 14-15 | *reserved* - Input, Math |
+| 07 | Geometry and procedural meshes | | 20-29 | Games and minigames |
+| 08 | Debug and diagnostics | | | |
+
+The rules, in the order they usually come up:
+
+1. **Underscore separates fields; it never appears inside one.** Multi-word subjects and qualifiers
+   are PascalCase - `E08_DpiAware`, not `E08_Dpi_Aware`.
+2. **The dimension token marks the lesson, not the scenery.** A physics pile that only makes sense in
+   2D gets `2D`; a UI window that happens to sit in front of a 3D scene gets nothing. This is the same
+   test as the one categories use.
+3. **Bepu is the default and is never named.** `E05_3D_FirstPersonCharacter`, not `..._BepuCharacter`.
+4. **An engine name is the *subject* when the example exists to show that engine, and a trailing
+   *variant* when it is a port of something that also exists on the default engine.** So
+   `E06_Box2D_Junkyard`, but `E10_2D_StressPile_Box2D` and `E01_3D_BasicScene_Bullet`. A variant is
+   the one qualifier that must come last, which is what keeps a port sorted next to its original.
+5. **Drop the word "Physics".** `Bullet`, `Box2D` and `Jitter2` already say it.
+6. **A category word belongs in the name only when it aids comprehension.** `Audio` stays, because
+   "Spatial" and "WavFile" do not announce themselves as audio. `Physics`, `Rendering`, `UI` and
+   `Performance` do not - the subject carries them.
+7. **Keep the load-bearing word, drop the decorative one.** Shorter is the preference, but not at the
+   cost of the lesson: `E04_StrideUI_ButtonHoverAnimation` keeps `Animation` because the animation
+   *is* the example, while `E12_Audio_Procedural` needs no `Sound`.
+
+Canonical spellings, so this is not re-litigated per example: `2D` / `3D`; `UI` and `VB` uppercase;
+`HUD` uppercase as the one three-letter exception; `Dpi` and `Wav` in Pascal; products as their own
+documentation writes them (`ImGui`, `ImGuiNet`, `SignalR`, `Blazor`, `Myra`, `StrideUI`, `Box2D`,
+`Jitter2`, `Bepu`, `Bullet`); `FSharp` and `VisualBasic` spelled out; API types as declared
+(`ShapeBatch`, `TextureCanvas`, `SyncScript`, `SimulationUpdate`).
+
+The project name is a filesystem convenience and may be renamed. The `slug` is the permanent
+identifier - see [D24](decisions.md#d24---why-slugs-stay-level-free).
+
 ## How an example is registered
 
 One metadata block, in the example's own entry file. There is nothing else to update: the console runner, the [Avalonia launcher](https://github.com/stride3d/stride-community-toolkit/tree/main/tools/Stride.CommunityToolkit.Examples.Launcher), the documentation page, the level landing pages and the table of contents are all generated from it.
 
-1. Create a project under `examples/code-only/` named `ExampleXY_YourExampleName` (replace `XY` with the next available number).
+1. Create a project under `examples/code-only/`, named to the convention above - pick the shelf it belongs on, then `E{NN}_[{Dimension}_]{Subject}`.
 
 2. Add an `---example-metadata` block to the bottom of the entry file, inside a comment:
 

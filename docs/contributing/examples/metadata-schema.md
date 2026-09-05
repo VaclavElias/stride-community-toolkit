@@ -126,7 +126,7 @@ Level means **conceptual prerequisites, not line count**. A 589-line example tha
 
 ## Categories
 
-`Shapes` · `Geometry` · `Physics` · `Rendering` · `Performance` · `Text` · `UI` · `Input` · `Scripts` · `Networking` · `Debug` · `Game`
+`Shapes` · `Geometry` · `Physics` · `Rendering` · `Audio` · `Performance` · `Text` · `UI` · `Input` · `Scripts` · `Networking` · `Debug` · `Game`
 
 **A category names the lesson, not the scenery.** A keyboard-menu example that happens to spawn shapes is `Input`. An instancing example is `Performance` whether it draws cubes or physics bodies.
 

@@ -1,133 +1,84 @@
 # Code-Only Examples
 
-This directory contains code-only examples for the Stride Community Toolkit, demonstrating various features and capabilities of the Stride game engine without requiring the Game Studio editor.
+Examples for the Stride Community Toolkit, each a complete app built without the Game Studio editor.
 
-## Level System
+Every example is described by one `---example-metadata` block at the bottom of its entry file, and
+everything downstream - both launchers, the documentation page, the level landing pages, the table of
+contents and the screenshot run - is generated from it. There is no registry to update.
 
-Examples are organized into four difficulty levels to help you progress from basic concepts to advanced implementations:
+## Finding your way around
 
-### 🌱 Getting Started (Complexity 1-2)
+Project names follow `E{NN}_[{Dimension}_]{Subject}[_{Qualifier}...]`, so the folder listing groups
+itself:
 
-**Perfect for absolute beginners**
+| # | Shelf | | # | Shelf |
+|---|---|---|---|---|
+| 01 | Getting started - the base scene, every language and host | | 09 | Rendering and shaders |
+| 02 | First concepts on top of the base scene | | 10 | Performance |
+| 03 | Text and on-screen composition | | 11 | Toolkit rendering packages - ShapeBatch, charts |
+| 04 | UI and input | | 12 | Audio |
+| 05 | Physics (Bepu) | | 13 | Networking |
+| 06 | Physics - other engines | | 14-15 | *reserved* - Input, Math |
+| 07 | Geometry and procedural meshes | | 20-29 | Games and minigames |
+| 08 | Debug and diagnostics | | | |
 
-- Single concept demonstrations
-- Minimal code (< 30 lines)
-- No external dependencies beyond toolkit
-- Single file, simple setup
+`E05_3D_Constraints_Motors` reads as: physics shelf, 3D, constraints, the motors variation.
 
-**Examples:** Basic 2D/3D Scene, Simple Primitives, Material creation
+**The number is a shelf label, nothing more.** No tool reads it. What a reader actually filters by -
+`level`, `category`, `tags` - lives in the metadata block, and the launchers and documentation are
+built from that. So a shelf can be renamed or split without touching a single example.
 
-### 🎓 Beginners (Complexity 3-5)
+Three folders sit outside the scheme on purpose:
 
-**Building on the basics**
+- `Example_2D_Playground`, `Example_Bepu_Playground` - scratch space for experimenting. They carry no
+  metadata block at all and are not examples; the naming says so at a glance.
+- `Example.Common` - a shared library, not an example.
 
-- Multiple concepts combined
-- Introduces external libraries or patterns
-- Moderate code (30-100 lines)
-- Simple interactions or updates
-
-**Examples:** Jitter2 Physics, Box2D Physics, Basic UI, Camera controllers
-
-### 🔧 Intermediate (Complexity 6-8)
-
-**Ready for more complex scenarios**
-
-- Complex interactions and systems
-- Multiple files/classes
-- Advanced patterns (managers, factories)
-- State management, custom rendering
-
-**Examples:** Cube Clicker (save/load), UI DragAndDrop, Custom renderers, Raycast interactions
-
-### 🚀 Advanced (Complexity 9-10)
-
-**Production-ready implementations**
-
-- Complete game mechanics
-- Multiple systems integration
-- Performance optimization
-- Production-ready patterns
-
-**Examples:** Cube Collapse (full game), Custom shaders, Advanced networking
-
-## Categories
-
-Examples are organized into the following categories:
-
-- **Shapes** - Basic primitive creation and manipulation
-- **Physics** - Physics engine integration (Bepu, Bullet, Jitter2, Box2D)
-- **Rendering** - Custom rendering, shaders, materials
-- **UI** - User interface examples
-- **Input** - Keyboard, mouse, touch interactions
-- **Interaction** - Raycasting, picking, object manipulation
-- **Audio** - Sound effects, music
-- **Gameplay** - Complete game mechanics
-- **Performance** - Optimization techniques
-- **Integration** - External library examples
-
-## Complexity Scoring Guide
-
-| Complexity | Lines of Code | Characteristics |
-|------------|---------------|-----------------|
-| 1-2 | < 30 | Single concept, minimal setup |
-| 3-4 | 30-100 | 2-3 concepts combined |
-| 5-6 | 100-200 | Multiple files, state management |
-| 7-8 | 200-500 | Complex interactions, custom classes |
-| 9-10 | 500+ | Complete systems, production patterns |
-
-## Example Metadata
-
-Each example includes metadata at the end of its `Program.cs` file in YAML format:
-
-```
-/* ---example-metadata
-title:
-  en: Example Title
-  cs: Název příkladu
-level: Beginners
-category: Physics
-complexity: 4
-description:
-  en: | English description of what the example demonstrates
-  cs: | Czech description of what the example demonstrates
-concepts:
-  - First concept demonstrated
-  - Second concept demonstrated related:
-  - RelatedExample1
-  - RelatedExample2 
-tags:
-  - Tag1
-  - Tag2 
-order: 1
-enabled: true
-created: 2025-12-13
----
-*/
-```
-
-## Running Examples
-
-Each example can be run using:
+## Running an example
 
 ```bash
-dotnet run --project path/to/example/Example.csproj
+dotnet run --project examples/code-only/E01_3D_BasicScene
 ```
 
-Or by using the Stride Community Toolkit Examples Launcher application.
+Or pick it from the Stride Community Toolkit Examples Launcher.
 
-## Contributing
+> [!TIP]
+> After a fresh clone or a large rename, build once with `dotnet build -m:1`. Stride's asset compiler
+> contends on its asset database when many example projects compile assets in parallel, and it fails
+> differently on each run.
 
-Before starting, check the [example backlog](../../notes/example-backlog.md) - the idea may already be listed, already
-built, or previously declined for a reason worth knowing. It also records which categories have no
-examples yet, if you are looking for something useful to write.
+## Adding an example
 
-When adding new examples:
+The naming rules, the metadata block, the level rubric, the category vocabulary and the screenshot
+workflow are all in **[Contribute Examples](../../docs/contributing/examples/index.md)**. They are
+documented once, there, rather than restated here - the levels and categories are a closed set
+validated in code, and a second copy of them only drifts.
 
-1. Follow the existing code style and structure
-2. Include complete example metadata
-3. Assign appropriate level and complexity
-4. Add beginner-friendly comments where helpful
-5. Keep examples focused on demonstrating specific concepts
-6. Test your example before submitting
+Before starting, check the [example backlog](../../notes/example-backlog.md): the idea may already be
+listed, already built, or previously declined for a reason worth knowing. It also records which
+categories have no examples yet.
 
-For more information, see the [Contributing Guide](../../docs/contributing/examples/index.md).
+In short:
+
+1. Pick the shelf, then name the project `E{NN}_[{Dimension}_]{Subject}`.
+2. Add the metadata block to the bottom of the entry file.
+3. Validate it:
+
+   ```bash
+   dotnet run --project tools/Stride.CommunityToolkit.Examples.MetadataGenerator -- scan examples/code-only
+   ```
+
+4. Generate its documentation page.
+
+Keep each example focused on the concept it teaches, comment for a reader who has not seen Stride
+before, and run it before submitting.
+
+## Further reading
+
+- [Contribute Examples](../../docs/contributing/examples/index.md) - the walkthrough.
+- [Example Metadata Schema](../../docs/contributing/examples/metadata-schema.md) - every field, the
+  level rubric and the category vocabulary.
+- [Design Decisions](../../docs/contributing/examples/decisions.md) - why the pipeline works the way
+  it does, including
+  [D56](../../docs/contributing/examples/decisions.md#d56---why-the-project-number-is-a-shelf-not-a-classification)
+  on the naming scheme.

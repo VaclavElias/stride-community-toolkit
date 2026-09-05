@@ -33,7 +33,7 @@ This is the rationale; the rules themselves are in [Example Metadata Schema](met
 | D24 | Level prefixes on slugs | **No** - see below |
 | D25 | Default `media` | Defaults to `<slug>.webp`; the explicit field exists only for the legacy inconsistent names |
 | D26 | Landing pages | One per `(language, level)` group, generated from the manifest, for SEO. Old URLs stay as `redirect_url` stubs |
-| D29 | `category` vocabulary | A closed set of twelve, listed in the schema page. A category names the lesson, not the scenery |
+| D29 | `category` vocabulary | A closed set of thirteen, listed in the schema page. A category names the lesson, not the scenery |
 | D30 | Level in `tags` | Strip it. `level` is a field, not a tag, and duplicating it puts the same fact somewhere nothing validates |
 | D31 | What "Getting Started" admits | Exactly the "your first code-only app" examples - 3D, 2D, file-based, plus the F#/VB ports. Everything else that builds on the base scene is Beginner |
 | D32 | `E20_3D_CubeCollapse` | **Advanced**, not `Other`. `Other` is for playgrounds and WIP; a complete game belongs on the Advanced page |
@@ -58,6 +58,7 @@ This is the rationale; the rules themselves are in [Example Metadata Schema](met
 | D53 | ImGui frame pairing | Guard with a `_frameBegun` flag rather than reordering game systems. The problem was never draw ordering - a fixed timestep can issue several `Update`s per `Draw`, so `NewFrame` must close any frame it finds already open |
 | D54 | Camera aiming API | Separate **read** (the F2 overlay prints live position and YPR) from **write** (`SetCameraPosition` / `SetCameraRotation`). Not a new `Add3DCamera` overload - that creates a second entity contending for camera slot 0 |
 | D55 | A deliberate outcome is not a warning | Third severity, `Info`, kept out of the warning count. A `related:` link dropped because its target is `enabled: false` is the pipeline working, not an authoring mistake - see below |
+| D56 | Project naming | `E{NN}_[{Dimension}_]{Subject}[_{Qualifier}...]`, where the number is a **shelf label, not a classification** - see below |
 
 ## D24 - why slugs stay level-free
 
@@ -152,3 +153,44 @@ Two changes together:
 A clean build now prints one line: `Generating examples metadata manifest...`. A build with a warning prints the warning. A build with an error prints every finding and then fails, exactly as before.
 
 If you add output to this tool, keep the pattern in mind: **never write a line where `error` or `warning` follows a colon**, or the IDE will invent a diagnostic out of it.
+
+## D56 - why the project number is a shelf, not a classification
+
+Before this, project names carried a running number claimed in order of arrival: `Example01_` through
+`Example40_`, with `Example05_*` and `Example08_*` and `Example13_*` having quietly become grab-bags
+for whatever arrived while those numbers were current. Seventy-four projects in one flat folder, and
+the only way to find the physics examples was to know their numbers.
+
+Two things were considered and rejected before the current scheme:
+
+- **Encoding the taxonomy in the name** - `E03_Physics_3D_Constraints_Motors`, with the number and
+  word both naming the category. This is the D30 mistake at folder scale: `category` would live in
+  two places, one of them validated and one not, and reclassifying an example would mean renaming its
+  folder. It also made every name longer to say something the metadata already says.
+- **Numbering the levels** - `01-03` for Getting Started and so on. `level` is the field most likely
+  to change as the toolkit matures and harder material arrives, which is the same reason D24 keeps it
+  out of slugs.
+
+What stayed is the weakest possible claim: **the number groups, and nothing more.** No tool reads it,
+`level` and `category` and `tags` do all the real work, and a shelf can be renamed or split without
+touching the metadata. That is also why the 20s are reserved as a block for games and 14-15 are held
+for Input and Math - a shelf that fills up should be able to grow without disturbing its neighbours.
+
+Three conventions in the naming rules exist because a specific pair of examples forced them:
+
+- **The dimension token marks the lesson, not the scenery.** Clusters 04, 06, 12 and 13 carry no
+  dimension at all - a Myra window in front of a 3D scene is not a 3D example. The same test as the
+  one categories already use.
+- **An engine name is the subject when the example exists to show it, and a trailing variant when it
+  is a port.** `E06_Box2D_Junkyard` against `E10_2D_StressPile_Box2D`. Without the split, a port
+  either loses its engine or stops sorting next to the original it exists to be compared with.
+- **"Playground" means scratch space with no metadata block** (D42), so it cannot also mean "a tour
+  of a feature". That is why `Example_Shapes_Playground` became `E11_3D_ShapeBatch` and
+  `Example02_Junkyard_Playground_Box2D` became `E06_Box2D_JunkyardInteractive`.
+
+The one thing a rename cannot be casually done to: **`related:` stores project names, not slugs**
+(D6), and an unresolvable name is a hard error under `--strict` (D10). Any future renaming has to
+move every `related:` entry in the same commit. `GlobalSuppression.cs` is the quieter hazard - its
+targets are `AssemblyName:CodeElementFullName` with no wildcards, and a suppression whose target has
+been renamed **silently does nothing**, so the issues it covered reappear at the next NDepend run
+rather than failing the build.
