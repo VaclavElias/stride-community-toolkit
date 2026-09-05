@@ -83,13 +83,13 @@ public sealed class ShapeComponent : ActivableEntityComponent
 
     /// <summary>
     /// Fill intensity for this shape, 0 to 1, or Inherit to use the batch's
-    /// <see cref="ShapeBatch.FillAlpha"/>. Set 0 for an unfilled outline.
+    /// <see cref="ShapeFill.Alpha"/>. Set 0 for an unfilled outline.
     /// </summary>
     public float FillAlpha { get; set; } = Inherit;
 
     /// <summary>
     /// The fill's own colour for this shape. Leave it fully transparent - an alpha of zero, which
-    /// is the default - to use the batch's <see cref="ShapeBatch.FillColor"/>, which itself
+    /// is the default - to use the batch's <see cref="ShapeFill.Color"/>, which itself
     /// defaults to filling with the outline colour. For a see-through fill use <see cref="FillAlpha"/>
     /// rather than a transparent colour here.
     /// </summary>
@@ -97,13 +97,13 @@ public sealed class ShapeComponent : ActivableEntityComponent
 
     /// <summary>
     /// Width of a soft glow outside this shape's outline, in on-screen pixels, or Inherit to use
-    /// the batch's <see cref="ShapeBatch.GlowWidth"/>. Set 0 for none.
+    /// the batch's <see cref="ShapeGlow.Width"/>. Set 0 for none.
     /// </summary>
     public float GlowWidth { get; set; } = Inherit;
 
     /// <summary>
     /// The glow's colour for this shape. Leave it fully transparent - an alpha of zero, which is
-    /// the default - to use the batch's <see cref="ShapeBatch.GlowColor"/>, which itself defaults
+    /// the default - to use the batch's <see cref="ShapeGlow.Color"/>, which itself defaults
     /// to the outline colour.
     /// </summary>
     public Color GlowColor { get; set; }

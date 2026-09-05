@@ -16,7 +16,7 @@ namespace Stride.CommunityToolkit.Shapes;
 /// </para>
 /// <para>
 /// The gradient is the fill's alone; the border and glow keep their colours.
-/// <see cref="ShapeBatch.FillAlpha"/> scales both ends.
+/// <see cref="ShapeFill.Alpha"/> scales both ends.
 /// </para>
 /// </remarks>
 /// <example>

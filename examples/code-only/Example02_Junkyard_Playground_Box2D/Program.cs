@@ -95,7 +95,7 @@ void Start(Scene rootScene)
 
     shapeBatch = game.AddShapeBatch();
     shapeBatch.BorderWidth = 1f;
-    shapeBatch.FillAlpha = 0.4f;
+    shapeBatch.Fill.Alpha = 0.4f;
 
     simulation = new Box2DSimulation();
     simulation.RegisterSensorEventHandler(sensorWatcher);

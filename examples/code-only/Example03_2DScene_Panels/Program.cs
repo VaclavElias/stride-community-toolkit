@@ -10,31 +10,31 @@ using Stride.Graphics;
 using Stride.Graphics.Font;
 using Stride.Input;
 
-// A gallery of HUD panels and the text on them: twelve stations, each one property away from the
+// A gallery of HUD panels and the text on them: sixteen stations, each one property away from the
 // last, so what every setting does is a matter of looking rather than reading.
 //
 // Two libraries meet here and it is worth knowing which is which. The PANELS are ShapeBatch - one
 // instanced draw call for all of them, outlines that stay the same number of pixels wide however far
-// you zoom, and border, fill, glow and corner radius as batch state captured per draw. The TEXT is
-// WorldTextComponent - entities in the scene, drawn by one renderer, with their own colour, opacity,
-// glow and font.
+// you zoom, and border, fill, glow, dashes, gradient and opacity as batch state captured per draw.
+// The TEXT is WorldTextComponent - entities in the scene, drawn by one renderer, with their own
+// colour, opacity, glow and font.
 //
 // Each station appears twice: the panel alone, and the same panel with text on it. A light stripe
 // runs behind every cell, because a see-through panel over a flat background just looks darker.
 //
 // T opens the theme list; 1-5 pick one. The mouse wheel zooms and the right button pans - zoom in on
-// any station to see how little the borders and glows care about it.
+// any station to see how little the borders, glows and dashes care about it.
 
-const int Columns = 6;
-const float ColumnPitch = 5f;
-const float RowPitch = 3.4f;
-const float PanelWidth = 4.4f;
-const float PanelHeight = 2.2f;
-const float ViewHeight = 21f;
+const int Columns = 8;
+const float ColumnPitch = 4.6f;
+const float RowPitch = 3.2f;
+const float PanelWidth = 4.0f;
+const float PanelHeight = 2.0f;
+const float ViewHeight = 23f;
 
 // The grid sits low on purpose. The overlay is screen-space and lives in the top-right corner, so the
-// band above the grid is what keeps it from covering the last column.
-const float GridOffsetY = -3.2f;
+// band above the grid is what keeps it from covering the last columns.
+const float GridOffsetY = -2.6f;
 
 // The whole grid framed at once; every cell is one wheel notch away from filling the window
 var panelSize = new Vector2(PanelWidth, PanelHeight);
@@ -46,9 +46,11 @@ var stripeAxisY = Vector3.Normalize(new Vector3(-0.42f, 1f, 0f));
 ShapeBatch? shapes = null;
 SpriteFont? sansFont = null;
 SpriteFont? boldFont = null;
+SpriteFont? italicFont = null;
 SpriteFont? monoFont = null;
 
 var themeIndex = 0;
+var time = 0f;
 List<(WorldTextComponent Text, Action<WorldTextComponent, Theme> Restyle)> themedText = [];
 DebugTextDropdown? themeMenu = null;
 
@@ -71,18 +73,18 @@ Station[] stations =
         (text, theme) => text.TextColor = theme.Text,
         BorderWidth: 0f),
 
-    new("Border only\nFillAlpha 0", "Height 0.55",
+    new("Border only\nFill.Alpha 0", "Height 0.55",
         (text, theme) => { text.TextColor = theme.Text; text.Height = 0.55f; },
         FillAlpha: 0f),
 
     new("Border + fill\nthe default look", "FontSize 12\n(zoom in - it goes soft)",
         (text, theme) => { text.TextColor = theme.Text; text.FontSize = 12f; }),
 
-    new("FillAlpha 0.35\nthe stripe shows through", "TextColor alpha 128",
+    new("Fill.Alpha 0.35\nthe stripe shows through", "TextColor alpha 128",
         (text, theme) => text.TextColor = new Color(theme.Text.R, theme.Text.G, theme.Text.B, (byte)128),
         FillAlpha: 0.35f),
 
-    new("FillColor null\nfill derives from the border", "Opacity 0.5",
+    new("Fill.Color null\nfill derives from the border", "Opacity 0.5",
         (text, theme) => { text.TextColor = theme.Text; text.Opacity = 0.5f; },
         DerivedFill: true, FillAlpha: 0.45f),
 
@@ -94,25 +96,41 @@ Station[] stations =
         (text, theme) => { text.TextColor = theme.Text; text.GlowColor = new Color(theme.Glow.R, theme.Glow.G, theme.Glow.B, (byte)90); text.GlowSize = 12f; },
         BorderWidth: 6f),
 
-    new("GlowWidth 6\nin the accent colour", "Dark text, white halo\nlegible on anything",
+    new("Glow.Width 6\nin the accent colour", "Dark text, white halo\nlegible on anything",
         (text, _) => { text.TextColor = new Color(10, 12, 18); text.GlowColor = Color.White; text.GlowSize = 7f; },
         GlowWidth: 6f),
 
-    new("GlowWidth 14, glow alpha 70\nwide and weak", "System sans font",
+    new("Glow.Width 14, glow alpha 70\nwide and weak", "System sans font",
         (text, theme) => { text.TextColor = theme.Text; text.Font = sansFont; },
         GlowWidth: 14f, GlowAlpha: 70),
 
-    new("GlowColor white\nindependent of the border", "System sans, bold",
+    new("Glow.Color white\nindependent of the border", "System sans, bold",
         (text, theme) => { text.TextColor = theme.Text; text.Font = boldFont; },
         GlowWidth: 5f, WhiteGlow: true),
 
-    new("Glass\nFillAlpha 0.18 + rounded + glow", "Monospace font\n0123456789",
+    new("Glass\nFill.Alpha 0.18 + rounded + glow", "Monospace font\n0123456789",
         (text, theme) => { text.TextColor = theme.Text; text.Font = monoFont; },
         FillAlpha: 0.18f, CornerRadius: 0.3f, GlowWidth: 5f),
 
     new("The lot, plus ticks and a gauge\n(the ship-HUD panel)", "DOCKING CLAMP\nSTATUS   NOMINAL",
         (text, theme) => { text.TextColor = theme.Text; text.Font = boldFont; text.GlowColor = theme.Glow; text.GlowSize = 5f; },
         BorderWidth: 1.5f, FillAlpha: 0.55f, CornerRadius: 0.25f, GlowWidth: 6f, Ornaments: true),
+
+    new("Dash.Length 6 on a ring and a line\n(polygons stay solid)", "System sans, italic",
+        (text, theme) => { text.TextColor = theme.Text; text.Font = italicFont; },
+        Dashed: true),
+
+    new("Gradient.Color = the text colour\nbottom to top", "Text over a gradient",
+        (text, theme) => { text.TextColor = theme.Fill; text.Font = boldFont; },
+        GradientTo: GradientTarget.Text),
+
+    new("Gradient to alpha 0\nleft to right - a glass fade", "TextColor alpha 160\n+ GlowSize 3",
+        (text, theme) => { text.TextColor = new Color(theme.Text.R, theme.Text.G, theme.Text.B, (byte)160); text.GlowColor = theme.Glow; text.GlowSize = 3f; },
+        FillAlpha: 0.6f, GradientTo: GradientTarget.Transparent),
+
+    new("Opacity 0.35\nthe whole panel, one number", "Opacity 0.35\non the text as well",
+        (text, theme) => { text.TextColor = theme.Text; text.Opacity = 0.35f; },
+        GlowWidth: 5f, Opacity: 0.35f),
 ];
 
 // Per-monitor DPI awareness has to be enabled before the window exists, otherwise Windows
@@ -144,11 +162,12 @@ void Start(Scene scene)
     // game.LoadSystemFont("Segoe UI", 48) is the one-family version.
     sansFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 48);
     boldFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 48, FontStyle.Bold);
+    italicFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 48, FontStyle.Italic);
     monoFont = SystemFonts.LoadFirst(game.Services, SystemFonts.MonospaceCandidates, 48);
 
     // Fills the band the overlay does not reach, and is itself a station: a big glowing title is
     // exactly what the text component is for
-    AddText(scene, new Vector3(-6.2f, 6.2f, 0f), "PANELS  &  TEXT", 0.9f,
+    AddText(scene, new Vector3(-9f, 7.4f, 0f), "PANELS  &  TEXT", 0.9f,
         (text, theme) =>
         {
             text.TextColor = theme.Text;
@@ -164,7 +183,7 @@ void Start(Scene scene)
 
         // Under the panel-only copy, in a neutral grey that belongs to no theme, so it reads as a
         // caption rather than as part of the panel
-        AddText(scene, panelCenter - new Vector3(0f, PanelHeight / 2f + 0.42f, 0f), station.Caption, 0.26f,
+        AddText(scene, panelCenter - new Vector3(0f, PanelHeight / 2f + 0.38f, 0f), station.Caption, 0.23f,
             (text, _) =>
             {
                 text.TextColor = new Color(150, 160, 175);
@@ -177,7 +196,7 @@ void Start(Scene scene)
             themed: false);
 
         // On the copy below it, the text names the setting that styles it - the station is its own label
-        AddText(scene, CellCenter(i, withText: true), station.Label, 0.34f, station.StyleText);
+        AddText(scene, CellCenter(i, withText: true), station.Label, 0.32f, station.StyleText);
     }
 
     themeMenu = new DebugTextDropdown
@@ -187,7 +206,6 @@ void Start(Scene scene)
         TitleColor = Color.Yellow,
         SelectedIndex = themeIndex,
         CloseOnSelect = false,
-        IsOpen = true,
         Items = [.. themes.Index().Select(pair => new DebugTextDropdownItem(
             (Keys)(Keys.D1 + pair.Index), pair.Item.Name, () => ApplyTheme(pair.Index)))],
     };
@@ -195,11 +213,13 @@ void Start(Scene scene)
     DebugOverlay.GetOrCreate(game).AddSection("Panels", OverlayLines);
 }
 
-void Update(Scene scene, GameTime time)
+void Update(Scene scene, GameTime gameTime)
 {
     if (shapes is null) return;
 
     themeMenu?.Update(game.Input);
+
+    time += (float)gameTime.Elapsed.TotalSeconds;
 
     var theme = themes[themeIndex];
 
@@ -212,29 +232,38 @@ void Update(Scene scene, GameTime time)
     }
 }
 
-/// <summary>Paints one panel: the stripe behind it, the panel itself, and any HUD ornaments.</summary>
+/// <summary>Paints one panel: the stripe behind it, the panel itself, and any ornaments.</summary>
 void DrawPanel(Station station, Vector3 center, Theme theme)
 {
     // The stripe is what makes transparency visible. Drawn first: shapes blend in submission order
     // and never write depth, so within a batch "behind" simply means "earlier".
-    shapes!.BorderWidth = 0f;
-    shapes.FillAlpha = 1f;
-    shapes.FillColor = null;
-    shapes.GlowWidth = 0f;
-    shapes.GlowColor = null;
+    Reset();
+
     // Kept just inside the panel, slant included, so it never pokes out of a cell and gets mistaken
     // for part of the panel
-    shapes.DrawRectangle(center, stripeAxisX, stripeAxisY, new Vector2(PanelWidth * 0.85f, 0.5f), new Color(118, 130, 150));
+    shapes!.DrawRectangle(center, stripeAxisX, stripeAxisY, new Vector2(PanelWidth * 0.85f, 0.5f), new Color(118, 130, 150));
 
     shapes.BorderWidth = station.BorderWidth;
-    shapes.FillAlpha = station.FillAlpha;
 
     // null fills with the outline colour, which is the Box2D testbed's behaviour; a colour of its own
     // is what makes a dark panel behind a bright border
-    shapes.FillColor = station.DerivedFill ? null : theme.Fill;
+    shapes.Fill.Set(station.DerivedFill ? null : theme.Fill, station.FillAlpha);
 
-    shapes.GlowWidth = station.GlowWidth;
-    shapes.GlowColor = station.GlowWidth <= 0f ? null : WithAlpha(station.WhiteGlow ? Color.White : theme.Glow, station.GlowAlpha);
+    shapes.Glow.Set(station.GlowWidth, station.GlowWidth <= 0f ? null : WithAlpha(station.WhiteGlow ? Color.White : theme.Glow, station.GlowAlpha));
+
+    // A gradient runs from the fill to this colour across the panel; alpha 0 fades the fill out
+    switch (station.GradientTo)
+    {
+        case GradientTarget.Text:
+            shapes.Gradient.Set(theme.Text, Vector2.UnitY);
+            break;
+        case GradientTarget.Transparent:
+            shapes.Gradient.Set(WithAlpha(theme.Fill, 0), Vector2.UnitX);
+            break;
+    }
+
+    // One number over everything the panel draws - border, fill and glow together
+    shapes.Opacity = station.Opacity;
 
     shapes.DrawRectangle(center, Vector3.UnitX, Vector3.UnitY, panelSize, theme.Accent, station.CornerRadius);
 
@@ -242,6 +271,13 @@ void DrawPanel(Station station, Vector3 center, Theme theme)
     {
         DrawOrnaments(center, theme);
     }
+
+    if (station.Dashed)
+    {
+        DrawDashes(center, theme);
+    }
+
+    Reset();
 }
 
 /// <summary>
@@ -250,27 +286,23 @@ void DrawPanel(Station station, Vector3 center, Theme theme)
 /// </summary>
 void DrawOrnaments(Vector3 center, Theme theme)
 {
-    const float TickLength = 0.55f;
+    const float TickLength = 0.5f;
 
     var half = new Vector2(PanelWidth / 2f + 0.16f, PanelHeight / 2f + 0.16f);
 
-    shapes!.BorderWidth = 0f;
-    shapes.FillAlpha = 1f;
-    shapes.FillColor = null;
-    shapes.GlowWidth = 0f;
-    shapes.GlowColor = null;
+    Reset();
 
     foreach (var (signX, signY) in new[] { (-1f, -1f), (-1f, 1f), (1f, -1f), (1f, 1f) })
     {
         var corner = center + new Vector3(signX * half.X, signY * half.Y, 0f);
 
-        shapes.DrawPixelLine(corner, corner - new Vector3(signX * TickLength, 0f, 0f), 2f, theme.Accent);
+        shapes!.DrawPixelLine(corner, corner - new Vector3(signX * TickLength, 0f, 0f), 2f, theme.Accent);
         shapes.DrawPixelLine(corner, corner - new Vector3(0f, signY * TickLength, 0f), 2f, theme.Accent);
     }
 
-    var divider = center + new Vector3(0f, -PanelHeight / 2f + 0.55f, 0f);
+    var divider = center + new Vector3(0f, -PanelHeight / 2f + 0.5f, 0f);
 
-    shapes.DrawPixelLine(
+    shapes!.DrawPixelLine(
         divider - new Vector3(PanelWidth / 2f - 0.35f, 0f, 0f),
         divider + new Vector3(PanelWidth / 2f - 0.35f, 0f, 0f),
         1f,
@@ -278,12 +310,42 @@ void DrawOrnaments(Vector3 center, Theme theme)
 
     // A gauge sweep, three quarters of a turn, in the accent colour
     shapes.DrawArc(
-        new Vector2(center.X + PanelWidth / 2f - 0.55f, center.Y - PanelHeight / 2f + 0.55f),
-        0.3f,
+        new Vector2(center.X + PanelWidth / 2f - 0.5f, center.Y - PanelHeight / 2f + 0.5f),
+        0.28f,
         -MathF.PI / 2f,
         MathF.PI * 1.5f,
         theme.Accent,
         0.05f);
+}
+
+/// <summary>
+/// Dashes belong to rings, arcs and lines - a polygon's outline has no single direction to dash
+/// along, so the panel itself stays solid and the dashes go on a tick ring and a rule inside it.
+/// The ring turns because its phase advances; the rule's pattern marches for the same reason.
+/// </summary>
+void DrawDashes(Vector3 center, Theme theme)
+{
+    Reset();
+
+    shapes!.BorderWidth = 1.5f;
+    shapes.Dash.Set(6f, 4f, time * 20f);
+    shapes.DrawArc(new Vector2(center.X - PanelWidth / 2f + 0.75f, center.Y), 0.5f, 0f, MathF.Tau, theme.Accent);
+
+    shapes.Dash.Set(8f, 5f, -time * 30f);
+    shapes.DrawPixelLine(center + new Vector3(-PanelWidth / 2f + 1.5f, 0f, 0f), center + new Vector3(PanelWidth / 2f - 0.3f, 0f, 0f), 1.5f, theme.Accent);
+
+    Reset();
+}
+
+/// <summary>Every piece of captured state back to its default, so no panel inherits the last one's.</summary>
+void Reset()
+{
+    shapes!.BorderWidth = 0f;
+    shapes.Fill.Set(null, 1f);
+    shapes.Glow.Clear();
+    shapes.Dash.Clear();
+    shapes.Gradient.Clear();
+    shapes.Opacity = 1f;
 }
 
 /// <summary>Creates one text entity, styled through the same delegate a theme change re-runs.</summary>
@@ -342,10 +404,9 @@ IReadOnlyList<TextElement> OverlayLines()
 {
     List<TextElement> lines =
     [
-        new("Panels: ShapeBatch, one draw call for all 24", Color.LightGreen),
-        new("Text: WorldTextComponent, one entity each", Color.LightGreen),
+        new("Panels: ShapeBatch, one draw call for all 32", Color.LightGreen),
         new("Upper row of each pair is the panel alone", Color.LightGray),
-        new("Wheel zooms - borders and glows keep their pixel width", Color.LightGray),
+        new("Wheel zooms - borders, glows and dashes keep their pixel size", Color.LightGray),
         new(string.Empty),
     ];
 
@@ -363,6 +424,9 @@ static Color WithAlpha(Color color, byte alpha) => new(color.R, color.G, color.B
 /// <summary>A palette: one accent, one dark ground, one text colour and one glow.</summary>
 sealed record Theme(string Name, Color Accent, Color Fill, Color Text, Color Glow);
 
+/// <summary>What a panel's fill gradient runs to, if anything.</summary>
+enum GradientTarget { None, Text, Transparent }
+
 /// <summary>
 /// One station of the gallery: a panel recipe, the caption naming it, and the text drawn on the
 /// second copy of the panel with the styling that names itself.
@@ -378,7 +442,10 @@ sealed record Station(
     byte GlowAlpha = 255,
     bool DerivedFill = false,
     bool WhiteGlow = false,
-    bool Ornaments = false);
+    bool Ornaments = false,
+    bool Dashed = false,
+    GradientTarget GradientTo = GradientTarget.None,
+    float Opacity = 1f);
 
 /*
 ---example-metadata
@@ -392,24 +459,31 @@ complexity: 2
 order: 75
 description:
   en: |-
-    Twelve HUD panel recipes side by side, each one property away from the last: fill only, border
+    Sixteen HUD panel recipes side by side, each one property away from the last: fill only, border
     only, transparent fill over a stripe that proves it, a fill colour of its own, rounded corners,
-    heavy borders, glows of three strengths and colours, glass, and a ship-console panel with corner
-    ticks and a gauge. Every panel appears twice - alone, and carrying world text that demonstrates
-    height, font size, colour alpha, opacity, glow and system fonts. Five themes switch live.
+    heavy borders, glows of three strengths and colours, glass, a ship-console panel with corner
+    ticks and a gauge, dashed rings and lines that turn and march, a gradient to the text colour, a
+    gradient to nothing, and a panel at a third opacity. Every panel appears twice - alone, and
+    carrying world text that demonstrates height, font size, colour alpha, opacity, glow and system
+    fonts in regular, bold, italic and monospace. Five themes switch live.
   cs: |-
-    Dvanáct receptů na HUD panely vedle sebe, každý o jednu vlastnost dál: jen výplň, jen okraj,
+    Šestnáct receptů na HUD panely vedle sebe, každý o jednu vlastnost dál: jen výplň, jen okraj,
     průhledná výplň nad pruhem, který to dokáže, vlastní barva výplně, zaoblené rohy, silné okraje,
-    záře tří sil a barev, sklo a panel lodní konzole s rohovými značkami a ukazatelem. Každý panel je
-    dvakrát - samotný a s textem ve světě, který ukazuje výšku, velikost písma, alfu barvy,
-    průhlednost, záři a systémová písma. Pět motivů lze přepínat za běhu.
+    záře tří sil a barev, sklo, panel lodní konzole s rohovými značkami a ukazatelem, čárkované
+    kroužky a čáry, které se točí a pochodují, přechod do barvy textu, přechod do ničeho a panel s
+    třetinovou průhledností. Každý panel je dvakrát - samotný a s textem ve světě, který ukazuje
+    výšku, velikost písma, alfu barvy, průhlednost, záři a systémová písma - normální, tučné, kurzívu
+    i neproporcionální. Pět motivů lze přepínat za běhu.
 concepts:
-  - Panels with ShapeBatch - border, fill, fill alpha, corner radius and glow as captured state
+  - Panels with ShapeBatch - border, fill, glow, dashes, gradient and opacity as captured state
   - A fill colour of its own versus a fill derived from the outline colour
   - Showing transparency honestly by drawing a stripe behind every panel
+  - Dashes on rings and lines, animated by advancing the phase
+  - A fill gradient to a colour, and to alpha 0 for a glass fade
+  - One opacity over a whole panel
   - Pixel-width lines and arcs as HUD ornaments that survive zooming
   - World text styling - Height, FontSize, TextColor alpha, Opacity, GlowColor and GlowSize
-  - Installed system fonts with SystemFonts and game.LoadSystemFont
+  - Installed system fonts with SystemFonts, in four styles
   - A live theme switch through a DebugOverlay dropdown
 tags:
   - 2D
@@ -425,6 +499,7 @@ related:
   - Example01_WorldText
   - Example_Shapes_Playground
   - Example01_EntityText
+  - Example03_HUD
 enabled: true
 created: 2026-09-05
 ---

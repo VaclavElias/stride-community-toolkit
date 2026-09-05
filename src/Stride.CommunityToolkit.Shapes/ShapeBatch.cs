@@ -19,10 +19,9 @@ namespace Stride.CommunityToolkit.Shapes;
 /// order, and the batch resets itself after rendering. Register with <c>game.AddShapeBatch()</c>.
 /// </para>
 /// <para>
-/// <see cref="BorderWidth"/>, <see cref="FillAlpha"/>, <see cref="FillColor"/>, <see cref="GlowWidth"/>,
-/// <see cref="GlowColor"/>, <see cref="Dash"/>, <see cref="Gradient"/> and <see cref="Opacity"/>
-/// are current state, captured by each draw call as it is made, so you can change them between
-/// calls the way you would with a sprite batch.
+/// <see cref="BorderWidth"/>, <see cref="Fill"/>, <see cref="Glow"/>, <see cref="Dash"/>,
+/// <see cref="Gradient"/> and <see cref="Opacity"/> are current state, captured by each draw call
+/// as it is made, so you can change them between calls the way you would with a sprite batch.
 /// </para>
 /// </remarks>
 public sealed class ShapeBatch : RenderObject
@@ -42,45 +41,17 @@ public sealed class ShapeBatch : RenderObject
     public float BorderWidth { get; set; } = 3f;
 
     /// <summary>
-    /// Fill intensity relative to the outline colour, 0 to 1; 0 leaves an unfilled outline. The
-    /// testbed value is 0.6, but its GL pipeline blends in sRGB space while Stride blends in linear
-    /// space, which reads lighter for the same value - around 0.5 tends to match it side by side.
-    /// Captured by each draw call as it is made.
+    /// How the interior is painted: the fill's own colour, or <c>null</c> for the outline colour the
+    /// testbed way, and its intensity. See <see cref="ShapeFill"/>. Captured by each draw call as it
+    /// is made.
     /// </summary>
-    public float FillAlpha { get; set; } = 0.6f;
+    public ShapeFill Fill { get; } = new();
 
     /// <summary>
-    /// The fill's own colour, or <c>null</c> (the default) to fill with the outline colour, which is
-    /// what the Box2D testbed does. Set it when the two should differ - a chart marker filled in its
-    /// series colour but outlined in a neutral one, a bar with a darker edge, a light cursor ring
-    /// with a dark halo. Captured by each draw call as it is made.
+    /// A soft glow outside the outline - width in pixels, and a colour or <c>null</c> for the
+    /// outline's. See <see cref="ShapeGlow"/>. Captured by each draw call as it is made.
     /// </summary>
-    /// <remarks>
-    /// The colour is used as given, including its own alpha, with <see cref="FillAlpha"/> scaling
-    /// only its opacity. That differs from the default path, where <see cref="FillAlpha"/> also
-    /// darkens the outline colour the way the testbed does - which would turn a colour you chose
-    /// deliberately into a muddy version of itself.
-    /// </remarks>
-    public Color? FillColor { get; set; }
-
-    /// <summary>
-    /// Width of a soft glow outside the outline, in on-screen pixels, constant at any distance like
-    /// the border. The default 0 draws none. It fades out quadratically from the outline, so a
-    /// few pixels reads as a crisp halo and a few dozen as a neon bloom. Captured by each draw
-    /// call as it is made.
-    /// </summary>
-    /// <remarks>
-    /// The glow lies outside the shape only, never under the fill. For a stroke-only ring or arc
-    /// the shape is the stroke, so the glow sits on both sides of it, which is what makes a light
-    /// ring with a dark glow readable on any background.
-    /// </remarks>
-    public float GlowWidth { get; set; }
-
-    /// <summary>
-    /// The glow's colour, or <c>null</c> (the default) to glow in the outline colour. Its alpha is
-    /// the glow's strength at the outline, before the fade. Captured by each draw call as it is made.
-    /// </summary>
-    public Color? GlowColor { get; set; }
+    public ShapeGlow Glow { get; } = new();
 
     /// <summary>
     /// The dash pattern along outlines - length, gap and phase in on-screen pixels. A length of 0,
@@ -124,7 +95,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="vertices">The corners in local space, counter-clockwise, at most 8.</param>
     /// <param name="position">World position of the shape's local origin.</param>
     /// <param name="rotation">Rotation in radians about the Z axis.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="radius">Optional rounding radius around the polygon, in world units.</param>
     /// <exception cref="ArgumentException">Fewer than 1 or more than 8 vertices were given.</exception>
     public void DrawSolidPolygon(ReadOnlySpan<Vector2> vertices, Vector2 position, float rotation, Color color, float radius = 0f)
@@ -145,7 +116,7 @@ public sealed class ShapeBatch : RenderObject
     /// </summary>
     /// <param name="center">World-space centre.</param>
     /// <param name="radius">Radius in world units.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     public void DrawSolidCircle(Vector2 center, float radius, Color color)
         => DrawSolidPolygon([Vector2.Zero], center, 0f, color, radius);
 
@@ -156,7 +127,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="position">World position of the shape's local origin.</param>
     /// <param name="axisX">The plane's X axis. Normalized for you.</param>
     /// <param name="axisY">The plane's Y axis. Normalized for you.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="radius">Optional rounding radius around the polygon, in world units.</param>
     /// <param name="scale">Uniform scale applied to the whole shape, radius included.</param>
     /// <exception cref="ArgumentException">Fewer than 1 or more than 8 vertices were given.</exception>
@@ -171,7 +142,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="vertices">The corners in local space, counter-clockwise, at most 8.</param>
     /// <param name="position">World position of the shape's local origin.</param>
     /// <param name="rotation">Orientation of the shape's plane.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="radius">Optional rounding radius around the polygon, in world units.</param>
     /// <exception cref="ArgumentException">Fewer than 1 or more than 8 vertices were given.</exception>
     public void DrawSolidPolygon(ReadOnlySpan<Vector2> vertices, Vector3 position, Quaternion rotation, Color color, float radius = 0f)
@@ -185,7 +156,7 @@ public sealed class ShapeBatch : RenderObject
     /// </summary>
     /// <param name="vertices">The corners in local space, counter-clockwise, at most 8.</param>
     /// <param name="position">World position of the shape's centre.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="radius">Optional rounding radius around the polygon, in world units.</param>
     /// <exception cref="ArgumentException">Fewer than 1 or more than 8 vertices were given.</exception>
     public void DrawBillboard(ReadOnlySpan<Vector2> vertices, Vector3 position, Color color, float radius = 0f)
@@ -198,7 +169,7 @@ public sealed class ShapeBatch : RenderObject
     /// </summary>
     /// <param name="center">World-space centre.</param>
     /// <param name="radius">Radius in world units.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     public void DrawBillboardCircle(Vector3 center, float radius, Color color)
         => DrawBillboard([Vector2.Zero], center, color, radius);
 
@@ -209,7 +180,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="center">World-space centre.</param>
     /// <param name="normal">Normal of the plane the disc lies in.</param>
     /// <param name="radius">Radius in world units.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     public void DrawDisc(Vector3 center, Vector3 normal, float radius, Color color)
         => Add([Vector2.Zero], PlaneFromNormal(center, normal), CurrentStyle(color), ShapeSlice.Whole, radius, 1f);
 
@@ -222,8 +193,8 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="radius">Radius in world units.</param>
     /// <param name="color">The ring colour.</param>
     /// <remarks>
-    /// The ring is the shape, not the disc it encloses, so a <see cref="GlowWidth"/> glows on both
-    /// sides of it. <see cref="FillAlpha"/> does not apply.
+    /// The ring is the shape, not the disc it encloses, so a <see cref="ShapeGlow.Width"/> glows on both
+    /// sides of it. <see cref="ShapeFill.Alpha"/> does not apply.
     /// </remarks>
     public void DrawRing(Vector3 center, Vector3 normal, float radius, Color color)
         => Add([Vector2.Zero], PlaneFromNormal(center, normal), OutlineStyle(color), Stroke, radius, 1f);
@@ -236,7 +207,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="normal">Normal of the plane the annulus lies in.</param>
     /// <param name="outerRadius">Outer radius in world units.</param>
     /// <param name="innerRadius">Radius of the hole in world units, smaller than the outer one.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     public void DrawAnnulus(Vector3 center, Vector3 normal, float outerRadius, float innerRadius, Color color)
         => AddSector(PlaneFromNormal(center, normal), outerRadius, innerRadius, 0f, MathF.Tau, color);
 
@@ -246,7 +217,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="center">World-space centre.</param>
     /// <param name="outerRadius">Outer radius in world units.</param>
     /// <param name="innerRadius">Radius of the hole in world units, smaller than the outer one.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     public void DrawAnnulus(Vector2 center, float outerRadius, float innerRadius, Color color)
         => AddSector(PlaneXY(center), outerRadius, innerRadius, 0f, MathF.Tau, color);
 
@@ -260,7 +231,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="radius">Outer radius in world units.</param>
     /// <param name="startAngle">Where the slice starts, in radians. See the remarks for where 0 is.</param>
     /// <param name="sweepAngle">How far it extends, in radians. Positive is counter-clockwise, negative clockwise; a full turn or more is the whole ring or disc.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="innerRadius">Radius of the hole, in world units; 0 (the default) cuts from the centre.</param>
     /// <remarks>
     /// Angles increase counter-clockwise as seen from the side the normal points to. Zero lies
@@ -279,7 +250,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="radius">Outer radius in world units.</param>
     /// <param name="startAngle">Where the slice starts, in radians from the X axis.</param>
     /// <param name="sweepAngle">How far it extends, in radians. Positive is counter-clockwise, negative clockwise; a full turn or more is the whole ring or disc.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="innerRadius">Radius of the hole, in world units; 0 (the default) cuts from the centre.</param>
     public void DrawSector(Vector2 center, float radius, float startAngle, float sweepAngle, Color color, float innerRadius = 0f)
         => AddSector(PlaneXY(center), radius, innerRadius, startAngle, sweepAngle, color);
@@ -294,7 +265,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="radius">Radius of the arc's centreline in world units.</param>
     /// <param name="startAngle">Where the arc starts, in radians. Zero is along the plane's X axis; see <see cref="DrawSector(Vector3, Vector3, float, float, float, Color, float)"/>.</param>
     /// <param name="sweepAngle">How far it extends, in radians. Positive is counter-clockwise, negative clockwise; a full turn or more closes the ring.</param>
-    /// <param name="color">The outline colour; with a width the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; with a width the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="width">Width of the band in world units, or 0 (the default) for a stroke.</param>
     /// <remarks>
     /// The ends are semicircles, which is what a progress ring wants. For square, radial ends use
@@ -312,7 +283,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="radius">Radius of the arc's centreline in world units.</param>
     /// <param name="startAngle">Where the arc starts, in radians from the X axis.</param>
     /// <param name="sweepAngle">How far it extends, in radians. Positive is counter-clockwise, negative clockwise; a full turn or more closes the ring.</param>
-    /// <param name="color">The outline colour; with a width the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; with a width the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="width">Width of the band in world units, or 0 (the default) for a stroke.</param>
     public void DrawArc(Vector2 center, float radius, float startAngle, float sweepAngle, Color color, float width = 0f)
         => AddArc(PlaneXY(center), radius, startAngle, sweepAngle, color, width);
@@ -324,7 +295,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="axisX">The plane's X axis. Normalized for you.</param>
     /// <param name="axisY">The plane's Y axis. Normalized for you.</param>
     /// <param name="size">Width along X and height along Y, in world units.</param>
-    /// <param name="color">The outline colour; the fill derives from it and <see cref="FillAlpha"/>.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="cornerRadius">Optional corner rounding, in world units.</param>
     public void DrawRectangle(Vector3 center, Vector3 axisX, Vector3 axisY, Vector2 size, Color color, float cornerRadius = 0f)
     {
@@ -355,7 +326,7 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="color">The line colour.</param>
     /// <remarks>
     /// Unlike hardware line rendering, which clamps to one pixel on most drivers, this is a real
-    /// world-space width. The line is drawn solid, ignoring <see cref="FillAlpha"/>.
+    /// world-space width. The line is drawn solid, ignoring <see cref="ShapeFill.Alpha"/>.
     /// </remarks>
     public void DrawLine(Vector3 start, Vector3 end, float width, Color color)
     {
@@ -395,7 +366,7 @@ public sealed class ShapeBatch : RenderObject
     /// <remarks>
     /// This is <see cref="DrawLine"/> with its world width collapsed to nothing, which leaves the
     /// outline - already measured in pixels - drawing the whole line. <see cref="BorderWidth"/> and
-    /// <see cref="FillAlpha"/> do not apply; <paramref name="pixelWidth"/> is the width.
+    /// <see cref="ShapeFill.Alpha"/> do not apply; <paramref name="pixelWidth"/> is the width.
     /// </remarks>
     public void DrawPixelLine(Vector3 start, Vector3 end, float pixelWidth, Color color)
     {
@@ -500,38 +471,38 @@ public sealed class ShapeBatch : RenderObject
         // No explicit fill colour: the testbed's own formula, where FillAlpha scales the outline
         // colour's brightness as well as its opacity. Keeping it verbatim is what makes the Box2D
         // examples match the testbed side by side.
-        if (FillColor is not { } fill)
+        if (Fill.Color is not { } fill)
         {
-            // The gradient's far end gets the same treatment as the near one: scaled by FillAlpha
-            // in the shader, so the two ends dim together
-            return new(color, color, BorderWidth, FillAlpha, GlowWidth, GlowColor ?? color, Dash.Capture(), CaptureGradient(color), Opacity);
+            // The gradient's far end gets the same treatment as the near one: scaled by the fill
+            // alpha in the shader, so the two ends dim together
+            return new(color, color, BorderWidth, Fill.Alpha, Glow.Width, Glow.Color ?? color, Dash.Capture(), CaptureGradient(color), Opacity);
         }
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
-        // turn a chosen colour into a muddy version of itself, so FillAlpha scales opacity only.
+        // turn a chosen colour into a muddy version of itself, so the fill alpha scales opacity only.
         var near = WithFillAlpha(fill);
         var gradient = Gradient.Color is { } to ? new GradientStyle(true, WithFillAlpha(to), Gradient.Direction) : new GradientStyle(false, near, Gradient.Direction);
 
-        return new(color, near, BorderWidth, 1f, GlowWidth, GlowColor ?? color, Dash.Capture(), gradient, Opacity);
+        return new(color, near, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Dash.Capture(), gradient, Opacity);
     }
 
     /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
-    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, GlowWidth, GlowColor ?? color, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Width, Glow.Color ?? color, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
 
     /// <summary>The current style with the fill turned off and its own outline width.</summary>
-    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, GlowWidth, GlowColor ?? color, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Width, Glow.Color ?? color, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
 
     /// <summary>
     /// The current style with the fill turned all the way up, for shapes that are drawn solid. A
     /// gradient still applies: a line that fades out along its length is a leader line.
     /// </summary>
-    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, GlowWidth, GlowColor ?? color, Dash.Capture(), CaptureGradient(color), Opacity);
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Dash.Capture(), CaptureGradient(color), Opacity);
 
     /// <summary>The gradient as a draw call captures it, its far colour taken as given - the shader scales it by the fill alpha.</summary>
     private GradientStyle CaptureGradient(Color fallback) => new(Gradient.Color is not null, Gradient.Color ?? fallback, Gradient.Direction);
 
-    /// <summary>An explicit colour with <see cref="FillAlpha"/> applied to its opacity only.</summary>
-    private Color WithFillAlpha(Color colour) => new(colour.R, colour.G, colour.B, (byte)Math.Clamp(colour.A * FillAlpha, 0f, 255f));
+    /// <summary>An explicit colour with the fill alpha applied to its opacity only.</summary>
+    private Color WithFillAlpha(Color colour) => new(colour.R, colour.G, colour.B, (byte)Math.Clamp(colour.A * Fill.Alpha, 0f, 255f));
 
     /// <summary>The XY plane at a 2D position, the plane every 2D call draws in.</summary>
     private static ShapePlane PlaneXY(Vector2 center)

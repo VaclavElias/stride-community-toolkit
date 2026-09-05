@@ -39,7 +39,7 @@ void Start(Scene rootScene)
     // borders from an SDF shader, replacing the old per-mesh outline render features
     var shapeBatch = game.AddShapeBatch();
     shapeBatch.BorderWidth = 1f;
-    shapeBatch.FillAlpha = 0.4f;
+    shapeBatch.Fill.Alpha = 0.4f;
 
     // Initialize the Box2D physics simulation
     simulation = new Box2DSimulation();

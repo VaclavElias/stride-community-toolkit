@@ -712,10 +712,8 @@ void SegmentedBar(Vector2 center, Vector2 size, int cells, float value, Color co
 void Style(float border, float fillAlpha, Color? fill = null, float glow = 0f, Color? glowColour = null, float dash = 0f, float gap = 0f, float phase = 0f, Color? gradientTo = null, Vector2? gradientAlong = null, float opacity = 1f)
 {
     shapes!.BorderWidth = border;
-    shapes.FillAlpha = fillAlpha;
-    shapes.FillColor = fill;
-    shapes.GlowWidth = glow;
-    shapes.GlowColor = glowColour;
+    shapes.Fill.Set(fill, fillAlpha);
+    shapes.Glow.Set(glow, glowColour);
     shapes.Dash.Set(dash, gap, phase);
     shapes.Gradient.Color = gradientTo;
     shapes.Gradient.Direction = gradientAlong ?? Vector2.UnitY;
