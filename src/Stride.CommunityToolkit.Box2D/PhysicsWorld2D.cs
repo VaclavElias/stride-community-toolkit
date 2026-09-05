@@ -1,4 +1,6 @@
 using Box2D.NET;
+using Stride.Core.Diagnostics;
+using static Box2D.NET.B2Diagnostics;
 using static Box2D.NET.B2Types;
 using static Box2D.NET.B2Worlds;
 
@@ -11,11 +13,35 @@ namespace Stride.CommunityToolkit.Box2D;
 /// </summary>
 public sealed class PhysicsWorld2D : IDisposable
 {
+    private static readonly Logger _log = GlobalLogger.GetLogger("Box2D");
+
     private B2WorldId _worldId;
     private PhysicsStepSettings _settings;
     private readonly Box2DTaskScheduler? _scheduler;
 
     private double _accumulator;
+
+    // Box2D's diagnostics are process-wide, so they are routed once, before the first world exists.
+    // The library's own handlers write to the console, which a windowed game never shows; Stride's
+    // log reaches the debugger output and whatever else the game has subscribed to it.
+    static PhysicsWorld2D()
+    {
+        b2SetLogFcn(LogMessage);
+        b2SetAssertFcn(ReportAssert);
+    }
+
+    // The library only logs trouble - a pair buffer overflowing, a body going unstable - hence Warning
+    private static void LogMessage(in string message) => _log.Warning(message.TrimEnd());
+
+    // Asserts are compiled out of the Box2D.NET NuGet package (they need B2_ENABLE_ASSERT), so this
+    // only hears from a build that has them. Returning non-zero keeps the library's own throw, so
+    // the failure is logged and still stops the game rather than being swallowed
+    private static int ReportAssert(string condition, string fileName, int lineNumber)
+    {
+        _log.Error($"Assertion failed: {condition} ({fileName}:{lineNumber})");
+
+        return 1;
+    }
 
     /// <summary>Target simulation frequency in hertz used to derive the fixed step size.</summary>
     public int TargetHz
