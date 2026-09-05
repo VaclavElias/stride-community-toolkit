@@ -190,6 +190,7 @@ Performance — specs are grouped to attack the empty ones first.
 
 ### 1. `Example27_Audio_ProceduralSound` — a sound with no sound file
 
+- **Built 2026-09-05** as `Example27_Audio_ProceduralSound` on `AudioSystemExtensions.CreateProceduralSound`; see [plans/audio-examples.md](plans/audio-examples.md).
 - **Level:** Beginners (with helper) · **Category:** Audio · **Complexity:** 4 · **Verdict:** both
 - **Sources:** `engine/Stride.Audio/DynamicSoundSource.cs` (protected ctor `:109-124`,
   `soundInstance` `:80`, `NewSources` `:22`, `FillBuffer` `:300/:324/:338`, `ExtractAndFillData`
@@ -215,6 +216,7 @@ Performance — specs are grouped to attack the empty ones first.
 
 ### 2. `Example27_Audio_WavFile` — play a .wav from disk, no compiled asset
 
+- **Built 2026-09-05** as `Example27_Audio_WavFile` on `game.Audio.LoadWav` / `WavSound.CreateInstance`, in-memory PCM only.
 - **Level:** Beginners · **Category:** Audio · **Complexity:** 3 · **Verdict:** both
 - **Sources:** as above (`FillBuffer(byte[], int, BufferType)` `:338`; `BufferType.EndOfStream/EndOfLoop`
   in `AudioLayer.cs:40-46`), contrasted against `engine/Stride.Assets/Media/SoundAssetCompiler.cs`
@@ -228,6 +230,7 @@ Performance — specs are grouped to attack the empty ones first.
 
 ### 3. `Example27_Audio_Spatial` — 3D positional audio, honestly
 
+- **Built 2026-09-05** as `Example27_Audio_Spatial`. The listener fix went the other way from the spec: `AttachListener` puts an `AudioListenerComponent` on the camera and reads its internal listener with `[UnsafeAccessor]`, so the engine moves it; `SoundEmitterScript` does the emitter side. HRTF is a runtime toggle (instance recreated).
 - **Level:** Intermediate · **Category:** Audio · **Complexity:** 5 · **Verdict:** both
 - **Sources:** `engine/Stride.Audio/AudioEmitter.cs`, `AudioListener.cs` (public
   `AudioListener(AudioEngine)` ctor `:19` leaves Forward/Up zero; internal `Update()` `:135`),
