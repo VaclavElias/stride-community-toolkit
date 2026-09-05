@@ -52,6 +52,7 @@ public static class MetadataVocabulary
         "Geometry",
         "Physics",
         "Rendering",
+        "Audio",
         "Performance",
         "Text",
         "UI",
