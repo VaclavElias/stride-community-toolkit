@@ -4,6 +4,7 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Streaming;
+using System.Runtime.CompilerServices;
 
 namespace Stride.CommunityToolkit.Engine;
 
@@ -31,14 +32,17 @@ public static class GameSettingsExtensions
 {
     /// <summary>
     /// Registers a code-built <see cref="GameSettings"/> for a game that has no <c>GameSettings</c>
-    /// asset, and applies it the way the engine applies the asset. Must be called before <c>Run</c>.
+    /// asset, and applies it the way the engine applies the asset; for a project that has the asset,
+    /// adds the configurations the asset lacks. Must be called before <c>Run</c>. A second call
+    /// adjusts and returns the settings the first one built.
     /// </summary>
     /// <param name="game">The game to configure.</param>
     /// <param name="configure">
-    /// Adjusts the settings before they are registered. The settings start empty - no
-    /// configurations, and <see cref="GameSettings.CompilationMode"/> at its default - so nothing
+    /// Adjusts the settings before they are registered. On the first call the settings start empty -
+    /// no configurations, and <see cref="GameSettings.CompilationMode"/> at its default - so nothing
     /// changes unless it is set here; add a configuration with
-    /// <see cref="GameSettings.GetOrCreateConfiguration{T}"/>. Optional.
+    /// <see cref="GameSettings.GetOrCreateConfiguration{T}"/>. On a later call it runs on the
+    /// settings already registered. Optional.
     /// </param>
     /// <returns>The registered settings, for reading back or adjusting further before <c>Run</c>.</returns>
     /// <remarks>
@@ -46,8 +50,10 @@ public static class GameSettingsExtensions
     /// What gets applied, and when:
     /// <list type="bullet">
     ///   <item><description>
-    ///   The settings are registered as the <see cref="IGameSettingsService"/> immediately, so the
-    ///   audio, physics and navigation systems find them when they initialise inside <c>Run</c>.
+    ///   The settings are registered as the <see cref="IGameSettingsService"/> when <c>Run</c> raises
+    ///   <see cref="GameBase.WindowCreated"/>, which is after the engine has looked for a
+    ///   <c>GameSettings</c> asset and before the audio, physics and navigation systems initialise
+    ///   and read the service.
     ///   </description></item>
     ///   <item><description>
     ///   A <see cref="RenderingSettings"/> configuration, if one was added, is applied to the
@@ -80,14 +86,23 @@ public static class GameSettingsExtensions
     /// to do it.
     /// </para>
     /// <para>
-    /// This is for games without a <c>GameSettings</c> asset. A project that has one already
-    /// registers the engine's own service, and <c>Run</c> will then fail with "Service is already
-    /// registered" - use the asset instead.
+    /// Calling it more than once is fine: the callback runs on the settings the first call built, the
+    /// rendering settings are applied again, and the same instance is returned - so one helper can
+    /// add its physics configuration and another its audio one. The compilation mode and streaming
+    /// settings are read from that shared instance when the game starts, so a later change to either
+    /// still lands.
+    /// </para>
+    /// <para>
+    /// A project that does have a <c>GameSettings</c> asset can still call this. The engine registers
+    /// the asset as the service, and the asset stays the source of truth: its compilation mode and
+    /// every configuration it defines win, and the code settings only add the configurations it
+    /// lacks - a <c>BepuConfiguration</c>, say, in an asset that has none. Rendering settings from
+    /// code are applied to the device manager before <c>Run</c> and then overwritten by the asset's.
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="game"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">
-    /// The game is already running, or an <see cref="IGameSettingsService"/> is already registered.
+    /// The game is already running, or an <see cref="IGameSettingsService"/> was registered by hand.
     /// </exception>
     /// <example>
     /// <code>
@@ -111,28 +126,76 @@ public static class GameSettingsExtensions
             throw new InvalidOperationException($"{nameof(UseGameSettings)} must be called before the game runs: the settings are read while the engine initialises.");
 
         if (game.Services.GetService<IGameSettingsService>() is not null)
-            throw new InvalidOperationException($"An {nameof(IGameSettingsService)} is already registered; {nameof(UseGameSettings)} can only be called once, and only for a game without a GameSettings asset.");
+            throw new InvalidOperationException($"An {nameof(IGameSettingsService)} is already registered on this game.");
+
+        // A second call adjusts what the first one built.
+        if (PendingSettings.TryGetValue(game, out var existing))
+        {
+            configure?.Invoke(existing);
+
+            ApplyRenderingSettings(game, existing);
+
+            return existing;
+        }
 
         var settings = new GameSettings();
 
         configure?.Invoke(settings);
 
-        game.Services.AddService<IGameSettingsService>(new CodeOnlyGameSettingsService(settings));
+        PendingSettings.Add(game, settings);
 
         ApplyRenderingSettings(game, settings);
 
-        OnGameStarted(game, startedGame =>
-        {
-            startedGame.EffectSystem.SetCompilationMode(settings.CompilationMode);
-
-            // The engine only pushes streaming settings when an asset exists; with none, the manager's own
-            // defaults stand. Same rule here: only a configuration the caller added is pushed.
-            if (settings.Configurations.OfType<StreamingSettings>().FirstOrDefault() is { } streaming)
-                startedGame.Streaming.SetStreamingSettings(streaming);
-        });
+        // Registration waits for WindowCreated: the engine loads a GameSettings asset, if there is one,
+        // in PrepareContext and registers itself as the service there - a service registered before
+        // that point makes PrepareContext throw "Service is already registered". WindowCreated is the
+        // first event after PrepareContext, and it precedes Initialize, where every subsystem that
+        // reads the service does so.
+        game.WindowCreated += Register;
 
         return settings;
+
+        void Register(object? sender, EventArgs e)
+        {
+            game.WindowCreated -= Register;
+            PendingSettings.Remove(game);
+
+            if (game.Settings is { } fromAsset)
+            {
+                // The project has the asset and the engine has registered it. The asset stays the
+                // source of truth - its rendering settings have already been applied - and the code
+                // settings fill in only what it does not define. Game.Initialize reads the compilation
+                // mode and streaming settings from the asset after this, so nothing else to apply.
+                foreach (var configuration in settings.Configurations)
+                {
+                    if (!fromAsset.Configurations.Any(c => c.GetType() == configuration.GetType()))
+                        fromAsset.Configurations.Add(configuration);
+                }
+
+                return;
+            }
+
+            game.Services.AddService<IGameSettingsService>(new CodeOnlyGameSettingsService(settings));
+
+            // Read from the settings instance at start, not captured now, so a later call that changes the
+            // mode or adds streaming settings is honoured.
+            OnGameStarted(game, startedGame =>
+            {
+                startedGame.EffectSystem.SetCompilationMode(settings.CompilationMode);
+
+                // The engine only pushes streaming settings when an asset exists; with none, the manager's own
+                // defaults stand. Same rule here: only a configuration the caller added is pushed.
+                if (settings.Configurations.OfType<StreamingSettings>().FirstOrDefault() is { } streaming)
+                    startedGame.Streaming.SetStreamingSettings(streaming);
+            });
+        }
     }
+
+    /// <summary>
+    /// Settings built by <see cref="UseGameSettings"/> and not yet registered, per game. Weak on the
+    /// game, so a game that is never run does not pin them.
+    /// </summary>
+    private static readonly ConditionalWeakTable<Game, GameSettings> PendingSettings = [];
 
     /// <summary>
     /// The half of <c>Game.PrepareContext</c> that can be reproduced from outside: rendering settings

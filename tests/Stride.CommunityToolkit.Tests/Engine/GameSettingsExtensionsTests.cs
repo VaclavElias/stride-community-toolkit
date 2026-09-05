@@ -5,6 +5,7 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Shaders.Compiler;
+using Stride.Streaming;
 using System.Reflection;
 using Xunit;
 
@@ -34,18 +35,28 @@ namespace Stride.CommunityToolkit.Tests.Engine;
 public class GameSettingsExtensionsTests
 {
     [Fact]
-    public void UseGameSettings_RegistersTheServiceTheEngineSubsystemsRead()
+    public void UseGameSettings_RegistersTheServiceOnceTheGameStarts()
     {
         using var game = new Game();
 
         var returned = game.UseGameSettings();
 
-        var service = game.Services.GetService<IGameSettingsService>();
+        // Not yet: registering before Run would collide with the engine's own registration in a
+        // project that has the asset. The service appears at WindowCreated, before any subsystem reads it.
+        Assert.Null(game.Services.GetService<IGameSettingsService>());
+        Assert.Empty(returned.Configurations);
+        Assert.Equal(default, returned.CompilationMode);
+
+        IGameSettingsService? service = null;
+
+        game.Run(update: (_, _) =>
+        {
+            service = game.Services.GetService<IGameSettingsService>();
+            game.Exit();
+        }, context: new GameContextHeadless());
 
         Assert.NotNull(service);
         Assert.Same(returned, service.Settings);
-        Assert.Empty(returned.Configurations);
-        Assert.Equal(default, returned.CompilationMode);
     }
 
     [Fact]
@@ -92,13 +103,45 @@ public class GameSettingsExtensionsTests
     }
 
     [Fact]
-    public void UseGameSettings_CalledTwice_Throws()
+    public void UseGameSettings_CalledTwice_AdjustsAndReturnsTheSameSettings()
+    {
+        using var game = new Game();
+
+        var first = game.UseGameSettings(settings => settings.GetOrCreateConfiguration<StreamingSettings>());
+
+        // The second call sees the first call's configuration, adds its own, and its rendering settings
+        // still reach the device manager - so two independent helpers can each contribute a piece.
+        var second = game.UseGameSettings(settings =>
+        {
+            Assert.Single(settings.Configurations.OfType<StreamingSettings>());
+
+            settings.GetOrCreateConfiguration<RenderingSettings>().DefaultBackBufferWidth = 800;
+        });
+
+        Assert.Same(first, second);
+        Assert.Equal(2, second.Configurations.Count);
+        Assert.Equal(800, Assert.IsType<GraphicsDeviceManager>(game.GraphicsDeviceManager).PreferredBackBufferWidth);
+    }
+
+    [Fact]
+    public void UseGameSettings_CompilationModeSetOnASecondCall_ReachesTheEffectSystem()
     {
         using var game = new Game();
 
         game.UseGameSettings();
+        game.UseGameSettings(settings => settings.CompilationMode = CompilationMode.AppStore);
 
-        Assert.Throws<InvalidOperationException>(() => game.UseGameSettings());
+        EffectCompilerParameters? parameters = null;
+
+        game.Run(update: (_, _) =>
+        {
+            parameters = ReadCompilerParameters(game);
+            game.Exit();
+        }, context: new GameContextHeadless());
+
+        Assert.NotNull(parameters);
+        Assert.False(parameters.Value.Debug);
+        Assert.Equal(2, parameters.Value.OptimizationLevel);
     }
 
     [Fact]
