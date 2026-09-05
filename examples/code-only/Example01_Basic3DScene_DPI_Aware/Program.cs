@@ -7,6 +7,12 @@ using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
+// This example is using app.manifest to declare the process per-monitor DPI aware, registered in the csproj.
+// Below is the alternative, through code-only approach.
+// Per-monitor DPI awareness has to be enabled before the window exists, otherwise Windows
+// hands us a stretched, blurry window on high-DPI displays.
+//WindowsDpiManager.EnablePerMonitorV2();
+
 using var game = new Game();
 
 game.Run(start: (Scene rootScene) =>

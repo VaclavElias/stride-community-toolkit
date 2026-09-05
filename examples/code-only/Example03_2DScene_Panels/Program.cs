@@ -2,6 +2,7 @@ using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
+using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -113,6 +114,10 @@ Station[] stations =
         (text, theme) => { text.TextColor = theme.Text; text.Font = boldFont; text.GlowColor = theme.Glow; text.GlowSize = 5f; },
         BorderWidth: 1.5f, FillAlpha: 0.55f, CornerRadius: 0.25f, GlowWidth: 6f, Ornaments: true),
 ];
+
+// Per-monitor DPI awareness has to be enabled before the window exists, otherwise Windows
+// hands us a stretched, blurry window on high-DPI displays.
+WindowsDpiManager.EnablePerMonitorV2();
 
 using var game = new Game();
 
