@@ -20,9 +20,10 @@ namespace Stride.CommunityToolkit.Shapes;
 /// </para>
 /// <para>
 /// <see cref="BorderWidth"/>, <see cref="FillAlpha"/>, <see cref="FillColor"/>, <see cref="GlowWidth"/>,
-/// <see cref="GlowColor"/> and the dash pattern (<see cref="DashLength"/>, <see cref="DashGap"/>,
-/// <see cref="DashPhase"/>) are current state, captured by each draw call as it is made, so you
-/// can change them between calls the way you would with a sprite batch.
+/// <see cref="GlowColor"/>, the dash pattern (<see cref="DashLength"/>, <see cref="DashGap"/>,
+/// <see cref="DashPhase"/>) and the fill gradient (<see cref="GradientColor"/>,
+/// <see cref="GradientDirection"/>) are current state, captured by each draw call as it is made,
+/// so you can change them between calls the way you would with a sprite batch.
 /// </para>
 /// </remarks>
 public sealed class ShapeBatch : RenderObject
@@ -113,6 +114,26 @@ public sealed class ShapeBatch : RenderObject
     /// Captured by each draw call as it is made.
     /// </summary>
     public float DashPhase { get; set; }
+
+    /// <summary>
+    /// The colour the fill runs to, or <c>null</c> (the default) for a flat fill. With one set, the
+    /// fill starts as <see cref="FillColor"/> (or the derived fill) at one edge of the shape and
+    /// reaches this colour at the opposite edge, along <see cref="GradientDirection"/>. Alpha counts:
+    /// a fill that runs to its own colour at alpha 0 fades out. Captured by each draw call as it is made.
+    /// </summary>
+    /// <remarks>
+    /// The gradient is the fill's alone; the border and glow keep their colours. <see cref="FillAlpha"/>
+    /// scales both ends. It spans the shape's own extent along the direction, so a bar and a disc
+    /// each run from edge to edge whatever their size.
+    /// </remarks>
+    public Color? GradientColor { get; set; }
+
+    /// <summary>
+    /// The direction the gradient runs in, in the shape's local axes - for a 2D shape, world X and
+    /// Y; for a rectangle on a plane, that plane's axes. Defaults to +Y, bottom to top. The length
+    /// does not matter. Captured by each draw call as it is made.
+    /// </summary>
+    public Vector2 GradientDirection { get; set; } = Vector2.UnitY;
 
     /// <summary>
     /// Whether shapes are tested against the depth buffer, so scene geometry can occlude them. They
@@ -507,26 +528,41 @@ public sealed class ShapeBatch : RenderObject
         // No explicit fill colour: the testbed's own formula, where FillAlpha scales the outline
         // colour's brightness as well as its opacity. Keeping it verbatim is what makes the Box2D
         // examples match the testbed side by side.
-        if (FillColor is not { } fill) return new(color, color, BorderWidth, FillAlpha, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
+        if (FillColor is not { } fill)
+        {
+            // The gradient's far end gets the same treatment as the near one: scaled by FillAlpha
+            // in the shader, so the two ends dim together
+            return new(color, color, BorderWidth, FillAlpha, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase,
+                GradientColor is not null, GradientColor ?? color, GradientDirection);
+        }
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
         // turn a chosen colour into a muddy version of itself, so FillAlpha scales opacity only.
-        var alpha = (byte)Math.Clamp(fill.A * FillAlpha, 0f, 255f);
+        var near = WithFillAlpha(fill);
+        var far = GradientColor is { } to ? WithFillAlpha(to) : near;
 
-        return new(color, new Color(fill.R, fill.G, fill.B, alpha), BorderWidth, 1f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
+        return new(color, near, BorderWidth, 1f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase,
+            GradientColor is not null, far, GradientDirection);
     }
 
     /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
-    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase, false, color, GradientDirection);
 
     /// <summary>The current style with the fill turned off and its own outline width.</summary>
-    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase, false, color, GradientDirection);
 
-    /// <summary>The current style with the fill turned all the way up, for shapes that are drawn solid.</summary>
-    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase);
+    /// <summary>
+    /// The current style with the fill turned all the way up, for shapes that are drawn solid. A
+    /// gradient still applies: a line that fades out along its length is a leader line.
+    /// </summary>
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase,
+        GradientColor is not null, GradientColor ?? color, GradientDirection);
 
     /// <summary>The gap as the shader needs it: the dash's own length when none was given.</summary>
     private float EffectiveDashGap => DashGap > 0f ? DashGap : DashLength;
+
+    /// <summary>An explicit colour with <see cref="FillAlpha"/> applied to its opacity only.</summary>
+    private Color WithFillAlpha(Color colour) => new(colour.R, colour.G, colour.B, (byte)Math.Clamp(colour.A * FillAlpha, 0f, 255f));
 
     /// <summary>The XY plane at a 2D position, the plane every 2D call draws in.</summary>
     private static ShapePlane PlaneXY(Vector2 center)

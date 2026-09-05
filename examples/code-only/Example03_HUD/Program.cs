@@ -330,8 +330,8 @@ void DrawVerticalGauge(Vector2 center, float height, float value, string key, Th
     Style(ThinLine, 0.25f, theme.Fill);
     shapes!.DrawRectangle(new Vector3(center, 0f), Vector3.UnitX, Vector3.UnitY, new Vector2(Width, height), theme.Dim);
 
-    // Fill, growing from the bottom
-    Style(0f, 0.85f, theme.Accent);
+    // Fill, growing from the bottom, and brightest at its top edge: the gradient runs up the bar
+    Style(0f, 0.9f, WithAlpha(theme.Accent, 0.35f), gradientTo: theme.Text);
     shapes.DrawRectangle(new Vector3(center.X, bottom + height * value / 2f, 0f), Vector3.UnitX, Vector3.UnitY, new Vector2(Width - 0.08f, height * value), theme.Accent);
 
     // Ticks up the outside, a longer one every fifth
@@ -386,15 +386,16 @@ void DrawRadar(Vector2 center, float radius, Theme theme)
     shapes.DrawPixelLine(new Vector3(center.X - radius, center.Y, 0f), new Vector3(center.X + radius, center.Y, 0f), ThinLine, theme.Dim);
     shapes.DrawPixelLine(new Vector3(center.X, center.Y - radius, 0f), new Vector3(center.X, center.Y + radius, 0f), ThinLine, theme.Dim);
 
-    // The sweep: a wedge that fades across its width. Three sectors of decreasing alpha stacked
-    // behind the leading edge is a fair fake of a gradient until the shader has one.
-    var sweep = ship.RadarSweep;
+    // The sweep: one wedge behind the leading edge, bright at the edge and fading to nothing
+    // across its width. The gradient runs along the wedge's tangent - the direction of increasing
+    // angle at its middle - so it fades with the angle rather than across the disc.
+    const float Trail = 1.1f;
 
-    for (var i = 0; i < 3; i++)
-    {
-        Style(0f, 0.16f - i * 0.05f, theme.Accent);
-        shapes.DrawSector(center, radius - 0.03f, sweep - (i + 1) * 0.35f, 0.35f, theme.Accent);
-    }
+    var sweep = ship.RadarSweep;
+    var middle = sweep + Trail / 2f;
+
+    Style(0f, 1f, WithAlpha(theme.Accent, 0.45f), gradientTo: WithAlpha(theme.Accent, 0f), gradientAlong: new Vector2(-MathF.Sin(middle), MathF.Cos(middle)));
+    shapes.DrawSector(center, radius - 0.03f, sweep, Trail, theme.Accent);
 
     Style(ThinLine, 0f);
     shapes.DrawPixelLine(new Vector3(center, 0f), new Vector3(center.X + MathF.Cos(sweep) * radius, center.Y + MathF.Sin(sweep) * radius, 0f), ThickLine, theme.Accent);
@@ -707,7 +708,7 @@ void SegmentedBar(Vector2 center, Vector2 size, int cells, float value, Color co
 }
 
 /// <summary>Sets the whole of the batch's captured state at once, so no draw inherits a stale value.</summary>
-void Style(float border, float fillAlpha, Color? fill = null, float glow = 0f, Color? glowColour = null, float dash = 0f, float gap = 0f, float phase = 0f)
+void Style(float border, float fillAlpha, Color? fill = null, float glow = 0f, Color? glowColour = null, float dash = 0f, float gap = 0f, float phase = 0f, Color? gradientTo = null, Vector2? gradientAlong = null)
 {
     shapes!.BorderWidth = border;
     shapes.FillAlpha = fillAlpha;
@@ -717,6 +718,8 @@ void Style(float border, float fillAlpha, Color? fill = null, float glow = 0f, C
     shapes.DashLength = dash;
     shapes.DashGap = gap;
     shapes.DashPhase = phase;
+    shapes.GradientColor = gradientTo;
+    shapes.GradientDirection = gradientAlong ?? Vector2.UnitY;
 }
 
 // --- Text ------------------------------------------------------------------------------------

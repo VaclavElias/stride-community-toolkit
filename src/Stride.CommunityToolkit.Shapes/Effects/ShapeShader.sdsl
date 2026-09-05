@@ -23,34 +23,33 @@ namespace Stride.CommunityToolkit.Shapes
             float4 Points34;
             float4 Points56;
             float4 Points78;
+            // Geometry: corner count, rounding radius, uniform scale, and the flags:
+            // 1: Hollow - only the band Slice.x deep inside the outline is the shape
+            // 2: RoundCaps - the angular cut ends in semicircles rather than radial edges (circles only)
+            // 4: Gradient - the fill runs from FillColor to GradientColor along Gradient.xy
             int Count;
             float Radius;
-            // uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit pattern,
-            // and GPUs canonicalize NaNs on float reads, destroying the red channel
-            uint Color;
             float Scale;
-            // The fill's own colour, so a shape can be filled in one colour and outlined in another.
-            // Callers who want the old behaviour pass the outline colour here.
-            uint FillColor;
-            // How deep the shape's band reaches inward from the outline, in world units, when the
-            // Hollow flag is set: an annulus is a circle with a band, a stroke-only ring a band of 0
-            float RingWidth;
-            // Angular cut about the shape's centre, radians from the plane's X axis, counter-
-            // clockwise. A sweep of 0 means no cut; callers map a full turn to 0.
-            float AngleStart;
-            float AngleSweep;
-            // Outer glow width in pixels, 0 for none, and its colour
-            float GlowWidth;
-            uint GlowColor;
-            // 1: Hollow - only the band RingWidth deep inside the outline is the shape
-            // 2: RoundCaps - the angular cut ends in semicircles rather than radial edges (circles only)
             int Flags;
-            // Dash pattern along the outline, in pixels: dash length (0 for solid), gap, and the
-            // phase the pattern starts at. Circles, arcs and two-point lines only.
-            float DashLength;
-            float DashGap;
-            float DashPhase;
-            float Pad0;
+            // Colours as uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit
+            // pattern, and GPUs canonicalize NaNs on float reads, destroying the red channel.
+            // FillColor is the fill's own, so a shape can be filled in one colour and outlined in
+            // another; GradientColor is the far end of the fill's gradient.
+            uint Color;
+            uint FillColor;
+            uint GlowColor;
+            uint GradientColor;
+            // x: how deep the band reaches inward from the outline, in world units, when Hollow -
+            //    an annulus is a circle with a band, a stroke-only ring a band of 0
+            // y, z: angular cut about the centre - start in radians from the plane's X axis,
+            //    counter-clockwise, and sweep; a sweep of 0 means no cut, callers map a full turn to 0
+            // w: outer glow width in pixels, 0 for none
+            float4 Slice;
+            // Dash pattern along the outline, in pixels: x length (0 for solid), y gap, z phase.
+            // Circles, arcs and two-point lines only.
+            float4 Dash;
+            // xy: the direction the fill's gradient runs in, in the plane's local axes
+            float4 Gradient;
         };
 
         float4x4 ViewProjection;
@@ -93,6 +92,9 @@ namespace Stride.CommunityToolkit.Shapes
         stream float FragPixelToLocal;
         // xyz: dash length, gap and phase in pixels; x = 0 for solid
         stream float4 FragDash;
+        // xy: unit gradient direction in normalized local space; zw: the shape's extent along it
+        stream float4 FragGradient;
+        stream float4 FragGradientColor;
 
         override stage void VSMain()
         {
@@ -138,18 +140,36 @@ namespace Stride.CommunityToolkit.Shapes
             streams.FragPoints78 = float4(points[6], points[7]);
 
             streams.FragRadius = invScale * data.Radius;
-            streams.FragRingWidth = invScale * data.RingWidth;
+            streams.FragRingWidth = invScale * data.Slice.x;
             streams.FragCount = count;
             streams.FragFlags = data.Flags;
             streams.FragColor = BitsToColor(data.Color);
             streams.FragFillColor = BitsToColor(data.FillColor);
             streams.FragFillAlpha = data.AxisY.w;
             streams.FragGlowColor = BitsToColor(data.GlowColor);
+            streams.FragGradientColor = BitsToColor(data.GradientColor);
+
+            // The gradient spans the shape's own extent along its direction: the furthest corners
+            // either way, plus the rounding radius, in the same normalized space the SDF uses
+            float2 gradientDirection = data.Gradient.xy;
+            float gradientLength = length(gradientDirection);
+            gradientDirection = gradientLength > 0.000001 ? gradientDirection / gradientLength : float2(0.0, 1.0);
+
+            float gradientLow = 1e9;
+            float gradientHigh = -1e9;
+            for (int k = 0; k < count; ++k)
+            {
+                float along = dot(points[k], gradientDirection);
+                gradientLow = min(gradientLow, along - streams.FragRadius);
+                gradientHigh = max(gradientHigh, along + streams.FragRadius);
+            }
+
+            streams.FragGradient = float4(gradientDirection, gradientLow, gradientHigh);
 
             // The cut's two edge directions, and the arc form of the same cut: rotate so the arc
             // is symmetric about +Y, then the endpoint is a fixed half-sweep away from it
-            float start = data.AngleStart;
-            float sweep = data.AngleSweep;
+            float start = data.Slice.y;
+            float sweep = data.Slice.z;
             float halfSweep = sweep > 0.0 ? 0.5 * sweep : 3.14159265;
             float turn = 0.5 * 3.14159265 - (start + halfSweep);
 
@@ -166,9 +186,9 @@ namespace Stride.CommunityToolkit.Shapes
             // Under an orthographic projection the pixel shader's w is 1 and these are already final.
             float pixelToLocal = 1.0 / (PixelScale * worldScale);
             streams.FragThickness = data.AxisX.w * pixelToLocal;
-            streams.FragGlow = data.GlowWidth * pixelToLocal;
+            streams.FragGlow = data.Slice.w * pixelToLocal;
             streams.FragPixelToLocal = pixelToLocal;
-            streams.FragDash = float4(data.DashLength, data.DashGap, data.DashPhase, 0.0);
+            streams.FragDash = data.Dash;
 
             // Resolve the plane the shape lives in
             float mode = data.Position.w;
@@ -238,17 +258,31 @@ namespace Stride.CommunityToolkit.Shapes
             int flags = (int)round(streams.FragFlags);
             bool hollow = (flags & 1) != 0;
             bool roundCaps = (flags & 2) != 0;
+            bool gradient = (flags & 4) != 0;
             bool cut = streams.FragSweep > 0.0;
 
+            float2 p = streams.FragPosition;
+
             float4 borderColor = streams.FragColor;
-            float4 fillColor = streams.FragFillAlpha * streams.FragFillColor;
+            float4 fillColor = streams.FragFillColor;
+
+            // The fill's gradient: where this fragment sits between the shape's two extremes along
+            // the direction, then the near colour blended toward the far one. Straight alpha, so a
+            // far colour at alpha 0 is a fade to nothing rather than to black.
+            if (gradient)
+            {
+                float span = max(streams.FragGradient.w - streams.FragGradient.z, 0.000001);
+                float t = saturate((dot(p, streams.FragGradient.xy) - streams.FragGradient.z) / span);
+
+                fillColor = lerp(fillColor, streams.FragGradientColor, t);
+            }
+
+            fillColor *= streams.FragFillAlpha;
 
             // Perspective term: near shapes have a large w, far ones a small one, so the same pixel
             // width maps to more or fewer world units with distance
             float thickness = max(streams.FragThickness * streams.FragClipW, 0.000001);
             float glowWidth = streams.FragGlow * streams.FragClipW;
-
-            float2 p = streams.FragPosition;
 
             // Signed distance to the shape's outline, negative inside. Everything below - fill,
             // border, glow - is a function of this one number.
