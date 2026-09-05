@@ -71,11 +71,20 @@ public class WorldTextComponent : EntityComponent
     /// <summary>
     /// Gets or sets the text colour. Defaults to <see cref="Color.White"/>.
     /// </summary>
+    /// <remarks>
+    /// Its alpha counts: it is how transparent this text is by nature, and it multiplies with
+    /// <see cref="Opacity"/> and any distance fade. Set it when a label is meant to sit faintly in the
+    /// scene; use <see cref="Opacity"/> to fade the whole thing - glow included - from code.
+    /// </remarks>
     public Color TextColor { get; set; } = Color.White;
 
     /// <summary>
     /// Gets or sets an overall opacity from 0 to 1. Defaults to 1.
     /// </summary>
+    /// <remarks>
+    /// A dimmer over everything the component draws: the letters, at <see cref="TextColor"/>'s own
+    /// alpha, and the <see cref="GlowColor"/> behind them. Distance fading drives this same dimmer.
+    /// </remarks>
     public float Opacity { get; set; } = 1f;
 
     /// <summary>

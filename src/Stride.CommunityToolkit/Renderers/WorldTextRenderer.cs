@@ -115,7 +115,9 @@ public class WorldTextRenderer : SceneRendererBase
             DrawGlow(font, component, anchorOrigin, opacity);
         }
 
-        DrawText(font, component, Vector2.Zero, anchorOrigin, ToColor4(component.TextColor, opacity));
+        // Both alphas count: the colour's own says how transparent this text is by nature, Opacity is
+        // the dimmer on top of it - and distance fading has already been folded into that dimmer
+        DrawText(font, component, Vector2.Zero, anchorOrigin, ToColor4(component.TextColor, opacity * component.TextColor.A / 255f));
 
         _spriteBatch.End();
     }
@@ -167,9 +169,23 @@ public class WorldTextRenderer : SceneRendererBase
             0f,
             component.Alignment);
 
-    /// <summary>The colour as SpriteBatch takes it, with its alpha replaced by the given one.</summary>
+    /// <summary>
+    /// The colour as SpriteBatch takes it, with its alpha replaced by the given one and its channels
+    /// premultiplied by that alpha.
+    /// </summary>
+    /// <remarks>
+    /// The premultiply is what makes alpha mean "fade". <see cref="BlendStates.AlphaBlend"/> is the
+    /// premultiplied blend - source factor <c>One</c> - so a colour handed over straight is added at
+    /// full strength while only the background is scaled down: text at a tenth alpha would still be
+    /// drawn at full brightness over a dark scene and simply never fade out. Scaling the channels by
+    /// the alpha first turns the same blend back into the fade it reads as.
+    /// </remarks>
     private static Color4 ToColor4(Color color, float alpha)
-        => new(color.R / 255f, color.G / 255f, color.B / 255f, alpha);
+    {
+        alpha = MathUtil.Clamp(alpha, 0f, 1f);
+
+        return new(color.R / 255f * alpha, color.G / 255f * alpha, color.B / 255f * alpha, alpha);
+    }
 
     /// <summary>
     /// Builds the rotation part of the text's world matrix.
