@@ -32,6 +32,7 @@
     <Project Path="examples/code-only/Example03_StrideUI_CapsuleAndWindow/Example03_StrideUI_CapsuleAndWindow.csproj" />
     <Project Path="examples/code-only/Example03_StrideUI_ButtonHoverAnimation/Example03_StrideUI_ButtonHoverAnimation.csproj" />
     <Project Path="examples/code-only/Example03_2DScene_Panels/Example03_2DScene_Panels.csproj" />
+    <Project Path="examples/code-only/Example03_HUD/Example03_HUD.csproj" />
     <Project Path="examples/code-only/Example04_MyraUI/Example04_MyraUI.csproj">
       <Build Solution="Debug|*" Project="false" />
     </Project>
@@ -73,6 +74,9 @@
     <Project Path="examples/code-only/Example23_Charts2D/Example23_Charts2D.csproj" />
     <Project Path="examples/code-only/Example23_Charts3D/Example23_Charts3D.csproj" />
     <Project Path="examples/code-only/Example26_MultipleSimulations/Example26_MultipleSimulations.csproj" />
+    <Project Path="examples/code-only/Example27_Audio_ProceduralSound/Example27_Audio_ProceduralSound.csproj" />
+    <Project Path="examples/code-only/Example27_Audio_Spatial/Example27_Audio_Spatial.csproj" />
+    <Project Path="examples/code-only/Example27_Audio_WavFile/Example27_Audio_WavFile.csproj" />
     <Project Path="examples/code-only/Example40_PostEffects/Example40_PostEffects.csproj" />
     <Project Path="examples/code-only/Example_2D_Playground/Example_2D_Playground.csproj" />
     <Project Path="examples/code-only/Example_Bepu_Playground/Example_Bepu_Playground.csproj" />
