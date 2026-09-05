@@ -69,6 +69,7 @@
     <Project Path="examples/code-only/E06_Jitter2/E06_Jitter2.csproj" />
     <Project Path="examples/code-only/E06_Jitter2_ConstrainedTo2D/E06_Jitter2_ConstrainedTo2D.csproj" />
     <Project Path="examples/code-only/E05_3D_FirstPersonCharacter/E05_3D_FirstPersonCharacter.csproj" />
+    <Project Path="examples/code-only/E05_3D_Grabber/E05_3D_Grabber.csproj" />
     <Project Path="examples/code-only/E10_3D_Instancing/E10_3D_Instancing.csproj" />
     <Project Path="examples/code-only/E10_3D_Instancing_EntityTransform/E10_3D_Instancing_EntityTransform.csproj" />
     <Project Path="examples/code-only/E11_2D_Charts/E11_2D_Charts.csproj" />
