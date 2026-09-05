@@ -6,9 +6,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.1" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+        <PackageReference Include="Avalonia" Version="12.1.2" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
     </ItemGroup>
 
     <!--
@@ -31,9 +31,7 @@
         this project, rather than leaving the pre-build hook to build it - see ExamplesManifest.targets.
     -->
     <ItemGroup>
-        <ProjectReference Include="..\Stride.CommunityToolkit.Examples.MetadataGenerator\Stride.CommunityToolkit.Examples.MetadataGenerator.csproj"
-                          ReferenceOutputAssembly="false"
-                          Private="false" />
+        <ProjectReference Include="..\Stride.CommunityToolkit.Examples.MetadataGenerator\Stride.CommunityToolkit.Examples.MetadataGenerator.csproj" ReferenceOutputAssembly="false" Private="false" />
     </ItemGroup>
 
     <!-- Generates examples-manifest.json before the build and copies it to the output. -->
