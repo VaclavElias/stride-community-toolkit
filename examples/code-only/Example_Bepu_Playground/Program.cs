@@ -363,7 +363,7 @@ void AddInstancedShapes(Primitive2DModelType type, int count)
     if (shapeModel == null) return;
 
     // Master-Instance pattern: individual physics AND a single draw call for the whole group.
-    // See Example22_Instancing_EntityTransform for the same pattern explained in isolation.
+    // See E10_3D_Instancing_EntityTransform for the same pattern explained in isolation.
 
     // Step 1: the master, created once and reused by later presses. It must carry BOTH a
     // ModelComponent and an InstancingComponent: InstancingProcessor skips a bare Entity holding

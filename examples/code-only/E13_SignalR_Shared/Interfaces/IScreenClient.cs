@@ -1,0 +1,10 @@
+using E13_SignalR_Shared.Dtos;
+
+namespace E13_SignalR_Shared.Interfaces;
+
+public interface IScreenClient
+{
+    Task ReceiveMessageAsync(MessageDto dto);
+    Task ReceiveCountAsync(CountDto dto);
+    Task ReceiveUnitsRemovedAsync(CountDto units);
+}

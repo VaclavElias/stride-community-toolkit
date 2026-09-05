@@ -48,7 +48,7 @@ Examples are organized into four difficulty levels to help you progress from bas
 - Performance optimization
 - Production-ready patterns
 
-**Examples:** Cubicle Calamity (full game), Custom shaders, Advanced networking
+**Examples:** Cube Collapse (full game), Custom shaders, Advanced networking
 
 ## Categories
 

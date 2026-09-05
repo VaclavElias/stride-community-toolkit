@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "E04_ImGui": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
