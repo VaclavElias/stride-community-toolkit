@@ -13,7 +13,24 @@ public sealed class SignalRHubClient : IAsyncDisposable
 {
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly Random _random = new();
-    private volatile bool _reconnecting;
+
+    /// <summary>
+    /// Cancelled by <see cref="StopAsync"/> so a connect attempt already sleeping on its backoff
+    /// wakes immediately instead of holding shutdown open for the rest of the delay.
+    /// </summary>
+    private readonly CancellationTokenSource _shutdownCts = new();
+
+    /// <summary>
+    /// Set before the connection is stopped, so the connect loop can tell an intentional stop from a
+    /// dropped connection. Without it, closing the game reconnects instead of shutting down.
+    /// </summary>
+    private volatile bool _stopRequested;
+
+    /// <summary>The background loop started by <see cref="BeginConnect"/>, awaited on shutdown.</summary>
+    private Task? _connectLoop;
+
+    private TimeSpan _minBackoff;
+    private TimeSpan _maxBackoff;
 
     private readonly List<IDisposable> _subscriptions = [];
     private readonly List<IStoppable> _sendQueues = [];
@@ -24,6 +41,12 @@ public sealed class SignalRHubClient : IAsyncDisposable
     /// Active SignalR hub connection.
     /// </summary>
     public HubConnection Connection { get; }
+
+    /// <summary>
+    /// Whether the hub is currently reachable. The hub is an optional feature: everything the game
+    /// does works without it, so callers use this to show status rather than to decide whether to run.
+    /// </summary>
+    public bool IsConnected => Connection.State == HubConnectionState.Connected;
 
     /// <summary>
     /// Initializes a new <see cref="SignalRHubClient"/> with explicit URL.
@@ -63,39 +86,99 @@ public sealed class SignalRHubClient : IAsyncDisposable
         if (options.HandshakeTimeout.HasValue)
             Connection.HandshakeTimeout = options.HandshakeTimeout.Value;
 
-        var minBackoff = options.ReconnectBackoffMin ?? TimeSpan.FromMilliseconds(500);
-        var maxBackoff = options.ReconnectBackoffMax ?? TimeSpan.FromMilliseconds(2000);
-        if (maxBackoff < minBackoff)
-            (minBackoff, maxBackoff) = (maxBackoff, minBackoff);
+        _minBackoff = options.ReconnectBackoffMin ?? TimeSpan.FromMilliseconds(500);
+        _maxBackoff = options.ReconnectBackoffMax ?? TimeSpan.FromMilliseconds(2000);
+        if (_maxBackoff < _minBackoff)
+            (_minBackoff, _maxBackoff) = (_maxBackoff, _minBackoff);
 
-        Connection.Closed += async (error) =>
+        // Closed only reports. Reconnecting from here was the old design, and it had two faults: it
+        // could not tell an intentional StopAsync from a dropped connection, and it never fired at
+        // all when the very first connect failed - so a game started before the hub stayed offline
+        // for its whole run. The connect loop below handles both cases with one piece of code.
+        Connection.Closed += error =>
         {
-            if (_reconnecting) return;
+            if (!_stopRequested)
+            {
+                _logger?.LogWarning(error, "SignalR connection lost. The game continues; reconnecting in the background.");
+            }
 
-            _reconnecting = true;
+            return Task.CompletedTask;
+        };
+    }
+
+    /// <summary>
+    /// Starts connecting in the background and keeps trying until the hub answers or the client is
+    /// stopped. Returns immediately and never throws.
+    /// </summary>
+    /// <remarks>
+    /// This is the whole "SignalR is optional" contract: the caller does not await a connection, is
+    /// not told to handle a failure, and cannot be broken by a hub that is missing, slow or restarted
+    /// halfway through. A hub that appears later is picked up on the next attempt.
+    /// </remarks>
+    public void BeginConnect()
+    {
+        if (_stopRequested || _connectLoop is not null)
+        {
+            return;
+        }
+
+        _connectLoop = Task.Run(() => ConnectLoopAsync(_shutdownCts.Token));
+    }
+
+    /// <summary>
+    /// Keeps the connection up for the client's lifetime: connects when disconnected, waits a
+    /// randomised backoff, and looks again. One loop covers the first connect and every reconnect.
+    /// </summary>
+    private async Task ConnectLoopAsync(CancellationToken ct)
+    {
+        // The hub being down is normal here, and a message per attempt would bury the console. Say
+        // it once, then drop to debug until something changes.
+        var announced = false;
+
+        while (!ct.IsCancellationRequested && !_stopRequested)
+        {
+            if (Connection.State == HubConnectionState.Disconnected)
+            {
+                try
+                {
+                    await EnsureStartedAsync(ct).ConfigureAwait(false);
+
+                    announced = false;
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch (ObjectDisposedException)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    if (!announced)
+                    {
+                        _logger?.LogWarning("Hub at {Url} is not answering ({Reason}). The game runs without it and will keep trying.", _hubUrl, ex.Message);
+
+                        announced = true;
+                    }
+                    else
+                    {
+                        _logger?.LogDebug(ex, "SignalR connect attempt failed.");
+                    }
+                }
+            }
 
             try
             {
-                var delayMs = _random.Next((int)minBackoff.TotalMilliseconds, (int)maxBackoff.TotalMilliseconds + 1);
+                var delayMs = _random.Next((int)_minBackoff.TotalMilliseconds, (int)_maxBackoff.TotalMilliseconds + 1);
 
-                _logger?.LogWarning(error, "SignalR connection closed. Attempting reconnect in {Delay} ms...", delayMs);
-
-                await Task.Delay(delayMs).ConfigureAwait(false);
-
-                await EnsureStartedAsync().ConfigureAwait(false);
-
-                _logger?.LogInformation("SignalR reconnected. State={State}, ConnectionId={ConnectionId}", Connection.State, Connection.ConnectionId);
+                await Task.Delay(delayMs, ct).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (OperationCanceledException)
             {
-                _logger?.LogError(ex, "SignalR reconnect attempt failed.");
-                // swallow – further reconnect attempts will happen on future Closed events
+                return;
             }
-            finally
-            {
-                _reconnecting = false;
-            }
-        };
+        }
     }
 
     /// <summary>
@@ -106,6 +189,14 @@ public sealed class SignalRHubClient : IAsyncDisposable
         if (Connection is null)
         {
             throw new InvalidOperationException("Connection is not initialized.");
+        }
+
+        // Stopping is terminal for this client - StopAsync is followed by DisposeAsync - so a start
+        // arriving afterwards is a race, not a request. Returning is right; throwing would only move
+        // the exception from StartAsync to here.
+        if (_stopRequested)
+        {
+            return;
         }
 
         if (Connection.State == HubConnectionState.Connected)
@@ -119,7 +210,9 @@ public sealed class SignalRHubClient : IAsyncDisposable
         {
             if (Connection.State == HubConnectionState.Disconnected)
             {
-                _logger?.LogInformation("Starting SignalR connection to {Url}...", _hubUrl);
+                // Debug, not information: the connect loop retries on a backoff, so an unreachable
+                // hub would otherwise print this line every second or two for the whole session.
+                _logger?.LogDebug("Starting SignalR connection to {Url}...", _hubUrl);
 
                 await Connection!.StartAsync(ct).ConfigureAwait(false);
 
@@ -137,6 +230,27 @@ public sealed class SignalRHubClient : IAsyncDisposable
     /// </summary>
     public async Task StopAsync(CancellationToken ct = default)
     {
+        // All three happen before the lock is taken. The connect loop takes the same lock inside
+        // EnsureStartedAsync, so it has to be finished before this method can hold it - and a flag
+        // set after the lock would be set too late for the loop to see.
+        _stopRequested = true;
+
+        await _shutdownCts.CancelAsync().ConfigureAwait(false);
+
+        if (_connectLoop is not null)
+        {
+            try
+            {
+                await _connectLoop.ConfigureAwait(false);
+            }
+            catch
+            {
+                // The loop swallows its own failures; this only unwraps cancellation.
+            }
+
+            _connectLoop = null;
+        }
+
         await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
 
         try
@@ -175,7 +289,10 @@ public sealed class SignalRHubClient : IAsyncDisposable
 
         _subscriptions.Clear();
 
-        await Connection.DisposeAsync();
+        await Connection.DisposeAsync().ConfigureAwait(false);
+
+        _shutdownCts.Dispose();
+        _connectionLock.Dispose();
     }
 
     /// <summary>

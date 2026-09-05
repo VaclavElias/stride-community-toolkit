@@ -6,7 +6,7 @@ using Stride.CommunityToolkit.Engine;
 using Stride.Core.Diagnostics;
 using Stride.Engine;
 
-using var game = new Game();
+var game = new Game();
 
 // Create a Stride logger to surface .NET logs into Stride's console
 var strideLogger = GlobalLogger.GetLogger("SignalR");
@@ -16,7 +16,7 @@ var hubUrl = new Uri(GameSettings.HubBaseUrl, GameSettings.HubPath);
 
 // Owned here rather than only registered: the service holds a live hub connection, and disposing it
 // closes that connection on the way out. Declared after the game so it is released before it.
-await using var screenService = new ScreenService(hubUrl, loggerAdapter);
+var screenService = new ScreenService(hubUrl, loggerAdapter);
 
 game.Services.AddService(screenService);
 
@@ -24,6 +24,18 @@ game.Run(start: (Scene rootScene) =>
 {
     SceneBuilder.Build(game, rootScene);
 });
+
+// Shutdown order is load-bearing, and so is the fact that neither line awaits.
+//
+// Game.Dispose tears down the graphics device, which has to happen on the thread that created it.
+// Top-level statements run on the main thread only until their first await, and an awaited
+// DisposeAsync resumes on a thread-pool thread - so `await using` here, or a `using var game`
+// disposed after it, would tear the device down off the main thread and hang the process with the
+// window still on screen. Blocking instead keeps both disposals on this thread, and closes the hub
+// connection while the game's logger is still alive to report it.
+screenService.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+game.Dispose();
 /*
 ---example-metadata
 slug: stride-signalr

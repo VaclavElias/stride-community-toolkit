@@ -63,9 +63,15 @@ public sealed class ScreenService : IAsyncDisposable
     public void EnqueueUnitsRemoved(CountDto dto) => _removals.Enqueue(dto);
 
     /// <summary>
-    /// Starts the connection if not already started.
+    /// Whether the hub is currently reachable. The game is fully playable when it is not.
     /// </summary>
-    public Task EnsureStartedAsync(CancellationToken ct = default) => _client.EnsureStartedAsync(ct);
+    public bool IsConnected => _client.IsConnected;
+
+    /// <summary>
+    /// Begins connecting in the background and keeps retrying until the hub answers. Returns
+    /// immediately and never throws, so the caller has no failure to handle.
+    /// </summary>
+    public void BeginConnect() => _client.BeginConnect();
 
     /// <summary>
     /// Stops the SignalR connection and background sender, leaving the service reusable.
