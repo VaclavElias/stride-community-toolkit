@@ -47,7 +47,13 @@ public class ShapeBatchFeature : RootRenderFeature
         _pipelineState = new MutablePipelineState(Context.GraphicsDevice);
         _pipelineState.State.SetDefaults();
         _pipelineState.State.InputElements = _vertexDeclaration.CreateInputElements();
-        _pipelineState.State.BlendState = BlendStates.AlphaBlend;
+        // The shader produces straight alpha - the testbed's convention, and what its GL blend of
+        // SrcAlpha / OneMinusSrcAlpha expects. Stride's AlphaBlend is the premultiplied blend, source
+        // factor One: fed straight alpha it adds the colour at full strength and only scales the
+        // background, so a fill at a tenth alpha still drew at full brightness over a dark scene,
+        // glows read far heavier than their falloff, and a gradient to alpha 0 changed nothing.
+        // NonPremultiplied is SrcAlpha / OneMinusSrcAlpha exactly.
+        _pipelineState.State.BlendState = BlendStates.NonPremultiplied;
         _pipelineState.State.RasterizerState = RasterizerStates.CullNone;
         _pipelineState.State.PrimitiveType = PrimitiveType.TriangleList;
     }

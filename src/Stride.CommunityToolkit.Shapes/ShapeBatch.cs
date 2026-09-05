@@ -20,10 +20,9 @@ namespace Stride.CommunityToolkit.Shapes;
 /// </para>
 /// <para>
 /// <see cref="BorderWidth"/>, <see cref="FillAlpha"/>, <see cref="FillColor"/>, <see cref="GlowWidth"/>,
-/// <see cref="GlowColor"/>, the dash pattern (<see cref="DashLength"/>, <see cref="DashGap"/>,
-/// <see cref="DashPhase"/>) and the fill gradient (<see cref="GradientColor"/>,
-/// <see cref="GradientDirection"/>) are current state, captured by each draw call as it is made,
-/// so you can change them between calls the way you would with a sprite batch.
+/// <see cref="GlowColor"/>, <see cref="Dash"/>, <see cref="Gradient"/> and <see cref="Opacity"/>
+/// are current state, captured by each draw call as it is made, so you can change them between
+/// calls the way you would with a sprite batch.
 /// </para>
 /// </remarks>
 public sealed class ShapeBatch : RenderObject
@@ -84,56 +83,29 @@ public sealed class ShapeBatch : RenderObject
     public Color? GlowColor { get; set; }
 
     /// <summary>
-    /// Length of each dash along the outline, in on-screen pixels, constant at any zoom like the
-    /// border. The default 0 draws solid. Captured by each draw call as it is made.
+    /// The dash pattern along outlines - length, gap and phase in on-screen pixels. A length of 0,
+    /// the default, draws solid. Circles, arcs and lines dash; polygons stay solid. See
+    /// <see cref="DashPattern"/>. Captured by each draw call as it is made.
+    /// </summary>
+    public DashPattern Dash { get; } = new();
+
+    /// <summary>
+    /// A gradient across the fill: the colour it runs to and the direction. <c>Gradient.Color</c>
+    /// left <c>null</c>, the default, is a flat fill. See <see cref="FillGradient"/>. Captured by
+    /// each draw call as it is made.
+    /// </summary>
+    public FillGradient Gradient { get; } = new();
+
+    /// <summary>
+    /// A multiplier on everything a shape draws - border, fill and glow alike - from 0 to 1. The
+    /// default 1 changes nothing. Captured by each draw call as it is made.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Dashes run around circles, rings, annuli, sectors and arcs - starting at the start angle,
-    /// so a gauge's ticks begin where its sweep does - and along lines. A polygon with more than
-    /// two corners is always drawn solid; its outline has no single direction to dash along.
-    /// </para>
-    /// <para>
-    /// Around a circle or arc the pattern is stretched or squeezed by up to half a period so that a
-    /// whole number of dashes fills the turn, which is what makes a tick ring come out even at any
-    /// radius instead of ending in a stub. The gaps are cuts through the whole shape, so the fill
-    /// and glow stop at a dash end exactly as they stop at a sector's edge.
-    /// </para>
+    /// This is how a widget goes disabled or fades in: one assignment, rather than an alpha edit on
+    /// each of its colours. It multiplies the alpha the colours already carry, so a fill at half
+    /// alpha under an opacity of a half draws at a quarter.
     /// </remarks>
-    public float DashLength { get; set; }
-
-    /// <summary>
-    /// The gap between dashes, in on-screen pixels. The default 0 makes the gap the same length as
-    /// the dash. Captured by each draw call as it is made.
-    /// </summary>
-    public float DashGap { get; set; }
-
-    /// <summary>
-    /// Where along the outline the dash pattern starts, in on-screen pixels. Advance it every frame
-    /// and a dashed ring rotates, a dashed line marches - the cheapest animation a HUD has.
-    /// Captured by each draw call as it is made.
-    /// </summary>
-    public float DashPhase { get; set; }
-
-    /// <summary>
-    /// The colour the fill runs to, or <c>null</c> (the default) for a flat fill. With one set, the
-    /// fill starts as <see cref="FillColor"/> (or the derived fill) at one edge of the shape and
-    /// reaches this colour at the opposite edge, along <see cref="GradientDirection"/>. Alpha counts:
-    /// a fill that runs to its own colour at alpha 0 fades out. Captured by each draw call as it is made.
-    /// </summary>
-    /// <remarks>
-    /// The gradient is the fill's alone; the border and glow keep their colours. <see cref="FillAlpha"/>
-    /// scales both ends. It spans the shape's own extent along the direction, so a bar and a disc
-    /// each run from edge to edge whatever their size.
-    /// </remarks>
-    public Color? GradientColor { get; set; }
-
-    /// <summary>
-    /// The direction the gradient runs in, in the shape's local axes - for a 2D shape, world X and
-    /// Y; for a rectangle on a plane, that plane's axes. Defaults to +Y, bottom to top. The length
-    /// does not matter. Captured by each draw call as it is made.
-    /// </summary>
-    public Vector2 GradientDirection { get; set; } = Vector2.UnitY;
+    public float Opacity { get; set; } = 1f;
 
     /// <summary>
     /// Whether shapes are tested against the depth buffer, so scene geometry can occlude them. They
@@ -532,34 +504,31 @@ public sealed class ShapeBatch : RenderObject
         {
             // The gradient's far end gets the same treatment as the near one: scaled by FillAlpha
             // in the shader, so the two ends dim together
-            return new(color, color, BorderWidth, FillAlpha, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase,
-                GradientColor is not null, GradientColor ?? color, GradientDirection);
+            return new(color, color, BorderWidth, FillAlpha, GlowWidth, GlowColor ?? color, Dash.Capture(), CaptureGradient(color), Opacity);
         }
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
         // turn a chosen colour into a muddy version of itself, so FillAlpha scales opacity only.
         var near = WithFillAlpha(fill);
-        var far = GradientColor is { } to ? WithFillAlpha(to) : near;
+        var gradient = Gradient.Color is { } to ? new GradientStyle(true, WithFillAlpha(to), Gradient.Direction) : new GradientStyle(false, near, Gradient.Direction);
 
-        return new(color, near, BorderWidth, 1f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase,
-            GradientColor is not null, far, GradientDirection);
+        return new(color, near, BorderWidth, 1f, GlowWidth, GlowColor ?? color, Dash.Capture(), gradient, Opacity);
     }
 
     /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
-    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase, false, color, GradientDirection);
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, GlowWidth, GlowColor ?? color, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
 
     /// <summary>The current style with the fill turned off and its own outline width.</summary>
-    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase, false, color, GradientDirection);
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, GlowWidth, GlowColor ?? color, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
 
     /// <summary>
     /// The current style with the fill turned all the way up, for shapes that are drawn solid. A
     /// gradient still applies: a line that fades out along its length is a leader line.
     /// </summary>
-    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, GlowWidth, GlowColor ?? color, DashLength, EffectiveDashGap, DashPhase,
-        GradientColor is not null, GradientColor ?? color, GradientDirection);
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, GlowWidth, GlowColor ?? color, Dash.Capture(), CaptureGradient(color), Opacity);
 
-    /// <summary>The gap as the shader needs it: the dash's own length when none was given.</summary>
-    private float EffectiveDashGap => DashGap > 0f ? DashGap : DashLength;
+    /// <summary>The gradient as a draw call captures it, its far colour taken as given - the shader scales it by the fill alpha.</summary>
+    private GradientStyle CaptureGradient(Color fallback) => new(Gradient.Color is not null, Gradient.Color ?? fallback, Gradient.Direction);
 
     /// <summary>An explicit colour with <see cref="FillAlpha"/> applied to its opacity only.</summary>
     private Color WithFillAlpha(Color colour) => new(colour.R, colour.G, colour.B, (byte)Math.Clamp(colour.A * FillAlpha, 0f, 255f));
