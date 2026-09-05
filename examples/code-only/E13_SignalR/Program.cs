@@ -28,6 +28,8 @@ const float HeartbeatSeconds = 1f;
 var console = new StationConsole();
 var link = new StationLink(ResolveHubUrl(), new StrideLoggerAdapter<SignalRHubClient>(GlobalLogger.GetLogger("SignalR")));
 
+WindowsDpiManager.EnablePerMonitorV2();
+
 // Not `using`: the disposal order at the bottom is deliberate, and `using` would reverse it
 var game = new Game();
 
@@ -37,8 +39,6 @@ var commands = new StationCommands(deck, console);
 
 var uptime = 0f;
 var untilHeartbeat = HeartbeatSeconds;
-
-WindowsDpiManager.EnablePerMonitorV2();
 
 game.Run(start: Start, update: Update);
 

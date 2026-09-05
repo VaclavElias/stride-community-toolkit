@@ -14,6 +14,8 @@ using Stride.Input;
 
 // This example demonstrates these constraints: DistanceLimit, DistanceServo, BallSocket, PointOnLineServo
 // The user can drag a golden sphere horizontally and adjust its vertical position with Z and X keys
+// (a kinematic teleport: precise placement, no fling on release. For the other kind of drag - pick
+// up, carry and throw through servo constraints - see E05_3D_Grabber and GrabberScript.)
 // The scene can be reset by pressing R
 // DistanceLimit: Connects two spheres with a minimum and maximum distance
 // DistanceServo: Connects two spheres with a target distance and spring settings

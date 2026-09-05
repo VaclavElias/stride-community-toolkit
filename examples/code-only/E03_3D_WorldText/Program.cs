@@ -3,6 +3,7 @@ using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Skyboxes;
+using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
@@ -14,12 +15,16 @@ using Stride.Engine;
 // it. For text that must always be readable at the same size, such as a HUD, see
 // E03_3D_EntityText.
 
+WindowsDpiManager.EnablePerMonitorV2();
+
 using var game = new Game();
 
 game.Run(start: Start);
 
 void Start(Scene scene)
 {
+    game.Window.AllowUserResizing = true;
+
     game.SetupBase3DScene();
     game.AddSkybox();
 
