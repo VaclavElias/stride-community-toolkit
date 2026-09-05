@@ -42,7 +42,7 @@ Bepu is the newer engine and the toolkit's default; the examples and the `SetupB
 game.GetCameraEntity().Add(new GrabberScript());
 ```
 
-For a precise placement with no fling on release, teleporting a kinematic body each frame is the other tool; `E05_3D_Constraints` shows that one.
+Every constraint example carries it, so the constrained bodies can be pulled about and the constraints watched doing their work.
 
 ### Convex hulls
 
