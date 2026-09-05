@@ -169,6 +169,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/2d-scene-panels.webp" class="card-img-top" alt="Screenshot of the 2D Panels and Text example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="2d-scene-panels.md">2D Panels and Text</a></h3>
+                <p><span class="badge text-bg-secondary">Shapes</span></p>
+                <p class="card-text">Sixteen HUD panel recipes side by side, each one property away from the last: fill only, border only, transparent fill over a stripe that proves it, a...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/primitives-2d.webp" class="card-img-top" alt="Screenshot of the Basic2D Scene (Multiple Primitives) example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="primitives-2d.md">Basic2D Scene (Multiple Primitives)</a></h3>
@@ -279,6 +289,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="raycast.md">Raycast</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
                 <p class="card-text">Click the ground and a sphere is kicked towards where you clicked; click the sphere and it stops dead.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/hud.webp" class="card-img-top" alt="Screenshot of the Ship HUD example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="hud.md">Ship HUD</a></h3>
+                <p><span class="badge text-bg-secondary">Shapes</span></p>
+                <p class="card-text">A cockpit HUD composed from the toolkit's shapes and world text: a heading tape that scrolls, a pitch ladder, a gun-sight, speed and altitude tapes...</p>
             </div>
         </div>
     </div>
