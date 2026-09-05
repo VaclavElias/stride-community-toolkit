@@ -36,22 +36,33 @@ public class EntityTextRenderData(EntityTextComponent component)
     public Entity Entity => Component.Entity;
 
     /// <summary>
-    /// Returns the size of the component's text in pixels, measuring it only when the text, size or
-    /// font has actually changed since the last measurement.
+    /// Returns the size of the component's text in pixels at <see cref="EntityTextComponent.FontSize"/>,
+    /// measuring it only when the text, size or font has actually changed since the last measurement.
     /// </summary>
     /// <param name="spriteBatch">The batch used to measure.</param>
     /// <param name="font">The font the text will be drawn with.</param>
     /// <returns>The width and height of the text, in pixels, before <see cref="EntityTextComponent.Scale"/>.</returns>
-    public Vector2 GetMeasuredSize(SpriteBatch spriteBatch, SpriteFont font)
+    public Vector2 GetMeasuredSize(SpriteBatch spriteBatch, SpriteFont font) => GetMeasuredSize(spriteBatch, font, Component.FontSize);
+
+    /// <summary>
+    /// Returns the size of the component's text in pixels at a given font size - the component's
+    /// own size times the display's scale, when the renderer is following it - measuring it only
+    /// when the text, size or font has actually changed since the last measurement.
+    /// </summary>
+    /// <param name="spriteBatch">The batch used to measure.</param>
+    /// <param name="font">The font the text will be drawn with.</param>
+    /// <param name="fontSize">The size the glyphs are rasterised at, in pixels.</param>
+    /// <returns>The width and height of the text, in pixels, before <see cref="EntityTextComponent.Scale"/>.</returns>
+    public Vector2 GetMeasuredSize(SpriteBatch spriteBatch, SpriteFont font, float fontSize)
     {
-        if (_measuredText == Component.Text && _measuredFontSize == Component.FontSize && _measuredFont == font)
+        if (_measuredText == Component.Text && _measuredFontSize == fontSize && _measuredFont == font)
         {
             return _measuredSize;
         }
 
-        _measuredSize = spriteBatch.MeasureString(font, Component.Text, Component.FontSize);
+        _measuredSize = spriteBatch.MeasureString(font, Component.Text, fontSize);
         _measuredText = Component.Text;
-        _measuredFontSize = Component.FontSize;
+        _measuredFontSize = fontSize;
         _measuredFont = font;
 
         return _measuredSize;
