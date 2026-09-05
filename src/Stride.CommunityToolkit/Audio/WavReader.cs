@@ -22,7 +22,7 @@ internal static class WavReader
         [0x0055] = "MP3",
     };
 
-    public static WavSound Read(Stream stream, AudioEngine? engine)
+    internal static WavSound Read(Stream stream, AudioEngine? engine)
     {
         ArgumentNullException.ThrowIfNull(stream);
 

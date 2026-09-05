@@ -54,6 +54,8 @@ game.UseGameSettings(settings => settings.GetOrCreateConfiguration<AudioEngineSe
 
 `AudioSystem.Initialize` swallows the native initialisation failure and leaves `game.Audio.AudioEngine` null - on Linux without OpenAL, and on headless machines. Every method here throws `InvalidOperationException` naming that cause; check `game.Audio.AudioEngine` first to degrade silently instead. The methods also need the engine to exist, so call them from the `start` callback of `Run()` or later, never before.
 
+One more engine rule worth knowing: the audio engine pauses whenever the game window loses focus, and while paused a `Play()` call is silently ignored. A game launched into the background therefore never starts its music until something calls `Play()` again with the window focused.
+
 ## Examples
 
 - [Procedural Sound](../code-only/examples/procedural-sound.md) - a tone with no file, waveform and pitch changed live.

@@ -42,10 +42,10 @@ internal static class AudioInternals
     /// The component's listener, or <see langword="null"/> until the entity has been processed -
     /// the engine creates it when the component enters a scene.
     /// </summary>
-    public static AudioListener? GetListener(AudioListenerComponent component) => ListenerField(component);
+    internal static AudioListener? GetListener(AudioListenerComponent component) => ListenerField(component);
 
     /// <summary>
     /// Sets the emitter's world transform, which the HRTF path positions from.
     /// </summary>
-    public static void SetWorldTransform(AudioEmitter emitter, in Matrix worldTransform) => WorldTransformField(emitter) = worldTransform;
+    internal static void SetWorldTransform(AudioEmitter emitter, in Matrix worldTransform) => WorldTransformField(emitter) = worldTransform;
 }
