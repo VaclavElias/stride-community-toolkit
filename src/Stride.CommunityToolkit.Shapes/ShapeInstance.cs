@@ -20,8 +20,6 @@ internal readonly struct ShapeInstance
     /// <summary>Bit 2 of the GPU flags: the fill runs from <see cref="FillColor"/> to <see cref="GradientColor"/> along the gradient direction.</summary>
     internal const int GradientFlag = 4;
 
-    // --- Placement: the plane the shape lies in --------------------------------------------------
-
     /// <summary>xyz: world position of the local origin; w: plane mode.</summary>
     public readonly Vector4 Position;
 
@@ -31,21 +29,29 @@ internal readonly struct ShapeInstance
     /// <summary>xyz: the plane's Y axis; w: fill alpha.</summary>
     public readonly Vector4 AxisY;
 
+    // Geometry: up to eight corners, and the rounding around them
+
     public readonly Vector4 Points12;
     public readonly Vector4 Points34;
     public readonly Vector4 Points56;
     public readonly Vector4 Points78;
+
     public readonly int Count;
     public readonly float Radius;
     public readonly float Scale;
     public readonly int Flags;
+
     public readonly Color Color;
     public readonly Color FillColor;
     public readonly Color GlowColor;
     public readonly Color GradientColor;
-    public readonly SliceData Slice;
-    public readonly DashData Dash;
-    public readonly GradientData Gradient;
+
+    // The rest, one named group each. Nothing on the CPU reads them back, so they are private;
+    // the shader reads the bytes.
+
+    private readonly SliceData _slice;
+    private readonly DashData _dash;
+    private readonly GradientData _gradient;
 
     internal ShapeInstance(in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, ReadOnlySpan<Vector4> packedPoints, int count, float radius, float scale)
     {
@@ -64,54 +70,77 @@ internal readonly struct ShapeInstance
         FillColor = style.FillColor;
         GlowColor = style.GlowColor;
         GradientColor = style.Gradient.Color;
-        Slice = new SliceData(slice.RingWidth, slice.StartAngle, slice.SweepAngle, style.GlowWidth);
-        Dash = new DashData(style.Dash.Length, style.Dash.Gap, style.Dash.Phase);
-        Gradient = new GradientData(style.Gradient.Direction, style.Opacity);
+        _slice = new SliceData(slice.RingWidth, slice.StartAngle, slice.SweepAngle, style.GlowWidth);
+        _dash = new DashData(style.Dash.Length, style.Dash.Gap, style.Dash.Phase);
+        _gradient = new GradientData(style.Gradient.Direction, style.Opacity);
     }
 
     /// <summary>Which part of the shape is kept, plus the glow width in the spare slot.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct SliceData(float ringWidth, float angleStart, float angleSweep, float glowWidth)
+    private readonly struct SliceData
     {
         /// <summary>How deep the band reaches inward from the outline, in world units, when hollow.</summary>
-        public readonly float RingWidth = ringWidth;
+        public readonly float RingWidth;
 
         /// <summary>Where the angular cut starts, radians from the plane's X axis, counter-clockwise.</summary>
-        public readonly float AngleStart = angleStart;
+        public readonly float AngleStart;
 
         /// <summary>How far the cut extends; 0 means no cut.</summary>
-        public readonly float AngleSweep = angleSweep;
+        public readonly float AngleSweep;
 
         /// <summary>Outer glow width in pixels; 0 for none.</summary>
-        public readonly float GlowWidth = glowWidth;
+        public readonly float GlowWidth;
+
+        internal SliceData(float ringWidth, float angleStart, float angleSweep, float glowWidth)
+        {
+            RingWidth = ringWidth;
+            AngleStart = angleStart;
+            AngleSweep = angleSweep;
+            GlowWidth = glowWidth;
+        }
     }
 
     /// <summary>The dash pattern, in pixels.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct DashData(float length, float gap, float phase)
+    private readonly struct DashData
     {
         /// <summary>Length of each dash; 0 for solid.</summary>
-        public readonly float Length = length;
+        public readonly float Length;
 
         /// <summary>Gap between dashes.</summary>
-        public readonly float Gap = gap;
+        public readonly float Gap;
 
         /// <summary>Where the pattern starts.</summary>
-        public readonly float Phase = phase;
+        public readonly float Phase;
 
-        private readonly float _pad = 0f;
+        private readonly float _pad;
+
+        internal DashData(float length, float gap, float phase)
+        {
+            Length = length;
+            Gap = gap;
+            Phase = phase;
+            _pad = 0f;
+        }
     }
 
     /// <summary>The fill gradient's direction, plus the opacity in the spare slot.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct GradientData(Vector2 direction, float opacity)
+    private readonly struct GradientData
     {
         /// <summary>The direction the gradient runs in, in the plane's local axes.</summary>
-        public readonly Vector2 Direction = direction;
+        public readonly Vector2 Direction;
 
         /// <summary>A multiplier on every alpha the shape produces.</summary>
-        public readonly float Opacity = opacity;
+        public readonly float Opacity;
 
-        private readonly float _pad = 0f;
+        private readonly float _pad;
+
+        internal GradientData(Vector2 direction, float opacity)
+        {
+            Direction = direction;
+            Opacity = opacity;
+            _pad = 0f;
+        }
     }
 }
