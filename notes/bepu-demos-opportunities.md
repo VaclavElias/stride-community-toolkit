@@ -136,7 +136,7 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 
 ## 2. Infrastructure gems
 
-### I1 - `Grabber` (mouse pick-and-drag by servo constraint)
+### I1 - `Grabber` (mouse pick-and-drag by servo constraint) - **built 2026-09-05** as `GrabberScript` + `E05_3D_Grabber`
 - **Source:** `Demos/Grabber.cs` (135 lines); wired in `DemoHarness.cs:231-271` and :407.
 - **What it does:** raycast from the camera through the cursor, keep the hit distance, add `OneBodyLinearServo` (anchored at the local grab point) + `OneBodyAngularServo`, re-`ApplyDescription` each frame at the new target, remove on release. Servo max force scaled by 1 / inverseMass so heavy things stay draggable (:59,65), spring (5, 2), angular servo skipped for locked-inertia bodies (:82,104), grab dropped if the body turns kinematic or is removed (:73-86), `TimestepsUnderThresholdCount = 0` keeps it awake (:118). Q + mouse rotates the held object (`DemoHarness.cs:251-265`).
 - **Toolkit form:** `GrabberScript` (SyncScript) or `TryGrab/UpdateGrab/ReleaseGrab` in `Stride.CommunityToolkit.Bepu`, on top of `CameraComponentExtensions.RaycastMouse`.

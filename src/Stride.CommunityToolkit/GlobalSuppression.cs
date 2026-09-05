@@ -209,9 +209,9 @@ using System.Diagnostics.CodeAnalysis;
 // --- ImGuiNet: the same two facts already recorded for the ImGui package -----------------------
 [assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend: pipeline, buffers, shader, context, DPI and input references are its state - same as ImGuiSystem above.")]
 [assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetExtensions.DrawText(ImGuiNetSystem,Int32,Int32,String,Byte,Byte,Byte,Byte)", Justification = "Byte-per-channel colour mirrors the Box2D.NET draw API this overload exists to match; the Vector4 overload on ImGuiNetSystem.DrawString is the shorter path.")]
-// --- Example17 SignalR ---
+// --- E13 SignalR: the orbital cargo deck ---
 [assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E13_SignalR:E13_SignalR.SignalR.SignalRHubClient", Scope = "deep", Justification = "Jitter on the reconnect backoff delay, so a room full of clients does not retry in lockstep after a server restart; nothing security-related.")]
-[assembly: SuppressMessage("NDepend", "ND1313:OverrideEqualsAndOperatorEqualsOnValueTypes", Target = "E13_SignalR:E13_SignalR.SignalR.BufferedSubscription<T>", Justification = "A readonly handle around one queue, handed out by RegisterBuffered and only ever drained; instances are never compared, sorted or used as keys, so the equality contract would be dead code. A record struct would satisfy the rule but publishes the queue as a public member.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E13_SignalR:E13_SignalR.Station.Deck", Scope = "deep", Justification = "Which size and paint a random release gets, the scatter under the hatch, and the direction of a shake; gameplay randomness, nothing security-related.")]
 // --- Cube Collapse: a game example ---
 // Colours for the board, positions for the falling game-over letters, and the shuffle behind a
 // spawn. Gameplay randomness, same as Helpers.VectorHelper above; a seedable System.Random is the
