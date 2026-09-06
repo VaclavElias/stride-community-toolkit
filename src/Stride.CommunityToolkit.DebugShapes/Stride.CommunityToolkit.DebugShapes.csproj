@@ -31,13 +31,4 @@ What's inside:
         <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="Effects\LinePrimitiveShader.sdsl">
-            <LastGenOutput>LinePrimitiveShader.sdsl.cs</LastGenOutput>
-        </None>
-        <None Update="Effects\PrimitiveShader.sdsl">
-            <LastGenOutput>PrimitiveShader.sdsl.cs</LastGenOutput>
-        </None>
-    </ItemGroup>
-
 </Project>

@@ -31,10 +31,4 @@ Depends on the Hexa.NET.ImGui package.$(StrideVersionNote)</Description>
         <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="Effects\ImGuiShader.sdsl">
-            <LastGenOutput>ImGuiShader.sdsl.cs</LastGenOutput>
-        </None>
-    </ItemGroup>
-
 </Project>
