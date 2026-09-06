@@ -158,11 +158,11 @@ void Start(Scene rootScene)
     chart.Root.AddChild(ball);
 
     // A readout that follows the mouse over the chart plane
-    chart.AddCursor();
+    chart.Options.Cursor.Visible = true;
 
     // The view-driven part: the chart re-targets its ranges to whatever the camera sees, so the grid
     // always fills the window and the tick step adapts to the zoom
-    chart.FollowCamera();
+    chart.Options.Range.FollowCamera = true;
 
     ThrowBall();
 
@@ -176,9 +176,9 @@ void Start(Scene rootScene)
     overlay.AddSection("Chart", () =>
     [
         new("CHART"),
-        new($"Press G to toggle the grid ({(chart.GridVisible ? "on" : "off")})", Color.Yellow),
+        new($"Press G to toggle the grid ({(chart.Options.Grid.Visible ? "on" : "off")})", Color.Yellow),
         new($"Press T to {(tangent is null ? "restore" : "remove")} the tan curve", Color.Yellow),
-        new($"Press L to toggle the legend ({(chart.LegendVisible ? "on" : "off")})", Color.Yellow),
+        new($"Press L to toggle the legend ({(chart.Options.Legend.Visible ? "on" : "off")})", Color.Yellow),
         new($"Press Space to throw the ball (trail: {trail.Count}/{trail.Capacity} points)", Color.Yellow),
         new($"Press A to {(animate ? "pause" : "resume")} the wave (k = {waveFrequency:0.00})", Color.Yellow),
         new($"{chart.Series.Count} series: {string.Join(", ", chart.Series.Select(s => s.Name))}"),
@@ -191,12 +191,12 @@ void Update(Scene scene, GameTime time)
 
     if (game.Input.IsKeyPressed(Keys.G))
     {
-        chart.GridVisible = !chart.GridVisible;
+        chart.Options.Grid.Visible = !chart.Options.Grid.Visible;
     }
 
     if (game.Input.IsKeyPressed(Keys.L))
     {
-        chart.LegendVisible = !chart.LegendVisible;
+        chart.Options.Legend.Visible = !chart.Options.Legend.Visible;
     }
 
     // Remove frees the ribbon's GPU buffers; plotting again builds new ones
@@ -233,8 +233,9 @@ void Update(Scene scene, GameTime time)
         wave.SetFunction(x => WaveAmplitude * MathF.Sin(waveFrequency * x));
     }
 
-    // One call drives the view-driven follower and the cursor. The camera is explicit because a scene can
-    // hold several, and only you know which one is looking at this chart.
+    // The chart's frame: applies whatever changed in its options since last time (the G and L toggles
+    // above, the range the follower derives from the camera) and moves the cursor readout. The camera is
+    // explicit because a scene can hold several, and only you know which one is looking at this chart.
     camera ??= scene.Entities.Select(e => e.Get<CameraComponent>()).FirstOrDefault(c => c != null);
 
     if (camera is not null)

@@ -152,7 +152,7 @@ void Start(Scene rootScene)
         "ball");
     chart.Root.AddChild(ball);
 
-    chart.AddCursor();
+    chart.Options.Cursor.Visible = true;
 
     ThrowBall();
 
@@ -186,12 +186,12 @@ void Start(Scene rootScene)
     overlay.AddSection("Chart", () =>
     [
         new("CHART"),
-        new($"Press G to toggle the grid ({(chart.GridVisible ? "on" : "off")})", Color.Yellow),
+        new($"Press G to toggle the grid ({(chart.Options.Grid.Visible ? "on" : "off")})", Color.Yellow),
         new($"Press T to {(tangent is null ? "restore" : "remove")} the tan curve", Color.Yellow),
-        new($"Press L to toggle the legend ({(chart.LegendVisible ? "on" : "off")})", Color.Yellow),
+        new($"Press L to toggle the legend ({(chart.Options.Legend.Visible ? "on" : "off")})", Color.Yellow),
         new($"Press Space to throw the ball (trail: {trail.Count}/{trail.Capacity} points)", Color.Yellow),
         new($"Press A to {(animate ? "pause" : "resume")} the wave (k = {waveFrequency:0.00})", Color.Yellow),
-        new($"Press V for the {(showcase ? "chart" : "showcase")} look (glow {chart.Glow:0.0})", Color.Yellow),
+        new($"Press V for the {(showcase ? "chart" : "showcase")} look (glow {chart.Options.Series.Glow:0.0})", Color.Yellow),
         new($"{chart.Series.Count} series: {string.Join(", ", chart.Series.Select(s => s.Name))}"),
     ]);
 }
@@ -202,12 +202,12 @@ void Update(Scene scene, GameTime time)
 
     if (game.Input.IsKeyPressed(Keys.G))
     {
-        chart.GridVisible = !chart.GridVisible;
+        chart.Options.Grid.Visible = !chart.Options.Grid.Visible;
     }
 
     if (game.Input.IsKeyPressed(Keys.L))
     {
-        chart.LegendVisible = !chart.LegendVisible;
+        chart.Options.Legend.Visible = !chart.Options.Legend.Visible;
     }
 
     if (game.Input.IsKeyPressed(Keys.T))
@@ -241,8 +241,8 @@ void Update(Scene scene, GameTime time)
     {
         showcase = !showcase;
 
-        chart.GridVisible = !showcase;
-        chart.Glow = showcase ? ShowcaseGlow : ChartGlow;
+        chart.Options.Grid.Visible = !showcase;
+        chart.Options.Series.Glow = showcase ? ShowcaseGlow : ChartGlow;
 
         // The light matters more than it looks. A ribbon is emissive AND lit, so a bright key light adds
         // white to every curve and washes the colour out - which is why the halo always looked better from
@@ -271,8 +271,9 @@ void Update(Scene scene, GameTime time)
         wave.SetFunction(x => WaveAmplitude * MathF.Sin(waveFrequency * x));
     }
 
-    // Drives the cursor readout. There is no follower here - that is the 2D chart's trick - but the call
-    // is the same, and the camera is explicit because a scene can hold several.
+    // The chart's frame: applies whatever changed in its options (the toggles above, the showcase glow)
+    // and moves the cursor readout. Nothing follows the camera here - that is the 2D chart's trick - but
+    // the call is the same, and the camera is explicit because a scene can hold several.
     camera ??= scene.Entities.Select(e => e.Get<CameraComponent>()).FirstOrDefault(c => c != null);
 
     if (camera is not null)
