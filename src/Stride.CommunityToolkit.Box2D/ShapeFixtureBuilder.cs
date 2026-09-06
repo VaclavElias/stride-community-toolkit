@@ -151,6 +151,69 @@ public static class ShapeFixtureBuilder
         b2CreatePolygonShape(bodyId, in shapeDef, in triangle);
     }
 
+    /// <summary>
+    /// Attaches a chain of segments to a body - terrain, a track, the walls of a room. Unlike a row
+    /// of separate boxes or segments, a chain has no internal corners for a rolling or sliding body
+    /// to catch on: Box2D smooths the joins between consecutive segments.
+    /// </summary>
+    /// <param name="points">
+    /// The chain vertices in the body's local space, in order; every point is part of the chain.
+    /// A chain is one-sided: it collides on the right of its direction of travel, so a floor to be
+    /// stood on from above must be listed <em>right to left</em>, and a closed room must wind
+    /// counter-clockwise.
+    /// </param>
+    /// <param name="bodyId">The body to attach to, usually static.</param>
+    /// <param name="isLoop">Close the chain from the last point back to the first.</param>
+    /// <param name="friction">Surface friction of every segment. Box2D's default when omitted.</param>
+    /// <remarks>
+    /// Box2D wants an open chain to carry one extra point at each end - ghost vertices that shape
+    /// the smoothing but are not collided. They are added here by extending the first and last
+    /// segments, so the points given are exactly the chain that exists.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Fewer than two points, or fewer than four for a loop.</exception>
+    public static B2ChainId AttachChain(Vector2[] points, B2BodyId bodyId, bool isLoop = false, float? friction = null)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+
+        if (points.Length < (isLoop ? 4 : 2))
+            throw new ArgumentException(isLoop ? "A looped chain needs at least four points." : "A chain needs at least two points.", nameof(points));
+
+        var chainDef = b2DefaultChainDef();
+        chainDef.isLoop = isLoop;
+
+        if (isLoop)
+        {
+            chainDef.points = new B2Vec2[points.Length];
+
+            for (var i = 0; i < points.Length; i++)
+                chainDef.points[i] = new B2Vec2(points[i].X, points[i].Y);
+        }
+        else
+        {
+            var first = points[0] - (points[1] - points[0]);
+            var last = points[^1] + (points[^1] - points[^2]);
+
+            chainDef.points = new B2Vec2[points.Length + 2];
+            chainDef.points[0] = new B2Vec2(first.X, first.Y);
+            chainDef.points[^1] = new B2Vec2(last.X, last.Y);
+
+            for (var i = 0; i < points.Length; i++)
+                chainDef.points[i + 1] = new B2Vec2(points[i].X, points[i].Y);
+        }
+
+        chainDef.count = chainDef.points.Length;
+
+        if (friction is { } value)
+        {
+            var material = b2DefaultSurfaceMaterial();
+            material.friction = value;
+            chainDef.materials = [material];
+            chainDef.materialCount = 1;
+        }
+
+        return b2CreateChain(bodyId, in chainDef);
+    }
+
     private static void CreateCapsule(Vector2 size, B2BodyId bodyId, B2ShapeDef shapeDef)
     {
         var halfHeight = size.Y / 2;

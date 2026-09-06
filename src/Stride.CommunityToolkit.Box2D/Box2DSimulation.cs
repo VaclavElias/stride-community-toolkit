@@ -2,6 +2,7 @@ using Box2D.NET;
 using Stride.CommunityToolkit.Box2D.Events;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using static Box2D.NET.B2Joints;
 using static Box2D.NET.B2Worlds;
 
 namespace Stride.CommunityToolkit.Box2D;
@@ -92,6 +93,39 @@ public sealed class Box2DSimulation : IDisposable
     {
         _world = new PhysicsWorld2D(settings);
         _bridge = new Box2DStrideBridge(_world);
+        Joints = new SimulationJoints2D(_world, _bridge);
+    }
+
+    /// <summary>
+    /// Joint factories with world-space anchors, for body ids or the entities this simulation
+    /// created bodies for. See <see cref="Joints2D"/> for the joint types and their options.
+    /// </summary>
+    public SimulationJoints2D Joints { get; }
+
+    /// <summary>
+    /// A radial blast: every shape within <paramref name="radius"/> of <paramref name="position"/>
+    /// receives an impulse away from it.
+    /// </summary>
+    /// <param name="position">World-space centre of the blast.</param>
+    /// <param name="radius">Full-strength radius, in metres.</param>
+    /// <param name="impulsePerLength">
+    /// Impulse per metre of shape perimeter facing the blast, in newton-seconds per metre. A broad
+    /// flat body therefore takes more than a small round one of the same mass, which is what makes
+    /// the effect read as a pressure wave rather than a point kick.
+    /// </param>
+    /// <param name="falloff">Distance beyond the radius over which the impulse fades to nothing, in metres.</param>
+    /// <param name="maskBits">Collision category mask of the shapes affected; everything by default.</param>
+    public void Explode(Vector2 position, float radius, float impulsePerLength, float falloff = 0f, ulong maskBits = ulong.MaxValue)
+    {
+        var def = b2DefaultExplosionDef();
+
+        def.position = new B2Vec2(position.X, position.Y);
+        def.radius = radius;
+        def.falloff = falloff;
+        def.impulsePerLength = impulsePerLength;
+        def.maskBits = maskBits;
+
+        b2World_Explode(_world.WorldId, def);
     }
 
     /// <summary>Creates a dynamic body associated with the given entity at a world position.</summary>
@@ -266,6 +300,39 @@ public sealed class Box2DSimulation : IDisposable
     /// <returns>List of body ids (no duplicates).</returns>
     public List<B2BodyId> OverlapCircle(Vector2 center, float radius)
         => PhysicsQueries2D.OverlapCircle(_world.WorldId, center, radius);
+
+    /// <summary>
+    /// Overlaps a circle and returns all bodies within it whose shapes pass <paramref name="filter"/>.
+    /// </summary>
+    /// <param name="center">World-space circle center.</param>
+    /// <param name="radius">Circle radius.</param>
+    /// <param name="filter">Category and mask bits the overlapped shapes must satisfy.</param>
+    /// <returns>List of body ids (no duplicates).</returns>
+    public List<B2BodyId> OverlapCircle(Vector2 center, float radius, B2QueryFilter filter)
+        => PhysicsQueries2D.OverlapCircle(_world.WorldId, center, radius, filter);
+
+    /// <summary>
+    /// Sweeps a circle (or a point, when <paramref name="radius"/> is zero) along <paramref name="translation"/>
+    /// and returns the closest thing it strikes.
+    /// </summary>
+    /// <param name="center">World-space centre of the circle at the start of the sweep.</param>
+    /// <param name="radius">Circle radius; zero casts a point.</param>
+    /// <param name="translation">The sweep, as a world-space displacement.</param>
+    /// <param name="filter">Category and mask bits the struck shapes must satisfy.</param>
+    /// <returns>The closest hit, or null when the sweep is clear.</returns>
+    public ShapeCastHit? CastCircleClosest(Vector2 center, float radius, Vector2 translation, B2QueryFilter filter)
+        => PhysicsQueries2D.CastCircleClosest(_world.WorldId, center, radius, translation, filter);
+
+    /// <summary>
+    /// Sweeps a line segment along <paramref name="translation"/> and returns the closest thing it strikes.
+    /// </summary>
+    /// <param name="a">One end of the segment at the start of the sweep, in world space.</param>
+    /// <param name="b">The other end.</param>
+    /// <param name="translation">The sweep, as a world-space displacement.</param>
+    /// <param name="filter">Category and mask bits the struck shapes must satisfy.</param>
+    /// <returns>The closest hit, or null when the sweep is clear.</returns>
+    public ShapeCastHit? CastSegmentClosest(Vector2 a, Vector2 b, Vector2 translation, B2QueryFilter filter)
+        => PhysicsQueries2D.CastSegmentClosest(_world.WorldId, a, b, translation, filter);
 
     /// <summary>Disposes underlying world resources.</summary>
     public void Dispose() => _world.Dispose();
