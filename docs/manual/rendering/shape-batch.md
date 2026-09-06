@@ -164,10 +164,18 @@ transform, so a thing can be a shape without a model, and it appears in Game Stu
 ## Two scars worth knowing about
 
 **The blend state.** For a week every glow looked harsh and a fill's alpha seemed to be ignored.
-The shader produces straight alpha - the testbed's convention - and the render feature was blending
+The shader produced straight alpha - the testbed's convention - and the render feature was blending
 it as if premultiplied. One line (`BlendStates.NonPremultiplied`) softened every glow and made
-opacity mean opacity, across every example at once. If a fade "does nothing", check the blend
-before the shader.
+opacity mean opacity, across every example at once. The shader has since moved to premultiplied
+compositing, the convention every Stride batch uses: layers add without a division, the alpha left
+in a render target is right, and an additive glow (`Glow.Additive`) is just a glow with no alpha.
+The lesson stands either way: if a fade "does nothing", check the blend before the shader.
+
+**Colour space.** The palette is sRGB bytes and Stride's backbuffer is sRGB, so the shader decodes
+each colour to linear light - with the real sRGB curve, not `pow 2.2`, which crushed every dark
+value - and only when the device says the target is linear. A gamma pipeline gets the bytes as they
+are. Compositing happens in that linear light, the same space the hardware blends the shape into
+the scene, so a border over a fill and a shape over the world are the same kind of mix.
 
 **Colours are integers.** A colour packed as four bytes into a `float` can form a NaN bit pattern
 (alpha 255 with blue over 127 does it), and GPUs canonicalise NaNs on read, destroying the red
