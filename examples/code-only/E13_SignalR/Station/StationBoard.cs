@@ -318,4 +318,4 @@ public sealed class StationBoard
 
         return new Vector2(first + index * (ButtonSize.X + ButtonGap), TopRow);
     }
-}
+}

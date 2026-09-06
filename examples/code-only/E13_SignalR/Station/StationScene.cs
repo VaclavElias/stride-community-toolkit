@@ -287,4 +287,4 @@ public sealed class StationScene(Game game)
     }
 
     private readonly record struct Star(Vector3 Direction, float Size, Color Tint, byte Alpha, float Speed, float Phase);
-}
+}

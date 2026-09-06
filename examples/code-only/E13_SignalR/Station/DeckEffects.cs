@@ -244,4 +244,4 @@ public sealed class DeckEffects
 
         public float Age { get; set; }
     }
-}
+}
