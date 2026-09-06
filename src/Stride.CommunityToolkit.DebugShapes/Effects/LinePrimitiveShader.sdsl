@@ -1,8 +1,13 @@
 namespace Stride.CommunityToolkit.DebugShapes
 {
-    internal shader LinePrimitiveShader : ShaderBase, ColorBase {
+    internal shader LinePrimitiveShader : ShaderBase, ColorBase, ColorUtility {
 
         float4x4 ViewProjection;
+
+        // 1 when the target is linear - Stride's default, an sRGB backbuffer that re-encodes on the
+        // way out - so the vertex colours, sRGB bytes, are decoded here; 0 for a gamma pipeline
+        stage uint LinearOutput;
+
         stream float3 Position : POSITION;
 
         override stage void VSMain() {
@@ -10,7 +15,7 @@ namespace Stride.CommunityToolkit.DebugShapes
         }
 
         override stage void PSMain() {
-            streams.ColorTarget = streams.Color;
+            streams.ColorTarget = LinearOutput != 0 ? ToLinear(streams.Color) : streams.Color;
         }
     };
-}
+}
