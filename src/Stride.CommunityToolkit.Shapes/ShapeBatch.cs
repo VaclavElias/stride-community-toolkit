@@ -1,5 +1,6 @@
 using Stride.Core.Mathematics;
 using Stride.Rendering;
+using System.Runtime.InteropServices;
 
 namespace Stride.CommunityToolkit.Shapes;
 
@@ -29,6 +30,19 @@ namespace Stride.CommunityToolkit.Shapes;
 public sealed class ShapeBatch : RenderObject
 {
     internal readonly List<ShapeInstance> Instances = [];
+
+    // Every submitted shape's points, one run after another, each already in its shape's
+    // normalized space; an instance says where its run starts
+    internal readonly List<Vector2> Points = [];
+
+    // A polyline longer than this is split into runs that share an end point. The pixel stage
+    // tests every segment of a run for every fragment of its quad, so the cap bounds the cost of a
+    // very long run; where two runs meet, the shared round cap is drawn twice, which shows only
+    // under an opacity below one.
+    private const int PolylineRunLength = 64;
+
+    // Scratch for closing a polyline, so a long run costs no allocation per frame
+    private readonly List<Vector2> _run = [];
 
     /// <summary>
     /// How many shapes have been submitted so far this frame. Resets to zero once the batch is
@@ -355,6 +369,52 @@ public sealed class ShapeBatch : RenderObject
     }
 
     /// <summary>
+    /// Submits a run of points as one stroke of a world-space width, with round joins and caps - a
+    /// plotted curve, a path, the outline of any shape including a concave one.
+    /// </summary>
+    /// <param name="points">The run, in the plane's own coordinates, of any length.</param>
+    /// <param name="position">World position of the plane's origin.</param>
+    /// <param name="axisX">The plane's X axis. Normalized for you.</param>
+    /// <param name="axisY">The plane's Y axis. Normalized for you.</param>
+    /// <param name="width">Stroke width in world units.</param>
+    /// <param name="color">The stroke colour. Drawn solid, ignoring <see cref="ShapeFill.Alpha"/>.</param>
+    /// <param name="closed">Whether the last point joins back to the first.</param>
+    /// <remarks>
+    /// Joins are round: the stroke is everything within half the width of the run itself, drawn as
+    /// one shape. Only a run of more than 64 points is split, into pieces that share a point; where
+    /// two pieces meet the round cap is drawn twice, which shows only under an <see cref="Opacity"/>
+    /// below one, as a slightly brighter dot. <see cref="Dash"/> runs along the whole run.
+    /// </remarks>
+    public void DrawPolyline(ReadOnlySpan<Vector2> points, Vector3 position, Vector3 axisX, Vector3 axisY, float width, Color color, bool closed = false)
+        => AddPolyline(points, new ShapePlane(position, Vector3.Normalize(axisX), Vector3.Normalize(axisY), PlaneMode.Fixed), SolidStyle(color), MathF.Max(width, 0.0001f) * 0.5f, closed);
+
+    /// <summary>
+    /// The 2D case of <see cref="DrawPolyline(ReadOnlySpan{Vector2}, Vector3, Vector3, Vector3, float, Color, bool)"/>: a stroke in the XY plane.
+    /// </summary>
+    public void DrawPolyline(ReadOnlySpan<Vector2> points, float width, Color color, bool closed = false)
+        => DrawPolyline(points, Vector3.Zero, Vector3.UnitX, Vector3.UnitY, width, color, closed);
+
+    /// <summary>
+    /// Submits a run of points as one stroke a constant number of pixels wide at any distance, with
+    /// round joins and caps - the <see cref="DrawPixelLine"/> of curves and frames.
+    /// </summary>
+    /// <param name="points">The run, in the plane's own coordinates, of any length.</param>
+    /// <param name="position">World position of the plane's origin.</param>
+    /// <param name="axisX">The plane's X axis. Normalized for you.</param>
+    /// <param name="axisY">The plane's Y axis. Normalized for you.</param>
+    /// <param name="pixelWidth">Stroke width in pixels on a 100% display.</param>
+    /// <param name="color">The stroke colour.</param>
+    /// <param name="closed">Whether the last point joins back to the first.</param>
+    public void DrawPixelPolyline(ReadOnlySpan<Vector2> points, Vector3 position, Vector3 axisX, Vector3 axisY, float pixelWidth, Color color, bool closed = false)
+        => AddPolyline(points, new ShapePlane(position, Vector3.Normalize(axisX), Vector3.Normalize(axisY), PlaneMode.Fixed), OutlineStyle(color, pixelWidth), 0f, closed);
+
+    /// <summary>
+    /// The 2D case of <see cref="DrawPixelPolyline(ReadOnlySpan{Vector2}, Vector3, Vector3, Vector3, float, Color, bool)"/>: a stroke in the XY plane.
+    /// </summary>
+    public void DrawPixelPolyline(ReadOnlySpan<Vector2> points, float pixelWidth, Color color, bool closed = false)
+        => DrawPixelPolyline(points, Vector3.Zero, Vector3.UnitX, Vector3.UnitY, pixelWidth, color, closed);
+
+    /// <summary>
     /// Submits a thick line between two points in 3D: a capsule swung about its own axis to face
     /// the camera, so it reads as a round-capped line of the width you ask for from any angle.
     /// </summary>
@@ -457,7 +517,11 @@ public sealed class ShapeBatch : RenderObject
     }
 
     /// <summary>Called by the render feature once the batch is drawn; the next frame starts empty.</summary>
-    internal void Reset() => Instances.Clear();
+    internal void Reset()
+    {
+        Instances.Clear();
+        Points.Clear();
+    }
 
     /// <summary>A stroke with no area: a hollow band of zero depth, which is what a ring or an arc is.</summary>
     private static readonly ShapeSlice Stroke = new(Hollow: true, RingWidth: 0f, StartAngle: 0f, SweepAngle: 0f, RoundCaps: false);
@@ -566,29 +630,72 @@ public sealed class ShapeBatch : RenderObject
         return new ShapePlane(center, axisX, axisY, PlaneMode.Fixed);
     }
 
+    /// <summary>
+    /// Submits a run as one stroke, or as a few runs sharing their end points when it is very
+    /// long, each carrying the arc length at which it starts so a dash pattern continues across them.
+    /// </summary>
+    private void AddPolyline(ReadOnlySpan<Vector2> points, in ShapePlane plane, in ShapeStyle style, float radius, bool closed)
+    {
+        if (points.Length < 2) return;
+
+        _run.Clear();
+
+        foreach (var point in points) _run.Add(point);
+
+        if (closed) _run.Add(points[0]);
+
+        var run = CollectionsMarshal.AsSpan(_run);
+        var offset = 0f;
+
+        for (var start = 0; start + 1 < run.Length; start += PolylineRunLength - 1)
+        {
+            var piece = run.Slice(start, Math.Min(PolylineRunLength, run.Length - start));
+
+            Add(piece, plane, style, ShapeSlice.Whole with { Polyline = true, RunOffset = offset }, radius, 1f);
+
+            for (var i = 0; i + 1 < piece.Length; i++) offset += Vector2.Distance(piece[i], piece[i + 1]);
+        }
+    }
+
+    /// <summary>
+    /// Records one shape: its points shifted and scaled into the 2x2 quad the shader draws, so
+    /// the pixel stage reads them ready to use, and the record that says where they are.
+    /// </summary>
     private void Add(ReadOnlySpan<Vector2> vertices, in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, float radius, float scale)
     {
-        if (vertices.Length < 1 || vertices.Length > 8)
-            throw new ArgumentException("A shape needs between 1 and 8 vertices.", nameof(vertices));
+        if (vertices.Length < 1)
+            throw new ArgumentException("A shape needs at least one vertex.", nameof(vertices));
 
-        Span<Vector4> packed = stackalloc Vector4[4];
+        // A pixel-measured radius is converted to world units on the GPU, at the shape's own
+        // depth, and the scale with it - which only works out when there is nothing else to scale
+        if (slice.PixelRadius && vertices.Length != 1)
+            throw new ArgumentException("A shape with a pixel-measured radius is a single point.", nameof(vertices));
+
+        var lower = vertices[0];
+        var upper = vertices[0];
+
+        for (var i = 1; i < vertices.Length; i++)
+        {
+            lower = Vector2.Min(lower, vertices[i]);
+            upper = Vector2.Max(upper, vertices[i]);
+        }
+
+        var center = (lower + upper) * 0.5f;
+        var extent = upper - lower;
+
+        // The radius reaches beyond the furthest point either way, so radius plus half the widest
+        // extent is the half-size of the square that holds the outline; the border and glow
+        // get their room from the vertex stage's margin
+        var localScale = radius + 0.5f * MathF.Max(extent.X, extent.Y);
+        var invScale = 1f / MathF.Max(localScale, 0.000001f);
+
+        var offset = Points.Count;
 
         for (var i = 0; i < vertices.Length; i++)
         {
-            ref var slot = ref packed[i / 2];
-
-            if (i % 2 == 0)
-            {
-                slot.X = vertices[i].X;
-                slot.Y = vertices[i].Y;
-            }
-            else
-            {
-                slot.Z = vertices[i].X;
-                slot.W = vertices[i].Y;
-            }
+            Points.Add(invScale * (vertices[i] - center));
         }
 
-        Instances.Add(new ShapeInstance(plane, style, slice, packed, vertices.Length, radius, scale));
+        Instances.Add(new ShapeInstance(plane, style, slice, center, localScale, offset, vertices.Length, radius, scale));
     }
 }

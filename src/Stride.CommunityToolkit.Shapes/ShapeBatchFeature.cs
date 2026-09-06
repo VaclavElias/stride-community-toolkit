@@ -19,6 +19,7 @@ public class ShapeBatchFeature : RootRenderFeature
     private MutablePipelineState? _pipelineState;
     private Buffer? _quadBuffer;
     private Buffer? _instanceBuffer;
+    private Buffer? _pointBuffer;
     private VertexDeclaration? _vertexDeclaration;
     private DisplayScale? _displayScale;
 
@@ -53,6 +54,7 @@ public class ShapeBatchFeature : RootRenderFeature
         });
 
         _instanceBuffer = Buffer.Structured.New<ShapeInstance>(Context.GraphicsDevice, 1);
+        _pointBuffer = Buffer.Structured.New<Vector2>(Context.GraphicsDevice, 1);
 
         _pipelineState = new MutablePipelineState(Context.GraphicsDevice);
         _pipelineState.State.SetDefaults();
@@ -93,7 +95,8 @@ public class ShapeBatchFeature : RootRenderFeature
 
             if (instances.IsEmpty) continue;
 
-            UploadInstances(context, instances);
+            Upload(context, ref _instanceBuffer!, instances);
+            Upload(context, ref _pointBuffer!, CollectionsMarshal.AsSpan(batch.Points));
 
             // A display at 150% has 1.5 physical pixels where a 100% one has one, so the same width
             // in "pixels" needs 1.5 of them: fewer pixels per world unit, as the shader sees it, is
@@ -107,6 +110,7 @@ public class ShapeBatchFeature : RootRenderFeature
             _effect.Parameters.Set(ShapeShaderKeys.CameraUp, cameraUp);
             _effect.Parameters.Set(ShapeShaderKeys.EyePosition, eyePosition);
             _effect.Parameters.Set(ShapeShaderKeys.Shapes, _instanceBuffer);
+            _effect.Parameters.Set(ShapeDistanceKeys.Points, _pointBuffer);
 
             // Tested but never written: shapes are transparent, so writing depth would let one
             // shape reject another that should blend over it
@@ -128,17 +132,21 @@ public class ShapeBatchFeature : RootRenderFeature
         }
     }
 
-    private void UploadInstances(RenderDrawContext context, ReadOnlySpan<ShapeInstance> instances)
+    // Default usage and a whole-buffer update: the one contiguous upload per frame that every
+    // backend takes on its fast path. Grown by powers of two, never shrunk.
+    private static void Upload<T>(RenderDrawContext context, ref Buffer buffer, ReadOnlySpan<T> data) where T : unmanaged
     {
-        if (instances.Length > _instanceBuffer!.ElementCount)
-        {
-            _instanceBuffer.Dispose();
+        if (data.IsEmpty) return;
 
-            var capacity = (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)Math.Max(instances.Length, 64));
-            _instanceBuffer = Buffer.Structured.New<ShapeInstance>(context.GraphicsDevice, capacity);
+        if (data.Length > buffer.ElementCount)
+        {
+            buffer.Dispose();
+
+            var capacity = (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)Math.Max(data.Length, 64));
+            buffer = Buffer.Structured.New<T>(context.GraphicsDevice, capacity);
         }
 
-        _instanceBuffer.SetData(context.CommandList, instances);
+        buffer.SetData(context.CommandList, data);
     }
 
     /// <inheritdoc/>
@@ -147,6 +155,7 @@ public class ShapeBatchFeature : RootRenderFeature
         _effect?.Dispose();
         _quadBuffer?.Dispose();
         _instanceBuffer?.Dispose();
+        _pointBuffer?.Dispose();
 
         base.Unload();
     }

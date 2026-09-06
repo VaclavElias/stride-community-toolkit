@@ -8,11 +8,19 @@ namespace Stride.CommunityToolkit.Shapes;
 /// field order is the wire format, so do not reorder it without changing ShapeShader.sdsl to match.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Laid out in 16-byte groups, each a <see cref="Vector4"/>, four 4-byte values or one of the named
 /// groups below, which is the alignment structured buffers want and what keeps the shader's reads
 /// simple. Where a group has a spare slot it carries a related scalar - the plane axes carry the
 /// border width and fill alpha, the slice the glow width, the gradient the opacity - rather than
 /// padding.
+/// </para>
+/// <para>
+/// The points are not here. They live in the batch's point buffer, already shifted by
+/// <see cref="Center"/> and divided by <see cref="LocalScale"/> into the shape's normalized space,
+/// and the record says where its run starts and how long it is - so a shape has as many points as
+/// it needs, and the pixel stage reads them straight from the buffer.
+/// </para>
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 internal readonly struct ShapeInstance
@@ -29,16 +37,24 @@ internal readonly struct ShapeInstance
     /// <summary>xyz: the plane's Y axis; w: fill alpha.</summary>
     public readonly Vector4 AxisY;
 
-    // Geometry: up to eight corners, and the rounding around them
+    /// <summary>Centre of the points' bounding box, in the plane's local units: what the points were shifted by.</summary>
+    public readonly Vector2 Center;
 
-    public readonly Vector4 Points12;
-    public readonly Vector4 Points34;
-    public readonly Vector4 Points56;
-    public readonly Vector4 Points78;
+    /// <summary>The rounding radius plus half the widest extent: what the shifted points were divided by.</summary>
+    public readonly float LocalScale;
 
-    public readonly int Count;
-    public readonly float Radius;
+    /// <summary>A uniform scale on the world footprint.</summary>
     public readonly float Scale;
+
+    /// <summary>Where the shape's points start in the batch's point buffer.</summary>
+    public readonly int PointOffset;
+
+    /// <summary>How many points the shape has.</summary>
+    public readonly int Count;
+
+    /// <summary>The rounding radius, in world units, or in pixels when the slice says so.</summary>
+    public readonly float Radius;
+
     public readonly int Flags;
 
     public readonly Color Color;
@@ -53,25 +69,24 @@ internal readonly struct ShapeInstance
     private readonly DashData _dash;
     private readonly GradientData _gradient;
 
-    internal ShapeInstance(in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, ReadOnlySpan<Vector4> packedPoints, int count, float radius, float scale)
+    internal ShapeInstance(in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, Vector2 center, float localScale, int pointOffset, int count, float radius, float scale)
     {
         Position = new Vector4(plane.Origin, (float)plane.Mode);
         AxisX = new Vector4(plane.AxisX, style.BorderWidth);
         AxisY = new Vector4(plane.AxisY, style.FillAlpha);
-        Points12 = packedPoints[0];
-        Points34 = packedPoints[1];
-        Points56 = packedPoints[2];
-        Points78 = packedPoints[3];
+        Center = center;
+        LocalScale = localScale;
+        Scale = scale;
+        PointOffset = pointOffset;
         Count = count;
         Radius = radius;
-        Scale = scale;
         Flags = slice.Flags | (style.Gradient.Enabled ? GradientFlag : 0);
         Color = style.Color;
         FillColor = style.FillColor;
         GlowColor = style.GlowColor;
         GradientColor = style.Gradient.Color;
         _slice = new SliceData(slice.RingWidth, slice.StartAngle, slice.SweepAngle, style.GlowWidth);
-        _dash = new DashData(style.Dash.Length, style.Dash.Gap, style.Dash.Phase);
+        _dash = new DashData(style.Dash.Length, style.Dash.Gap, style.Dash.Phase, slice.RunOffset);
         _gradient = new GradientData(style.Gradient.Direction, style.Opacity);
     }
 
@@ -113,14 +128,15 @@ internal readonly struct ShapeInstance
         /// <summary>Where the pattern starts.</summary>
         public readonly float Phase;
 
-        private readonly float _pad;
+        /// <summary>For a polyline, the arc length along the whole run at its first point, in world units.</summary>
+        public readonly float RunOffset;
 
-        internal DashData(float length, float gap, float phase)
+        internal DashData(float length, float gap, float phase, float runOffset)
         {
             Length = length;
             Gap = gap;
             Phase = phase;
-            _pad = 0f;
+            RunOffset = runOffset;
         }
     }
 

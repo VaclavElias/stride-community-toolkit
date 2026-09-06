@@ -1,0 +1,198 @@
+namespace Stride.CommunityToolkit.Shapes
+{
+    // The distance functions behind ShapeShader: signed distances in the shape's normalized local
+    // space, negative inside, for a convex polygon, a polyline, the wedge of an angular cut and the
+    // gaps of a dash pattern. A shape's points live in one buffer shared by every shape of the
+    // draw, addressed by where the shape's run starts and how many points it has, so a shape can
+    // have any number of them. No streams, no stages - the functions compose into any shader, and
+    // are callable qualified (ShapeDistance.SdPolyline) without inheriting the class.
+    internal shader ShapeDistance : Math
+    {
+        rgroup PerDraw.ShapePoints
+        {
+            // Every shape's points, already shifted and scaled into its own normalized space
+            stage StructuredBuffer<float2> Points;
+        }
+
+        float Cross2d(float2 v1, float2 v2)
+        {
+            return v1.x * v2.y - v1.y * v2.x;
+        }
+
+        // Signed distance to the nearest gap in the dash pattern, measured along the outline and
+        // returned in local units, negative inside a dash. Around a circle the coordinate is the
+        // angle from the shape's start direction times the stroke's centreline radius; along a line
+        // it is the projection onto the segment. The pattern is fitted so a whole number of periods
+        // fills a circle or arc, so a tick ring never ends in a stub.
+        //
+        // localPerPixel: local units per screen pixel at this fragment; pattern: dash and gap
+        // lengths and the phase, all in pixels; startDirection: the cut's first edge direction, or
+        // +X when there is no cut. Along a polyline the coordinate is the arc length to the nearest
+        // point of the run, plus runOffset - where this run starts along a longer one - so the
+        // pattern continues across the pieces of a very long run.
+        float SdDashes(float2 p, uint offset, int count, bool hollow, bool cut, float radius, float ringWidth, float sweep, float localPerPixel, float3 pattern, float2 startDirection, bool polyline, float runOffset)
+        {
+            float dash = pattern.x;
+            float gap = pattern.y;
+            float period = dash + gap;
+
+            float along;
+
+            if (polyline)
+            {
+                along = PolylineAlong(p, offset, count) + runOffset;
+            }
+            else if (count == 1)
+            {
+                float centreline = hollow ? radius - 0.5 * ringWidth : radius;
+                float startAngle = atan2(startDirection.y, startDirection.x);
+                float angle = atan2(p.y, p.x) - startAngle;
+
+                angle -= 2.0 * PI * floor(angle / (2.0 * PI));
+                along = angle * centreline;
+
+                // Fit: stretch or squeeze the period so the turn holds a whole number of them
+                float turnPixels = (cut ? sweep : 2.0 * PI) * centreline / localPerPixel;
+                float periods = max(1.0, round(turnPixels / period));
+                float fitted = turnPixels / periods;
+
+                dash *= fitted / period;
+                period = fitted;
+            }
+            else
+            {
+                float2 direction = Points[offset + 1] - Points[offset];
+                float segment = length(direction);
+
+                along = segment > 0.0 ? dot(p - Points[offset], direction / segment) : 0.0;
+            }
+
+            float u = along / localPerPixel + pattern.z;
+
+            u -= period * floor(u / period);
+
+            // Inside a dash the nearest edge is the closer of its two ends; in a gap likewise
+            float d = u < dash ? min(u, dash - u) : -min(u - dash, period - u);
+
+            return -d * localPerPixel;
+        }
+
+        // Distance to a run of points - the nearest of its segments. A stroke of some radius around
+        // it is then the run itself with round joins and round caps, with no geometry for either.
+        float SdPolyline(float2 p, uint offset, int count)
+        {
+            float2 previous = Points[offset];
+            float d = dot(p - previous, p - previous);
+
+            for (int i = 1; i < count; ++i)
+            {
+                float2 current = Points[offset + i];
+                float2 e = current - previous;
+                float2 w = p - previous;
+                float2 b = w - e * clamp(dot(w, e) / max(dot(e, e), 0.000001), 0.0, 1.0);
+
+                d = min(d, dot(b, b));
+                previous = current;
+            }
+
+            return sqrt(d);
+        }
+
+        // Arc length along the run to the point of it nearest p: the segments before the nearest
+        // one in full, plus the projection onto it. What a dash pattern runs along.
+        float PolylineAlong(float2 p, uint offset, int count)
+        {
+            float best = 1e30;
+            float along = 0.0;
+            float travelled = 0.0;
+            float2 previous = Points[offset];
+
+            for (int i = 1; i < count; ++i)
+            {
+                float2 current = Points[offset + i];
+                float2 e = current - previous;
+                float2 w = p - previous;
+                float ee = max(dot(e, e), 0.000001);
+                float t = clamp(dot(w, e) / ee, 0.0, 1.0);
+                float2 b = w - e * t;
+                float bb = dot(b, b);
+                float segment = sqrt(ee);
+
+                if (bb < best)
+                {
+                    best = bb;
+                    along = travelled + t * segment;
+                }
+
+                travelled += segment;
+                previous = current;
+            }
+
+            return along;
+        }
+
+        // Signed distance to the wedge between two edge directions from the origin, sweeping
+        // counter-clockwise from the first to the second; negative inside. Exact along the edges
+        // and inside; outside a corner it is the Chebyshev distance, which keeps the corner sharp.
+        float SdWedge(float2 p, float4 edges, float sweep)
+        {
+            float2 u1 = edges.xy;
+            float2 u2 = edges.zw;
+
+            // Which side of each edge the point lies on, with the sign chosen so that positive
+            // means "on the wedge's side". Past a half turn the wedge is the complement of the
+            // narrow one between the same edges, and the test flips with it.
+            float c1 = Cross2d(u1, p);
+            float c2 = Cross2d(p, u2);
+            bool inside = sweep <= PI ? (c1 >= 0.0 && c2 >= 0.0) : (c1 > 0.0 || c2 > 0.0);
+
+            // Distance to each edge as a ray: perpendicular while alongside it, to the origin behind it
+            float d1 = dot(p, u1) > 0.0 ? abs(c1) : length(p);
+            float d2 = dot(p, u2) > 0.0 ? abs(c2) : length(p);
+
+            return (inside ? -1.0 : 1.0) * min(d1, d2);
+        }
+
+        // Signed distance function for a convex polygon; relies on CCW winding of the points
+        float SdConvexPolygon(float2 p, uint offset, int count)
+        {
+            float2 first = Points[offset];
+
+            // Initial squared distance
+            float d = dot(p - first, p - first);
+
+            // Consider query point inside to start
+            float side = -1.0;
+            float2 previous = Points[offset + count - 1];
+
+            for (int i = 0; i < count; ++i)
+            {
+                float2 current = Points[offset + i];
+
+                // Distance to a polygon edge
+                float2 e = current - previous;
+                float2 w = p - previous;
+                float we = dot(w, e);
+                float2 b = w - e * clamp(we / dot(e, e), 0.0, 1.0);
+                float bb = dot(b, b);
+
+                // Track smallest distance
+                if (bb < d)
+                {
+                    d = bb;
+                }
+
+                // If the query point is outside any edge then it is outside the entire polygon
+                float s = Cross2d(w, e);
+                if (s >= 0.0)
+                {
+                    side = 1.0;
+                }
+
+                previous = current;
+            }
+
+            return side * sqrt(d);
+        }
+    };
+}

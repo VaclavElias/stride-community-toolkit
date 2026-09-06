@@ -1,14 +1,19 @@
 namespace Stride.CommunityToolkit.Shapes
 {
-    // Convex shapes drawn as instanced quads, with the outline a constant number of PIXELS wide
-    // whatever the zoom, distance or window size, because it is measured per fragment from a signed
+    // Shapes drawn as instanced quads, with the outline a constant number of PIXELS wide whatever
+    // the zoom, distance or window size, because it is measured per fragment from a signed
     // distance function rather than built as geometry.
     //
     // Derived from the Box2D testbed's solid_polygon.vs/fs (Erin Catto, MIT), extended here with an
     // arbitrary 3D plane per shape, billboarding, per-shape border width and fill, a thickness term
     // that stays correct under a perspective projection, hollow bands and angular cuts (annuli,
-    // sectors, arcs), an outer glow, dashes, a fill gradient and an opacity.
-    internal shader ShapeShader : ShaderBase
+    // sectors, arcs), an outer glow, dashes, a fill gradient, an opacity, and polyline strokes.
+    //
+    // The vertex stage only places the quad. Everything else is read straight from the shape's
+    // record in the pixel stage: the record is one buffer read per fragment, coherent across the
+    // quad, where fifteen interpolated registers used to carry the same values and left no room
+    // for another. The points sit in a second buffer, so a shape has as many as it needs.
+    internal shader ShapeShader : ShaderBase, ShapeDistance, ShapeColor
     {
         struct ShapeData
         {
@@ -19,18 +24,22 @@ namespace Stride.CommunityToolkit.Shapes
             float4 AxisX;
             // xyz: the plane's Y axis, unit length; w: fill alpha, 0 for an unfilled outline
             float4 AxisY;
-            float4 Points12;
-            float4 Points34;
-            float4 Points56;
-            float4 Points78;
-            // Geometry: corner count, rounding radius, uniform scale, and the flags:
-            // 1: Hollow - only the band Slice.x deep inside the outline is the shape
-            // 2: RoundCaps - the angular cut ends in semicircles rather than radial edges (circles only)
-            // 4: Gradient - the fill runs from FillColor to GradientColor along Gradient.xy
-            // 8: PixelRadius - Radius and Slice.x are pixels on screen, converted at the shape's depth
-            int Count;
-            float Radius;
+            // The shape's own normalized space: its points were shifted by Center and divided by
+            // LocalScale - the rounding radius plus half the widest extent - so they fit a 2x2
+            // quad with the outline just inside it. Scale multiplies the world footprint only.
+            float2 Center;
+            float LocalScale;
             float Scale;
+            // Where the shape's points start in the point buffer, and how many there are
+            uint PointOffset;
+            int Count;
+            // The rounding radius, in world units - or in pixels on screen, when the flag says so
+            float Radius;
+            // 1:  Hollow - only the band Slice.x deep inside the outline is the shape
+            // 2:  RoundCaps - the angular cut ends in semicircles rather than radial edges (circles only)
+            // 4:  Gradient - the fill runs from FillColor to GradientColor along Gradient.xy
+            // 8:  PixelRadius - Radius, Slice.x and LocalScale are pixels on screen, converted at the shape's depth
+            // 16: Polyline - the points are a run to stroke, not a convex polygon
             int Flags;
             // Colours as uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit
             // pattern, and GPUs canonicalize NaNs on float reads, destroying the red channel.
@@ -47,175 +56,79 @@ namespace Stride.CommunityToolkit.Shapes
             // w: outer glow width in pixels, 0 for none
             float4 Slice;
             // Dash pattern along the outline, in pixels: x length (0 for solid), y gap, z phase.
-            // Circles, arcs and two-point lines only.
+            // Circles, arcs, two-point lines and polylines. w: for a polyline, the arc length along
+            // the whole run at its first point, in world units, so the pattern continues.
             float4 Dash;
             // xy: the direction the fill's gradient runs in, in the plane's local axes
             // z: opacity, a multiplier on every alpha the shape produces
             float4 Gradient;
         };
 
-        float4x4 ViewProjection;
+        cbuffer PerView
+        {
+            stage float4x4 ViewProjection;
 
-        // Pixels per world unit at clip w = 1. Under an orthographic projection w is always 1, so
-        // this alone fixes the on-screen size; under perspective the per-fragment w scales it.
-        float PixelScale;
+            // Pixels per world unit at clip w = 1. Under an orthographic projection w is always 1,
+            // so this alone fixes the on-screen size; under perspective the per-fragment w scales it.
+            stage float PixelScale;
 
-        // Camera basis for billboarded shapes
-        float3 CameraRight;
-        float3 CameraUp;
-        float3 EyePosition;
+            // Camera basis for billboarded shapes
+            stage float3 CameraRight;
+            stage float3 CameraUp;
+            stage float3 EyePosition;
+        }
 
-        StructuredBuffer<ShapeData> Shapes;
+        rgroup PerDraw.Shapes
+        {
+            stage StructuredBuffer<ShapeData> Shapes;
+        }
 
         stream float2 LocalPosition : POSITION;
 
-        // The vertex-to-pixel streams, packed four to a register by hand: D3D's vertex stage has
-        // sixteen output registers, and with the position this uses all of them. A new per-shape
-        // value goes into a spare slot below, not into a new stream.
-
-        // xy: position in the shape's normalized local space; z: flags; w: local units per pixel at clip w = 1
+        // xy: position in the shape's normalized local space; z: clip w; w: local units per pixel
+        // at clip w = 1
         stream float4 FragPosition;
-        stream float4 FragColor;
-        stream float4 FragPoints12;
-        stream float4 FragPoints34;
-        stream float4 FragPoints56;
-        stream float4 FragPoints78;
-        stream float4 FragFillColor;
-        // x: corner count, y: rounding radius, z: border thickness in local units, w: fill alpha
-        stream float4 FragShape;
-        // x: clip w, y: band depth in local units, z: cut sweep (0 for none), w: glow width in local units
-        stream float4 FragBand;
-        // xy: unit direction of the cut's start edge, zw: of its end edge
-        stream float4 FragWedge;
-        // xy: cos and sin of the rotation that puts the arc's middle on +Y, zw: sin and cos of half the sweep
-        stream float4 FragArc;
-        stream float4 FragGlowColor;
-        // xyz: dash length, gap and phase in pixels, x = 0 for solid; w: opacity
-        stream float4 FragDash;
-        // xy: unit gradient direction in normalized local space; zw: the shape's extent along it
-        stream float4 FragGradient;
-        stream float4 FragGradientColor;
+
+        // Lengths in the normalized local space, before the perspective term: x rounding radius,
+        // y band depth (or, for a polyline, where it starts along its run), z border thickness,
+        // w glow width
+        stream float4 FragScale;
+
+        // Which record the fragment belongs to. Integer streams are flat, so it arrives exact.
+        stream uint ShapeIndex;
 
         override stage void VSMain()
         {
-            ShapeData data = Shapes[streams.InstanceID];
+            uint index = streams.InstanceID;
+            ShapeData data = Shapes[index];
 
-            // A pixel-measured radius: converted to world units at the shape's own depth before anything
-            // else is derived from it, so a marker is the same size on screen at any distance. World
-            // units per pixel at depth w is w / PixelScale, the same relation the border uses.
+            bool polyline = (data.Flags & 16) != 0;
+
+            float radius = data.Radius;
+            float localScale = data.LocalScale;
+            // A polyline has no band; the slot carries where it starts along its run instead
+            float band = polyline ? data.Dash.w : data.Slice.x;
+
+            // A pixel-measured radius: converted to world units at the shape's own depth before
+            // anything else is derived from it, so a marker is the same size on screen at any
+            // distance. World units per pixel at depth w is w / PixelScale, the same relation the
+            // border uses. Such a shape is a single point, so its scale is the radius alone.
             if ((data.Flags & 8) != 0)
             {
                 float originW = mul(float4(data.Position.xyz, 1.0), ViewProjection).w;
                 float pixelToWorld = max(originW, 0.0001) / PixelScale;
 
-                data.Radius *= pixelToWorld;
-                data.Slice.x *= pixelToWorld;
+                radius *= pixelToWorld;
+                band *= pixelToWorld;
+                localScale *= pixelToWorld;
             }
 
-            float2 points[8];
-            points[0] = data.Points12.xy;
-            points[1] = data.Points12.zw;
-            points[2] = data.Points34.xy;
-            points[3] = data.Points34.zw;
-            points[4] = data.Points56.xy;
-            points[5] = data.Points56.zw;
-            points[6] = data.Points78.xy;
-            points[7] = data.Points78.zw;
-
-            int count = data.Count;
-
-            // Compute polygon AABB
-            float2 lower = points[0];
-            float2 upper = points[0];
-            for (int i = 1; i < count; ++i)
-            {
-                lower = min(lower, points[i]);
-                upper = max(upper, points[i]);
-            }
-
-            float2 center = 0.5 * (lower + upper);
-            float2 width = upper - lower;
-            float maxWidth = max(width.x, width.y);
-
-            float localScale = data.Radius + 0.5 * maxWidth;
             float invScale = 1.0 / localScale;
 
-            // Shift and scale polygon points so they fit in a 2x2 quad
-            for (int j = 0; j < count; ++j)
-            {
-                points[j] = invScale * (points[j] - center);
-            }
-
-            streams.FragPoints12 = float4(points[0], points[1]);
-            streams.FragPoints34 = float4(points[2], points[3]);
-            streams.FragPoints56 = float4(points[4], points[5]);
-            streams.FragPoints78 = float4(points[6], points[7]);
-
-            float radius = invScale * data.Radius;
-            float ringWidth = invScale * data.Slice.x;
-
-            streams.FragColor = BitsToColor(data.Color);
-            streams.FragFillColor = BitsToColor(data.FillColor);
-            streams.FragGlowColor = BitsToColor(data.GlowColor);
-            streams.FragGradientColor = BitsToColor(data.GradientColor);
-
-            // The cut's two edge directions, and the arc form of the same cut: rotate so the arc
-            // is symmetric about +Y, then the endpoint is a fixed half-sweep away from it
-            float start = data.Slice.y;
-            float sweep = data.Slice.z;
-            float halfSweep = sweep > 0.0 ? 0.5 * sweep : 3.14159265;
-            float turn = 0.5 * 3.14159265 - (start + halfSweep);
-
-            streams.FragWedge = float4(cos(start), sin(start), cos(start + sweep), sin(start + sweep));
-            streams.FragArc = float4(cos(turn), sin(turn), sin(halfSweep), cos(halfSweep));
-
-            // The gradient spans the shape's own extent along its direction, in the same normalized
-            // space the SDF uses: the furthest corners either way plus the rounding radius - or,
-            // for a cut disc, the furthest points of the wedge itself, so a sector's gradient runs
-            // across the sector and not across the disc it was cut from
-            float2 gradientDirection = data.Gradient.xy;
-            float gradientLength = length(gradientDirection);
-            gradientDirection = gradientLength > 0.000001 ? gradientDirection / gradientLength : float2(0.0, 1.0);
-
-            float gradientLow = 1e9;
-            float gradientHigh = -1e9;
-
-            if (count == 1 && sweep > 0.0)
-            {
-                // The wedge's extremes along the direction are among: the centre, the two ends of
-                // its edges, and the rim wherever the direction itself (or its opposite) lies inside
-                float2 centre = points[0];
-                float atCentre = dot(centre, gradientDirection);
-                float atStart = dot(centre + radius * float2(cos(start), sin(start)), gradientDirection);
-                float atEnd = dot(centre + radius * float2(cos(start + sweep), sin(start + sweep)), gradientDirection);
-
-                gradientLow = min(atCentre, min(atStart, atEnd));
-                gradientHigh = max(atCentre, max(atStart, atEnd));
-
-                float forward = atan2(gradientDirection.y, gradientDirection.x) - start;
-                forward -= 6.28318531 * floor(forward / 6.28318531);
-                if (forward <= sweep) gradientHigh = max(gradientHigh, atCentre + radius);
-
-                float backward = forward + 3.14159265;
-                backward -= 6.28318531 * floor(backward / 6.28318531);
-                if (backward <= sweep) gradientLow = min(gradientLow, atCentre - radius);
-            }
-            else
-            {
-                for (int k = 0; k < count; ++k)
-                {
-                    float along = dot(points[k], gradientDirection);
-                    gradientLow = min(gradientLow, along - radius);
-                    gradientHigh = max(gradientHigh, along + radius);
-                }
-            }
-
-            streams.FragGradient = float4(gradientDirection, gradientLow, gradientHigh);
-
             // A uniform scale multiplies the shape's world footprint only: every point, the centre
-            // and the radius scale together, so the normalized SDF above comes out identical
+            // and the radius scale together, so the normalized SDF comes out identical
             float worldScale = localScale * data.Scale;
-            float2 worldCenter = center * data.Scale;
+            float2 worldCenter = data.Center * data.Scale;
 
             // Border and glow widths in the normalized local space, before the perspective term.
             // Under an orthographic projection the pixel shader's w is 1 and these are already final.
@@ -223,8 +136,7 @@ namespace Stride.CommunityToolkit.Shapes
             float thickness = data.AxisX.w * pixelToLocal;
             float glow = data.Slice.w * pixelToLocal;
 
-            streams.FragShape = float4(count, radius, thickness, data.AxisY.w);
-            streams.FragDash = float4(data.Dash.xyz, data.Gradient.z);
+            streams.FragScale = float4(invScale * radius, invScale * band, thickness, glow);
 
             // Resolve the plane the shape lives in
             float mode = data.Position.w;
@@ -265,8 +177,6 @@ namespace Stride.CommunityToolkit.Shapes
 
             float2 local = margin * streams.LocalPosition;
 
-            streams.FragPosition = float4(local, data.Flags, pixelToLocal);
-
             float2 q = worldScale * local + worldCenter;
             float3 worldPosition = origin + q.x * axisX + q.y * axisY;
 
@@ -274,58 +184,99 @@ namespace Stride.CommunityToolkit.Shapes
 
             // A varying carrying w interpolates perspective-correctly to exactly the fragment's w,
             // which is what makes the border a constant pixel width at any depth
-            streams.FragBand = float4(clip.w, ringWidth, sweep, glow);
+            streams.FragPosition = float4(local, clip.w, pixelToLocal);
+            streams.ShapeIndex = index;
             streams.ShadingPosition = clip;
         }
 
         override stage void PSMain()
         {
-            float2 points[8];
-            points[0] = streams.FragPoints12.xy;
-            points[1] = streams.FragPoints12.zw;
-            points[2] = streams.FragPoints34.xy;
-            points[3] = streams.FragPoints34.zw;
-            points[4] = streams.FragPoints56.xy;
-            points[5] = streams.FragPoints56.zw;
-            points[6] = streams.FragPoints78.xy;
-            points[7] = streams.FragPoints78.zw;
+            ShapeData data = Shapes[streams.ShapeIndex];
 
-            // Unpack the streams
             float2 p = streams.FragPosition.xy;
-            int flags = (int)round(streams.FragPosition.z);
-            int count = (int)round(streams.FragShape.x);
-            float radius = streams.FragShape.y;
-            float fillAlpha = streams.FragShape.w;
-            float clipW = streams.FragBand.x;
-            float ringWidth = streams.FragBand.y;
-            float sweep = streams.FragBand.z;
-            float opacity = streams.FragDash.w;
+            float clipW = streams.FragPosition.z;
+            float radius = streams.FragScale.x;
+            float ringWidth = streams.FragScale.y;
+
+            int flags = data.Flags;
+            int count = data.Count;
+            uint offset = data.PointOffset;
+            float fillAlpha = data.AxisY.w;
+            float opacity = data.Gradient.z;
+            float start = data.Slice.y;
+            float sweep = data.Slice.z;
 
             bool hollow = (flags & 1) != 0;
             bool roundCaps = (flags & 2) != 0;
             bool gradient = (flags & 4) != 0;
+            bool polyline = (flags & 16) != 0;
             bool cut = sweep > 0.0;
 
-            float4 borderColor = streams.FragColor;
-            float4 fillColor = streams.FragFillColor;
+            float4 borderColor = BitsToColor(data.Color);
+            float4 fillColor = BitsToColor(data.FillColor);
+
+            // The cut's two edge directions; the first doubles as the dash pattern's start
+            float4 wedge = float4(cos(start), sin(start), cos(start + sweep), sin(start + sweep));
 
             // The fill's gradient: where this fragment sits between the shape's two extremes along
             // the direction, then the near colour blended toward the far one. Straight alpha, so a
             // far colour at alpha 0 is a fade to nothing rather than to black.
             if (gradient)
             {
-                float span = max(streams.FragGradient.w - streams.FragGradient.z, 0.000001);
-                float t = saturate((dot(p, streams.FragGradient.xy) - streams.FragGradient.z) / span);
+                float2 direction = data.Gradient.xy;
+                float directionLength = length(direction);
+                direction = directionLength > 0.000001 ? direction / directionLength : float2(0.0, 1.0);
 
-                fillColor = lerp(fillColor, streams.FragGradientColor, t);
+                // The gradient spans the shape's own extent along its direction: the furthest
+                // corners either way plus the rounding radius - or, for a cut disc, the furthest
+                // points of the wedge itself, so a sector's gradient runs across the sector and
+                // not across the disc it was cut from
+                float low = 1e9;
+                float high = -1e9;
+
+                if (count == 1 && cut)
+                {
+                    // The wedge's extremes along the direction are among: the centre, the two ends
+                    // of its edges, and the rim wherever the direction itself (or its opposite)
+                    // lies inside
+                    float2 centre = Points[offset];
+                    float atCentre = dot(centre, direction);
+                    float atStart = dot(centre + radius * wedge.xy, direction);
+                    float atEnd = dot(centre + radius * wedge.zw, direction);
+
+                    low = min(atCentre, min(atStart, atEnd));
+                    high = max(atCentre, max(atStart, atEnd));
+
+                    float forward = atan2(direction.y, direction.x) - start;
+                    forward -= 2.0 * PI * floor(forward / (2.0 * PI));
+                    if (forward <= sweep) high = max(high, atCentre + radius);
+
+                    float backward = forward + PI;
+                    backward -= 2.0 * PI * floor(backward / (2.0 * PI));
+                    if (backward <= sweep) low = min(low, atCentre - radius);
+                }
+                else
+                {
+                    for (int k = 0; k < count; ++k)
+                    {
+                        float along = dot(Points[offset + k], direction);
+                        low = min(low, along - radius);
+                        high = max(high, along + radius);
+                    }
+                }
+
+                float span = max(high - low, 0.000001);
+                float t = saturate((dot(p, direction) - low) / span);
+
+                fillColor = lerp(fillColor, BitsToColor(data.GradientColor), t);
             }
 
             fillColor *= fillAlpha;
 
             // Perspective term: near shapes have a large w, far ones a small one, so the same pixel
             // width maps to more or fewer world units with distance
-            float thickness = max(streams.FragShape.z * clipW, 0.000001);
-            float glowWidth = streams.FragBand.w * clipW;
+            float thickness = max(streams.FragScale.z * clipW, 0.000001);
+            float glowWidth = streams.FragScale.w * clipW;
 
             // Signed distance to the shape's outline, negative inside. Everything below - fill,
             // border, glow - is a function of this one number.
@@ -336,10 +287,15 @@ namespace Stride.CommunityToolkit.Shapes
                 // A round-capped arc is its own distance field: the band's centreline is an arc
                 // and the shape is everything within half the band width of it, which is what
                 // makes the ends semicircles. Only a circle has a centreline arc, hence count == 1.
-                float2 q = float2(p.x * streams.FragArc.x - p.y * streams.FragArc.y, p.x * streams.FragArc.y + p.y * streams.FragArc.x);
+                // Rotate so the arc is symmetric about +Y; the endpoint is then a fixed half-sweep away.
+                float halfSweep = cut ? 0.5 * sweep : PI;
+                float turn = 0.5 * PI - (start + halfSweep);
+                float2 rotation = float2(cos(turn), sin(turn));
+                float2 sc = float2(sin(halfSweep), cos(halfSweep));
+
+                float2 q = float2(p.x * rotation.x - p.y * rotation.y, p.x * rotation.y + p.y * rotation.x);
                 q.x = abs(q.x);
 
-                float2 sc = streams.FragArc.zw;
                 float halfBand = 0.5 * ringWidth;
                 float centreline = radius - halfBand;
 
@@ -352,39 +308,41 @@ namespace Stride.CommunityToolkit.Shapes
             {
                 // A single point is a circle of radius - the polygon SDF cannot handle it, the
                 // point distance trivially can. Two points + radius make a capsule through the loop.
-                float dw = count == 1 ? length(p - points[0]) : SdConvexPolygon(p, points, count);
+                // A polyline is the distance to the nearest of its segments, and a stroke around it
+                float dw = polyline ? SdPolyline(p, offset, count) : (count == 1 ? length(p - Points[offset]) : SdConvexPolygon(p, offset, count));
 
                 s = dw - radius;
 
                 // Keep only the band ringWidth deep inside the outline: the inner edge is the
                 // outline pushed inward, so its distance is the same field with the sign flipped
-                if (hollow)
+                if (hollow && !polyline)
                 {
                     s = max(s, -(s + ringWidth));
                 }
 
                 // Intersect with the wedge between the two edge directions
-                if (cut)
+                if (cut && !polyline)
                 {
-                    s = max(s, SdWedge(p, streams.FragWedge, sweep));
+                    s = max(s, SdWedge(p, wedge, sweep));
                 }
             }
 
             // Dashes: the gaps are cuts through the shape along its outline, folded into the same
             // distance field, so fill, border and glow all stop at a dash end and the ends are
             // anti-aliased by the same smoothstep as every other edge
-            if (streams.FragDash.x > 0.0 && count <= 2)
+            if (data.Dash.x > 0.0 && (count <= 2 || polyline))
             {
-                s = max(s, SdDashes(p, points, count, hollow, cut, radius, ringWidth, sweep, clipW));
+                s = max(s, SdDashes(p, offset, count, hollow, cut, radius, ringWidth, sweep, streams.FragPosition.w * clipW, data.Dash.xyz, wedge.xy, polyline, ringWidth));
             }
 
             // Outer glow: falls off quadratically from the outline outward. Inside, the fill and
             // border own the pixels, so the glow stops at the outline.
-            float4 glow = float4(streams.FragGlowColor.rgb, 0.0);
+            float4 glowColor = BitsToColor(data.GlowColor);
+            float4 glow = float4(glowColor.rgb, 0.0);
             if (glowWidth > 0.0 && s > 0.0)
             {
                 float fade = 1.0 - saturate(s / glowWidth);
-                glow.a = streams.FragGlowColor.a * fade * fade;
+                glow.a = glowColor.a * fade * fade;
             }
 
             // Roll the fill alpha down at the border
@@ -403,148 +361,6 @@ namespace Stride.CommunityToolkit.Shapes
             // sRGB backbuffer re-encodes linear values, so convert to linear here to land on the
             // same on-screen colours
             streams.ColorTarget = float4(pow(max(blended.rgb, 0.0), 2.2), blended.a);
-        }
-
-        // https://en.wikipedia.org/wiki/Alpha_compositing
-        float4 BlendColors(float4 front, float4 back)
-        {
-            float3 cSrc = front.rgb;
-            float alphaSrc = front.a;
-            float3 cDst = back.rgb;
-            float alphaDst = back.a;
-
-            float3 cOut = cSrc * alphaSrc + cDst * alphaDst * (1.0 - alphaSrc);
-            float alphaOut = alphaSrc + alphaDst * (1.0 - alphaSrc);
-
-            // Remove alpha from rgb; max avoids dividing by zero outside the shape
-            cOut = cOut / max(alphaOut, 0.0001);
-
-            return float4(cOut, alphaOut);
-        }
-
-        float Cross2d(float2 v1, float2 v2)
-        {
-            return v1.x * v2.y - v1.y * v2.x;
-        }
-
-        // Signed distance to the nearest gap in the dash pattern, measured along the outline and
-        // returned in local units, negative inside a dash. Around a circle the coordinate is the
-        // angle from the shape's start angle times the stroke's centreline radius; along a line it
-        // is the projection onto the segment. The pattern is fitted so a whole number of periods
-        // fills a circle or arc, so a tick ring never ends in a stub.
-        float SdDashes(float2 p, float2 v[8], int count, bool hollow, bool cut, float radius, float ringWidth, float sweep, float clipW)
-        {
-            float localPerPixel = streams.FragPosition.w * clipW;
-            float dash = streams.FragDash.x;
-            float gap = streams.FragDash.y;
-            float period = dash + gap;
-
-            float along;
-
-            if (count == 1)
-            {
-                float centreline = hollow ? radius - 0.5 * ringWidth : radius;
-                float startAngle = atan2(streams.FragWedge.y, streams.FragWedge.x);
-                float angle = atan2(p.y, p.x) - startAngle;
-
-                angle -= 6.28318531 * floor(angle / 6.28318531);
-                along = angle * centreline;
-
-                // Fit: stretch or squeeze the period so the turn holds a whole number of them
-                float turnPixels = (cut ? sweep : 6.28318531) * centreline / localPerPixel;
-                float periods = max(1.0, round(turnPixels / period));
-                float fitted = turnPixels / periods;
-
-                dash *= fitted / period;
-                period = fitted;
-            }
-            else
-            {
-                float2 direction = v[1] - v[0];
-                float segment = length(direction);
-
-                along = segment > 0.0 ? dot(p - v[0], direction / segment) : 0.0;
-            }
-
-            float u = along / localPerPixel + streams.FragDash.z;
-
-            u -= period * floor(u / period);
-
-            // Inside a dash the nearest edge is the closer of its two ends; in a gap likewise
-            float d = u < dash ? min(u, dash - u) : -min(u - dash, period - u);
-
-            return -d * localPerPixel;
-        }
-
-        // Signed distance to the wedge between two edge directions from the origin, sweeping
-        // counter-clockwise from the first to the second; negative inside. Exact along the edges
-        // and inside; outside a corner it is the Chebyshev distance, which keeps the corner sharp.
-        float SdWedge(float2 p, float4 edges, float sweep)
-        {
-            float2 u1 = edges.xy;
-            float2 u2 = edges.zw;
-
-            // Which side of each edge the point lies on, with the sign chosen so that positive
-            // means "on the wedge's side". Past a half turn the wedge is the complement of the
-            // narrow one between the same edges, and the test flips with it.
-            float c1 = Cross2d(u1, p);
-            float c2 = Cross2d(p, u2);
-            bool inside = sweep <= 3.14159265 ? (c1 >= 0.0 && c2 >= 0.0) : (c1 > 0.0 || c2 > 0.0);
-
-            // Distance to each edge as a ray: perpendicular while alongside it, to the origin behind it
-            float d1 = dot(p, u1) > 0.0 ? abs(c1) : length(p);
-            float d2 = dot(p, u2) > 0.0 ? abs(c2) : length(p);
-
-            return (inside ? -1.0 : 1.0) * min(d1, d2);
-        }
-
-        // Signed distance function for a convex polygon; relies on CCW winding of the points
-        float SdConvexPolygon(float2 p, float2 v[8], int count)
-        {
-            // Initial squared distance
-            float d = dot(p - v[0], p - v[0]);
-
-            // Consider query point inside to start
-            float side = -1.0;
-            int j = count - 1;
-            for (int i = 0; i < count; ++i)
-            {
-                // Distance to a polygon edge
-                float2 e = v[i] - v[j];
-                float2 w = p - v[j];
-                float we = dot(w, e);
-                float2 b = w - e * clamp(we / dot(e, e), 0.0, 1.0);
-                float bb = dot(b, b);
-
-                // Track smallest distance
-                if (bb < d)
-                {
-                    d = bb;
-                }
-
-                // If the query point is outside any edge then it is outside the entire polygon
-                float s = Cross2d(w, e);
-                if (s >= 0.0)
-                {
-                    side = 1.0;
-                }
-
-                j = i;
-            }
-
-            return side * sqrt(d);
-        }
-
-        float4 BitsToColor(uint u)
-        {
-            // Mask, do not modulo: the SDSL translation of % on uints corrupted the low byte
-            float4 c = float4(
-                (u >> 0) & 255,
-                (u >> 8) & 255,
-                (u >> 16) & 255,
-                (u >> 24) & 255
-            ) / 255.0;
-            return c;
         }
     };
 }

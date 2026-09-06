@@ -29,10 +29,4 @@ Ported from the Box2D testbed's solid_polygon shader (Erin Catto, MIT) and exten
         <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="Effects\ShapeShader.sdsl">
-            <LastGenOutput>ShapeShader.sdsl.cs</LastGenOutput>
-        </None>
-    </ItemGroup>
-
-</Project>
+</Project>

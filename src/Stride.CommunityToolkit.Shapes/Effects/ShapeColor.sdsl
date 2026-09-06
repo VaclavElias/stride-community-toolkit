@@ -1,0 +1,36 @@
+namespace Stride.CommunityToolkit.Shapes
+{
+    // Colour helpers for ShapeShader: unpacking the wire format's byte colours and compositing
+    // straight-alpha layers. No streams, no stages - a library any shader can mix in.
+    internal shader ShapeColor
+    {
+        // https://en.wikipedia.org/wiki/Alpha_compositing
+        float4 BlendColors(float4 front, float4 back)
+        {
+            float3 cSrc = front.rgb;
+            float alphaSrc = front.a;
+            float3 cDst = back.rgb;
+            float alphaDst = back.a;
+
+            float3 cOut = cSrc * alphaSrc + cDst * alphaDst * (1.0 - alphaSrc);
+            float alphaOut = alphaSrc + alphaDst * (1.0 - alphaSrc);
+
+            // Remove alpha from rgb; max avoids dividing by zero outside the shape
+            cOut = cOut / max(alphaOut, 0.0001);
+
+            return float4(cOut, alphaOut);
+        }
+
+        float4 BitsToColor(uint u)
+        {
+            // Mask and shift: the bytes are at fixed positions, so there is nothing to divide
+            float4 c = float4(
+                (u >> 0) & 255,
+                (u >> 8) & 255,
+                (u >> 16) & 255,
+                (u >> 24) & 255
+            ) / 255.0;
+            return c;
+        }
+    };
+}
