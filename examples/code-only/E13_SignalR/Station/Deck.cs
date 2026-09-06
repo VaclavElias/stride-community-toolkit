@@ -11,7 +11,7 @@ namespace E13_SignalR.Station;
 public sealed class Deck(ContainerFactory factory)
 {
     /// <summary>Where cargo appears. High enough to tumble on the way down.</summary>
-    public const float HatchHeight = 14f;
+    public const float HatchHeight = 12f;
 
     /// <summary>Below this a container has clearly left the deck for good.</summary>
     private const float LostBelow = -12f;
@@ -46,6 +46,9 @@ public sealed class Deck(ContainerFactory factory)
     public int OnDeck => _containers.Count;
 
     public int PendingCount => _pending.Count;
+
+    /// <summary>The live container with this id, or <see langword="null"/> once it has landed for good or been lost.</summary>
+    public Container? Find(int id) => _containers.Find(container => container.Id == id);
 
     /// <summary>Drops one container now. Unspecified size or paint is chosen at random.</summary>
     public Container Release(ReleaseRequest request, CommandOrigin origin)

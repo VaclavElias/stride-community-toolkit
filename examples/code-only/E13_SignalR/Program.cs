@@ -3,6 +3,7 @@ using E13_SignalR.SignalR;
 using E13_SignalR.Station;
 using E13_SignalR_Shared;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Diagnostics;
@@ -16,12 +17,16 @@ using Stride.Input;
 // and sometimes slide off the open edge and are lost. Either console can release, clear, shake and
 // recolour; the game reports every release, landing and loss back, plus a census once a second.
 //
+// The game's console is drawn in the scene: a station board over the deck with the census, bars by
+// size and paint, and the scheme buttons - click one - plus a feed beside the deck, all ShapeBatch
+// panels and world text in the scheme's colours. Landings, losses and hails show on the deck itself.
+//
 // The hub is optional. The game connects in the background and keeps trying; with no hub the
-// keyboard does everything and the overlay says LINK OFFLINE. Start the Blazor host to see the
+// keyboard does everything and the board says LINK OFFLINE. Start the Blazor host to see the
 // other console: E13_SignalR_Blazor, then open its page.
 //
 // Keys: 1 2 3 release small, medium, large - SPACE random - B batch of ten - C clear - X shake -
-// T scheme list, then 1-5. Right-drag and WASD fly the camera.
+// T scheme list, then 1-5, or click a scheme on the board. Right-drag and WASD fly the camera.
 
 const float HeartbeatSeconds = 1f;
 
@@ -36,6 +41,12 @@ var game = new Game();
 var station = new StationScene(game);
 var deck = new Deck(new ContainerFactory(game));
 var commands = new StationCommands(deck, console);
+
+// Built in Start, once there is a scene to put them in
+StationBoard? board = null;
+FeedBoard? feed = null;
+DeckEffects? effects = null;
+CameraComponent? camera = null;
 
 var uptime = 0f;
 var untilHeartbeat = HeartbeatSeconds;
@@ -58,31 +69,47 @@ void Start(Scene scene)
 {
     game.Window.Title = $"{Constants.StationName} - Stride + SignalR";
     game.Window.AllowUserResizing = true;
-    station.Build(scene);
 
-    // The deck tells the console log and the hub what happened; it does not know either exists
+    var labels = new Labels(scene, game);
+
+    station.Build(scene, labels, console);
+
+    camera = scene.GetCamera();
+
+    // The boards face the camera's starting point, so they are read square-on from there
+    board = new StationBoard(labels, console, StationScene.BoardCenter, StationScene.CameraPosition - StationScene.BoardCenter);
+    feed = new FeedBoard(labels, console, StationScene.FeedCenter, StationScene.CameraPosition - StationScene.FeedCenter);
+    effects = new DeckEffects(labels, console);
+
+    // The deck tells the effects, the feed and the hub what happened; it does not know any exists
     deck.Released += container =>
     {
         station.Pulse();
-        console.Note($"Released {Describe(container)} from {container.Origin}");
+
+        if (deck.Find(container.Id) is { } live) effects.OnReleased(live, console);
+
+        console.Note($"Released {Describe(container)}", LogKind.Released);
         link.ReportReleased(container);
     };
 
     deck.Landed += container =>
     {
-        console.Note($"Landed {Describe(container)} after {container.AirTime:0.0} s");
+        effects.OnLanded(container, console);
+        console.Note($"Landed {Describe(container)} · {container.AirTime:0.0} s", LogKind.Landed);
         link.ReportLanded(container);
     };
 
     deck.Lost += container =>
     {
-        console.Note($"Lost {Describe(container)} over the edge");
+        effects.OnLost(container);
+        console.Note($"Lost {Describe(container)}", LogKind.Lost);
         link.ReportLost(container);
     };
 
     deck.Cleared += removed =>
     {
-        console.Note($"Deck cleared, {removed} removed");
+        effects.OnCleared();
+        console.Note($"Deck cleared, {removed} removed", LogKind.Cleared);
         link.ReportCleared(removed);
     };
 
@@ -90,11 +117,30 @@ void Start(Scene scene)
     // keeps every open browser tab in the same scheme as the game
     console.SchemeChanged += scheme =>
     {
+        labels.Restyle(console);
         console.Note($"Scheme {scheme.Name}");
         link.ReportScheme(scheme.Name);
     };
 
-    DebugOverlay.GetOrCreate(game).AddSection("Station", OverlayLines);
+    console.Hailed += text =>
+    {
+        effects.OnHail(console);
+        console.Note($"Hail: {text}", LogKind.Hail);
+    };
+
+    // The overlay keeps only what is genuinely keyboard help; everything else is on the boards.
+    // Bottom-left is the one corner with nothing behind it.
+    var overlay = DebugOverlay.GetOrCreate(game);
+
+    overlay.Position = DisplayPosition.BottomLeft;
+    overlay.AddSection("Station", OverlayLines);
+
+    // A screenshot of an empty deck shows nothing. When the capture harness is driving, drop a
+    // batch at once so there is cargo on the deck by the time it takes its frame.
+    if (Environment.GetEnvironmentVariable(ScreenshotCapture.OutputPathVariable) is not null)
+    {
+        deck.ReleaseBatch(24, CommandOrigin.Game);
+    }
 
     link.BeginConnect();
 }
@@ -112,9 +158,24 @@ void Update(Scene scene, GameTime time)
 
     HandleKeys();
 
+    if (camera is not null && board!.Pick(game.Input, camera) is { } clicked)
+    {
+        console.Select(clicked);
+    }
+
     deck.Update(deltaSeconds);
+    effects!.Update(deltaSeconds, uptime);
+
+    var snapshot = deck.Snapshot(console.Scheme.Name, uptime);
 
     station.Draw(console, deltaSeconds, uptime);
+
+    if (station.Shapes is { } shapes)
+    {
+        board!.Draw(shapes, console, snapshot, deck.PendingCount, link.IsConnected, uptime, uptime);
+        feed!.Draw(shapes, console, uptime);
+        effects.Draw(shapes, console);
+    }
 
     untilHeartbeat -= deltaSeconds;
 
@@ -122,7 +183,7 @@ void Update(Scene scene, GameTime time)
     {
         untilHeartbeat = HeartbeatSeconds;
 
-        link.ReportDeck(deck.Snapshot(console.Scheme.Name, uptime));
+        link.ReportDeck(snapshot);
     }
 }
 
@@ -146,36 +207,14 @@ void HandleKeys()
 
 IReadOnlyList<TextElement> OverlayLines()
 {
-    var accent = console.Accent;
-    var text = console.Text;
-    var snapshot = deck.Snapshot(console.Scheme.Name, uptime);
-
     List<TextElement> lines =
     [
-        new(Constants.StationName.ToUpperInvariant(), accent),
-        new(link.IsConnected ? "LINK ONLINE  - web console connected" : "LINK OFFLINE - looking for the hub, keyboard still works", link.IsConnected ? Color.LightGreen : Color.Orange),
-        new(string.Empty),
-        new($"On deck {snapshot.OnDeck,3}   released {snapshot.Released,3}   lost {snapshot.Lost,3}   mass {snapshot.TotalMass,5:0.0} t", text),
-        new($"Small {snapshot.BySize[0],3}   medium {snapshot.BySize[1],3}   large {snapshot.BySize[2],3}" + (deck.PendingCount > 0 ? $"   dropping {deck.PendingCount} more" : string.Empty), text),
-        new(string.Empty),
-        new("1 2 3 release small/medium/large   SPACE random   B batch of ten", Color.LightGray),
-        new("C clear the deck   X shake the deck", Color.LightGray),
+        new("1 2 3 sizes   SPACE random   B batch", Color.LightGray),
+        new("C clear   X shake   click a scheme", Color.LightGray),
         new(string.Empty),
     ];
 
     lines.AddRange(console.MenuLines());
-    lines.Add(new(string.Empty));
-
-    if (console.Hail is { } hail)
-    {
-        lines.Add(new($"HAIL FROM WEB: {hail}", Color.Yellow));
-        lines.Add(new(string.Empty));
-    }
-
-    foreach (var entry in console.Log)
-    {
-        lines.Add(new(entry, Hex.WithAlpha(text, 170)));
-    }
 
     return lines;
 }
@@ -204,10 +243,13 @@ description:
     A Stride game and a Blazor web page as two consoles of the same orbital cargo deck, talking both
     ways over a SignalR hub. Either console releases rusty cargo containers in three sizes through a
     hatch, clears the deck, shakes it, or switches the colour scheme, and the game reports every
-    release, landing and loss back to the page along with a census once a second. The hub is
-    optional: the game connects in the background, keeps retrying, and does everything from the
-    keyboard when there is no hub at all. Two processes and a server make this the most involved
-    example in the toolkit to run - start the Blazor app first so the hub exists, then the game.
+    release, landing and loss back to the page along with a census once a second. The game's own
+    console is drawn in the scene - a station board with the census and clickable scheme buttons, a
+    feed beside the deck, landings and losses marked on the deck - all ShapeBatch panels and world
+    text. The hub is optional: the game connects in the background, keeps retrying, and does
+    everything from the keyboard when there is no hub at all. Two processes and a server make this
+    the most involved example in the toolkit to run - start the Blazor app first so the hub exists,
+    then the game.
 concepts:
   - Connecting a Stride game to a SignalR hub as an optional feature that retries in the background
   - Typed contracts shared by game, hub and page, with nameof on every method name
@@ -215,6 +257,8 @@ concepts:
   - One ordered background queue for everything the game sends
   - A periodic snapshot so a page that opens late is complete within a second
   - "Two-way state: a colour scheme changed on either side changes the other"
+  - An in-scene console from ShapeBatch panels and world text, laid out in board coordinates
+  - "Clickable world-space buttons: a pick ray intersected with the board's plane"
   - Detecting landings and losses from body velocity and position, without contact handlers
   - Shutting a game down cleanly with a live network connection
 tags:
@@ -225,11 +269,14 @@ tags:
   - Real Time
   - Multi Project
   - ShapeBatch
+  - WorldText
+  - EntityText
 related:
   - E13_SignalR_Blazor
 media: stride-game-engine-example17-signalr.webp
 tocName: Stride + SignalR
 screenshot: false
+screenshotFrame: 480
 enabled: true
 created: 2025-05-04
 ---

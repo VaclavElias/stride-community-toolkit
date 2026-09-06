@@ -7,8 +7,8 @@ namespace E13_SignalR.Station;
 
 /// <summary>
 /// The in-game console's state: the current scheme as Stride colours, the scheme menu, a short log
-/// of what happened last, and a hail from the web that shows for a few seconds. The overlay text
-/// itself is composed in Program.cs, which is the one place that can see everything.
+/// of what happened last, and a hail from the web that shows for a few seconds. What is drawn from
+/// this - the boards, the banner, the overlay - is composed elsewhere; this is only the state.
 /// </summary>
 public sealed class StationConsole
 {
@@ -16,9 +16,10 @@ public sealed class StationConsole
     private const float HailSeconds = 8f;
 
     private readonly DebugTextDropdown _menu;
-    private readonly List<string> _log = [];
+    private readonly List<LogEntry> _log = [];
 
     private string? _hail;
+    private float _hailFrom;
     private float _hailUntil;
     private float _time;
 
@@ -40,6 +41,9 @@ public sealed class StationConsole
     /// <summary>Raised when a scheme is selected from either console, so the choice can be reported to the other.</summary>
     public event Action<Scheme>? SchemeChanged;
 
+    /// <summary>Raised when a hail arrives from the web, for the effects that mark the moment.</summary>
+    public event Action<string>? Hailed;
+
     public Scheme Scheme { get; private set; } = Schemes.Default;
 
     public Color Accent { get; private set; }
@@ -53,9 +57,16 @@ public sealed class StationConsole
     /// <summary>While the scheme list is open, the digit keys pick a scheme rather than a container size.</summary>
     public bool IsMenuOpen => _menu.IsOpen;
 
-    public IReadOnlyList<string> Log => _log;
+    /// <summary>The last few things that happened, oldest first.</summary>
+    public IReadOnlyList<LogEntry> Log => _log;
 
     public string? Hail => _time < _hailUntil ? _hail : null;
+
+    /// <summary>Seconds since the current hail arrived.</summary>
+    public float HailAge => _time - _hailFrom;
+
+    /// <summary>Seconds the current hail has left on screen.</summary>
+    public float HailRemaining => MathF.Max(0f, _hailUntil - _time);
 
     /// <summary>
     /// Switches scheme by name and announces it. An unknown name is ignored: it came over the wire,
@@ -74,9 +85,9 @@ public sealed class StationConsole
         SchemeChanged?.Invoke(scheme);
     }
 
-    public void Note(string line)
+    public void Note(string line, LogKind kind = LogKind.Info)
     {
-        _log.Add(line);
+        _log.Add(new LogEntry(line, kind));
 
         if (_log.Count > LogLength)
         {
@@ -87,7 +98,10 @@ public sealed class StationConsole
     public void ShowHail(string text)
     {
         _hail = text;
+        _hailFrom = _time;
         _hailUntil = _time + HailSeconds;
+
+        Hailed?.Invoke(text);
     }
 
     public void Update(InputManager input, float time)
