@@ -1,0 +1,7 @@
+// Per-image relaxations for build/gold-images.cs. An image without a rule uses the default:
+// no pixel may differ from its golden by 3 or more (the maximum channel difference, alpha ignored).
+// A bucket left out of a rule is unlimited. Buckets: "1-2", "3-5", "6-15", "16+".
+//
+// Relax an image only when its scene cannot be made deterministic, and say why.
+[
+]
