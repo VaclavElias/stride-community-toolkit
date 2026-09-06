@@ -45,6 +45,9 @@ void Start(Scene rootScene)
     simulation = new Box2DSimulation();
     ConfigurePhysicsWorld();
 
+    // Left mouse picks any shape up and throws it; a click on empty space still spawns one
+    game.GetCameraEntity().Add(new Grabber2DScript { Simulation = simulation });
+
     // Initialize the demo manager to handle all demo logic
     sceneManager = new SceneManager(game, rootScene, simulation);
     sceneManager.Initialize();

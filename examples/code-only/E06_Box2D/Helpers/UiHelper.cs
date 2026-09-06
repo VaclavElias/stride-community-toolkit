@@ -120,7 +120,7 @@ public class UiHelper
     {
         return new NavigationCommand[]
         {
-            new("Left Click - Apply impulse to object", Color.LightGreen),
+            new("Left Click - Pick a shape up and throw it; click empty space to spawn", Color.LightGreen),
             new("X - Delete all objects", Color.Red),
             new("", Color.Transparent), // Spacer
             new("Shape Generation:", Color.Yellow),

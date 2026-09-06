@@ -1,6 +1,7 @@
 using Box2D.NET;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -10,7 +11,8 @@ using static Box2D.NET.B2Geometries;
 using static Box2D.NET.B2MathFunction;
 using static Box2D.NET.B2Shapes;
 
-// A faithful replica of the Box2D.NET sample Benchmarks/BenchmarkJunkyard: a walled yard whose
+// A faithful replica of the Box2D.NET sample Benchmarks/BenchmarkJunkyard (MIT, (c) 2022 Erin Catto,
+// (c) 2025 Choi Ikpil): a walled yard whose
 // floor and walls are rows of overlapping static squares, 8,000 small five-sided "rocks" raining
 // into it, and a kinematic pusher plowing back and forth through the pile at x = 60*sin(0.2t).
 //
@@ -91,6 +93,14 @@ void Start(Scene rootScene)
     // heaviest benchmark in the sample suite, and letting the accumulator run three catch-up steps
     // per frame would only deepen the slow motion it plays in on a loaded machine.
     simulation.MaxStepsPerFrame = 1;
+
+    // Left mouse picks a rock up and throws it - the one interaction the replica adds to the testbed
+    game.GetCameraEntity().Add(new Grabber2DScript { Simulation = simulation });
+
+    DebugOverlay.GetOrCreate(game).AddSection("Junkyard", static () =>
+    [
+        new("Left mouse - pick a rock up, carry it, throw it", Color.Yellow),
+    ]);
 
     CreateGround();
     SpawnRocks();

@@ -115,6 +115,10 @@ void Start(Scene rootScene)
     // popcorn and over the walls, and the endlessly falling escapees then keep the scene awake.
     b2World_SetMaximumLinearSpeed(simulation.GetWorldId(), 40f);
 
+    // Left mouse picks a body out of the pile and throws it back in. The camera is a perspective
+    // one here; the grabber picks on the XY plane the bodies live in.
+    game.GetCameraEntity().Add(new Grabber2DScript { Simulation = simulation });
+
     CreateWall(new Vector3(-WallWidth / 2, 0, 0), wallHeight);
     CreateWall(new Vector3(WallWidth / 2, 0, 0), wallHeight);
     // The ramps overlap deeply at the middle: with a shallow overlap, pressure from the pile
@@ -493,7 +497,7 @@ IReadOnlyList<TextElement> BuildOverlayLines()
     }
 
     lines.Add(new(string.Empty));
-    lines.Add(new($"SPACE - spawn {batchSize:N0} more     X - clear", Color.Yellow));
+    lines.Add(new($"SPACE - spawn {batchSize:N0} more     X - clear     Left mouse - pick a body up and throw it", Color.Yellow));
 
     return lines;
 }
@@ -543,6 +547,7 @@ concepts:
   - Skipping instancing work while every Box2D body sleeps with Box2DEntityInstancing
   - Disabling contact events on fixtures nothing listens to
   - Switching shape, batch size and layout at runtime with DebugTextDropdown
+  - Picking bodies out of the pile with Grabber2DScript, on a perspective camera
 tags:
   - 2D
   - Box2D

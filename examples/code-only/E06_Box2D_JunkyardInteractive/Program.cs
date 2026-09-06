@@ -23,7 +23,7 @@ using static Box2D.NET.B2Shapes;
 // one shader batch instead of one master model per shape.
 //
 // A wheat-coloured sensor gate hangs over the yard: anything passing through turns gold, driven by
-// the library's sensor events. Click a shape to launch it, click empty space to drop a new shape,
+// the library's sensor events. Pick a shape up with the mouse and throw it, press N to drop a new one,
 // middle-click a shape and the camera follows it through the pile.
 
 // --- the junkyard's yard, verbatim
@@ -38,8 +38,6 @@ const float SpawnHeight = 35f;
 // The testbed paints continuous-collision candidates salmon: bodies sweeping more than roughly half
 // their extent in one step. Approximated for the mixed shape sizes here.
 const float FastSpeed = 0.5f * 0.4f * 60f;
-
-const float ImpulseStrength = 10f;
 
 // --- the testbed palette, plus gold for shapes inside the sensor gate
 var paleGreen = new Color(0x98, 0xFB, 0x98);
@@ -99,6 +97,10 @@ void Start(Scene rootScene)
 
     simulation = new Box2DSimulation();
     simulation.RegisterSensorEventHandler(sensorWatcher);
+
+    // Pick shapes up and throw them with the left mouse button: a kinematic anchor and a motor joint
+    // under the cursor, so the held shape still collides with the pile and the plow.
+    cameraEntity.Add(new Grabber2DScript { Simulation = simulation });
 
     CreateGround(rootScene);
     CreateSensorGate(rootScene);
@@ -332,24 +334,11 @@ void HandleInput(Scene rootScene)
 
     if (!game.Input.HasMouse || camera is null) return;
 
-    if (game.Input.IsMouseButtonPressed(MouseButton.Left))
+    // The left button belongs to the grabber on the camera: pick a shape up, carry it, throw it.
+    // N drops a new one of the selected kind at the cursor.
+    if (game.Input.IsKeyPressed(Keys.N) && camera.CalculateRayPlaneIntersectionPoint(game.Input.MousePosition) is { } dropPoint)
     {
-        var world = camera.CalculateRayPlaneIntersectionPoint(game.Input.MousePosition);
-
-        if (world is { } point)
-        {
-            var hit = simulation!.OverlapPoint(point);
-
-            if (hit is { } bodyId)
-            {
-                // Launch it: an upward impulse with a sideways nudge
-                BodyForces.ApplyImpulse(bodyId, new Vector2((random.NextSingle() - 0.5f) * 6f, ImpulseStrength));
-            }
-            else
-            {
-                Spawn(rootScene, catalogue[currentShape], point);
-            }
-        }
+        Spawn(rootScene, catalogue[currentShape], dropPoint);
     }
 
     if (game.Input.IsMouseButtonPressed(MouseButton.Middle))
@@ -398,7 +387,7 @@ IReadOnlyList<TextElement> BuildOverlayLines()
     }
 
     lines.Add(new(string.Empty));
-    lines.Add(new("Left Click - launch a shape, or drop a new one", Color.Yellow));
+    lines.Add(new("Left mouse - pick a shape up, carry it, throw it     N - drop a new one at the cursor", Color.Yellow));
     lines.Add(new("Middle Click - follow a shape     ESC - stop following", Color.Yellow));
     lines.Add(new($"SPACE - spawn {InitialCount / 2} more     X - clear", Color.Yellow));
 
@@ -508,8 +497,8 @@ description:
     the Stride way - every shape is an entity carrying ShapeComponent and a Box2D body, so
     components, scripts, events and the camera all join in. Pentagons, circles, capsules and boxes
     fall and mix freely, switchable at runtime. A sensor gate turns anything passing through gold via
-    the library's sensor events; clicking launches or drops shapes; middle-click makes the camera
-    follow one through the pile.
+    the library's sensor events; the mouse picks shapes up and throws them through Grabber2DScript,
+    N drops a new one at the cursor; middle-click makes the camera follow one through the pile.
   cs: |-
     Hravý sourozenec repliky vrakoviště: stejný ohrazený dvůr a radlice, ale postavené po stridím
     způsobu - každý tvar je entita s ShapeComponent a tělesem Box2D, takže se zapojují
@@ -521,7 +510,7 @@ concepts:
   - Circles and capsules through the SDF shader's rounding radius
   - Building the collider from the same vertices as the visual, so they always agree
   - Sensor fixtures and the library's sensor events driving gameplay colour
-  - Mouse picking with OverlapPoint, impulses with BodyForces
+  - Picking shapes up and throwing them with Grabber2DScript, a kinematic anchor plus a motor joint
   - Camera follow through Basic2DCameraController.FollowTarget
 tags:
   - 2D

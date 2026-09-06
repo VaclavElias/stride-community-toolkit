@@ -9,7 +9,6 @@ using Stride.Games;
 using Stride.Input;
 using static Box2D.NET.B2Bodies;
 using static Box2D.NET.B2Geometries;
-using static Box2D.NET.B2Joints;
 using static Box2D.NET.B2MathFunction;
 using static Box2D.NET.B2Shapes;
 
@@ -241,37 +240,14 @@ public class SceneManager
             return;
         }
 
-        // Try to find a physics body at the mouse position
-        var hitBodyId = _simulation.OverlapPoint(worldPoint.Value, GameConfig.MouseQuerySize);
+        // A click on a body is the grabber's (Grabber2DScript on the camera picks it up); a click on
+        // empty space spawns something there.
+        if (_simulation.OverlapPoint(worldPoint.Value, GameConfig.MouseQuerySize).HasValue) return;
 
-        if (hitBodyId.HasValue)
+        if (_shapeSpawner.AddAtPosition(worldPoint.Value) is { } spawned)
         {
-            ApplyMouseImpulse(hitBodyId.Value, worldPoint.Value);
+            LogAction($"Created {spawned} at mouse position");
         }
-        else
-        {
-            // Nothing under the cursor, so the click spawns something instead of throwing it
-            if (_shapeSpawner.AddAtPosition(worldPoint.Value) is { } spawned)
-            {
-                LogAction($"Created {spawned} at mouse position");
-            }
-        }
-    }
-
-    private void ApplyMouseImpulse(B2BodyId bodyId, Vector2 worldPoint)
-    {
-        var entity = _simulation.GetEntity(bodyId);
-        if (entity == null) return;
-
-        // Apply upward impulse with some randomness
-        var impulseDirection = new Vector2(
-            Random.Shared.NextSingle() * 10f - 1f, // -1 to 1
-            GameConfig.ImpulseStrength
-        );
-
-        BodyForces.ApplyImpulse(bodyId, impulseDirection);
-
-        LogAction($"Applied impulse to {entity.Name}");
     }
 
     private void TogglePhysics()
