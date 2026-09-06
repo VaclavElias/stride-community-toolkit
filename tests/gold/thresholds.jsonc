@@ -4,4 +4,8 @@
 //
 // Relax an image only when its scene cannot be made deterministic, and say why.
 [
+  // The flock itself is bit-identical run to run (a chaotic system, so any drift would show as the
+  // whole flock moving); one pixel at a shadow edge on the ground still flips by ~45 between runs,
+  // a rasterisation tie in the shadow map. A handful of stray pixels is allowed for that.
+  { "image": "compute-boids", "allow": { "3-5": 20, "6-15": 20, "16+": 20 } }
 ]

@@ -5,10 +5,10 @@ using Xunit;
 namespace Stride.CommunityToolkit.Tests.Rendering;
 
 /// <summary>
-/// Pins <see cref="AreaMeshBuilder.Columns"/>: how a filled band is clamped to the visible range and broken
+/// Pins <see cref="AreaColumns.Columns"/>: how a filled band is clamped to the visible range and broken
 /// where it cannot be drawn. No graphics device is involved.
 /// </summary>
-public class AreaMeshBuilderTests
+public class AreaColumnsTests
 {
     private const float Tolerance = 1e-5f;
 
@@ -18,7 +18,7 @@ public class AreaMeshBuilderTests
         Vector3[] upper = [new(0, 1, 0), new(1, 2, 0), new(2, 1, 0)];
         Vector3[] lower = [new(0, 0, 0), new(1, 0, 0), new(2, 0, 0)];
 
-        var runs = AreaMeshBuilder.Columns(upper, lower, -5, 5);
+        var runs = AreaColumns.Columns(upper, lower, -5, 5);
 
         var run = Assert.Single(runs);
         Assert.Equal(3, run.Count);
@@ -31,7 +31,7 @@ public class AreaMeshBuilderTests
         Vector3[] upper = [new(0, 1, 0), new(1, 9, 0)];
         Vector3[] lower = [new(0, 0, 0), new(1, 0, 0)];
 
-        var runs = AreaMeshBuilder.Columns(upper, lower, -5, 5);
+        var runs = AreaColumns.Columns(upper, lower, -5, 5);
 
         var run = Assert.Single(runs);
         Assert.Equal(5f, run[1].Upper.Y, Tolerance);
@@ -45,7 +45,7 @@ public class AreaMeshBuilderTests
         Vector3[] upper = [new(0, 1, 0), new(1, 20, 0), new(2, 1, 0), new(3, 1, 0)];
         Vector3[] lower = [new(0, 0, 0), new(1, 19, 0), new(2, 0, 0), new(3, 0, 0)];
 
-        var runs = AreaMeshBuilder.Columns(upper, lower, -5, 5);
+        var runs = AreaColumns.Columns(upper, lower, -5, 5);
 
         var run = Assert.Single(runs);
         Assert.Equal(2, run.Count);
@@ -58,7 +58,7 @@ public class AreaMeshBuilderTests
         Vector3[] upper = [new(0, 1, 0), new(1, float.NaN, 0), new(2, 1, 0), new(3, 1, 0)];
         Vector3[] lower = [new(0, 0, 0), new(1, 0, 0), new(2, 0, 0), new(3, 0, 0)];
 
-        var runs = AreaMeshBuilder.Columns(upper, lower, -5, 5);
+        var runs = AreaColumns.Columns(upper, lower, -5, 5);
 
         var run = Assert.Single(runs);
         Assert.Equal(2, run.Count);
@@ -70,7 +70,7 @@ public class AreaMeshBuilderTests
         Vector3[] upper = [new(0, 9, 0), new(1, 9, 0)];
         Vector3[] lower = [new(0, 8, 0), new(1, 8, 0)];
 
-        Assert.Empty(AreaMeshBuilder.Columns(upper, lower, -5, 5));
+        Assert.Empty(AreaColumns.Columns(upper, lower, -5, 5));
     }
 
     [Fact]
@@ -79,6 +79,6 @@ public class AreaMeshBuilderTests
         Vector3[] upper = [new(0, 1, 0), new(1, 1, 0)];
         Vector3[] lower = [new(0, 0, 0)];
 
-        Assert.Throws<ArgumentException>(() => AreaMeshBuilder.Columns(upper, lower, -5, 5));
+        Assert.Throws<ArgumentException>(() => AreaColumns.Columns(upper, lower, -5, 5));
     }
 }

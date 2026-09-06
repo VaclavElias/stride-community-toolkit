@@ -30,7 +30,10 @@ public sealed class ShapeGlow
 
     /// <summary>
     /// The glow's colour, or <c>null</c> (the default) to glow in the outline colour. Its alpha is
-    /// the glow's strength at the outline, before the fade.
+    /// the glow's strength at the outline, before the fade - and it is the number that decides what
+    /// the glow reads as. At full alpha the halo is solid colour where it meets the edge and only
+    /// then falls off, so a thin stroke looks like a fatter stroke; at 30 to 40 percent it reads as
+    /// light around the stroke, which is the neon look. Start there.
     /// </summary>
     public Color? Color { get; set; }
 
@@ -56,4 +59,4 @@ public sealed class ShapeGlow
         Set(0f);
         Additive = false;
     }
-}
+}
