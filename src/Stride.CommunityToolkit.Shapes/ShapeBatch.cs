@@ -35,6 +35,11 @@ public sealed class ShapeBatch : RenderObject
     // normalized space; an instance says where its run starts
     internal readonly List<Vector2> Points = [];
 
+    // Where this batch's records and points start in the frame's shared buffers; the render
+    // feature sets both when it gathers every batch for upload
+    internal int InstanceBase;
+    internal int PointBase;
+
     // A polyline longer than this is split into runs that share an end point. The pixel stage
     // tests every segment of a run for every fragment of its quad, so the cap bounds the cost of a
     // very long run; where two runs meet, the shared round cap is drawn twice, which shows only
@@ -577,7 +582,7 @@ public sealed class ShapeBatch : RenderObject
         {
             // The gradient's far end gets the same treatment as the near one: scaled by the fill
             // alpha in the shader, so the two ends dim together
-            return new(color, color, BorderWidth, Fill.Alpha, Glow.Width, Glow.Color ?? color, Dash.Capture(), CaptureGradient(color), Opacity);
+            return new(color, color, BorderWidth, Fill.Alpha, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), CaptureGradient(color), Opacity);
         }
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
@@ -585,20 +590,20 @@ public sealed class ShapeBatch : RenderObject
         var near = WithFillAlpha(fill);
         var gradient = Gradient.Color is { } to ? new GradientStyle(true, WithFillAlpha(to), Gradient.Direction) : new GradientStyle(false, near, Gradient.Direction);
 
-        return new(color, near, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Dash.Capture(), gradient, Opacity);
+        return new(color, near, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), gradient, Opacity);
     }
 
     /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
-    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Width, Glow.Color ?? color, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
 
     /// <summary>The current style with the fill turned off and its own outline width.</summary>
-    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Width, Glow.Color ?? color, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
 
     /// <summary>
     /// The current style with the fill turned all the way up, for shapes that are drawn solid. A
     /// gradient still applies: a line that fades out along its length is a leader line.
     /// </summary>
-    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Dash.Capture(), CaptureGradient(color), Opacity);
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), CaptureGradient(color), Opacity);
 
     /// <summary>The gradient as a draw call captures it, its far colour taken as given - the shader scales it by the fill alpha.</summary>
     private GradientStyle CaptureGradient(Color fallback) => new(Gradient.Color is not null, Gradient.Color ?? fallback, Gradient.Direction);

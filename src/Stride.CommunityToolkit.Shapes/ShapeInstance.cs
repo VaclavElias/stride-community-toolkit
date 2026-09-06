@@ -28,6 +28,9 @@ internal readonly struct ShapeInstance
     /// <summary>Bit 2 of the GPU flags: the fill runs from <see cref="FillColor"/> to <see cref="GradientColor"/> along the gradient direction.</summary>
     internal const int GradientFlag = 4;
 
+    /// <summary>Bit 5 of the GPU flags: the glow adds light rather than covering what is behind it.</summary>
+    internal const int AdditiveGlowFlag = 32;
+
     /// <summary>xyz: world position of the local origin; w: plane mode.</summary>
     public readonly Vector4 Position;
 
@@ -80,7 +83,7 @@ internal readonly struct ShapeInstance
         PointOffset = pointOffset;
         Count = count;
         Radius = radius;
-        Flags = slice.Flags | (style.Gradient.Enabled ? GradientFlag : 0);
+        Flags = slice.Flags | (style.Gradient.Enabled ? GradientFlag : 0) | (style.GlowAdditive ? AdditiveGlowFlag : 0);
         Color = style.Color;
         FillColor = style.FillColor;
         GlowColor = style.GlowColor;

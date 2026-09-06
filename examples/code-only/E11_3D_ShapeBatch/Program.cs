@@ -559,7 +559,8 @@ void DrawGlow(ShapeBatch shapes, float seconds)
     shapes.DrawPixelLine(cursor - new Vector3(0, 0, 1.6f), cursor + new Vector3(0, 0, 1.6f), 1.5f, Color.White);
 
     // Neon: the same colour glowing wide around a stroke, and a filled disc whose glow stops at
-    // its edge rather than washing into the fill
+    // its edge rather than washing into the fill. Not additive: over this bright sky an additive
+    // glow only saturates towards white; Glow.Additive is for a neon over a dark scene
     shapes.Glow.Color = null;
     shapes.Glow.Width = 28f;
     shapes.DrawRing(new Vector3(0, 6f, 14f), Vector3.UnitZ, 1.6f, Color.Cyan);

@@ -1,7 +1,6 @@
-using Stride.Core;
 using Stride.Engine;
-using Stride.Games;
 using Stride.Rendering;
+using Stride.Rendering.Compositing;
 
 namespace Stride.CommunityToolkit.Shapes;
 
@@ -58,7 +57,6 @@ public static class ShapeBatchExtensions
                     new SimpleGroupToRenderStageSelector
                     {
                         RenderStage = transparentStage,
-                        EffectName = "ShapeShader",
                         RenderGroup = RenderGroupMask.All,
                     }
                 }
@@ -73,31 +71,57 @@ public static class ShapeBatchExtensions
             game.Services.AddService(batch);
         }
 
-        // The visibility group is created by the first frame's rendering, after the usual Start
-        // callback runs - a one-shot game system registers the batch as soon as it exists
-        game.GameSystems.Add(new BatchRegistrar(game.Services, batch));
+        VisibilityGroupFor(game, compositor).RenderObjects.Add(batch);
 
         return batch;
     }
 
-    private sealed class BatchRegistrar : GameSystemBase
+    /// <summary>
+    /// Takes a batch out of rendering. Its shapes stop drawing from the next frame; the batch itself
+    /// can be added again later.
+    /// </summary>
+    /// <param name="game">The game the batch was added to.</param>
+    /// <param name="batch">The batch <see cref="AddShapeBatch"/> returned.</param>
+    public static void RemoveShapeBatch(this Game game, ShapeBatch batch)
     {
-        private readonly ShapeBatch _batch;
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(batch);
 
-        internal BatchRegistrar(IServiceRegistry services, ShapeBatch batch) : base(services)
+        if (game.SceneSystem.GraphicsCompositor is not { } compositor) return;
+
+        foreach (var visibilityGroup in game.SceneSystem.SceneInstance.VisibilityGroups)
         {
-            _batch = batch;
-            Enabled = true;
+            if (visibilityGroup.RenderSystem == compositor.RenderSystem)
+            {
+                visibilityGroup.RenderObjects.Remove(batch);
+            }
         }
 
-        public override void Update(GameTime gameTime)
+        batch.Reset();
+    }
+
+    // The visibility group that pairs the scene with the compositor's render system, which is
+    // what a render object is registered with. The compositor makes it on its first draw, after
+    // the usual Start callback has run; making it here first, the same way, means the batch is
+    // registered before the first frame instead of one frame later, and there is no one-shot
+    // system polling for it. The compositor finds it by render system and adopts it.
+    private static VisibilityGroup VisibilityGroupFor(Game game, GraphicsCompositor compositor)
+    {
+        var sceneInstance = game.SceneSystem.SceneInstance
+            ?? throw new InvalidOperationException("The game has no scene instance yet; add the batch from the Start callback or later.");
+
+        foreach (var visibilityGroup in sceneInstance.VisibilityGroups)
         {
-            var visibilityGroup = RenderContext.GetShared(Services).VisibilityGroup;
-
-            if (visibilityGroup == null) return;
-
-            visibilityGroup.RenderObjects.Add(_batch);
-            Enabled = false;
+            if (visibilityGroup.RenderSystem == compositor.RenderSystem)
+            {
+                return visibilityGroup;
+            }
         }
+
+        var created = new VisibilityGroup(compositor.RenderSystem);
+
+        sceneInstance.VisibilityGroups.Add(created);
+
+        return created;
     }
 }

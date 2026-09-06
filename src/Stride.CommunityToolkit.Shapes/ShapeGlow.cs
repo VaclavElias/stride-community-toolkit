@@ -7,8 +7,9 @@ namespace Stride.CommunityToolkit.Shapes;
 /// captures its values as it is made.
 /// </summary>
 /// <remarks>
-/// The glow lies outside the shape only, never under the fill, and fades out quadratically from the
-/// outline over <see cref="Width"/> pixels - constant at any distance, like the border. For a
+/// The glow lies outside the shape only, never under the fill or the border, and fades out
+/// quadratically from the border's outer edge over <see cref="Width"/> pixels - constant at any
+/// distance, like the border. For a
 /// stroke-only ring or arc the shape is the stroke, so the glow sits on both sides of it, which is
 /// what makes a light ring with a dark glow readable on any background.
 /// </remarks>
@@ -33,6 +34,13 @@ public sealed class ShapeGlow
     /// </summary>
     public Color? Color { get; set; }
 
+    /// <summary>
+    /// Whether the glow adds its light to whatever is behind it rather than covering it. Off by
+    /// default: a glow then behaves like a soft, translucent halo that can darken as well as
+    /// lighten. On, it is a neon bloom that only ever brightens - a black glow adds nothing.
+    /// </summary>
+    public bool Additive { get; set; }
+
     /// <summary>Sets both at once.</summary>
     /// <param name="width">Width in pixels; 0 for none.</param>
     /// <param name="color">The glow colour, or <c>null</c> for the outline colour.</param>
@@ -42,6 +50,10 @@ public sealed class ShapeGlow
         Color = color;
     }
 
-    /// <summary>No glow, and back to the outline colour.</summary>
-    public void Clear() => Set(0f);
+    /// <summary>No glow, back to the outline colour, and not additive.</summary>
+    public void Clear()
+    {
+        Set(0f);
+        Additive = false;
+    }
 }

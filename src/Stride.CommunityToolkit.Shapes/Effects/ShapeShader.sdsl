@@ -40,6 +40,7 @@ namespace Stride.CommunityToolkit.Shapes
             // 4:  Gradient - the fill runs from FillColor to GradientColor along Gradient.xy
             // 8:  PixelRadius - Radius, Slice.x and LocalScale are pixels on screen, converted at the shape's depth
             // 16: Polyline - the points are a run to stroke, not a convex polygon
+            // 32: AdditiveGlow - the glow adds light to what is behind it instead of covering it
             int Flags;
             // Colours as uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit
             // pattern, and GPUs canonicalize NaNs on float reads, destroying the red channel.
@@ -76,6 +77,19 @@ namespace Stride.CommunityToolkit.Shapes
             stage float3 CameraRight;
             stage float3 CameraUp;
             stage float3 EyePosition;
+
+            // 1 when the target is linear - Stride's default, an sRGB backbuffer that re-encodes
+            // on the way out - so the sRGB palette has to be decoded here; 0 for a gamma pipeline,
+            // where the bytes pass straight through
+            stage uint LinearOutput;
+        }
+
+        cbuffer PerDraw
+        {
+            // Every batch of the frame shares the two buffers; these say where this batch's
+            // records and points start. The instance id counts from 0 for every draw.
+            stage uint InstanceBase;
+            stage uint PointBase;
         }
 
         rgroup PerDraw.Shapes
@@ -99,7 +113,7 @@ namespace Stride.CommunityToolkit.Shapes
 
         override stage void VSMain()
         {
-            uint index = streams.InstanceID;
+            uint index = InstanceBase + streams.InstanceID;
             ShapeData data = Shapes[index];
 
             bool polyline = (data.Flags & 16) != 0;
@@ -200,7 +214,7 @@ namespace Stride.CommunityToolkit.Shapes
 
             int flags = data.Flags;
             int count = data.Count;
-            uint offset = data.PointOffset;
+            uint offset = PointBase + data.PointOffset;
             float fillAlpha = data.AxisY.w;
             float opacity = data.Gradient.z;
             float start = data.Slice.y;
@@ -210,7 +224,9 @@ namespace Stride.CommunityToolkit.Shapes
             bool roundCaps = (flags & 2) != 0;
             bool gradient = (flags & 4) != 0;
             bool polyline = (flags & 16) != 0;
+            bool additiveGlow = (flags & 32) != 0;
             bool cut = sweep > 0.0;
+            bool linearTarget = LinearOutput != 0;
 
             float4 borderColor = BitsToColor(data.Color);
             float4 fillColor = BitsToColor(data.FillColor);
@@ -271,11 +287,15 @@ namespace Stride.CommunityToolkit.Shapes
                 fillColor = lerp(fillColor, BitsToColor(data.GradientColor), t);
             }
 
-            fillColor *= fillAlpha;
+            // The testbed's fill: the fill alpha scales the colour's brightness as well as its
+            // opacity, in the sRGB values the caller gave. Decoded to the target's light after.
+            fillColor = ToTarget(fillColor * fillAlpha, linearTarget);
+            borderColor = ToTarget(borderColor, linearTarget);
 
             // Perspective term: near shapes have a large w, far ones a small one, so the same pixel
             // width maps to more or fewer world units with distance
-            float thickness = max(streams.FragScale.z * clipW, 0.000001);
+            float localPerPixel = streams.FragPosition.w * clipW;
+            float thickness = streams.FragScale.z * clipW;
             float glowWidth = streams.FragScale.w * clipW;
 
             // Signed distance to the shape's outline, negative inside. Everything below - fill,
@@ -332,35 +352,59 @@ namespace Stride.CommunityToolkit.Shapes
             // anti-aliased by the same smoothstep as every other edge
             if (data.Dash.x > 0.0 && (count <= 2 || polyline))
             {
-                s = max(s, SdDashes(p, offset, count, hollow, cut, radius, ringWidth, sweep, streams.FragPosition.w * clipW, data.Dash.xyz, wedge.xy, polyline, ringWidth));
+                s = max(s, SdDashes(p, offset, count, hollow, cut, radius, ringWidth, sweep, localPerPixel, data.Dash.xyz, wedge.xy, polyline, ringWidth));
             }
 
-            // Outer glow: falls off quadratically from the outline outward. Inside, the fill and
-            // border own the pixels, so the glow stops at the outline.
-            float4 glowColor = BitsToColor(data.GlowColor);
-            float4 glow = float4(glowColor.rgb, 0.0);
+            // The anti-aliasing ramp: half a pixel either side of an edge. Half a pixel of local
+            // space is known exactly for a plane facing the camera; seen at a slant the field
+            // changes faster across the screen along one axis than the other, which the screen
+            // derivative measures and the analytic figure does not, so the wider of the two wins.
+            // The derivative is capped: the field has creases (a dash end, a wedge corner) where
+            // a 2x2 quad straddles two definitions and the derivative has nothing to say.
+            float aa = clamp(0.5 * fwidth(s), 0.5 * localPerPixel, 2.0 * localPerPixel);
+
+            // The border is a flat band of full colour, half the thickness either side of the
+            // outline, with the ramp at both edges - so a four-pixel border is four opaque pixels,
+            // not a peak that only reaches full colour on the outline itself. A thickness of 0 is
+            // no border at all.
+            float halfWidth = 0.5 * thickness;
+            float border = thickness > 0.0 ? smoothstep(halfWidth + aa, halfWidth - aa, abs(s)) : 0.0;
+
+            // The fill covers everything inside the outline; its edge is under the border's
+            // inner half wherever there is a border, and its own ramp where there is none
+            float coverage = smoothstep(aa, -aa, s);
+
+            // Outer glow: full strength under the border and falling off quadratically from its outer
+            // edge outward. Inside the outline the fill owns the pixels, so the glow stops there - it
+            // must, or a glow in the outline colour would fill a translucent shape solid from
+            // underneath - and it must reach in to the outline, or the border ramp would show the
+            // background through a light seam.
+            float glowAlpha = 0.0;
             if (glowWidth > 0.0 && s > 0.0)
             {
-                float fade = 1.0 - saturate(s / glowWidth);
-                glow.a = glowColor.a * fade * fade;
+                float fade = 1.0 - saturate((s - halfWidth) / glowWidth);
+                glowAlpha = fade * fade;
             }
 
-            // Roll the fill alpha down at the border
-            float4 back = float4(fillColor.rgb, fillColor.a * smoothstep(thickness, 0.0, s));
+            float4 glowColor = ToTarget(BitsToColor(data.GlowColor), linearTarget);
+            glowAlpha *= glowColor.a;
 
-            // Roll the border alpha down from 1 to 0 across the border thickness
-            float4 front = float4(borderColor.rgb, smoothstep(thickness, 0.0, abs(s)));
+            // Composited premultiplied, in the target's light: layers add with no division, the
+            // target's alpha comes out right for rendering into a texture, and an additive glow is
+            // the same colour with no alpha - light added, nothing covered
+            float4 glow = float4(glowColor.rgb * glowAlpha, additiveGlow ? 0.0 : glowAlpha);
+            float4 fill = Premultiply(float4(fillColor.rgb, fillColor.a * coverage));
+            float4 stroke = Premultiply(float4(borderColor.rgb, borderColor.a * border));
+
+            float4 blended = Over(stroke, Over(fill, glow));
 
             // Opacity last, over everything the shape produced, so a fill under a border under a
             // glow dims as one thing rather than as three overlapping ones
-            float4 blended = BlendColors(front, BlendColors(back, glow));
+            blended *= saturate(opacity);
 
-            blended.a *= saturate(opacity);
+            blended.rgb = Dither(blended.rgb, Bayer(streams.ShadingPosition.xy), linearTarget);
 
-            // The palette is sRGB and the Box2D testbed's GL framebuffer passes it through; Stride's
-            // sRGB backbuffer re-encodes linear values, so convert to linear here to land on the
-            // same on-screen colours
-            streams.ColorTarget = float4(pow(max(blended.rgb, 0.0), 2.2), blended.a);
+            streams.ColorTarget = blended;
         }
     };
-}
+}

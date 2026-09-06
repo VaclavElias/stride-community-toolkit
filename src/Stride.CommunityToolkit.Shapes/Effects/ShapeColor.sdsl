@@ -1,26 +1,10 @@
 namespace Stride.CommunityToolkit.Shapes
 {
-    // Colour helpers for ShapeShader: unpacking the wire format's byte colours and compositing
-    // straight-alpha layers. No streams, no stages - a library any shader can mix in.
-    internal shader ShapeColor
+    // Colour helpers for ShapeShader: unpacking the wire format's byte colours, taking them to
+    // linear light, compositing premultiplied layers and dithering the result. No streams, no
+    // stages - a library any shader can mix in.
+    internal shader ShapeColor : ColorUtility
     {
-        // https://en.wikipedia.org/wiki/Alpha_compositing
-        float4 BlendColors(float4 front, float4 back)
-        {
-            float3 cSrc = front.rgb;
-            float alphaSrc = front.a;
-            float3 cDst = back.rgb;
-            float alphaDst = back.a;
-
-            float3 cOut = cSrc * alphaSrc + cDst * alphaDst * (1.0 - alphaSrc);
-            float alphaOut = alphaSrc + alphaDst * (1.0 - alphaSrc);
-
-            // Remove alpha from rgb; max avoids dividing by zero outside the shape
-            cOut = cOut / max(alphaOut, 0.0001);
-
-            return float4(cOut, alphaOut);
-        }
-
         float4 BitsToColor(uint u)
         {
             // Mask and shift: the bytes are at fixed positions, so there is nothing to divide
@@ -31,6 +15,56 @@ namespace Stride.CommunityToolkit.Shapes
                 (u >> 24) & 255
             ) / 255.0;
             return c;
+        }
+
+        // A straight-alpha colour as it was given - sRGB bytes - taken to linear light when the
+        // target is linear (the usual case: Stride's backbuffer is sRGB and re-encodes on the way
+        // out), left alone when the whole pipeline is gamma. Decoding per fragment, not on the
+        // CPU, is deliberate: eight bits of linear have no precision left in the darks.
+        float4 ToTarget(float4 straight, bool linearTarget)
+        {
+            return linearTarget ? SRgbToLinearPrecise(straight) : straight;
+        }
+
+        // Straight alpha to premultiplied: the form in which layers add and the blend state is
+        // One / InverseSourceAlpha, with no division anywhere and a correct alpha left in the target
+        float4 Premultiply(float4 straight)
+        {
+            return float4(straight.rgb * straight.a, straight.a);
+        }
+
+        // Premultiplied "over": front on top of back
+        float4 Over(float4 front, float4 back)
+        {
+            return front + back * (1.0 - front.a);
+        }
+
+        // Ordered dither, one 4x4 Bayer cell per four pixels either way, returned in -0.5..0.5.
+        // A gradient or a glow tail quantised to eight bits bands; half a code of noise, fixed to
+        // the pixel grid so it never crawls, breaks the bands into something the eye does not see.
+        float Bayer(float2 pixel)
+        {
+            int2 cell = int2(pixel) & 3;
+            int index = cell.x + cell.y * 4;
+
+            // The 4x4 Bayer matrix, row by row
+            float threshold =
+                index == 0 ? 0.0 : index == 1 ? 8.0 : index == 2 ? 2.0 : index == 3 ? 10.0 :
+                index == 4 ? 12.0 : index == 5 ? 4.0 : index == 6 ? 14.0 : index == 7 ? 6.0 :
+                index == 8 ? 3.0 : index == 9 ? 11.0 : index == 10 ? 1.0 : index == 11 ? 9.0 :
+                index == 12 ? 15.0 : index == 13 ? 7.0 : index == 14 ? 13.0 : 5.0;
+
+            return (threshold + 0.5) / 16.0 - 0.5;
+        }
+
+        // Half a code of dither in the units of the target: for an sRGB target one code is wider
+        // in linear terms the brighter the value (the curve's slope, about 2.2 times the value),
+        // and never narrower than the linear toe. A gamma target quantises the value as it is.
+        float3 Dither(float3 rgb, float noise, bool linearTarget)
+        {
+            float3 code = linearTarget ? max(rgb * 2.2, 1.0 / 12.92) / 255.0 : 1.0 / 255.0;
+
+            return rgb + noise * code;
         }
     };
 }
