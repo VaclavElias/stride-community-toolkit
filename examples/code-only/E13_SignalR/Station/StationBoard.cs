@@ -274,18 +274,34 @@ public sealed class StationBoard
         shapes.BorderWidth = 1.5f;
     }
 
+    /// <summary>
+    /// An L in each corner with a rounded elbow that follows the panel's own corner: a quarter arc
+    /// and a straight run along each edge from where the arc ends.
+    /// </summary>
     private void DrawCornerTicks(ShapeBatch shapes, Color accent)
     {
         const float Tick = 0.7f;
+        const float Radius = 0.25f;
         var half = _board.Half - new Vector2(0.15f, 0.15f);
+
+        // The arc is a stroke at the border width, so it matches the lines' two pixels
+        shapes.BorderWidth = 2f;
 
         foreach (var (signX, signY) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
             var corner = new Vector2(signX * half.X, signY * half.Y);
+            var elbow = corner - new Vector2(signX * Radius, signY * Radius);
 
-            Line(shapes, corner.X, corner.Y, corner.X - signX * Tick, corner.Y, 2f, accent);
-            Line(shapes, corner.X, corner.Y, corner.X, corner.Y - signY * Tick, 2f, accent);
+            // The quadrant facing the corner: the arc's axes are the board's, so angles are in (u, v)
+            var start = MathF.Atan2(signY, signX) - MathF.PI / 4f;
+
+            shapes.DrawArc(_board.Place(elbow), _board.Normal, Radius, start, MathF.PI / 2f, accent);
+
+            Line(shapes, elbow.X, corner.Y, elbow.X - signX * Tick, corner.Y, 2f, accent);
+            Line(shapes, corner.X, elbow.Y, corner.X, elbow.Y - signY * Tick, 2f, accent);
         }
+
+        shapes.BorderWidth = 1.5f;
     }
 
     private void Line(ShapeBatch shapes, float u1, float v1, float u2, float v2, float pixels, Color color)
