@@ -1,9 +1,9 @@
 using Stride.CommunityToolkit.Charts;
-using Stride.CommunityToolkit.Charts.Lines;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
+using Stride.CommunityToolkit.Shapes;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -41,7 +41,7 @@ ChartCurve? tangent = null;
 ChartCurve? wave = null;
 ChartTrajectory? trail = null;
 CameraComponent? camera = null;
-Entity? ball = null;
+ShapeBatch? batch = null;
 
 // The thrown ball: launched from the lower left, integrated by hand each frame - the point is watching
 // the trajectory series record a moving body, not the integrator
@@ -128,7 +128,7 @@ void Start(Scene rootScene)
     // The live trail the flying ball leaves behind; one point is appended per frame in Update
     trail = chart.AddTrajectory(capacity: 900, name: "throw");
 
-    // Scatter: noisy measurements around the sin curve, drawn as one batched mesh of x markers - the
+    // Scatter: noisy measurements around the sin curve, drawn as pixel-sized x glyphs each frame - the
     // classic "data points versus fitted curve" picture. The jitter is a deterministic hash of x, so the
     // picture is identical every run without involving Random.
     var samples = new List<Vector3>();
@@ -149,13 +149,9 @@ void Start(Scene rootScene)
     // The animated curve. An explicit colour keeps the palette rotation of the other series unchanged.
     wave = chart.Plot(x => WaveAmplitude * MathF.Sin(waveFrequency * x), color: new Color(0, 158, 150), name: "wave");
 
-    // The ball itself is a small closed ribbon circle moved along the flight path - the line primitives
-    // the chart is built on, used directly
-    ball = game.CreatePolyline(
-        PolylineSampling.Parametric(t => new Vector3(0.12f * MathF.Cos(t), 0.12f * MathF.Sin(t), 0f), 0f, MathUtil.TwoPi, 20),
-        new PolylineOptions { Width = 0.05f, Color = new Color(40, 40, 40), Closed = true },
-        "ball");
-    chart.Root.AddChild(ball);
+    // The ball is drawn each frame as a disc in a shape batch the chart shares: one batch draws the
+    // chart's strokes and the ball, and submitting the ball after Update puts it over the curves
+    batch = game.AddShapeBatch(depthTest: true);
 
     // A readout that follows the mouse over the chart plane
     chart.Options.Cursor.Visible = true;
@@ -238,20 +234,19 @@ void Update(Scene scene, GameTime time)
     // explicit because a scene can hold several, and only you know which one is looking at this chart.
     camera ??= scene.Entities.Select(e => e.Get<CameraComponent>()).FirstOrDefault(c => c != null);
 
-    if (camera is not null)
+    if (camera is not null && batch is not null)
     {
-        chart.Update(camera);
+        chart.Update(camera, batch);
+        batch.DrawDisc(new Vector3(ballPosition.X, ballPosition.Y, 0.05f), Vector3.UnitZ, 0.12f, new Color(40, 40, 40));
     }
 
-    if (!ballFlying || trail is null || ball is null) return;
+    if (!ballFlying || trail is null) return;
 
     // Semi-implicit Euler; capped so a stall (a dragged window) cannot teleport the ball
     var dt = MathF.Min((float)time.Elapsed.TotalSeconds, 0.1f);
 
     ballVelocity.Y -= Gravity * dt;
     ballPosition += ballVelocity * dt;
-
-    ball.Transform.Position = new Vector3(ballPosition.X, ballPosition.Y, 0.05f);
 
     // The trajectory clips to the chart's ranges by itself; the trail simply ends at the edge
     trail.Add(new Vector3(ballPosition.X, ballPosition.Y, 0f));
@@ -280,8 +275,8 @@ complexity: 3
 order: 210
 description:
   en: |-
-    A flat, paper-like chart drawn entirely in code - no assets, no chart control, just meshes built at
-    runtime. Function plots handle their own awkward cases: ln(x) starts where its domain does, tan(x) is
+    A flat, paper-like chart drawn entirely in code - no assets, no chart control, every line a pixel-width stroke
+    in a shape batch. Function plots handle their own awkward cases: ln(x) starts where its domain does, tan(x) is
     cut into branches at its asymptotes instead of being joined by a false vertical line, and everything
     is clipped to the chart's ranges. On top of that sit a parametric loop, scatter markers, a shaded
     region under a curve, a trajectory that records a thrown ball while it flies, and a curve whose
@@ -290,7 +285,7 @@ description:
 concepts:
   - "Plotting y = f(x) with clipping, NaN handling and asymptote splitting"
   - Parametric curves closed back on themselves
-  - Scatter markers batched into one mesh
+  - Scatter markers drawn as pixel-sized glyphs
   - Shading the region under a curve
   - Recording a moving body with a growing trajectory
   - Animating a curve by swapping its function in place

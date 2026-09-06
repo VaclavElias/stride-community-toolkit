@@ -1,10 +1,10 @@
 using Stride.CommunityToolkit.Charts;
-using Stride.CommunityToolkit.Charts.Lines;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
+using Stride.CommunityToolkit.Shapes;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -37,7 +37,7 @@ ChartCurve? tangent = null;
 ChartCurve? wave = null;
 ChartTrajectory? trail = null;
 CameraComponent? camera = null;
-Entity? ball = null;
+ShapeBatch? batch = null;
 
 // The thrown ball, integrated by hand each frame. Unlike the 2D example it is given a Z velocity too, so
 // the recorded trail arcs through the depth of the chart instead of staying on the front plane.
@@ -53,8 +53,8 @@ var animate = true;
 var showcase = false;
 LightComponent? keyLight = null;
 Bloom? bloom = null;
-const float ChartGlow = 2.5f;
-const float ShowcaseGlow = 6f;
+const float ChartGlow = 6f;
+const float ShowcaseGlow = 16f;
 const float ChartLight = 20f;
 const float ShowcaseLight = 2f;
 var waveTime = 0f;
@@ -145,12 +145,9 @@ void Start(Scene rootScene)
 
     wave = chart.Plot(x => WaveAmplitude * MathF.Sin(waveFrequency * x), color: new Color(0, 210, 200), name: "wave");
 
-    // The ball itself, a small glowing ring moved along the flight path
-    ball = game.CreatePolyline(
-        PolylineSampling.Parametric(t => new Vector3(0.12f * MathF.Cos(t), 0.12f * MathF.Sin(t), 0f), 0f, MathUtil.TwoPi, 20),
-        new PolylineOptions { Width = 0.05f, Color = Color.White, Closed = true, EmissiveIntensity = 2.5f },
-        "ball");
-    chart.Root.AddChild(ball);
+    // The ball is drawn each frame as a glowing disc in a shape batch the chart shares: one batch draws
+    // the chart's strokes and the ball, and submitting the ball after Update puts it over the curves
+    batch = game.AddShapeBatch(depthTest: true);
 
     chart.Options.Cursor.Visible = true;
 
@@ -233,10 +230,10 @@ void Update(Scene scene, GameTime time)
         animate = !animate;
     }
 
-    // The showcase look. Everything here is emissive already; what holds it back in the default view is
-    // the grid behind the curves and a glow of 2.5. Drop the grid and push the glow up and the same
-    // figure reads as the neon thing you get by orbiting behind it - no rotating needed. Setting Glow is
-    // a material parameter write per series, so nothing is rebuilt.
+    // The showcase look. What holds the figure back in the default view is the grid behind the curves and
+    // a modest glow halo. Drop the grid and widen the halo and the same figure reads as the neon thing you
+    // get by orbiting behind it - no rotating needed. Glow is a number the strokes read as they are
+    // submitted, so nothing is rebuilt.
     if (game.Input.IsKeyPressed(Keys.V))
     {
         showcase = !showcase;
@@ -276,19 +273,23 @@ void Update(Scene scene, GameTime time)
     // the call is the same, and the camera is explicit because a scene can hold several.
     camera ??= scene.Entities.Select(e => e.Get<CameraComponent>()).FirstOrDefault(c => c != null);
 
-    if (camera is not null)
+    if (camera is not null && batch is not null)
     {
-        chart.Update(camera);
+        chart.Update(camera, batch);
+
+        batch.Glow.Set(chart.Options.Series.Glow);
+        batch.Glow.Additive = true;
+        batch.DrawBillboardCircle(chart.Root.Transform.Position + ballPosition, 0.12f, Color.White);
+        batch.Glow.Clear();
     }
 
-    if (!ballFlying || trail is null || ball is null) return;
+    if (!ballFlying || trail is null) return;
 
     var dt = MathF.Min((float)time.Elapsed.TotalSeconds, 0.1f);
 
     ballVelocity.Y -= Gravity * dt;
     ballPosition += ballVelocity * dt;
 
-    ball.Transform.Position = ballPosition;
     trail.Add(ballPosition);
 
     if (ballPosition.Y < chart.Options.Range.YMin - 1f || ballPosition.X > chart.Options.Range.XMax + 1f)
@@ -329,7 +330,7 @@ concepts:
   - A trajectory recorded through all three axes
   - Orbiting a figure with Basic3DOrbitCameraController
   - Framing a bounding box in a perspective camera with FrameCamera
-  - Emissive intensity above 1 glowing through bloom
+  - An additive glow halo on every stroke, wider for the showcase look
 tags:
   - 3D
   - Charts
