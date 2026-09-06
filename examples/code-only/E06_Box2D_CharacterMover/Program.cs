@@ -440,7 +440,7 @@ title:
 level: Intermediate
 category: Physics
 complexity: 4
-order: 95
+order: 94
 description:
   en: |-
     A platformer character with no rigid body, on Box2D v3's mover API: a capsule the game moves

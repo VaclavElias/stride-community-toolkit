@@ -382,9 +382,8 @@ void DrawLines(ShapeBatch shapes, float seconds)
     shapes.DrawPixelLine(new Vector3(22, 0.5f, 5f), new Vector3(22, 0.5f, -150f), 2f, Color.White);
 
     // Strokes: a run of points as one line with round joins. A sine at two pixels across the back
-    // of the ground; the same run at half opacity, which is where a long run's chunk joints show
-    // as slightly brighter dots every eighth point; and a closed HUD bracket - concave, which no
-    // polygon fill could be - with dashes marching around it
+    // of the ground; the same run at half opacity, one shape, so its joins do not double up; and a
+    // closed HUD bracket - concave, which no polygon fill could be - with dashes marching around it
     Span<Vector2> wave = stackalloc Vector2[48];
 
     for (var i = 0; i < wave.Length; i++)
