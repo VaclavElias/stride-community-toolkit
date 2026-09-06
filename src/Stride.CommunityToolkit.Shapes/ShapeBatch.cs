@@ -190,6 +190,28 @@ public sealed class ShapeBatch : RenderObject
         => DrawBillboard([Vector2.Zero], center, color, radius);
 
     /// <summary>
+    /// Submits a camera-facing disc whose radius is measured in pixels on screen, so it is the same
+    /// size at any distance - a marker or a scatter point that never shrinks as the camera pulls back.
+    /// </summary>
+    /// <param name="center">World position of the centre.</param>
+    /// <param name="pixelRadius">Radius in pixels on a 100% display; follows the display scale like the border width.</param>
+    /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill"/>.</param>
+    /// <remarks>Pixel-measured shapes are always billboards: the conversion from pixels to world units is exact only in a screen-aligned plane.</remarks>
+    public void DrawPixelDisc(Vector3 center, float pixelRadius, Color color)
+        => Add([Vector2.Zero], new ShapePlane(center, Vector3.UnitX, Vector3.UnitY, PlaneMode.Screen), CurrentStyle(color), ShapeSlice.Whole with { PixelRadius = true }, pixelRadius, 1f);
+
+    /// <summary>
+    /// Submits a camera-facing ring whose radius is measured in pixels on screen, stroked
+    /// <see cref="BorderWidth"/> pixels wide - a cursor marker or a selection halo that keeps its size
+    /// at any distance.
+    /// </summary>
+    /// <param name="center">World position of the centre.</param>
+    /// <param name="pixelRadius">Radius of the stroke's centreline in pixels on a 100% display.</param>
+    /// <param name="color">The stroke colour.</param>
+    public void DrawPixelRing(Vector3 center, float pixelRadius, Color color)
+        => Add([Vector2.Zero], new ShapePlane(center, Vector3.UnitX, Vector3.UnitY, PlaneMode.Screen), OutlineStyle(color), Stroke with { PixelRadius = true }, pixelRadius, 1f);
+
+    /// <summary>
     /// Submits a filled disc lying flat in the plane a normal defines - a ground marker, an
     /// area-of-effect indicator, a decal.
     /// </summary>

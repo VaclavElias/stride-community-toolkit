@@ -410,6 +410,27 @@ void DrawBillboards(ShapeBatch shapes, float seconds)
 
     shapes.Fill.Color = null;
 
+    // Pixel-measured markers beside them: a disc and a ring that are the same size on screen at
+    // any distance, where the world-radius billboards above shrink with it - scatter points and
+    // cursor markers want exactly this. The ring wears a glow, and a glowing pixel line joins the pair.
+    shapes.BorderWidth = 2f;
+    shapes.Glow.Set(8f, new Color(255, 140, 0, 160));
+
+    for (var i = 0; i < PillarCount; i++)
+    {
+        var pillar = pillars[i].Transform.Position;
+        var beside = new Vector3(pillar.X, pillarHeights[i] + 1.6f + bob, pillar.Z);
+        var left = beside - new Vector3(1.4f, 0, 0);
+        var right = beside + new Vector3(1.4f, 0, 0);
+
+        shapes.DrawPixelDisc(left, 6f, Color.Orange);
+        shapes.DrawPixelRing(right, 10f, Color.Orange);
+        shapes.DrawPixelLine(left, right, 1.5f, new Color(255, 140, 0, 120));
+    }
+
+    shapes.Glow.Clear();
+    shapes.BorderWidth = borderWidth;
+
     // A diamond over the hub: any polygon can be billboarded, not just circles
     ReadOnlySpan<Vector2> diamond = [new(0.9f, 0f), new(0f, 0.9f), new(-0.9f, 0f), new(0f, -0.9f)];
 
@@ -665,7 +686,7 @@ concepts:
   - Discs, rings and polygons lying on an arbitrary plane in 3D
   - HUD panels with glowing edges and glowing world text, including a live counter
   - Thick 3D lines and wire boxes from camera-facing capsules
-  - Billboards that keep their shape from any viewpoint
+  - Billboards that keep their shape from any viewpoint, and pixel-radius markers that keep their size at any distance
   - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
   - An outer glow measured in pixels, for halos and neon
   - Dashes in pixels on rings and lines, animated through their phase

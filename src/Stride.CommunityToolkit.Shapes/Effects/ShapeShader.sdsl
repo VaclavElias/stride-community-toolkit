@@ -27,6 +27,7 @@ namespace Stride.CommunityToolkit.Shapes
             // 1: Hollow - only the band Slice.x deep inside the outline is the shape
             // 2: RoundCaps - the angular cut ends in semicircles rather than radial edges (circles only)
             // 4: Gradient - the fill runs from FillColor to GradientColor along Gradient.xy
+            // 8: PixelRadius - Radius and Slice.x are pixels on screen, converted at the shape's depth
             int Count;
             float Radius;
             float Scale;
@@ -98,6 +99,18 @@ namespace Stride.CommunityToolkit.Shapes
         override stage void VSMain()
         {
             ShapeData data = Shapes[streams.InstanceID];
+
+            // A pixel-measured radius: converted to world units at the shape's own depth before anything
+            // else is derived from it, so a marker is the same size on screen at any distance. World
+            // units per pixel at depth w is w / PixelScale, the same relation the border uses.
+            if ((data.Flags & 8) != 0)
+            {
+                float originW = mul(float4(data.Position.xyz, 1.0), ViewProjection).w;
+                float pixelToWorld = max(originW, 0.0001) / PixelScale;
+
+                data.Radius *= pixelToWorld;
+                data.Slice.x *= pixelToWorld;
+            }
 
             float2 points[8];
             points[0] = data.Points12.xy;

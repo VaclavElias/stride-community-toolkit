@@ -9,7 +9,8 @@ namespace Stride.CommunityToolkit.Shapes;
 /// <param name="StartAngle">Where the kept angular range starts, radians from the plane's X axis.</param>
 /// <param name="SweepAngle">Size of the kept range, counter-clockwise; 0 keeps the full turn.</param>
 /// <param name="RoundCaps">Whether the range ends in semicircles rather than radial edges. Circles only.</param>
-internal readonly record struct ShapeSlice(bool Hollow, float RingWidth, float StartAngle, float SweepAngle, bool RoundCaps)
+/// <param name="PixelRadius">Whether the radius and band depth are in pixels on screen rather than world units, converted per shape at its own depth.</param>
+internal readonly record struct ShapeSlice(bool Hollow, float RingWidth, float StartAngle, float SweepAngle, bool RoundCaps, bool PixelRadius = false)
 {
     /// <summary>The whole shape, which is what every ordinary draw call submits.</summary>
     public static readonly ShapeSlice Whole = default;
@@ -20,6 +21,9 @@ internal readonly record struct ShapeSlice(bool Hollow, float RingWidth, float S
     /// <summary>Bit 1 of the GPU flags: round caps.</summary>
     internal const int RoundCapsFlag = 2;
 
+    /// <summary>Bit 3 of the GPU flags: radius and band depth are in pixels.</summary>
+    internal const int PixelRadiusFlag = 8;
+
     /// <summary>The slice as the shader reads it.</summary>
-    internal int Flags => (Hollow ? HollowFlag : 0) | (RoundCaps ? RoundCapsFlag : 0);
+    internal int Flags => (Hollow ? HollowFlag : 0) | (RoundCaps ? RoundCapsFlag : 0) | (PixelRadius ? PixelRadiusFlag : 0);
 }
