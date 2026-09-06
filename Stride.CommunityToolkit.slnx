@@ -28,7 +28,11 @@
     <Project Path="examples/code-only/E02_3D_GiveMeACube/E02_3D_GiveMeACube.csproj" />
     <Project Path="examples/code-only/E02_3D_GiveMeACube_SimulationUpdate/E02_3D_GiveMeACube_SimulationUpdate.csproj" />
     <Project Path="examples/code-only/E06_Box2D_Junkyard/E06_Box2D_Junkyard.csproj" Id="53e844c7-8e4e-45f2-8639-1d3d7b054825" />
-  <Project Path="examples/code-only/E06_Box2D_JunkyardInteractive/E06_Box2D_JunkyardInteractive.csproj" />
+    <Project Path="examples/code-only/E06_Box2D_JunkyardInteractive/E06_Box2D_JunkyardInteractive.csproj" />
+    <Project Path="examples/code-only/E06_Box2D_Car/E06_Box2D_Car.csproj" />
+    <Project Path="examples/code-only/E06_Box2D_CharacterMover/E06_Box2D_CharacterMover.csproj" />
+    <Project Path="examples/code-only/E06_Box2D_Explosion/E06_Box2D_Explosion.csproj" />
+    <Project Path="examples/code-only/E06_Box2D_Joints/E06_Box2D_Joints.csproj" />
     <Project Path="examples/code-only/E04_StrideUI_BasicWindow/E04_StrideUI_BasicWindow.csproj" />
     <Project Path="examples/code-only/E04_StrideUI_ButtonHoverAnimation/E04_StrideUI_ButtonHoverAnimation.csproj" />
     <Project Path="examples/code-only/E03_2D_Panels/E03_2D_Panels.csproj" />
@@ -69,6 +73,8 @@
     <Project Path="examples/code-only/E06_Jitter2/E06_Jitter2.csproj" />
     <Project Path="examples/code-only/E06_Jitter2_ConstrainedTo2D/E06_Jitter2_ConstrainedTo2D.csproj" />
     <Project Path="examples/code-only/E05_3D_FirstPersonCharacter/E05_3D_FirstPersonCharacter.csproj" />
+    <Project Path="examples/code-only/E05_3D_Car/E05_3D_Car.csproj" />
+    <Project Path="examples/code-only/E05_3D_Cloth/E05_3D_Cloth.csproj" />
     <Project Path="examples/code-only/E05_3D_Grabber/E05_3D_Grabber.csproj" />
     <Project Path="examples/code-only/E10_3D_Instancing/E10_3D_Instancing.csproj" />
     <Project Path="examples/code-only/E10_3D_Instancing_EntityTransform/E10_3D_Instancing_EntityTransform.csproj" />
