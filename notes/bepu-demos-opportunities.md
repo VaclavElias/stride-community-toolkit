@@ -18,7 +18,7 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 
 ## 1. Demo scenes worth porting
 
-### G1 - Cloth from a constraint lattice
+### G1 - Cloth from a constraint lattice - **built 2026-09-06** as `E05_3D_Cloth`
 - **Source:** `Demos/Demos/ClothDemo.cs:114-281` (`CreateBodyGrid` :121, `CreateDistanceConstraints` :164, `CreateAreaConstraints` :143); variant `Demos/SpecializedTests/ClothLatticeDemo.cs`.
 - **What it does:** four 10x30 sheets differing only in stiffness and whether area constraints are present, then a 96x96 sheet draped over two static capsules. Render text says it: "the library has no special case for cloth; standard bodies and constraints work well." Distance constraints use a limit with minimum = 15 % of rest length so the cloth bunches but never stretches (:176); area constraints (3-body) stop the shear that distance-only lattices show.
 - **Toolkit form:** `Example27_Cloth` (or `E05_3D_Constraints_Cloth`), 4-way comparison + one big sheet.
@@ -80,7 +80,7 @@ that is a recognisable translation of a demo carries a one-line header "adapted 
 ### G11 - Ragdoll tumble dryer
 - **Source:** `Demos/Demos/RagdollTubeDemo.cs` (100 lines) - ragdolls in a rotating kinematic tube. Second scene of G10 or a stress example. **Effort:** S once G10 exists.
 
-### G12 - Car: the four-constraint wheel
+### G12 - Car: the four-constraint wheel - **built 2026-09-06** as `E05_3D_Car`, see [plans/cars.md](plans/cars.md)
 - **Source:** `Demos/Demos/Cars/SimpleCar.cs:38-104` (`CreateWheel`), `SimpleCarController.cs` (Ackermann :58-104), `CarDemo.cs:37-120`, `RaceTrack.cs`, `WheelHandles.cs`.
 - **The recipe:** per wheel - `LinearAxisServo` with `TargetOffset = suspensionLength` (suspension spring); `PointOnLineServo` along the suspension direction (keeps the wheel on its strut); `AngularAxisMotor` (drive and brake in one); `AngularHinge` whose `LocalHingeAxisA` is rotated about the suspension axis (steering, `SimpleCar.Steer` :20-26). Body is a two-box `Compound`. Controller adds Ackermann geometry and only re-applies constraint descriptions when they change, to avoid waking the car every frame (:100-101).
 - **Access:** all four exist as Stride components - `LinearAxisServoConstraintComponent`, `PointOnLineServoConstraintComponent`, `AngularAxisMotorConstraintComponent`, `AngularHingeConstraintComponent`.

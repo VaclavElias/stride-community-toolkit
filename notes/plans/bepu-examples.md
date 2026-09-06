@@ -273,7 +273,7 @@ to it.
 
 *Source:* `TriggerUsageComponent`, `CollisionComponent`.
 
-#### 8. `E05_3D_Constraints_GravityGun` · Intermediate · complexity 7
+#### 8. `E05_3D_Constraints_GravityGun` · Intermediate · complexity 7 — **DONE** (2026-09-05, as `E05_3D_Grabber` + `GrabberScript` in the library; see [bepu-grabber.md](bepu-grabber.md))
 
 Grab, hold, move and release a body using constraints — raycast to pick, then attach
 `OneBodyLinearServoConstraintComponent` + `OneBodyAngularServoConstraintComponent`, tracking a local

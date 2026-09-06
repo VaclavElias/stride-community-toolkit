@@ -33,6 +33,14 @@ settles.
 | 10 | Body component | `Box2DBodyComponent.ApplyForce` / `ApplyImpulse` / `ApplyTorque`; `BodyForces.SetVelocity` / `GetVelocity` / `ApplyImpulse` / `ApplyImpulseAtPoint` |
 | 11 | World queries | `OverlapPoint`, `OverlapAABB`, `OverlapCircle` |
 | 12 | Fixtures | `ShapeFixtureBuilder.AttachShape` (toolkit 2D primitives), `AttachPolygon` (hull, ≤ 8 vertices), `CreateDefaultShapeDef`, `CreateCustomShapeDef` |
+| 13 | Joints (2026-09-06) | `Joints2D.CreateRevolute` / `Prismatic` / `Wheel` / `Distance` / `Weld` / `Motor` / `Filter`, `Destroy`, `IsValid`, `GetAnchors` - world-space pivots and axes, per-type `*JointOptions` records; `Box2DSimulation.Joints` adds `Entity` overloads. See [box2d-joints.md](box2d-joints.md) |
+| 14 | Explosion (2026-09-06) | `Box2DSimulation.Explode(position, radius, impulsePerLength, falloff, maskBits)` |
+| 15 | Mouse grab (2026-09-06) | `Grabber2DScript` on the camera entity - kinematic anchor + motor joint, the samples' idiom (v3 has no mouse joint); in every Box2D example |
+| 16 | Chains (2026-09-06) | `ShapeFixtureBuilder.AttachChain(points, body, isLoop, friction)` - adds the ghost end points itself; documents the right-hand collision side |
+| 17 | Debug draw (2026-09-06) | `Box2DDebugDraw(shapeBatch)` - `b2World_Draw` through `ShapeBatch`, testbed toggles as properties, `DrawString` hook for text; in `E06_Box2D_Joints` |
+| 18 | Shape casts (2026-09-06) | `PhysicsQueries2D.CastCircleClosest` / `CastSegmentClosest` / `CastShapeClosest` returning `ShapeCastHit`, and `OverlapCircle` with a `B2QueryFilter`; the same on `Box2DSimulation` |
+| 19 | SVG paths (2026-09-06) | `SvgPath2D.Parse(path, offset, scale, reverse)` - the samples' parser: straight-line commands only, y flipped |
+| 20 | Character mover (2026-09-06) | `CharacterMover2D` on the v3 mover API (`CollideMover` / `SolvePlanes` / `CastMover`, pogo by shape cast), `IBox2DSimulationUpdate`, per-shape `MoverShapeResponse` in shape user data via `SetResponse`; `E06_Box2D_CharacterMover`. See [box2d-character-mover.md](box2d-character-mover.md) |
 
 Two gotchas worth keeping, both of which cost time:
 
@@ -65,15 +73,18 @@ they belong in the library:
   to sleep, so the sleep-skipping in `Box2DEntityInstancing` never gets to engage. Tuning this is an
   open experiment, not just a missing wrapper.
 - Linear and angular damping.
+- Body-definition flags at creation: `allowFastRotation` (the Box2D car sample sets it on its
+  wheels; at 35 rad/s and 60 Hz it is not needed) and `isBullet`. `CreateDynamicBody` takes only a
+  position and a rotation today.
 
 **Transform interpolation** (originally item 9). The simulation steps at a fixed 60 Hz with up to
 three steps per frame, so whenever the render rate and step rate diverge the bodies visibly step
 rather than glide. Bepu has the same open question, so whatever shape this takes should probably
 match on both sides.
 
-**Joint helpers** (originally item 12). Nothing in the library; `Example18`'s `SceneManager` calls
-`B2Joints` directly. Distance, revolute and motor joints would be the obvious three, and they would
-give the Bepu constraint examples (`E05_3D_Constraints_*`) natural Box2D twins.
+**Joint helpers** (originally item 12) - **done 2026-09-06**, all seven types, as row 13 above;
+`E06_Box2D_Joints` is the showcase. Still calling `B2Joints` directly: `E06_Box2D`'s
+`ShapeSpawner` for its one distance joint - worth switching when that example is next touched.
 
 **Performance stats** (originally item 13). No wrapper over `b2World_GetProfile` or the world
 counters. Worth having — all of the multithreading tuning so far was done with a throwaway
@@ -90,13 +101,12 @@ measured roughly 15–25% faster on a 20k-box pile with both of those.
 
 ## Dropped as no longer relevant
 
-**Debug drawing via `B2DebugDraw` / `B2DrawContext`** (originally item 7). Not the route taken.
-Rather than wrapping Box2D's own debug draw, the toolkit ports the testbed's `solid_polygon` SDF
-shader, which gives an outline that stays a constant few *pixels* wide at any zoom — something mesh
-geometry structurally cannot do. It outgrew Box2D entirely and became its own package on 2026-08-31,
-[`Stride.CommunityToolkit.Shapes`](../../src/Stride.CommunityToolkit.Shapes), so it is no longer a
-Box2D concern at all — the Box2D examples reference that package directly. See
-[`E11_3D_ShapeBatch`](../../examples/code-only/E11_3D_ShapeBatch).
+**Debug drawing via `B2DebugDraw` / `B2DrawContext`** (originally item 7) - dropped on
+2026-08-31, **revived 2026-09-06** as row 17. The 2026-08-31 reasoning was that the testbed's
+`solid_polygon` SDF shader, now [`Stride.CommunityToolkit.Shapes`](../../src/Stride.CommunityToolkit.Shapes),
+made the wrapper unnecessary: it draws the *bodies*. It does not draw joints, contacts, forces,
+bounds or islands, and those are what `b2World_Draw` knows about - so `Box2DDebugDraw` wraps it
+after all, rendering through that same batch. The Box2D library now references the Shapes package.
 
 **Exposing `EnableContactEvents` / `EnableHitEvents` / `EnableSensorEvents` as properties.**
 Misconceived: Box2D enables these per fixture on the shape def, not per world, so there is no

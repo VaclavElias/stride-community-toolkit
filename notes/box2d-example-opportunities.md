@@ -28,7 +28,7 @@ Existing Box2D examples: Example18 (integration basics + distance joints), Examp
 
 ## Gems
 
-### 1. Character Mover - capsule controller with no rigid body
+### 1. Character Mover - capsule controller with no rigid body - **built 2026-09-06** as `CharacterMover2D` + `E06_Box2D_CharacterMover`, see [plans/box2d-character-mover.md](plans/box2d-character-mover.md)
 - Source: Box2D.NET.Samples/Samples/Characters/Mover.cs (647 lines; core 280-460, plane callback 496-518)
 - Quake-style pmove. Character is a bare B2Capsule + transform. Per step: b2World_CollideMover (contact planes), b2SolvePlanes (translation), b2World_CastMover (sweep fraction), 5 iterations, b2ClipVector for velocity. Pogo spring (b2World_CastShape down + b2SpringDamper) floats it above ground and pushes back with b2Body_ApplyForce. Per-shape ShapeUserData { maxPush, clipVelocity } makes elevators rigid and NPCs soft.
 - APIs: b2World_CollideMover, b2World_CastMover (B2Worlds.cs:2460, 2532), b2SolvePlanes/b2ClipVector (B2Movers.cs:17, 65), b2World_CastShape (B2Worlds.cs:2391), B2CollisionPlane, B2PlaneResult, b2CreateChain.
@@ -44,7 +44,7 @@ Existing Box2D examples: Example18 (integration basics + distance joints), Examp
 - Covered: No. Effort: M. Caveat: callback runs on solver worker threads, must be thread-safe/read-only (Platform.cs:125-127) - toolkit runs 8 workers by default.
 - Why: one-way platforms are the most-requested 2D feature, impossible with layers/filters.
 
-### 3. Explosion - b2World_Explode
+### 3. Explosion - b2World_Explode - **built 2026-09-06** as `Box2DSimulation.Explode` + `E06_Box2D_Explosion`
 - Source: Samples/Shapes/Explosion.cs (135); B2ExplosionDef.cs; also Samples/Events/BodyMove.cs
 - b2DefaultExplosionDef() -> position/radius/falloff/impulsePerLength/maskBits -> b2World_Explode. Impulse proportional to projected perimeter. Sample also animates weld joints via b2Joint_SetLocalFrameA.
 - APIs: b2World_Explode (B2Worlds.cs:2734), B2ExplosionDef, b2CreateWeldJoint, b2Joint_Get/SetLocalFrameA.
@@ -63,7 +63,7 @@ Existing Box2D examples: Example18 (integration basics + distance joints), Examp
 - Toolkit: Example18_Box2D_SoftBody (donuts of different stiffness into a bowl, ShapeBatch capsules).
 - Covered: No. Effort: S once joints exist. Why: best visual per line; teaches negative group index (Box2DCollisionMatrix does not model it).
 
-### 6. Car / Driving - wheel joints
+### 6. Car / Driving - wheel joints - **built 2026-09-06** as `E06_Box2D_Car`, see [plans/cars.md](plans/cars.md)
 - Source: Samples/Car.cs (154, reusable Car struct) + Samples/Joints/Driving.cs (285); also DoohickeyFarm.cs, Doohickey.cs
 - Car.Spawn: rounded hull chassis + two circle wheels, b2CreateWheelJoint (localFrameA.q = b2MakeRot(0.5*PI), enableMotor, maxMotorTorque, hertz/dampingRatio, lower/upperTranslation, allowFastRotation = true on wheels, rollingResistance = 0.1). Runtime b2WheelJoint_* setters.
 - APIs: b2CreateWheelJoint, B2WheelJoints.*, b2ComputeHull/b2MakePolygon with radius, bodyDef.allowFastRotation, material.rollingResistance.
@@ -96,32 +96,32 @@ Existing Box2D examples: Example18 (integration basics + distance joints), Examp
 - Toolkit: Example02_Tumbler_Box2D and Example02_JointGrid_Box2D in the Junkyard house style.
 - Covered: Partial (many bodies yes; many joints no - different solver path, graph colouring). Effort: S each.
 
-### 11. Mouse drag joint
+### 11. Mouse drag joint - **built 2026-09-06** as `Grabber2DScript`, in every Box2D example
 - Source: Samples/Sample.cs:724-800 (MouseDown/Up/Move, QueryCallback at 697)
 - b2World_OverlapAABB on 2mm box -> b2Shape_TestPoint -> kinematic anchor body -> b2CreateMotorJoint (linearHertz 7.5, linearDampingRatio 1, maxSpringForce scaled by mass*gravity, maxVelocityTorque = 0.25*sqrt(I/m)*mg). No b2MouseJoint in v3; this is the idiom. b2Joint_IsValid must be re-checked each frame (Sample.cs:791).
 - Toolkit: MouseDragJoint2D helper (Begin/Update/End) in the library.
 - Covered: Partial (Playground picks + impulse, no drag). Effort: S.
 
-### 12. Joint facade - the biggest hole
+### 12. Joint facade - the biggest hole - **built 2026-09-06** as `Joints2D` / `Box2DSimulation.Joints` + `E06_Box2D_Joints`
 - Source: Box2D.NET/B2Joints.cs:402-758 - b2CreateDistanceJoint, MotorJoint, FilterJoint, PrismaticJoint, RevoluteJoint, WeldJoint, WheelJoint; b2DestroyJoint; B2JointType.cs (7 types)
 - v3 API awkward: bodies inside def.@base.bodyIdA/bodyIdB; anchors as localFrameA/localFrameB computed with b2Body_GetLocalPoint (Car.cs:84-88, Mover.cs:204-207). @base keyword clash.
 - Toolkit: Joints2D static class / JointBuilder2D, e.g. Joints2D.CreateRevolute(worldId, bodyA, bodyB, worldPivot, motorSpeed, maxMotorTorque, enableSpring, hertz, limits) taking a world pivot; Destroy; typed reaction force/torque getters.
 - Covered: No. Effort: M. Unblocks gems 4, 5, 6, 9, 10, 11, 14, 16.
 
-### 13. Shape casts, overlap-shape, query showcase
+### 13. Shape casts, overlap-shape, query showcase - **casts built 2026-09-06** as `PhysicsQueries2D.CastCircleClosest` / `CastSegmentClosest` / `CastShapeClosest` and a filtered `OverlapCircle`, for the mover (capsule and polygon casts, the all-hits variants and a query showcase example still open)
 - Source: Samples/Collisions/ShapeCast.cs (430), CastWorld.cs (703), OverlapWorld.cs (402), RayCast.cs, Benchmarks/BenchmarkCast.cs (414); B2Worlds.cs:2185 (b2World_OverlapShape), 2260 (b2World_CastRay generic context), 2391 (b2World_CastShape)
 - CastWorld: ray/circle/capsule/polygon casts, closest/any/multiple via fraction return protocol (return fraction = closest, 0 = stop, 1 = all). OverlapWorld: b2World_OverlapShape with arbitrary B2ShapeProxy.
 - Toolkit: PhysicsQueries2D.CastCircle/CastCapsule/CastBox(origin, translation, ...) and OverlapShape, returning QueryRaycastHit lists; Example18_Box2D_Queries.
 - Covered: Partial (rays, AABB, circle overlap; no shape cast). Effort: M.
 
-### 14. Chain shapes + SVG-path terrain
+### 14. Chain shapes + SVG-path terrain - **built 2026-09-06**: `ShapeFixtureBuilder.AttachChain`, then `SvgPath2D.Parse` with the mover, whose course is the samples' two Inkscape outlines (a dedicated terrain example is not needed: the car and the mover both are one)
 - Source: Samples/Shapes/ChainShape.cs (219), ChainSegmentShape.cs, ChainLink.cs, Continuous/ChainDrop.cs/ChainSlide.cs/GhostBumps.cs; Samples/Helpers/SvgParser.cs:16 (ParsePath); usage Mover.cs:126-145, TangentSpeed.cs:44-56
 - b2CreateChain with points/isLoop/materials: ghost-vertex-free terrain. SvgParser.ParsePath turns Inkscape path strings into chain points.
 - APIs: b2CreateChain, B2ChainDef, b2Chain_SetFriction/SetRestitution, b2Shape_GetParentChain.
 - Toolkit: ShapeFixtureBuilder.AttachChain(Vector2[] points, B2BodyId body, bool isLoop = false, B2ChainDef? def = null) and AttachSegment; Example18_Box2D_Terrain (rolling hill vs boxes-row that snags).
 - Covered: No (Junkyard floor built from overlapping static squares because chains missing). Effort: S API, M example (SVG parser ~120 lines MIT).
 
-### 15. Debug draw adapter - b2World_Draw into ShapeBatch
+### 15. Debug draw adapter - b2World_Draw into ShapeBatch - **built 2026-09-06** as `Box2DDebugDraw`
 - Source: Box2D.NET/B2DebugDraw.cs; b2World_Draw at B2Worlds.cs:1175; reference Samples/Graphics/Draw.cs + Draws.cs; option UI Samples/Sample.cs:1067-1098
 - 9 delegates (DrawSolidPolygonFcn, DrawSolidCircleFcn, DrawSolidCapsuleFcn, DrawLineFcn, DrawPointFcn, DrawTransformFcn, DrawStringFcn, ...) + ~15 toggles (drawShapes, drawJoints, drawJointExtras, drawContacts, drawContactNormals, drawContactForces, drawFrictionForces, drawBounds, drawMass, drawBodyNames, drawGraphColors, drawIslands, drawChainNormals, drawingBounds, forceScale, jointScale).
 - Toolkit: Box2DDebugRenderer wiring callbacks to ShapeBatch.DrawSolidPolygon/DrawSolidCircle/DrawPixelLine (ShapeBatch.cs:104,123,374 near signature match incl. capsule radius). Toggles as properties.
