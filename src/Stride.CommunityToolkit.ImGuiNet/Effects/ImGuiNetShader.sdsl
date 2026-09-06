@@ -1,9 +1,14 @@
 namespace Stride.CommunityToolkit.ImGuiNet
 {
-    internal shader ImGuiNetShader : ShaderBase {
+    internal shader ImGuiNetShader : ShaderBase, ColorUtility {
 
         matrix proj;
         stage Texture2D tex;
+
+        // 1 when the target is linear - Stride's default, an sRGB backbuffer that re-encodes on the way
+        // out. ImGui's colours are sRGB bytes, so they are decoded here or the whole UI comes out
+        // washed out: the default dark theme's near-black windows measured mid-grey before this.
+        stage uint LinearOutput;
 
         SamplerState TexSampler {
             Filter = ANISOTROPIC;
@@ -21,8 +26,10 @@ namespace Stride.CommunityToolkit.ImGuiNet
         }
 
         override stage void PSMain() {
-            streams.ColorTarget = streams.col * tex.Sample(TexSampler, streams.uv);
+            float4 color = LinearOutput != 0 ? ToLinear(streams.col) : streams.col;
+
+            streams.ColorTarget = color * tex.Sample(TexSampler, streams.uv);
         }
 
     };
-}
+}

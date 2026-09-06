@@ -478,6 +478,9 @@ public class ImGuiNetSystem : GameSystemBase
         {
             _imguiShader!.Parameters.Set(ImGuiNetShaderKeys.proj, ref projMatrix);
             _imguiShader.Parameters.Set(ImGuiNetShaderKeys.tex, _fontTexture);
+            // ImGui's colours are sRGB bytes; the shader decodes them only when the device says the
+            // backbuffer is sRGB (the default), the way Stride's own SpriteBatch does
+            _imguiShader.Parameters.Set(ImGuiNetShaderKeys.LinearOutput, _graphicsDevice!.ColorSpace == ColorSpace.Linear ? 1u : 0u);
             return true;
         }
         catch
