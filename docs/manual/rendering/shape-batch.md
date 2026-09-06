@@ -126,6 +126,12 @@ state. Set them, draw, change them, draw again. Two batches can coexist with dif
 behaviour: one depth-tested for decals and markers the scene can cover, one overlay batch for gizmos
 that must always show ([the playground](../code-only/examples/shape-batch.md) runs both; press T).
 
+One number decides what a glow reads as, and it is not the width: the glow colour's **alpha**. At
+full alpha the halo is solid colour where it meets the edge and only then falls off, so a thin
+stroke with a six-pixel glow looks like a stroke three times fatter. At 30 to 40 percent it reads
+as light around the stroke, which is the neon look. `Glow.Additive` then makes that light add to
+the scene rather than cover it, which is what a lit thing over a dark ground wants.
+
 ## Flat shapes, anywhere in 3D
 
 The testbed was 2D. Making the same shader work in a 3D scene took one idea: every shape stays

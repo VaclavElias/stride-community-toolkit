@@ -24,6 +24,7 @@ Custom engine extension points, third-party integration and multi-project archit
 - [Jitter2 Physics - Constraining to 2D](jitter2-constraints.md): Demonstrates constraining a Jitter2 3D physics simulation to 2D-style behaviour.
 - [Stride UI - Draggable Window](stride-ui-draggable-window.md): A windowing system built on Stride's UI: windows with title bars and close buttons that can be dragged around, and that come to the front when clicked.
 - [Stride UI - Draggable Window - Bullet Physics](stride-ui-draggable-window-bullet.md): The draggable window example running on the legacy Bullet physics engine.
+- [Compute Shader Boids](compute-boids.md): A flock of thousands of boids that lives entirely on the GPU.
 - [ImGui.NET Text Rendering](imgui-net.md): Render debug text with ImGui.NET, both in screen space and anchored to positions in the 3D scene.
 - [Stride + SignalR - Orbital Cargo Deck](stride-signalr.md): A Stride game and a Blazor web page as two consoles of the same orbital cargo deck, talking both ways over a SignalR hub.
 - [Game - Cube Collapse](cube-collapse.md): A colour-match collapse puzzle built entirely from code.

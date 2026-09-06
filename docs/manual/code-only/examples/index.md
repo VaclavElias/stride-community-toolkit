@@ -183,7 +183,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="2d-scene-panels.md">2D Panels and Text</a></h3>
                 <p><span class="badge text-bg-secondary">Shapes</span></p>
-                <p class="card-text">Sixteen HUD panel recipes side by side, each one property away from the last: fill only, border only, transparent fill over a stripe that proves it, a...</p>
+                <p class="card-text">Twenty-four HUD panel recipes side by side, each one property away from the last: fill only, border only, transparent fill over a stripe that proves...</p>
             </div>
         </div>
     </div>
@@ -548,7 +548,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="charts-2d.md">Charts 2D</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
-                <p class="card-text">A flat, paper-like chart drawn entirely in code - no assets, no chart control, just meshes built at runtime.</p>
+                <p class="card-text">A flat, paper-like chart drawn entirely in code - no assets, no chart control, every line a pixel-width stroke in a shape batch.</p>
             </div>
         </div>
     </div>

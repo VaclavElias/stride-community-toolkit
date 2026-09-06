@@ -21,10 +21,10 @@ The `Program.cs` file shows how to:
 - A trajectory recorded through all three axes
 - Orbiting a figure with Basic3DOrbitCameraController
 - Framing a bounding box in a perspective camera with FrameCamera
-- Emissive intensity above 1 glowing through bloom
+- An additive glow halo on every stroke, wider for the showcase look
 
 ![Charts 3D](media/charts-3d.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_Charts).
 
-[!code-csharp[](../../../../examples/code-only/E11_3D_Charts/Program.cs?start=1&end=306)]
+[!code-csharp[](../../../../examples/code-only/E11_3D_Charts/Program.cs?start=1&end=307)]

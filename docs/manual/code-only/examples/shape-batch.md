@@ -20,6 +20,7 @@ The `Program.cs` file shows how to:
 - Discs, rings and polygons lying on an arbitrary plane in 3D
 - HUD panels with glowing edges and glowing world text, including a live counter
 - Thick 3D lines and wire boxes from camera-facing capsules
+- Polyline strokes with round joins - curves, dashed frames, concave outlines - in pixels or world units
 - Billboards that keep their shape from any viewpoint, and pixel-radius markers that keep their size at any distance
 - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
 - An outer glow measured in pixels, for halos and neon
@@ -32,4 +33,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_ShapeBatch).
 
-[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=656)]
+[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=686)]

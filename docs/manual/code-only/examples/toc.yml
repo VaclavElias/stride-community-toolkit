@@ -118,7 +118,7 @@
     href: charts-2d.md
   - name: Charts 3D
     href: charts-3d.md
-- name: C# Advanced (19)
+- name: C# Advanced (20)
   href: advanced-examples.md
   items:
   - name: Custom Scene Renderers
@@ -153,6 +153,8 @@
     href: stride-ui-draggable-window.md
   - name: Stride UI - Draggable Window - Bullet Physics
     href: stride-ui-draggable-window-bullet.md
+  - name: Compute Shader Boids
+    href: compute-boids.md
   - name: ImGui.NET Text Rendering
     href: imgui-net.md
   - name: Stride + SignalR
