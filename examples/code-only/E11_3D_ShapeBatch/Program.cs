@@ -41,7 +41,7 @@ var demoNames = new[]
     "Selection rings",
     "Decals",
     "HUD panels on a plane, with world text",
-    "Thick 3D lines and wire boxes",
+    "Thick 3D lines, wire boxes and polyline strokes",
     "Camera-facing billboards",
     "Distance proof (a corridor of rings)",
     "Arcs, sectors and annuli",
@@ -381,6 +381,36 @@ void DrawLines(ShapeBatch shapes, float seconds)
     shapes.DrawPixelLine(new Vector3(-22, 0.5f, 5f), new Vector3(-22, 0.5f, -150f), 2f, Color.White);
     shapes.DrawPixelLine(new Vector3(22, 0.5f, 5f), new Vector3(22, 0.5f, -150f), 2f, Color.White);
 
+    // Strokes: a run of points as one line with round joins. A sine at two pixels across the back
+    // of the ground; the same run at half opacity, which is where a long run's chunk joints show
+    // as slightly brighter dots every eighth point; and a closed HUD bracket - concave, which no
+    // polygon fill could be - with dashes marching around it
+    Span<Vector2> wave = stackalloc Vector2[48];
+
+    for (var i = 0; i < wave.Length; i++)
+    {
+        var x = -18f + 36f * i / (wave.Length - 1);
+
+        wave[i] = new Vector2(x, 1.5f + MathF.Sin(x * 0.5f + seconds) * 1.2f);
+    }
+
+    var back = new Vector3(0, 0, -26f);
+
+    shapes.DrawPixelPolyline(wave, back, Vector3.UnitX, Vector3.UnitY, 2f, new Color(24, 28, 40));
+
+    shapes.Opacity = 0.5f;
+    shapes.DrawPixelPolyline(wave, back + new Vector3(0, 3.5f, 0), Vector3.UnitX, Vector3.UnitY, 6f, Color.Orange);
+    shapes.Opacity = 1f;
+
+    ReadOnlySpan<Vector2> bracket = [new(-4f, 0f), new(-4f, 3f), new(-2.5f, 4.5f), new(2.5f, 4.5f), new(4f, 3f), new(4f, 0f), new(2f, 0f), new(2f, 1.5f), new(-2f, 1.5f), new(-2f, 0f)];
+
+    shapes.Dash.Set(8f, 5f, seconds * 25f);
+    shapes.DrawPixelPolyline(bracket, back + new Vector3(0, 7f, 0), Vector3.UnitX, Vector3.UnitY, 2f, Color.Cyan, closed: true);
+    shapes.Dash.Clear();
+
+    // The same bracket flat on the ground at a world width, where the joins show their roundness
+    shapes.DrawPolyline(bracket, new Vector3(-12f, 0.02f, 9f), Vector3.UnitX, -Vector3.UnitZ, 0.25f, Color.Gold, closed: true);
+
     // A selection volume around the tallest pillar
     var tallest = pillars[PillarCount - 1].Transform.Position;
     var tallestHeight = pillarHeights[PillarCount - 1];
@@ -686,6 +716,7 @@ concepts:
   - Discs, rings and polygons lying on an arbitrary plane in 3D
   - HUD panels with glowing edges and glowing world text, including a live counter
   - Thick 3D lines and wire boxes from camera-facing capsules
+  - Polyline strokes with round joins - curves, dashed frames, concave outlines - in pixels or world units
   - Billboards that keep their shape from any viewpoint, and pixel-radius markers that keep their size at any distance
   - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
   - An outer glow measured in pixels, for halos and neon
