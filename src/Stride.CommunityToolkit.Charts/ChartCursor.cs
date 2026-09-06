@@ -1,6 +1,6 @@
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Charts.Lines;
 using Stride.CommunityToolkit.Rendering.Text;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using System.Globalization;
@@ -8,79 +8,41 @@ using System.Globalization;
 namespace Stride.CommunityToolkit.Charts;
 
 /// <summary>
-/// A coordinate readout that follows the mouse: a small ring marker on the chart plane under the cursor and
-/// a label with the chart-space coordinates next to it, hidden while the cursor is off the chart. Created
-/// with <see cref="Chart.AddCursor"/>; call <see cref="Update"/> every frame with the camera and the mouse
-/// position.
+/// A coordinate readout that follows the mouse: a small ring on the chart plane under the cursor, drawn
+/// every frame with a glow, and a label with the chart-space coordinates next to it, hidden while the
+/// cursor is off the chart. Owned by the chart once <see cref="ChartCursorOptions.Visible"/> is first
+/// turned on, and pumped by <see cref="Chart.Update(CameraComponent)"/>.
 /// </summary>
 /// <remarks>
-/// The readout is built from the same pieces as the rest of the chart - a ribbon ring for the marker and
-/// <see cref="EntityTextComponent"/> or <see cref="WorldTextComponent"/> for the label, following
-/// <see cref="ChartLabelOptions.Mode"/> - so it needs no UI page or font asset and looks right in both
-/// presets. The mouse ray is intersected with the chart's plane, so it works with the orthographic 2D
-/// camera and a free 3D camera alike, and respects the chart root's position, rotation and scale.
+/// The mouse ray is intersected with the chart's plane by hand rather than through <see cref="Plane"/>,
+/// whose point-and-normal constructor stores the wrong sign for a plane that does not pass through the
+/// origin. It works with the orthographic 2D camera and a free 3D camera alike, and respects the chart
+/// root's position, rotation and scale.
 /// </remarks>
-public sealed class ChartCursor : IDisposable
+internal sealed class ChartCursor : IDisposable
 {
+    private const float RingWidth = 2f;
+
     private readonly Chart _chart;
-    private readonly Entity _marker;
-    private readonly ModelComponent _markerModel;
-    private readonly Entity _labelEntity;
-    private readonly EntityTextComponent? _screenText;
-    private readonly WorldTextComponent? _worldText;
+    private readonly ChartText _label;
     private bool _isDisposed;
 
-    /// <summary>
-    /// The point under the mouse in chart units, or <see langword="null"/> while the cursor is off the chart -
-    /// the value to read a curve against, or to snap something to.
-    /// </summary>
-    public Vector3? Position { get; private set; }
+    /// <summary>The point under the mouse in chart units, or <see langword="null"/> while the cursor is off the chart.</summary>
+    internal Vector3? Position { get; private set; }
 
     internal ChartCursor(Game game, Chart chart)
     {
         _chart = chart;
         var o = chart.Options;
 
-        _marker = game.CreatePolyline(
-            PolylineSampling.Parametric(t => new Vector3(0.09f * MathF.Cos(t), 0.09f * MathF.Sin(t), 0f), 0f, MathUtil.TwoPi, 20),
-            new PolylineOptions { Width = 0.03f, Color = o.Labels.Color, Closed = true, EmissiveIntensity = o.Series.EmissiveIntensity },
-            "Cursor marker");
-        _markerModel = _marker.Get<ModelComponent>()!;
-        _markerModel.Enabled = false;
-        chart.Root.AddChild(_marker);
+        // The readout draws text even when tick labels are off
+        ChartText.EnsureRenderer(game, o.Labels.Mode);
 
-        _labelEntity = new Entity("Cursor readout");
-
-        if (o.Labels.Mode == ChartLabelMode.Screen)
-        {
-            _screenText = new EntityTextComponent
-            {
-                Text = string.Empty,
-                FontSize = o.Labels.FontSize,
-                TextColor = o.Labels.Color,
-                Anchor = TextAnchor.BottomLeft,
-                Offset = new Vector2(10f, -10f),
-                IsVisible = false,
-            };
-            _labelEntity.Add(_screenText);
-        }
-        else
-        {
-            _worldText = new WorldTextComponent
-            {
-                Text = string.Empty,
-                Height = o.Labels.Height,
-                TextColor = o.Labels.Color,
-                Anchor = TextAnchor.BottomLeft,
-                Offset = new Vector3(0.15f, 0.15f, 0f),
-                Billboard = true,
-                KeepUpright = true,
-                IsVisible = false,
-            };
-            _labelEntity.Add(_worldText);
-        }
-
-        chart.Root.AddChild(_labelEntity);
+        // Up and to the right of the ring, clear of the mouse pointer
+        _label = new ChartText(o.Labels, "Cursor readout");
+        _label.Set(string.Empty, TextAnchor.BottomLeft, new Vector2(10f, -10f));
+        _label.Visible = false;
+        chart.Root.AddChild(_label.Entity);
     }
 
     /// <summary>
@@ -89,24 +51,32 @@ public sealed class ChartCursor : IDisposable
     /// </summary>
     /// <param name="camera">The camera the mouse position is relative to.</param>
     /// <param name="screenPosition">The mouse position in normalised screen coordinates - <c>Input.MousePosition</c> as it comes.</param>
-    /// <exception cref="ArgumentNullException">If <paramref name="camera"/> is <see langword="null"/>.</exception>
-    public void Update(CameraComponent camera, Vector2 screenPosition)
+    /// <param name="view">This frame's view of the chart.</param>
+    internal void Update(CameraComponent camera, Vector2 screenPosition, in ChartView view)
     {
-        ArgumentNullException.ThrowIfNull(camera);
-
-        // The chart's plane in world space; the root may be moved, rotated and scaled
-        var world = _chart.Root.Transform.WorldMatrix;
+        var world = view.World;
         var normal = Vector3.TransformNormal(Vector3.UnitZ, world);
         normal.Normalize();
-        var plane = new Plane(world.TranslationVector, normal);
 
         var ray = camera.GetPickRay(screenPosition);
+        var facing = Vector3.Dot(normal, ray.Direction);
 
-        if (!ray.Intersects(in plane, out Vector3 hit))
+        // Parallel to the plane, or the plane is behind the camera
+        if (MathF.Abs(facing) < 1e-6f)
         {
             Hide();
             return;
         }
+
+        var distance = Vector3.Dot(normal, world.TranslationVector - ray.Position) / facing;
+
+        if (distance < 0f)
+        {
+            Hide();
+            return;
+        }
+
+        var hit = ray.Position + ray.Direction * distance;
 
         Matrix.Invert(ref world, out var toChart);
         var local = Vector3.TransformCoordinate(hit, toChart);
@@ -120,66 +90,48 @@ public sealed class ChartCursor : IDisposable
         }
 
         Position = local;
+        _label.Position = new Vector3(local.X, local.Y, 3f * Chart.LayerStep);
+        _label.Text = $"x = {local.X.ToString(o.Cursor.Format, CultureInfo.InvariantCulture)}  y = {local.Y.ToString(o.Cursor.Format, CultureInfo.InvariantCulture)}";
+        _label.Visible = true;
+    }
 
-        // The ring is world geometry; scaling it with the view keeps it the same size on screen
-        var scale = _chart.ViewScale;
-        _marker.Transform.Scale = new Vector3(scale, scale, 1f);
+    /// <summary>Submits the ring for this frame, in the label colour, with the halo the options ask for.</summary>
+    internal void Draw(ShapeBatch batch, in ChartView view)
+    {
+        if (Position is not { } local)
+            return;
 
-        var position = new Vector3(local.X, local.Y, 3f * Chart.LayerStep);
-        _marker.Transform.Position = position;
-        _labelEntity.Transform.Position = position;
-        _markerModel.Enabled = true;
+        var o = _chart.Options;
 
-        var text = $"x = {local.X.ToString(o.Cursor.Format, CultureInfo.InvariantCulture)}  y = {local.Y.ToString(o.Cursor.Format, CultureInfo.InvariantCulture)}";
+        // The batch may be the caller's, so its state is put back the way it was found
+        var border = batch.BorderWidth;
+        var glowWidth = batch.Glow.Width;
+        var glowColor = batch.Glow.Color;
 
-        if (_screenText is not null)
-        {
-            _screenText.Text = text;
-            _screenText.IsVisible = true;
-        }
+        batch.BorderWidth = RingWidth;
+        batch.Glow.Set(o.Cursor.Glow);
+        batch.DrawPixelRing(view.ToWorld(new Vector3(local.X, local.Y, 3f * Chart.LayerStep)), o.Cursor.Radius, o.Labels.Color);
 
-        if (_worldText is not null)
-        {
-            _worldText.Text = text;
-            _worldText.IsVisible = true;
-        }
+        batch.BorderWidth = border;
+        batch.Glow.Set(glowWidth, glowColor);
     }
 
     /// <summary>
     /// Hides the marker and the label until the next <see cref="Update"/> that lands on the chart.
     /// </summary>
-    public void Hide()
+    internal void Hide()
     {
         Position = null;
-        _markerModel.Enabled = false;
-
-        if (_screenText is not null)
-            _screenText.IsVisible = false;
-
-        if (_worldText is not null)
-            _worldText.IsVisible = false;
+        _label.Visible = false;
     }
 
-    /// <summary>
-    /// Removes the marker and label from the chart and frees the ring's ribbon buffers. Called by
-    /// <see cref="Chart.Dispose"/>; safe to call twice.
-    /// </summary>
+    /// <summary>Removes the label from the chart. Called by <see cref="Chart.Dispose"/>; safe to call twice.</summary>
     public void Dispose()
     {
         if (_isDisposed)
             return;
 
         _isDisposed = true;
-
-        if (_markerModel.Model is { } model)
-        {
-            foreach (var mesh in model.Meshes)
-            {
-                PolylineMeshBuilder.Release(mesh);
-            }
-        }
-
-        _chart.Root.RemoveChild(_marker);
-        _chart.Root.RemoveChild(_labelEntity);
+        _label.Dispose();
     }
 }

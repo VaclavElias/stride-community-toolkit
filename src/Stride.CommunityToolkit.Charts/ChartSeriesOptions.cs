@@ -10,11 +10,19 @@ public sealed class ChartSeriesOptions
     /// <summary>Ribbon width used for curves added without an explicit style. Defaults to <c>0.06</c>.</summary>
     public float CurveWidth { get; set; } = 0.06f;
 
-    /// <summary>Emissive intensity used for curves added without an explicit style; above <c>1</c> glows when bloom is on. Defaults to <c>2.5</c>.</summary>
-    public float EmissiveIntensity { get; set; } = 2.5f;
+    /// <summary>
+    /// How strongly the series glow: the emissive intensity of their material, which above <c>1</c> bleeds
+    /// into the scene through the compositor's bloom. Defaults to <c>2.5</c>. Live: changing it pushes the
+    /// new value into every series already on the chart on the next <see cref="Chart.Update(Stride.Engine.CameraComponent)"/>, as a
+    /// parameter write rather than a rebuild, so it is cheap enough to animate.
+    /// </summary>
+    public float Glow { get; set; } = 2.5f;
 
-    /// <summary>Size of a scatter marker glyph in chart units. Defaults to <c>0.14</c>.</summary>
-    public float MarkerSize { get; set; } = 0.14f;
+    /// <summary>Size of a scatter marker glyph in pixels, the same at any zoom or distance. Defaults to <c>8</c>.</summary>
+    public float MarkerSize { get; set; } = 8f;
+
+    /// <summary>Stroke width of a scatter marker glyph in pixels. Defaults to <c>1.5</c>.</summary>
+    public float MarkerWidth { get; set; } = 1.5f;
 
     /// <summary>
     /// How opaque a shaded region is when no colour is given, from <c>0</c> to <c>1</c>. Defaults to

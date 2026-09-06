@@ -1,22 +1,28 @@
-using Stride.CommunityToolkit.Charts.Lines;
 using Stride.CommunityToolkit.Rendering.Text;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
 namespace Stride.CommunityToolkit.Charts;
 
 /// <summary>
-/// The chart's legend: one colour swatch and name per series, stacked in the top left corner, rebuilt
-/// whenever the series change so it always matches what is drawn. The layout scales with the chart's view
-/// so the legend keeps a constant on-screen size while a view-driven chart zooms.
+/// The chart's legend: one colour swatch and name per series, stacked in the top left corner. The names
+/// are text entities rebuilt whenever the series change; the swatches are drawn every frame, and the whole
+/// block is laid out in pixels each frame too, so it keeps its size on screen at any zoom or distance.
 /// </summary>
 internal sealed class ChartLegend : IDisposable
 {
-    private const float RowStep = 0.5f;
+    // The layout, in pixels: the inset from the chart's corner, the swatch, the gap before the name, and
+    // the row pitch as a multiple of the text height
+    private const float Padding = 16f;
+    private const float SwatchLength = 28f;
+    private const float SwatchWidth = 2f;
+    private const float Gap = 8f;
+    private const float RowPitch = 1.6f;
 
     private readonly Game _game;
     private readonly Chart _chart;
-    private Entity? _root;
+    private readonly List<Row> _rows = [];
     private bool _visible = true;
 
     internal ChartLegend(Game game, Chart chart)
@@ -26,102 +32,89 @@ internal sealed class ChartLegend : IDisposable
     }
 
     /// <summary>Shows or hides the legend without rebuilding it.</summary>
-    internal bool Visible
+    internal void SetVisible(bool visible)
     {
-        get => _visible;
-        set
-        {
-            _visible = value;
-            Apply();
-        }
+        _visible = visible;
+        Apply();
     }
 
     /// <summary>
-    /// Tears the legend down and builds it again from the chart's current series list.
+    /// Tears the names down and builds them again from the chart's current series list. Positions are
+    /// left to <see cref="Draw"/>, which lays the rows out every frame.
     /// </summary>
     internal void Rebuild()
     {
         Teardown();
 
-        var o = _chart.Options;
-
-        if (!o.Legend.Visible || _chart.Series.Count == 0)
+        if (_chart.Series.Count == 0)
             return;
 
-        ChartScaffold.EnsureTextRenderer(_game, o.Labels.Mode);
+        var o = _chart.Options;
 
-        // The whole legend hangs off one entity in the chart's top left corner; the view scale keeps its
-        // apparent size constant while a view-driven chart zooms
-        var scale = _chart.ViewScale;
+        ChartText.EnsureRenderer(_game, o.Labels.Mode);
 
-        _root = new Entity("Legend");
-        _root.Transform.Position = new Vector3(o.Range.XMin + 0.4f * scale, o.Range.YMax - 0.5f * scale, 3f * Chart.LayerStep);
-
-        for (var i = 0; i < _chart.Series.Count; i++)
+        foreach (var series in _chart.Series)
         {
-            var series = _chart.Series[i];
-            var y = -i * RowStep * scale;
-
-            // A short ribbon in the series colour, followed by its name in the chart's label style
-            var swatch = _game.CreatePolyline(
-                [new Vector3(0f, y, 0f), new Vector3(0.45f * scale, y, 0f)],
-                new PolylineOptions { Width = o.Series.CurveWidth * scale, Color = series.Color, EmissiveIntensity = series.Options.EmissiveIntensity },
-                $"Legend swatch {series.Name}");
-            _root.AddChild(swatch);
-
-            var label = new Entity($"Legend label {series.Name}");
-
-            if (o.Labels.Mode == ChartLabelMode.Screen)
-            {
-                label.Add(new EntityTextComponent
-                {
-                    Text = series.Name,
-                    FontSize = o.Labels.FontSize,
-                    TextColor = o.Labels.Color,
-                    Anchor = TextAnchor.MiddleLeft,
-                    Offset = new Vector2(6f, 0f),
-                });
-            }
-            else
-            {
-                label.Add(new WorldTextComponent
-                {
-                    Text = series.Name,
-                    Height = o.Labels.Height,
-                    TextColor = o.Labels.Color,
-                    Anchor = TextAnchor.MiddleLeft,
-                    Billboard = true,
-                    KeepUpright = true,
-                });
-            }
-
-            label.Transform.Position = new Vector3(0.6f * scale, y, 0f);
-            _root.AddChild(label);
+            var label = new ChartText(o.Labels, $"Legend {series.Name}");
+            label.Set(series.Name, TextAnchor.MiddleLeft, Vector2.Zero);
+            _chart.Root.AddChild(label.Entity);
+            _rows.Add(new Row(series, label));
         }
 
-        _chart.Root.AddChild(_root);
         Apply();
     }
 
-    /// <summary>Removes the legend and frees the swatch ribbon buffers nothing else tracks.</summary>
-    private void Teardown()
+    /// <summary>
+    /// Lays the rows out for this frame's view and submits the swatches. The layout is measured in pixels
+    /// at the chart's top left corner and converted once, so under a perspective camera the legend is
+    /// sized for the depth of that corner.
+    /// </summary>
+    internal void Draw(ShapeBatch batch, in ChartView view)
     {
-        if (_root is null)
+        if (!_visible || _rows.Count == 0)
             return;
 
-        foreach (var child in _root.GetChildren().ToArray())
+        var o = _chart.Options;
+        var z = 3f * Chart.LayerStep;
+        var corner = new Vector3(o.Range.XMin, o.Range.YMax, z);
+        var unitsPerPixel = view.UnitsPerPixel(corner);
+
+        // World text is already in chart units; screen text is a font size in pixels
+        var textHeight = o.Labels.Mode == ChartLabelMode.Screen ? o.Labels.FontSize * unitsPerPixel : o.Labels.Height;
+        var rowStep = textHeight * RowPitch;
+        var x = o.Range.XMin + Padding * unitsPerPixel;
+        var top = o.Range.YMax - Padding * unitsPerPixel - textHeight * 0.5f;
+
+        for (var i = 0; i < _rows.Count; i++)
         {
-            if (child.Get<ModelComponent>()?.Model is { } model)
+            var row = _rows[i];
+            var y = top - i * rowStep;
+            var start = new Vector3(x, y, z);
+            var end = new Vector3(x + SwatchLength * unitsPerPixel, y, z);
+
+            if (row.Series is ChartMarkerSeries markers)
             {
-                foreach (var mesh in model.Meshes)
-                {
-                    PolylineMeshBuilder.Release(mesh);
-                }
+                // A scatter series is represented by its own glyph, at the swatch's midpoint
+                markers.DrawGlyph(batch, in view, (start + end) * 0.5f);
             }
+            else
+            {
+                batch.DrawPixelLine(view.ToWorld(start), view.ToWorld(end), SwatchWidth, row.Series.Color);
+            }
+
+            row.Label.Position = new Vector3(end.X + Gap * unitsPerPixel, y, z);
+        }
+    }
+
+    /// <summary>Removes the names; there is nothing else to free.</summary>
+    private void Teardown()
+    {
+        foreach (var row in _rows)
+        {
+            row.Label.Dispose();
         }
 
-        _chart.Root.RemoveChild(_root);
-        _root = null;
+        _rows.Clear();
     }
 
     /// <inheritdoc cref="Teardown" />
@@ -129,19 +122,11 @@ internal sealed class ChartLegend : IDisposable
 
     private void Apply()
     {
-        if (_root is null)
-            return;
-
-        foreach (var child in _root.GetChildren())
+        foreach (var row in _rows)
         {
-            if (child.Get<ModelComponent>() is { } model)
-                model.Enabled = _visible;
-
-            if (child.Get<EntityTextComponent>() is { } screenText)
-                screenText.IsVisible = _visible;
-
-            if (child.Get<WorldTextComponent>() is { } worldText)
-                worldText.IsVisible = _visible;
+            row.Label.Visible = _visible;
         }
     }
+
+    private sealed record Row(ChartSeries Series, ChartText Label);
 }

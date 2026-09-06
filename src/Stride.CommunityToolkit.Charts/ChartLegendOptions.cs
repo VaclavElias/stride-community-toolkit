@@ -6,8 +6,8 @@ namespace Stride.CommunityToolkit.Charts;
 public sealed class ChartLegendOptions
 {
     /// <summary>
-    /// Whether a legend is built and kept in step with the series. Defaults to <see langword="true"/>; hide
-    /// and show it at runtime with <see cref="Chart.LegendVisible"/>.
+    /// Whether the legend is shown. Defaults to <see langword="true"/>. Live: hiding it does not tear it
+    /// down, and it only appears at all while the chart has at least one series.
     /// </summary>
     public bool Visible { get; set; } = true;
 }

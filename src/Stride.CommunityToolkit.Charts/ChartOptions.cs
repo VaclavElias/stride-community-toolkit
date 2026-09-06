@@ -19,6 +19,13 @@ namespace Stride.CommunityToolkit.Charts;
 /// options.Title.Text = "Trajectories";
 /// </code>
 /// <para>
+/// The options stay live after the chart is built: <see cref="Chart.Update(Stride.Engine.CameraComponent)"/> applies whatever changed
+/// since the last frame, so a range, a visibility or a glow is changed by writing the option, the same
+/// way it was set up. The exception is <see cref="Series"/>, whose values are the defaults a series takes
+/// when it is added and stay with it - only <see cref="ChartSeriesOptions.Glow"/> is pushed into
+/// existing series. Whether the chart is 3D (a Z spread) is read once, when it is built.
+/// </para>
+/// <para>
 /// Distances are in the chart's own units; scale the chart's root entity to change its size in the world.
 /// </para>
 /// </remarks>
@@ -45,7 +52,7 @@ public sealed class ChartOptions
     /// <summary>The defaults a series takes when it is added without a style of its own.</summary>
     public ChartSeriesOptions Series { get; set; } = new();
 
-    /// <summary>The mouse readout added by <see cref="Chart.AddCursor"/>.</summary>
+    /// <summary>The mouse readout, on while <see cref="ChartCursorOptions.Visible"/> is.</summary>
     public ChartCursorOptions Cursor { get; set; } = new();
 
     /// <summary>
@@ -57,8 +64,9 @@ public sealed class ChartOptions
 
     /// <summary>
     /// A flat, paper-like chart for an orthographic 2D camera on a light background - no glow, dark axes, a
-    /// major and minor grid, and labels that keep their pixel size while zooming. Widths are chosen for the
-    /// 2D controller's default orthographic size of 10 on a window around 720 pixels tall, with MSAA on.
+    /// major and minor grid, and labels that keep their pixel size while zooming. The curve width is chosen
+    /// for the 2D controller's default orthographic size of 10 on a window around 720 pixels tall, with
+    /// MSAA on; everything else is in pixels and holds at any zoom.
     /// </summary>
     public static ChartOptions Light2D() => new()
     {
@@ -67,10 +75,11 @@ public sealed class ChartOptions
         {
             XColor = new Color(40, 40, 40),
             YColor = new Color(40, 40, 40),
-            Width = 0.035f,
-            TickLength = 0.18f,
-            TickWidth = 0.025f,
+            Width = 1.5f,
+            TickLength = 8f,
+            TickWidth = 1f,
         },
+        Cursor = new ChartCursorOptions { Glow = 0f },
         Grid = new ChartGridOptions
         {
             Visible = true,
@@ -88,7 +97,7 @@ public sealed class ChartOptions
         Series = new ChartSeriesOptions
         {
             CurveWidth = 0.045f,
-            EmissiveIntensity = 1f,
+            Glow = 1f,
             Palette =
             [
                 new Color(45, 112, 179),   // blue

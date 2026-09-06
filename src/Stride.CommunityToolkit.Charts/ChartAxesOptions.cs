@@ -3,7 +3,8 @@ using Stride.Core.Mathematics;
 namespace Stride.CommunityToolkit.Charts;
 
 /// <summary>
-/// How the axes and their tick marks are drawn, and what each axis is called.
+/// How the axes and their tick marks are drawn, and what each axis is called. Sizes are in on-screen pixels
+/// and hold at any zoom or distance; live, like the rest of the options.
 /// </summary>
 public sealed class ChartAxesOptions
 {
@@ -16,14 +17,14 @@ public sealed class ChartAxesOptions
     /// <summary>Colour of the <c>z</c> axis of a 3D chart. Defaults to the editor's axis blue.</summary>
     public Color ZColor { get; set; } = new(0x2F, 0x6A, 0xE1);
 
-    /// <summary>Ribbon width of the axes. Defaults to <c>0.03</c>.</summary>
-    public float Width { get; set; } = 0.03f;
+    /// <summary>Width of the axes in pixels. Defaults to <c>2</c>.</summary>
+    public float Width { get; set; } = 2f;
 
-    /// <summary>Length of each tick mark, centred on its axis. Defaults to <c>0.15</c>.</summary>
-    public float TickLength { get; set; } = 0.15f;
+    /// <summary>Length of each tick mark in pixels, centred on its axis. Defaults to <c>8</c>.</summary>
+    public float TickLength { get; set; } = 8f;
 
-    /// <summary>Ribbon width of the tick marks. Defaults to <c>0.02</c>.</summary>
-    public float TickWidth { get; set; } = 0.02f;
+    /// <summary>Width of the tick marks in pixels. Defaults to <c>1.5</c>.</summary>
+    public float TickWidth { get; set; } = 1.5f;
 
     /// <summary>The x axis title, drawn at the axis's right end. <see langword="null"/> or empty for none.</summary>
     public string? XTitle { get; set; }

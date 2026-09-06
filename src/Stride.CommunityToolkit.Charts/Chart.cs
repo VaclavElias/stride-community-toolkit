@@ -1,7 +1,10 @@
 using Stride.CommunityToolkit.Charts.Lines;
+using Stride.CommunityToolkit.Rendering;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Engine.Processors;
+using Stride.Rendering;
 
 namespace Stride.CommunityToolkit.Charts;
 
@@ -11,11 +14,21 @@ namespace Stride.CommunityToolkit.Charts;
 /// entity, so the whole chart can be placed, rotated and scaled in the world as a single object.
 /// </summary>
 /// <remarks>
-/// The chart itself is a façade over three parts, each with one responsibility: <see cref="ChartScaffold"/>
+/// <para>
+/// A chart is three things: <see cref="Options"/>, which stay live after it is built; series, added with
+/// <see cref="Plot"/> and its siblings and taken off with <see cref="Remove"/>; and <see cref="Update(CameraComponent)"/>,
+/// called once a frame with the camera, which applies whatever changed in the options and drives the
+/// parts that depend on the view. Construct a chart, add its <see cref="Root"/> to a scene, plot, and call
+/// <see cref="Update(CameraComponent)"/> from your update loop. <see cref="Dispose"/> frees everything the chart owns.
+/// </para>
+/// <para>
+/// Inside, the chart is a façade over three parts, each with one responsibility: <see cref="ChartScaffold"/>
 /// (axes, ticks, labels, titles), <see cref="ChartGrid"/> (the textured grid planes) and
-/// <see cref="ChartLegend"/>. Every line is a ribbon mesh from <see cref="PolylineMeshBuilder"/>, so it has
-/// real thickness. Construct a chart, add its <see cref="Root"/> to a scene, then
-/// call <see cref="Plot"/> for each curve. <see cref="Dispose"/> frees everything the chart owns.
+/// <see cref="ChartLegend"/>. Curves are ribbon meshes from <see cref="PolylineMeshBuilder"/>, with real
+/// thickness in chart units; the furniture around them - axes, ticks, legend swatches, markers, the cursor -
+/// is drawn every frame by <see cref="Update(CameraComponent)"/> as pixel-measured shapes, so it keeps its size at any zoom
+/// or distance.
+/// </para>
 /// </remarks>
 public sealed class Chart : IDisposable
 {
@@ -23,12 +36,23 @@ public sealed class Chart : IDisposable
     // fringes. Each layer is nudged along Z by this much: grids behind the axes, ticks and curves in front.
     internal const float LayerStep = 0.005f;
 
+    // Where the curves sit: above the axes at 0 and the area fills at half a step
+    private const float CurveLayer = 2f * LayerStep;
+
     private readonly List<ChartSeries> _series = [];
-    private readonly List<ChartCursor> _cursors = [];
     private readonly ChartScaffold _scaffold;
     private readonly ChartLegend _legend;
     private readonly ChartGrid _grid;
     private ChartViewFollower? _follower;
+    private ChartCursor? _cursor;
+    private ShapeBatch? _ownedBatch;
+
+    // What Update last applied from Options, so a frame with nothing changed costs a few compares
+    private RangeSnapshot _appliedRange;
+    private bool _appliedFollow;
+    private bool _appliedGridVisible;
+    private bool _appliedLegendVisible;
+    private float _appliedGlow;
 
     // The view height the chart was created with; ViewScale compares the current height against it
     private readonly float _referenceHeight;
@@ -38,64 +62,38 @@ public sealed class Chart : IDisposable
     /// <summary>The entity every part of the chart is parented to. Add it to a scene and move it to place the chart.</summary>
     public Entity Root { get; }
 
-    /// <summary>The settings the chart was created with.</summary>
+    /// <summary>
+    /// The chart's settings, live: change one and the next <see cref="Update(CameraComponent)"/> applies it. See
+    /// <see cref="ChartOptions"/> for the one exception, the series defaults.
+    /// </summary>
     public ChartOptions Options { get; }
 
-    /// <summary>Whether the chart has a real Z extent - axes, clipping and grids gain the third dimension.</summary>
-    public bool Is3D => Options.Range.ZMax > Options.Range.ZMin;
+    /// <summary>
+    /// Whether the chart has a real Z extent - axes, clipping and grids gain the third dimension. Decided
+    /// once, when the chart is built, from whether <see cref="ChartRangeOptions.ZMax"/> was above
+    /// <see cref="ChartRangeOptions.ZMin"/>.
+    /// </summary>
+    public bool Is3D { get; }
 
     /// <summary>The curves on the chart, in the order they were added.</summary>
     public IReadOnlyList<ChartSeries> Series => _series;
 
-    /// <summary>Shows or hides the major and minor grid. Cheap to toggle every frame; nothing is rebuilt.</summary>
-    public bool GridVisible
-    {
-        get => _grid.Visible;
-        set => _grid.Visible = value;
-    }
-
     /// <summary>
-    /// Shows or hides the legend without rebuilding it. The legend itself appears only while
-    /// <see cref="ChartLegendOptions.Visible"/> is on and the chart has at least one series.
+    /// The point of the chart plane under the mouse, in chart units, while <see cref="ChartCursorOptions.Visible"/>
+    /// is on and the mouse is over the chart; otherwise <see langword="null"/>. The value to read a curve
+    /// against, or to snap something to. Refreshed by <see cref="Update(CameraComponent)"/>.
     /// </summary>
-    public bool LegendVisible
-    {
-        get => _legend.Visible;
-        set => _legend.Visible = value;
-    }
-
-    /// <summary>
-    /// The emissive intensity every series is drawn with. Above <c>1</c> the curves glow through the
-    /// compositor's bloom; the higher it goes the more they bleed into the scene around them.
-    /// </summary>
-    /// <remarks>
-    /// Setting it pushes the new value straight into the material of every series already on the chart -
-    /// no mesh is rebuilt, so it is cheap enough to animate - and updates
-    /// <see cref="ChartSeriesOptions.EmissiveIntensity"/> so series added afterwards match. Turning the
-    /// grid off at the same time is what makes a chart read as a glowing figure rather than a diagram.
-    /// </remarks>
-    public float Glow
-    {
-        get => Options.Series.EmissiveIntensity;
-        set
-        {
-            Options.Series.EmissiveIntensity = value;
-
-            foreach (var series in _series)
-            {
-                series.SetEmissiveIntensity(value);
-            }
-        }
-    }
+    public Vector3? CursorPosition { get; private set; }
 
     /// <summary>The game the chart draws in - meshes are built on its device, on the game thread.</summary>
     internal Game Game { get; }
 
     /// <summary>
     /// How much taller the current view is than the one the chart was created with, corrected for the
-    /// window's pixel height. Ribbon widths, tick lengths and the legend layout are multiplied by this
-    /// whenever they are rebuilt, so a view-driven chart keeps its lines the same thickness on screen at
-    /// every zoom level. Static geometry that is never rebuilt keeps its world-unit width.
+    /// window's pixel height. Curves, trajectories and areas are still ribbon meshes with a width in chart
+    /// units, so a view-driven chart multiplies their width by this whenever it re-plots them, keeping them
+    /// the same thickness on screen at every zoom level. Nothing else reads it: the furniture is drawn in
+    /// pixels and needs no correction.
     /// </summary>
     internal float ViewScale => (Options.Range.YMax - Options.Range.YMin) / _referenceHeight
         * (_referencePixelHeight / MathF.Max(1f, Game.GraphicsDevice.Presenter.BackBuffer.Height));
@@ -115,11 +113,12 @@ public sealed class Chart : IDisposable
 
         if (options.Labels.Visible)
         {
-            ChartScaffold.EnsureTextRenderer(game, options.Labels.Mode);
+            ChartText.EnsureRenderer(game, options.Labels.Mode);
         }
 
         Game = game;
         Options = options;
+        Is3D = options.Range.ZMax > options.Range.ZMin;
         _referenceHeight = options.Range.YMax - options.Range.YMin;
         _referencePixelHeight = game.GraphicsDevice.Presenter.BackBuffer.Height;
         Root = new Entity(name ?? "Chart");
@@ -128,9 +127,16 @@ public sealed class Chart : IDisposable
         _legend = new ChartLegend(game, this);
         _grid = new ChartGrid(game, this);
 
+        // Built for the options as given; Update then only has to apply what changes afterwards
+        _appliedRange = RangeSnapshot.Of(options.Range);
+        _appliedGridVisible = options.Grid.Visible;
+        _appliedLegendVisible = options.Legend.Visible;
+        _appliedGlow = options.Series.Glow;
+
         _grid.Create();
         _scaffold.Build();
         _grid.Update();
+        _legend.SetVisible(options.Legend.Visible);
     }
 
     /// <summary>
@@ -150,23 +156,10 @@ public sealed class Chart : IDisposable
     {
         ArgumentNullException.ThrowIfNull(f);
 
-        var points = PolylineSampling.Function(f, Options.Range.XMin, Options.Range.XMax, samples);
-        var branches = PolylineClipping.SplitAtJumps(points, (Options.Range.YMax - Options.Range.YMin) * 0.25f, extendEnds: true);
-
-        var runs = new List<IReadOnlyList<Vector3>>();
-        foreach (var branch in branches)
-        {
-            runs.AddRange(Clip(branch));
-        }
-
         var seriesName = name ?? $"Plot {_series.Count + 1}";
         var options = ResolveStyle(style, color, closed: false);
-        var entity = BuildSeriesEntity(runs, options, seriesName, closed: false);
 
-        // The sample density is remembered so a view-driven chart can re-sample at the same detail per unit
-        var spec = new CurveSpec(f, samples, samples / (Options.Range.XMax - Options.Range.XMin));
-
-        return Register(new ChartCurve(this, seriesName, entity, options, runs.Count == 0, spec));
+        return Register(new ChartCurve(this, seriesName, CreateSeriesEntity(seriesName, CurveLayer), options, f, samples));
     }
 
     /// <summary>
@@ -182,7 +175,7 @@ public sealed class Chart : IDisposable
     /// <param name="style">Width and glow where they should differ from the chart's defaults.</param>
     /// <returns>The series, already on the chart; keep it to <see cref="Remove"/> the curve later.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="p"/> is <see langword="null"/>.</exception>
-    public ChartSeries PlotParametric(Func<float, Vector3> p, float from, float to, Color? color = null, string? name = null, int samples = 200, bool closed = false, ChartSeriesStyle? style = null)
+    public ChartLineSeries PlotParametric(Func<float, Vector3> p, float from, float to, Color? color = null, string? name = null, int samples = 200, bool closed = false, ChartSeriesStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(p);
 
@@ -205,22 +198,14 @@ public sealed class Chart : IDisposable
     /// <param name="style">Width and glow where they should differ from the chart's defaults.</param>
     /// <returns>The series, already on the chart; keep it to <see cref="Remove"/> the line later.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
-    public ChartSeries AddLine(IReadOnlyList<Vector3> points, Color? color = null, string? name = null, bool closed = false, bool clip = true, ChartSeriesStyle? style = null)
+    public ChartLineSeries AddLine(IReadOnlyList<Vector3> points, Color? color = null, string? name = null, bool closed = false, bool clip = true, ChartSeriesStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(points);
 
-        var (runs, keepClosed) = ComputeLineRuns(points, closed, clip);
-
         var seriesName = name ?? $"Line {_series.Count + 1}";
-        var options = ResolveStyle(style, color, keepClosed);
-        var entity = BuildSeriesEntity(runs, options, seriesName, keepClosed);
+        var options = ResolveStyle(style, color, closed);
 
-        // Remembered so a view-driven chart can re-clip the line when the visible range changes
-        return Register(new ChartSeries(seriesName, entity, options, runs.Count == 0)
-        {
-            SourcePoints = points,
-            ClipSource = clip,
-        });
+        return Register(new ChartLineSeries(seriesName, CreateSeriesEntity(seriesName, CurveLayer), options, points, closed, clip));
     }
 
     /// <summary>
@@ -245,49 +230,40 @@ public sealed class Chart : IDisposable
 
         var seriesName = name ?? $"Trajectory {_series.Count + 1}";
         var entity = Game.CreatePolylineEntity(line.Mesh, options, seriesName);
-        entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
+        entity.Transform.Position = new Vector3(0f, 0f, CurveLayer);
         Root.AddChild(entity);
 
         return Register(new ChartTrajectory(seriesName, entity, options, line, Options));
     }
 
     /// <summary>
-    /// Adds scatter markers: one small × per point, all batched into a single mesh. Points outside the
-    /// chart's ranges are dropped, and on a view-driven chart the markers keep their on-screen size and are
-    /// re-filtered when the range changes.
+    /// Adds scatter markers: one small × per point, drawn every frame in pixels, so they keep their size at
+    /// any zoom or distance. Points outside the chart's ranges are not drawn until the range brings them
+    /// back.
     /// </summary>
     /// <param name="points">The data points, in chart units.</param>
     /// <param name="color">The markers' colour; <see langword="null"/> takes the next palette colour.</param>
     /// <param name="name">The series and entity name.</param>
-    /// <param name="size">The marker's diagonal extent in chart units; <see langword="null"/> takes <see cref="ChartSeriesOptions.MarkerSize"/>.</param>
-    /// <param name="style">Ribbon width and glow where they should differ from the chart's defaults.</param>
+    /// <param name="size">The glyph's size in pixels; <see langword="null"/> takes <see cref="ChartSeriesOptions.MarkerSize"/>.</param>
+    /// <param name="width">The glyph's stroke width in pixels; <see langword="null"/> takes <see cref="ChartSeriesOptions.MarkerWidth"/>.</param>
     /// <returns>The series, already on the chart; remove it like any other.</returns>
     /// <exception cref="ArgumentNullException">If <paramref name="points"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="size"/> is not positive.</exception>
-    public ChartSeries AddMarkers(IReadOnlyList<Vector3> points, Color? color = null, string? name = null, float? size = null, ChartSeriesStyle? style = null)
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="size"/> or <paramref name="width"/> is not positive.</exception>
+    public ChartMarkerSeries AddMarkers(IReadOnlyList<Vector3> points, Color? color = null, string? name = null, float? size = null, float? width = null)
     {
         ArgumentNullException.ThrowIfNull(points);
 
         var markerSize = size ?? Options.Series.MarkerSize;
+        var markerWidth = width ?? Options.Series.MarkerWidth;
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(markerSize);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(markerWidth);
 
-        var options = ResolveStyle(style, color, closed: false);
+        // The stroke width rides in the options' Width, in pixels here rather than chart units
+        var options = ResolveStyle(new ChartSeriesStyle { Width = markerWidth }, color, closed: false);
         var seriesName = name ?? $"Markers {_series.Count + 1}";
-        var entity = new Entity(seriesName);
-        entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
-        Root.AddChild(entity);
 
-        var series = new ChartSeries(seriesName, entity, options, isEmpty: false)
-        {
-            MarkerPoints = points,
-            MarkerSize = markerSize,
-        };
-
-        _series.Add(series);
-        series.RebuildMarkerModel(this);
-        _legend.Rebuild();
-
-        return series;
+        // Nothing is drawn through the entity; it keeps the series shaped like every other
+        return Register(new ChartMarkerSeries(seriesName, CreateSeriesEntity(seriesName, 0f), options, points, markerSize));
     }
 
     /// <summary>
@@ -342,27 +318,16 @@ public sealed class Chart : IDisposable
         var solid = ResolveStyle(null, color, closed: false).Color;
         var fill = new Color(solid.R, solid.G, solid.B, (byte)Math.Clamp((int)(Options.Series.AreaOpacity * 255f), 0, 255));
 
-        var areaOptions = new AreaOptions { Color = fill, EmissiveIntensity = Options.Series.EmissiveIntensity };
+        var areaOptions = new AreaOptions { Color = fill, EmissiveIntensity = Options.Series.Glow };
         var legendOptions = ResolveStyle(null, solid, closed: false);
 
         var seriesName = name ?? $"Area {_series.Count + 1}";
-        var entity = new Entity(seriesName);
 
         // Behind the curves and the axes, in front of the grid
-        entity.Transform.Position = new Vector3(0f, 0f, LayerStep * 0.5f);
-        Root.AddChild(entity);
+        var entity = CreateSeriesEntity(seriesName, LayerStep * 0.5f);
 
-        var series = new ChartAreaSeries(seriesName, entity, legendOptions, areaOptions, new AreaSpec(upper, lower, from, to, samples));
-
-        _series.Add(series);
-        series.Rebuild(this);
-        _legend.Rebuild();
-
-        return series;
+        return Register(new ChartAreaSeries(seriesName, entity, legendOptions, areaOptions, new AreaSpec(upper, lower, from, to, samples)));
     }
-
-    /// <summary>Rebuilds one series in place for the current ranges - what <see cref="ChartCurve.SetFunction"/> calls.</summary>
-    internal void Rebuild(ChartSeries series) => ReplotSeries(series);
 
     /// <summary>
     /// Takes a curve off the chart: detaches its entity and frees its GPU buffers. Does nothing if the series
@@ -401,93 +366,160 @@ public sealed class Chart : IDisposable
     }
 
     /// <summary>
-    /// Adds a coordinate readout that follows the mouse: a ring marker on the chart under the cursor and a
-    /// label with the chart-space coordinates, in the chart's label style. Call
-    /// <see cref="ChartCursor.Update"/> from your update loop with the camera and the mouse position.
-    /// </summary>
-    /// <returns>The cursor, already parented to the chart and hidden until its first update.</returns>
-    public ChartCursor AddCursor()
-    {
-        ChartScaffold.EnsureTextRenderer(Game, Options.Labels.Mode);
-
-        var cursor = new ChartCursor(Game, this);
-        _cursors.Add(cursor);
-
-        return cursor;
-    }
-
-    /// <summary>
-    /// Turns the chart into a view-driven, Desmos-style one: feed the returned follower with the camera
-    /// every frame and the chart re-targets its ranges to whatever the camera sees, so the grid always
-    /// covers the whole screen and the tick step adapts to the zoom.
-    /// </summary>
-    /// <returns>The follower, which <see cref="Update"/> then pumps for you.</returns>
-    public ChartViewFollower FollowCamera()
-    {
-        // A view-driven chart needs the endless grid; a figure keeps the bounded one
-        _grid.SetInfinite();
-
-        return _follower = new ChartViewFollower(Game, this);
-    }
-
-    /// <summary>
-    /// Drives everything on the chart that depends on the camera: the view-driven follower from
-    /// <see cref="FollowCamera"/>, and every cursor from <see cref="AddCursor"/>, which is fed the current
-    /// mouse position. Call it once a frame from your update loop; a chart with neither does nothing here.
+    /// The chart's frame: applies whatever changed in <see cref="Options"/> since the last call, and drives
+    /// the parts that depend on the camera - re-targeting the range to the view when
+    /// <see cref="ChartRangeOptions.FollowCamera"/> is on, and the mouse readout when
+    /// <see cref="ChartCursorOptions.Visible"/> is. Call it once a frame from your update loop.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// A changed range rebuilds the axes, ticks, labels and legend and re-plots every series; a changed
+    /// visibility or glow is a flag or a parameter write. Nothing happens on a frame where nothing changed,
+    /// so the call is cheap to make unconditionally.
+    /// </para>
+    /// <para>
     /// The camera is a parameter rather than something the chart finds for itself, because a scene can hold
     /// several: pass the one that looks at this chart, and two charts can follow two different cameras.
+    /// </para>
     /// </remarks>
     /// <param name="camera">The camera looking at this chart.</param>
     /// <exception cref="ArgumentNullException">If <paramref name="camera"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">If <see cref="ChartRangeOptions"/> has no positive width or height.</exception>
+    /// <exception cref="ObjectDisposedException">If the chart has been disposed.</exception>
     public void Update(CameraComponent camera)
     {
         ArgumentNullException.ThrowIfNull(camera);
 
-        _follower?.Update(camera);
-
-        foreach (var cursor in _cursors)
-        {
-            cursor.Update(camera, Game.Input.MousePosition);
-        }
+        UpdateCore(camera, shapes: null);
     }
 
     /// <summary>
-    /// Re-targets the chart to a new visible range. Axes, ticks, labels, titles and the legend are torn down
-    /// and rebuilt with their ribbon buffers freed, the grid planes are re-aimed, and every series is
-    /// re-plotted for the new ranges and view scale.
+    /// <see cref="Update(CameraComponent)"/>, drawing the furniture into a batch of your own instead of the
+    /// chart's - one draw call for a chart and the HUD around it, and your choice of depth behaviour. The
+    /// chart never creates a batch of its own when it is updated this way.
     /// </summary>
-    /// <param name="xMin">The new left edge.</param>
-    /// <param name="xMax">The new right edge.</param>
-    /// <param name="yMin">The new bottom edge.</param>
-    /// <param name="yMax">The new top edge.</param>
-    /// <exception cref="ArgumentException">If the range has no positive width or height.</exception>
-    public void SetVisibleRange(float xMin, float xMax, float yMin, float yMax)
+    /// <param name="camera">The camera looking at this chart.</param>
+    /// <param name="shapes">The batch to submit the axes, ticks, legend swatches, markers and cursor into.</param>
+    /// <exception cref="ArgumentNullException">If either argument is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">If <see cref="ChartRangeOptions"/> has no positive width or height.</exception>
+    /// <exception cref="ObjectDisposedException">If the chart has been disposed.</exception>
+    public void Update(CameraComponent camera, ShapeBatch shapes)
     {
-        if (!(xMax > xMin) || !(yMax > yMin))
-        {
-            throw new ArgumentException("The range must have positive width and height.");
-        }
+        ArgumentNullException.ThrowIfNull(camera);
+        ArgumentNullException.ThrowIfNull(shapes);
+
+        UpdateCore(camera, shapes);
+    }
+
+    private void UpdateCore(CameraComponent camera, ShapeBatch? shapes)
+    {
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
 
         var o = Options;
-        o.Range.XMin = xMin;
-        o.Range.XMax = xMax;
-        o.Range.YMin = yMin;
-        o.Range.YMax = yMax;
 
-        // The grid's on/off state survives the rebuild, and Options stays in sync for anyone reading it
-        o.Grid.Visible = _grid.Visible;
+        if (o.Range.FollowCamera != _appliedFollow)
+        {
+            _appliedFollow = o.Range.FollowCamera;
 
-        _scaffold.Teardown();
+            // A view-driven chart needs the endless grid; a figure keeps the bounded one
+            _grid.SetInfinite(_appliedFollow);
+            _follower = _appliedFollow ? new ChartViewFollower(Game, this) : null;
+        }
+
+        // Writes the range when the view moved; the range diff below is what acts on it
+        _follower?.Update(camera);
+
+        ApplyRange();
+
+        if (o.Grid.Visible != _appliedGridVisible)
+        {
+            _appliedGridVisible = o.Grid.Visible;
+            _grid.ApplyVisibility();
+        }
+
+        if (o.Legend.Visible != _appliedLegendVisible)
+        {
+            _appliedLegendVisible = o.Legend.Visible;
+            _legend.SetVisible(_appliedLegendVisible);
+        }
+
+        if (o.Series.Glow != _appliedGlow)
+        {
+            _appliedGlow = o.Series.Glow;
+
+            foreach (var series in _series)
+            {
+                series.SetEmissiveIntensity(_appliedGlow);
+            }
+        }
+
+        // The furniture: everything measured in pixels is submitted afresh each frame, in the chart's own
+        // depth-tested batch unless the caller brought one
+        var batch = shapes ?? (_ownedBatch ??= Game.AddShapeBatch(depthTest: true));
+        var pixelScale = batch.AutoScale ? DisplayScale.GetOrCreate(Game).Value : 1f;
+        var view = new ChartView(Root, camera, Game.GraphicsDevice.Presenter.BackBuffer.Height, pixelScale);
+
+        UpdateCursor(camera, in view);
+
+        _scaffold.Draw(batch, in view);
+
+        foreach (var series in _series)
+        {
+            if (series is ChartMarkerSeries markers)
+            {
+                markers.Draw(batch, in view, o, Is3D);
+            }
+        }
+
+        _legend.Draw(batch, in view);
+        _cursor?.Draw(batch, in view);
+    }
+
+    /// <summary>
+    /// Re-targets the chart when the range differs from the one last applied: axes, ticks, labels, titles
+    /// and the legend are torn down and rebuilt with their ribbon buffers freed, the grid planes are
+    /// re-aimed, and every series is re-plotted for the new ranges and view scale.
+    /// </summary>
+    private void ApplyRange()
+    {
+        var r = Options.Range;
+        var snapshot = RangeSnapshot.Of(r);
+
+        if (snapshot == _appliedRange)
+            return;
+
+        if (!(r.XMax > r.XMin) || !(r.YMax > r.YMin))
+        {
+            throw new InvalidOperationException("Options.Range must have positive width and height.");
+        }
+
+        _appliedRange = snapshot;
+
         _scaffold.Build();
         _grid.Update();
         _legend.Rebuild();
 
         foreach (var series in _series)
         {
-            ReplotSeries(series);
+            series.Rebuild(this);
         }
+    }
+
+    /// <summary>
+    /// Moves the readout under the mouse while it is wanted, building it on first use; hides it otherwise.
+    /// </summary>
+    private void UpdateCursor(CameraComponent camera, in ChartView view)
+    {
+        if (!Options.Cursor.Visible)
+        {
+            _cursor?.Hide();
+            CursorPosition = null;
+            return;
+        }
+
+        _cursor ??= new ChartCursor(Game, this);
+        _cursor.Update(camera, Game.Input.MousePosition, in view);
+        CursorPosition = _cursor.Position;
     }
 
     /// <summary>
@@ -560,29 +592,46 @@ public sealed class Chart : IDisposable
 
         Clear();
 
-        foreach (var cursor in _cursors)
-        {
-            cursor.Dispose();
-        }
-
-        _cursors.Clear();
+        _cursor?.Dispose();
+        _cursor = null;
         _scaffold.Dispose();
         _legend.Dispose();
         _grid.Dispose();
+
+        // The owned batch was registered with the renderer by AddShapeBatch; taken out again so an empty
+        // batch is not left in the visibility group for the rest of the game
+        if (_ownedBatch is not null)
+        {
+            RenderContext.GetShared(Game.Services).VisibilityGroup?.RenderObjects.Remove(_ownedBatch);
+            _ownedBatch = null;
+        }
     }
 
-    /// <summary>
-    /// A copy of <paramref name="options"/> with the width scaled for the current view; the original is
-    /// untouched so re-plots always scale from the intended base width.
-    /// </summary>
-    internal PolylineOptions ScaledOptions(PolylineOptions options) => ViewScale == 1f ? options : new PolylineOptions
+    /// <summary>The range fields <see cref="Update(CameraComponent)"/> compares to know whether a rebuild is due.</summary>
+    private readonly record struct RangeSnapshot(float XMin, float XMax, float YMin, float YMax, float ZMin, float ZMax, float TickStep, int MinorDivisions)
     {
-        Width = options.Width * ViewScale,
-        Color = options.Color,
-        EmissiveIntensity = options.EmissiveIntensity,
-        Normal = options.Normal,
-        Closed = options.Closed,
-    };
+        internal static RangeSnapshot Of(ChartRangeOptions r)
+            => new(r.XMin, r.XMax, r.YMin, r.YMax, r.ZMin, r.ZMax, r.TickStep, r.MinorDivisions);
+    }
+
+    /// <summary>Clips a run of points to the chart's ranges - a box for a 3D chart, a rectangle otherwise.</summary>
+    internal List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
+        => Is3D
+            ? PolylineClipping.Clip(points, Options.Range.XMin, Options.Range.XMax, Options.Range.YMin, Options.Range.YMax, Options.Range.ZMin, Options.Range.ZMax)
+            : PolylineClipping.Clip(points, Options.Range.XMin, Options.Range.XMax, Options.Range.YMin, Options.Range.YMax);
+
+    /// <summary>
+    /// The entity a series draws through, parented to the chart and lifted off the plane by
+    /// <paramref name="layer"/> so coplanar ribbons do not z-fight.
+    /// </summary>
+    private Entity CreateSeriesEntity(string name, float layer)
+    {
+        var entity = new Entity(name);
+        entity.Transform.Position = new Vector3(0f, 0f, layer);
+        Root.AddChild(entity);
+
+        return entity;
+    }
 
     /// <summary>
     /// Turns a style and an optional colour into the ribbon options a series is drawn with: anything the
@@ -597,144 +646,19 @@ public sealed class Chart : IDisposable
         return new PolylineOptions
         {
             Width = style?.Width ?? Options.Series.CurveWidth,
-            EmissiveIntensity = style?.EmissiveIntensity ?? Options.Series.EmissiveIntensity,
+            EmissiveIntensity = style?.Glow ?? Options.Series.Glow,
             Color = color ?? style?.Color ?? next,
             Closed = closed,
         };
     }
 
-    /// <summary>Adds a finished series to the chart and refreshes the legend.</summary>
+    /// <summary>Adds a series to the chart, builds it for the current ranges and refreshes the legend.</summary>
     private T Register<T>(T series) where T : ChartSeries
     {
         _series.Add(series);
+        series.Rebuild(this);
         _legend.Rebuild();
 
         return series;
-    }
-
-    /// <summary>
-    /// Rebuilds one series for the current ranges and view scale: function plots are re-sampled, point
-    /// lines and parametric curves are re-clipped from their remembered points, markers are re-filtered,
-    /// and a trajectory keeps its recorded geometry and only rescales its ribbon width.
-    /// </summary>
-    private void ReplotSeries(ChartSeries series)
-    {
-        if (series.IsDisposed)
-            return;
-
-        if (series is ChartTrajectory trajectory)
-        {
-            trajectory.RescaleWidth(ViewScale);
-            return;
-        }
-
-        if (series is ChartAreaSeries area)
-        {
-            area.Rebuild(this);
-            return;
-        }
-
-        if (series.MarkerPoints is not null)
-        {
-            series.RebuildMarkerModel(this);
-            return;
-        }
-
-        List<IReadOnlyList<Vector3>> runs;
-        var keepClosed = false;
-
-        if (series is ChartCurve curve)
-        {
-            // The sample density per world unit is what the plot was created with, so zooming out keeps
-            // the same detail per unit instead of stretching a fixed count across a wider range; the cap
-            // bounds the rebuild cost at deep zoom-out
-            var width = Options.Range.XMax - Options.Range.XMin;
-            var samples = Math.Clamp((int)(curve.SampleDensity * width), curve.SampleCount, 8000);
-            var points = PolylineSampling.Function(curve.Function, Options.Range.XMin, Options.Range.XMax, samples);
-            var branches = PolylineClipping.SplitAtJumps(points, (Options.Range.YMax - Options.Range.YMin) * 0.25f, extendEnds: true);
-
-            runs = [];
-            foreach (var branch in branches)
-            {
-                runs.AddRange(Clip(branch));
-            }
-        }
-        else if (series.SourcePoints is not null)
-        {
-            (runs, keepClosed) = ComputeLineRuns(series.SourcePoints, series.Options.Closed, series.ClipSource);
-        }
-        else
-        {
-            return;
-        }
-
-        series.ReleaseModel();
-
-        if (runs.Count == 0)
-            return;
-
-        var effective = ScaledOptions(series.Options);
-        var newMesh = keepClosed && runs.Count == 1
-            ? PolylineMeshBuilder.Build(Game.GraphicsDevice, runs[0], effective)
-            : PolylineMeshBuilder.BuildMany(Game.GraphicsDevice, runs, effective);
-        series.Entity.Add(PolylineExtensions.CreateModel(Game, newMesh, effective));
-    }
-
-    /// <summary>
-    /// Turns raw points into drawable runs: a closed shape is clipped as an open one that returns to its
-    /// start, and drawn closed after all when nothing was cut, so the seam gets a proper mitred join.
-    /// </summary>
-    private (List<IReadOnlyList<Vector3>> Runs, bool KeepClosed) ComputeLineRuns(IReadOnlyList<Vector3> points, bool closed, bool clip)
-    {
-        closed = closed && points.Count > 1;
-
-        IReadOnlyList<Vector3> source = closed ? [.. points, points[0]] : points;
-
-        var clipped = clip ? Clip(source) : PolylineClipping.SplitAtNonFinite(source);
-
-        var keepClosed = closed && clipped.Count == 1 && clipped[0].Length == source.Count
-            && clipped[0][0] == source[0] && clipped[0][^1] == source[^1];
-
-        var runs = new List<IReadOnlyList<Vector3>>();
-
-        if (keepClosed)
-        {
-            runs.Add(points);
-        }
-        else
-        {
-            foreach (var run in clipped)
-            {
-                runs.Add(run);
-            }
-        }
-
-        return (runs, keepClosed);
-    }
-
-    private List<Vector3[]> Clip(IReadOnlyList<Vector3> points)
-        => Is3D
-            ? PolylineClipping.Clip(points, Options.Range.XMin, Options.Range.XMax, Options.Range.YMin, Options.Range.YMax, Options.Range.ZMin, Options.Range.ZMax)
-            : PolylineClipping.Clip(points, Options.Range.XMin, Options.Range.XMax, Options.Range.YMin, Options.Range.YMax);
-
-    /// <summary>
-    /// Builds the entity that draws one series' runs, parented to the chart. Nothing inside the chart gives
-    /// an empty entity, which keeps the series usable and the palette in step.
-    /// </summary>
-    private Entity BuildSeriesEntity(List<IReadOnlyList<Vector3>> runs, PolylineOptions options, string name, bool closed)
-    {
-        var effective = ScaledOptions(options);
-
-        var entity = runs.Count switch
-        {
-            0 => new Entity(name),
-            1 when closed => Game.CreatePolyline(runs[0], effective, name),
-            _ => Game.CreatePolylines(runs, effective, name),
-        };
-
-        entity.Transform.Position = new Vector3(0f, 0f, 2f * LayerStep);
-        Root.AddChild(entity);
-
-        return entity;
     }
 }

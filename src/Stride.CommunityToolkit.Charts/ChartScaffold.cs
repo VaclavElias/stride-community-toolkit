@@ -1,6 +1,5 @@
-using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Charts.Lines;
 using Stride.CommunityToolkit.Rendering.Text;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using System.Globalization;
@@ -8,15 +7,23 @@ using System.Globalization;
 namespace Stride.CommunityToolkit.Charts;
 
 /// <summary>
-/// The chart's rebuildable furniture: axes, tick marks, tick labels and titles. Everything built here is
-/// tracked so a range change can tear it down - freeing the ribbon buffers - and build it again for the new
-/// ranges, which is how a view-driven chart follows the camera.
+/// The chart's scaffolding: axes and tick marks, drawn every frame as pixel-measured shapes so they keep
+/// their width and length at any zoom, and the tick labels and titles, which are text entities laid out
+/// for the current ranges and laid out again when the ranges change.
 /// </summary>
+/// <remarks>
+/// The labels come from a pool: a range change re-uses the entities it already has, retexts and moves
+/// them, and hides whatever is left over, so a view-driven chart panning across the screen creates
+/// nothing per frame once the pool has grown to the most labels it has needed. The chart title is the
+/// one text with a size of its own, so it has a slot of its own.
+/// </remarks>
 internal sealed class ChartScaffold : IDisposable
 {
     private readonly Game _game;
     private readonly Chart _chart;
-    private readonly List<Entity> _entities = [];
+    private readonly List<ChartText> _pool = [];
+    private ChartText? _title;
+    private int _used;
 
     internal ChartScaffold(Game game, Chart chart)
     {
@@ -24,23 +31,10 @@ internal sealed class ChartScaffold : IDisposable
         _chart = chart;
     }
 
-    /// <summary>
-    /// Registers the renderer the chart's label mode needs; harmless when already registered, and needed
-    /// beyond tick labels because the legend, titles and cursor draw text even when labels are off.
-    /// </summary>
-    internal static void EnsureTextRenderer(Game game, ChartLabelMode mode)
-    {
-        if (mode == ChartLabelMode.Screen)
-            game.AddEntityTextRenderer();
-        else
-            game.AddWorldTextRenderer();
-    }
-
-    /// <summary>Builds axes, ticks, labels (when enabled) and titles for the current ranges.</summary>
+    /// <summary>Lays out the tick labels (when enabled) and titles for the current ranges.</summary>
     internal void Build()
     {
-        BuildAxes();
-        BuildTicks();
+        _used = 0;
 
         if (_chart.Options.Labels.Visible)
         {
@@ -48,112 +42,74 @@ internal sealed class ChartScaffold : IDisposable
         }
 
         BuildTitles();
+
+        for (var i = _used; i < _pool.Count; i++)
+        {
+            _pool[i].Visible = false;
+        }
     }
 
-    /// <summary>Removes everything built by <see cref="Build"/> and frees the ribbon buffers behind it.</summary>
-    internal void Teardown()
+    /// <summary>Removes every label entity from the chart.</summary>
+    public void Dispose()
     {
-        foreach (var entity in _entities)
+        foreach (var text in _pool)
         {
-            if (entity.Get<ModelComponent>()?.Model is { } model)
-            {
-                foreach (var mesh in model.Meshes)
-                {
-                    PolylineMeshBuilder.Release(mesh);
-                }
-            }
-
-            _chart.Root.RemoveChild(entity);
+            text.Dispose();
         }
 
-        _entities.Clear();
+        _pool.Clear();
+        _used = 0;
+
+        _title?.Dispose();
+        _title = null;
     }
 
-    /// <inheritdoc cref="Teardown" />
-    public void Dispose() => Teardown();
-
-    private void BuildAxes()
+    /// <summary>
+    /// Submits the axes and tick marks for the current ranges. Widths and tick lengths are in pixels;
+    /// the lengths are converted at each tick, so a perspective view gets ticks that read the same size
+    /// near and far.
+    /// </summary>
+    internal void Draw(ShapeBatch batch, in ChartView view)
     {
         var o = _chart.Options;
-        var scale = _chart.ViewScale;
 
-        // Each axis sits on the other coordinate's zero, or on the nearest edge when zero is out of range
+        // Each axis sits on the other coordinates' zero, or on the nearest edge when zero is out of range
         var axisY = Math.Clamp(0f, o.Range.YMin, o.Range.YMax);
         var axisX = Math.Clamp(0f, o.Range.XMin, o.Range.XMax);
+        var axisZ = _chart.Is3D ? Math.Clamp(0f, o.Range.ZMin, o.Range.ZMax) : 0f;
 
-        Add(_game.CreatePolyline(
-            [new Vector3(o.Range.XMin, axisY, 0f), new Vector3(o.Range.XMax, axisY, 0f)],
-            new PolylineOptions { Width = o.Axes.Width * scale, Color = o.Axes.XColor },
-            "X axis"));
-
-        Add(_game.CreatePolyline(
-            [new Vector3(axisX, o.Range.YMin, 0f), new Vector3(axisX, o.Range.YMax, 0f)],
-            new PolylineOptions { Width = o.Axes.Width * scale, Color = o.Axes.YColor },
-            "Y axis"));
+        batch.DrawPixelLine(view.ToWorld(new Vector3(o.Range.XMin, axisY, axisZ)), view.ToWorld(new Vector3(o.Range.XMax, axisY, axisZ)), o.Axes.Width, o.Axes.XColor);
+        batch.DrawPixelLine(view.ToWorld(new Vector3(axisX, o.Range.YMin, axisZ)), view.ToWorld(new Vector3(axisX, o.Range.YMax, axisZ)), o.Axes.Width, o.Axes.YColor);
 
         if (_chart.Is3D)
         {
-            // The Z axis ribbon cannot lie in the chart plane (its direction is that plane's normal),
-            // so its ribbon lies in the XZ plane instead
-            Add(_game.CreatePolyline(
-                [new Vector3(axisX, axisY, o.Range.ZMin), new Vector3(axisX, axisY, o.Range.ZMax)],
-                new PolylineOptions { Width = o.Axes.Width * scale, Color = o.Axes.ZColor, Normal = Vector3.UnitY },
-                "Z axis"));
+            batch.DrawPixelLine(view.ToWorld(new Vector3(axisX, axisY, o.Range.ZMin)), view.ToWorld(new Vector3(axisX, axisY, o.Range.ZMax)), o.Axes.Width, o.Axes.ZColor);
         }
-    }
 
-    private void BuildTicks()
-    {
-        var o = _chart.Options;
-        var scale = _chart.ViewScale;
-
-        // Ticks sit on the same clamped axis lines the axes use, centred across them
-        var axisY = Math.Clamp(0f, o.Range.YMin, o.Range.YMax);
-        var axisX = Math.Clamp(0f, o.Range.XMin, o.Range.XMax);
-        var half = o.Axes.TickLength * scale * 0.5f;
-
-        // One segment per tick value, all batched into a single mesh per axis
-        var xTicks = new List<(Vector3, Vector3)>();
+        // Ticks are centred across their axis; drawn after it, they blend on top of it
         foreach (var x in TickValues(o.Range.XMin, o.Range.XMax, o.Range.TickStep))
         {
-            xTicks.Add((new Vector3(x, axisY - half, 0f), new Vector3(x, axisY + half, 0f)));
+            var at = new Vector3(x, axisY, axisZ);
+            var half = view.ToUnits(o.Axes.TickLength, at) * 0.5f;
+            batch.DrawPixelLine(view.ToWorld(at with { Y = axisY - half }), view.ToWorld(at with { Y = axisY + half }), o.Axes.TickWidth, o.Axes.XColor);
         }
 
-        var yTicks = new List<(Vector3, Vector3)>();
         foreach (var y in TickValues(o.Range.YMin, o.Range.YMax, o.Range.TickStep))
         {
-            yTicks.Add((new Vector3(axisX - half, y, 0f), new Vector3(axisX + half, y, 0f)));
+            var at = new Vector3(axisX, y, axisZ);
+            var half = view.ToUnits(o.Axes.TickLength, at) * 0.5f;
+            batch.DrawPixelLine(view.ToWorld(at with { X = axisX - half }), view.ToWorld(at with { X = axisX + half }), o.Axes.TickWidth, o.Axes.YColor);
         }
 
-        // The slight Z lift keeps ticks in front of the axis ribbon instead of z-fighting with it
-        if (xTicks.Count > 0)
+        if (!_chart.Is3D)
+            return;
+
+        // Z ticks are little X-direction dashes along the Z axis
+        foreach (var z in TickValues(o.Range.ZMin, o.Range.ZMax, o.Range.TickStep))
         {
-            var ticks = _game.CreateSegments(xTicks, new PolylineOptions { Width = o.Axes.TickWidth * scale, Color = o.Axes.XColor }, "X ticks");
-            ticks.Transform.Position = new Vector3(0f, 0f, Chart.LayerStep);
-            Add(ticks);
-        }
-
-        if (yTicks.Count > 0)
-        {
-            var ticks = _game.CreateSegments(yTicks, new PolylineOptions { Width = o.Axes.TickWidth * scale, Color = o.Axes.YColor }, "Y ticks");
-            ticks.Transform.Position = new Vector3(0f, 0f, Chart.LayerStep);
-            Add(ticks);
-        }
-
-        // Z ticks are little X-direction dashes along the Z axis; like the axis they lie in the XZ plane
-        if (_chart.Is3D)
-        {
-            var zTicks = new List<(Vector3, Vector3)>();
-
-            foreach (var z in TickValues(o.Range.ZMin, o.Range.ZMax, o.Range.TickStep))
-            {
-                zTicks.Add((new Vector3(axisX - half, axisY, z), new Vector3(axisX + half, axisY, z)));
-            }
-
-            if (zTicks.Count > 0)
-            {
-                Add(_game.CreateSegments(zTicks, new PolylineOptions { Width = o.Axes.TickWidth * scale, Color = o.Axes.ZColor, Normal = Vector3.UnitY }, "Z ticks"));
-            }
+            var at = new Vector3(axisX, axisY, z);
+            var half = view.ToUnits(o.Axes.TickLength, at) * 0.5f;
+            batch.DrawPixelLine(view.ToWorld(at with { X = axisX - half }), view.ToWorld(at with { X = axisX + half }), o.Axes.TickWidth, o.Axes.ZColor);
         }
     }
 
@@ -162,7 +118,13 @@ internal sealed class ChartScaffold : IDisposable
         var o = _chart.Options;
         var axisY = Math.Clamp(0f, o.Range.YMin, o.Range.YMax);
         var axisX = Math.Clamp(0f, o.Range.XMin, o.Range.XMax);
-        var gap = o.Axes.TickLength * _chart.ViewScale * 0.5f + (o.Labels.Mode == ChartLabelMode.World ? o.Labels.Height * 0.25f : 0f);
+        var axisZ = _chart.Is3D ? Math.Clamp(0f, o.Range.ZMin, o.Range.ZMax) : 0f;
+
+        // Half the tick plus a few pixels of breathing room, in the direction the anchor pushes the text:
+        // below an x tick, left of a y or z tick
+        var gap = o.Axes.TickLength * 0.5f + 4f;
+        var below = new Vector2(0f, gap);
+        var left = new Vector2(-gap, 0f);
 
         foreach (var x in TickValues(o.Range.XMin, o.Range.XMax, o.Range.TickStep))
         {
@@ -170,159 +132,95 @@ internal sealed class ChartScaffold : IDisposable
             if (IsZero(x) && IsZero(axisY))
                 continue;
 
-            AddLabel(x, new Vector3(x, axisY - gap, 0f), TextAnchor.TopCenter);
+            Place(Format(x), new Vector3(x, axisY, axisZ), TextAnchor.TopCenter, below);
         }
 
         foreach (var y in TickValues(o.Range.YMin, o.Range.YMax, o.Range.TickStep))
         {
-            AddLabel(y, new Vector3(axisX - gap, y, 0f), TextAnchor.MiddleRight);
+            Place(Format(y), new Vector3(axisX, y, axisZ), TextAnchor.MiddleRight, left);
         }
 
-        if (_chart.Is3D)
-        {
-            foreach (var z in TickValues(o.Range.ZMin, o.Range.ZMax, o.Range.TickStep))
-            {
-                // The origin is already labelled by the y axis
-                if (IsZero(z) && IsZero(axisY))
-                    continue;
+        if (!_chart.Is3D)
+            return;
 
-                AddLabel(z, new Vector3(axisX - gap, axisY, z), TextAnchor.MiddleRight);
-            }
+        foreach (var z in TickValues(o.Range.ZMin, o.Range.ZMax, o.Range.TickStep))
+        {
+            // The origin is already labelled by the y axis
+            if (IsZero(z) && IsZero(axisY))
+                continue;
+
+            Place(Format(z), new Vector3(axisX, axisY, z), TextAnchor.MiddleRight, left);
         }
     }
 
     /// <summary>
-    /// Builds the chart and axis titles, in the chart's label style: the chart title above the top edge,
+    /// Lays out the chart and axis titles, in the chart's label style: the chart title inside the top
+    /// edge (on a view-driven chart that edge is the window's, so anything above it would be off screen),
     /// axis titles at the ends of their axes the way maths textbooks letter them.
     /// </summary>
     private void BuildTitles()
     {
         var o = _chart.Options;
-
-        if (string.IsNullOrEmpty(o.Title.Text) && string.IsNullOrEmpty(o.Axes.XTitle) && string.IsNullOrEmpty(o.Axes.YTitle) && string.IsNullOrEmpty(o.Axes.ZTitle))
-            return;
-
-        EnsureTextRenderer(_game, o.Labels.Mode);
-
         var axisY = Math.Clamp(0f, o.Range.YMin, o.Range.YMax);
         var axisX = Math.Clamp(0f, o.Range.XMin, o.Range.XMax);
 
         if (o.Title.Text is { Length: > 0 } title)
         {
-            // Anchored inside the top edge: on a view-driven chart YMax is the window top, so anything
-            // above it would be off screen
-            AddTitleLabel(title, new Vector3((o.Range.XMin + o.Range.XMax) * 0.5f, o.Range.YMax, 0f), TextAnchor.TopCenter, new Vector2(0f, 10f), o.Title.FontSize, o.Title.Height);
+            if (_title is null)
+            {
+                ChartText.EnsureRenderer(_game, o.Labels.Mode);
+                _title = new ChartText(o.Labels, "Chart title", o.Title.FontSize, o.Title.Height);
+                _chart.Root.AddChild(_title.Entity);
+            }
+
+            _title.Set(title, TextAnchor.TopCenter, new Vector2(0f, 10f));
+            _title.Position = new Vector3((o.Range.XMin + o.Range.XMax) * 0.5f, o.Range.YMax, 0f);
+            _title.Visible = true;
+        }
+        else if (_title is not null)
+        {
+            _title.Visible = false;
         }
 
         if (o.Axes.XTitle is { Length: > 0 } xTitle)
         {
-            AddTitleLabel(xTitle, new Vector3(o.Range.XMax, axisY, 0f), TextAnchor.TopRight, new Vector2(-4f, 10f), o.Labels.FontSize, o.Labels.Height);
+            Place(xTitle, new Vector3(o.Range.XMax, axisY, 0f), TextAnchor.TopRight, new Vector2(-4f, 10f));
         }
 
         if (o.Axes.YTitle is { Length: > 0 } yTitle)
         {
-            AddTitleLabel(yTitle, new Vector3(axisX, o.Range.YMax, 0f), TextAnchor.TopLeft, new Vector2(10f, 4f), o.Labels.FontSize, o.Labels.Height);
+            Place(yTitle, new Vector3(axisX, o.Range.YMax, 0f), TextAnchor.TopLeft, new Vector2(10f, 4f));
         }
 
         if (_chart.Is3D && o.Axes.ZTitle is { Length: > 0 } zTitle)
         {
-            AddTitleLabel(zTitle, new Vector3(axisX, axisY, o.Range.ZMax), TextAnchor.TopLeft, new Vector2(10f, 4f), o.Labels.FontSize, o.Labels.Height);
+            Place(zTitle, new Vector3(axisX, axisY, o.Range.ZMax), TextAnchor.TopLeft, new Vector2(10f, 4f));
         }
     }
 
-    private void AddLabel(float value, Vector3 position, TextAnchor anchor)
+    /// <summary>Takes the next text from the pool - or grows it - and sets it up.</summary>
+    private void Place(string text, Vector3 position, TextAnchor anchor, Vector2 pixelOffset)
     {
-        var o = _chart.Options;
-        var text = value.ToString(o.Labels.Format, CultureInfo.InvariantCulture);
-        var label = new Entity($"Label {text}");
-
-        if (o.Labels.Mode == ChartLabelMode.Screen)
+        if (_used == _pool.Count)
         {
-            // A few pixels of breathing room beyond the tick, in the direction the anchor pushes the text
-            var offset = anchor == TextAnchor.TopCenter ? new Vector2(0f, 4f) : new Vector2(-4f, 0f);
+            var o = _chart.Options;
 
-            label.Add(new EntityTextComponent
-            {
-                Text = text,
-                FontSize = o.Labels.FontSize,
-                TextColor = o.Labels.Color,
-                Anchor = anchor,
-                Offset = offset,
-            });
-        }
-        else
-        {
-            label.Add(new WorldTextComponent
-            {
-                Text = text,
-                Height = o.Labels.Height,
-                TextColor = o.Labels.Color,
-                Anchor = anchor,
-                Billboard = true,
-                KeepUpright = true,
-            });
+            ChartText.EnsureRenderer(_game, o.Labels.Mode);
+
+            var created = new ChartText(o.Labels, $"Label {_pool.Count}");
+            _chart.Root.AddChild(created.Entity);
+            _pool.Add(created);
         }
 
-        label.Transform.Position = position;
-        Add(label);
+        var entry = _pool[_used++];
+        entry.Set(text, anchor, pixelOffset);
+        entry.Position = position;
+        entry.Visible = true;
     }
 
-    private void AddTitleLabel(string text, Vector3 position, TextAnchor anchor, Vector2 screenOffset, float fontSize, float worldHeight)
-    {
-        var o = _chart.Options;
-        var label = new Entity($"Title {text}");
+    private string Format(float value) => value.ToString(_chart.Options.Labels.Format, CultureInfo.InvariantCulture);
 
-        if (o.Labels.Mode == ChartLabelMode.Screen)
-        {
-            label.Add(new EntityTextComponent
-            {
-                Text = text,
-                FontSize = fontSize,
-                TextColor = o.Labels.Color,
-                Anchor = anchor,
-                Offset = screenOffset,
-            });
-        }
-        else
-        {
-            label.Add(new WorldTextComponent
-            {
-                Text = text,
-                Height = worldHeight,
-                TextColor = o.Labels.Color,
-                Anchor = anchor,
-                Billboard = true,
-                KeepUpright = true,
-            });
-        }
-
-        label.Transform.Position = position;
-        Add(label);
-    }
-
-    private void Add(Entity entity)
-    {
-        _chart.Root.AddChild(entity);
-        _entities.Add(entity);
-    }
-
-    /// <summary>
-    /// Every multiple of <paramref name="step"/> within [<paramref name="min"/>, <paramref name="max"/>],
-    /// computed from integer multiples so accumulated float error cannot drop the last one.
-    /// </summary>
-    private static IEnumerable<float> TickValues(float min, float max, float step)
-    {
-        if (step <= 0f)
-            yield break;
-
-        var first = (int)MathF.Ceiling(min / step - 1e-4f);
-        var last = (int)MathF.Floor(max / step + 1e-4f);
-
-        for (var i = first; i <= last; i++)
-        {
-            yield return i * step;
-        }
-    }
+    private static IEnumerable<float> TickValues(float min, float max, float step) => ChartFraming.TickValues(min, max, step);
 
     private static bool IsZero(float value) => MathF.Abs(value) < 1e-5f;
 }

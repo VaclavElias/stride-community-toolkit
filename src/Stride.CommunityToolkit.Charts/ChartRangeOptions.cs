@@ -34,4 +34,13 @@ public sealed class ChartRangeOptions
     /// Defaults to <c>0</c>.
     /// </summary>
     public int MinorDivisions { get; set; }
+
+    /// <summary>
+    /// Whether the range comes from the camera instead of from the bounds above: on each
+    /// <see cref="Chart.Update(Stride.Engine.CameraComponent)"/> the chart re-targets its ranges to whatever an orthographic camera sees, so
+    /// the grid always covers the whole screen and <see cref="TickStep"/> adapts to the zoom - a Desmos-style
+    /// endless chart. Defaults to <see langword="false"/>. A perspective camera is ignored: following the
+    /// view is a 2D idea.
+    /// </summary>
+    public bool FollowCamera { get; set; }
 }

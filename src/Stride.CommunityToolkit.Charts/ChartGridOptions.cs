@@ -7,10 +7,10 @@ namespace Stride.CommunityToolkit.Charts;
 /// </summary>
 public sealed class ChartGridOptions
 {
-    /// <summary>Whether the grid is shown when the chart is created. Defaults to <see langword="false"/>; toggle later with <see cref="Chart.GridVisible"/>.</summary>
+    /// <summary>Whether the grid is shown. Defaults to <see langword="false"/>. Live: cheap to toggle every frame, nothing is rebuilt.</summary>
     public bool Visible { get; set; }
 
-    /// <summary>Which coordinate planes carry a grid. Defaults to <see cref="ChartGridPlanes.XY"/>; a flat chart ignores the other planes.</summary>
+    /// <summary>Which coordinate planes carry a grid. Defaults to <see cref="ChartGridPlanes.XY"/>; a flat chart ignores the other planes. Read once, when the chart is built.</summary>
     public ChartGridPlanes Planes { get; set; } = ChartGridPlanes.XY;
 
     /// <summary>Colour of the major grid lines. Defaults to a dim grey so curves stand out against it.</summary>

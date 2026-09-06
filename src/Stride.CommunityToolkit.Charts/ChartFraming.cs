@@ -36,6 +36,30 @@ public static class ChartFraming
     }
 
     /// <summary>
+    /// Every multiple of <paramref name="step"/> within [<paramref name="min"/>, <paramref name="max"/>] -
+    /// where the ticks, labels and grid lines of an axis go. Computed from integer multiples so accumulated
+    /// float error cannot drop the last one, and a value within a ten-thousandth of a step of the edge
+    /// still counts as inside it.
+    /// </summary>
+    /// <param name="min">The start of the range.</param>
+    /// <param name="max">The end of the range.</param>
+    /// <param name="step">The spacing; nothing is produced for a step that is not positive.</param>
+    /// <returns>The tick values in ascending order.</returns>
+    public static IEnumerable<float> TickValues(float min, float max, float step)
+    {
+        if (step <= 0f)
+            yield break;
+
+        var first = (int)MathF.Ceiling(min / step - 1e-4f);
+        var last = (int)MathF.Floor(max / step + 1e-4f);
+
+        for (var i = first; i <= last; i++)
+        {
+            yield return i * step;
+        }
+    }
+
+    /// <summary>
     /// The orthographic size (the visible world height) at which a <paramref name="width"/> ×
     /// <paramref name="height"/> rectangle fits a window of the given <paramref name="aspectRatio"/> with
     /// <paramref name="padding"/> of extra room on every side.

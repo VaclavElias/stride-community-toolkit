@@ -28,7 +28,7 @@ public sealed class ChartTrajectory : ChartSeries
     public int Capacity => _line.Capacity;
 
     internal ChartTrajectory(string name, Entity entity, PolylineOptions options, GrowingPolyline line, ChartOptions chartOptions)
-        : base(name, entity, options, isEmpty: false)
+        : base(name, entity, options)
     {
         _line = line;
         _chartOptions = chartOptions;
@@ -118,10 +118,10 @@ public sealed class ChartTrajectory : ChartSeries
     }
 
     /// <summary>
-    /// Rescales the trail's ribbon width for the current view, keeping the recorded geometry - called by
-    /// the chart when a view-driven range change would otherwise leave the trail too thick or too thin.
+    /// Keeps the recorded geometry and only rescales the ribbon width for the current view, so a
+    /// view-driven range change does not leave the trail too thick or too thin.
     /// </summary>
-    internal void RescaleWidth(float scale) => _line.SetWidthScale(scale);
+    internal override void Rebuild(Chart chart) => _line.SetWidthScale(chart.ViewScale);
 
     /// <inheritdoc />
     private protected override void ReleaseResources() => _line.Dispose();

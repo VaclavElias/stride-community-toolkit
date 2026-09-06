@@ -29,7 +29,7 @@ public sealed class ChartSeriesStyle
 
     /// <summary>
     /// Emissive intensity; above <c>1</c> glows when bloom is on. Unset takes
-    /// <see cref="ChartSeriesOptions.EmissiveIntensity"/>.
+    /// <see cref="ChartSeriesOptions.Glow"/>.
     /// </summary>
-    public float? EmissiveIntensity { get; set; }
+    public float? Glow { get; set; }
 }

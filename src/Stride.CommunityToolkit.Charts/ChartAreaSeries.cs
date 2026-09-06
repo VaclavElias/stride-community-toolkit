@@ -20,7 +20,7 @@ public sealed class ChartAreaSeries : ChartSeries
     private readonly AreaOptions _areaOptions;
 
     internal ChartAreaSeries(string name, Entity entity, PolylineOptions legendOptions, AreaOptions areaOptions, in AreaSpec spec)
-        : base(name, entity, legendOptions, isEmpty: false)
+        : base(name, entity, legendOptions)
     {
         _areaOptions = areaOptions;
         _spec = spec;
@@ -36,9 +36,10 @@ public sealed class ChartAreaSeries : ChartSeries
     /// Re-samples the region for the chart's current ranges and rebuilds its mesh; the stretch is trimmed
     /// to whatever part of it is visible.
     /// </summary>
-    internal void Rebuild(Chart chart)
+    internal override void Rebuild(Chart chart)
     {
         ReleaseModel();
+        IsEmpty = true;
 
         var o = chart.Options;
         var from = MathF.Max(_spec.From, o.Range.XMin);
@@ -56,5 +57,6 @@ public sealed class ChartAreaSeries : ChartSeries
 
         var mesh = AreaMeshBuilder.Build(chart.Game.GraphicsDevice, [.. runs], _areaOptions);
         Entity.Add(AreaModel.Create(chart.Game, mesh, _areaOptions));
+        IsEmpty = false;
     }
 }

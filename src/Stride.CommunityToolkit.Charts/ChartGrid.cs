@@ -16,7 +16,7 @@ namespace Stride.CommunityToolkit.Charts;
 /// <remarks>
 /// The grid has two layouts. <b>Bounded</b>, the default, sizes each plane exactly to the chart's ranges,
 /// so the grid ends where the axes end - the right look for a fixed figure, 2D or 3D. <b>Infinite</b>,
-/// switched on by <see cref="Chart.FollowCamera"/>, uses oversized planes snapped to cell multiples so the
+/// switched on with <see cref="ChartRangeOptions.FollowCamera"/>, uses oversized planes snapped to cell multiples so the
 /// grid appears endless while the view-driven chart pans and zooms - there the ranges always equal the
 /// screen, so the oversize never shows as a mismatch.
 /// </remarks>
@@ -35,16 +35,17 @@ internal sealed class ChartGrid : IDisposable
         _chart = chart;
     }
 
-    /// <summary>Shows or hides the grid planes; the minor planes only show when there are minor divisions.</summary>
-    internal bool Visible
+    /// <summary>
+    /// Applies <see cref="ChartGridOptions.Visible"/> to the planes; the minor planes only show when there
+    /// are minor divisions. The options are the one source of truth, so nothing here is read back.
+    /// </summary>
+    internal void ApplyVisibility()
     {
-        get => _planes.Count > 0 && _planes[0].Model.Enabled;
-        set
+        var o = _chart.Options;
+
+        foreach (var entry in _planes)
         {
-            foreach (var entry in _planes)
-            {
-                entry.Model.Enabled = value && (!entry.IsMinor || _chart.Options.Range.MinorDivisions > 1);
-            }
+            entry.Model.Enabled = o.Grid.Visible && (!entry.IsMinor || o.Range.MinorDivisions > 1);
         }
     }
 
@@ -70,20 +71,18 @@ internal sealed class ChartGrid : IDisposable
     }
 
     /// <summary>
-    /// Switches to the infinite layout for a view-driven chart and rebuilds the planes; the texture is
-    /// shared and kept. Idempotent.
+    /// Switches between the infinite layout of a view-driven chart and the bounded one of a figure, and
+    /// rebuilds the planes; the texture is shared and kept. Idempotent.
     /// </summary>
-    internal void SetInfinite()
+    internal void SetInfinite(bool infinite)
     {
-        if (_infinite)
+        if (_infinite == infinite)
             return;
 
-        var visible = Visible;
-        _infinite = true;
+        _infinite = infinite;
 
         RemovePlanes();
         Create();
-        Visible = visible;
         Update();
     }
 
@@ -102,13 +101,12 @@ internal sealed class ChartGrid : IDisposable
             _chart.Is3D ? Math.Clamp(0f, o.Range.ZMin, o.Range.ZMax) : 0f);
         var range = new Vector3(o.Range.XMax - o.Range.XMin, o.Range.YMax - o.Range.YMin, o.Range.ZMax - o.Range.ZMin);
 
-        var visible = Visible;
+        // Minor divisions may have changed with the tick step, which is what decides the minor planes
+        ApplyVisibility();
 
         foreach (var entry in _planes)
         {
             var cell = entry.IsMinor ? o.Range.TickStep / Math.Max(1, o.Range.MinorDivisions) : o.Range.TickStep;
-
-            entry.Model.Enabled = visible && (!entry.IsMinor || o.Range.MinorDivisions > 1);
 
             if (_infinite)
             {

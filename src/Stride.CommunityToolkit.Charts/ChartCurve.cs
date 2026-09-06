@@ -1,4 +1,5 @@
 using Stride.CommunityToolkit.Charts.Lines;
+using Stride.Core.Mathematics;
 using Stride.Engine;
 
 namespace Stride.CommunityToolkit.Charts;
@@ -9,30 +10,33 @@ namespace Stride.CommunityToolkit.Charts;
 /// possible.
 /// </summary>
 /// <remarks>
-/// Returned by <see cref="Chart.Plot"/>. Curves plotted from points rather than a function -
-/// <see cref="Chart.PlotParametric"/>, <see cref="Chart.AddLine"/> - are plain <see cref="ChartSeries"/>,
-/// because there is no function to re-evaluate.
+/// Returned by <see cref="Chart.Plot"/>. Samples outside the <c>y</c> range are clipped to the chart edge,
+/// samples that are not finite (a function outside its domain) break the curve, and so does a zero-crossing
+/// jump larger than a quarter of the chart's height between two samples - the asymptotes of <c>tan(x)</c>
+/// or <c>1/x</c> - where the branches are instead extended to the chart edge. Curves plotted from points
+/// rather than a function - <see cref="Chart.PlotParametric"/>, <see cref="Chart.AddLine"/> - are
+/// <see cref="ChartLineSeries"/>, because there is no function to re-evaluate.
 /// </remarks>
 public sealed class ChartCurve : ChartSeries
 {
+    // The most samples a re-sample may use, so a deep zoom-out cannot make a rebuild arbitrarily expensive
+    private const int MaxSamples = 8000;
+
     private readonly Chart _chart;
+    private readonly int _sampleCount;
+    private readonly float _sampleDensity;
+    private Func<float, float> _function;
 
-    /// <summary>The function being plotted; a view-driven chart re-samples it when the range changes.</summary>
-    internal Func<float, float> Function { get; private set; }
-
-    /// <summary>The sample count the plot was created with; re-sampling never goes below it.</summary>
-    internal int SampleCount { get; }
-
-    /// <summary>Samples per world unit at creation time, so re-sampling keeps the same detail per unit.</summary>
-    internal float SampleDensity { get; }
-
-    internal ChartCurve(Chart chart, string name, Entity entity, PolylineOptions options, bool isEmpty, in CurveSpec spec)
-        : base(name, entity, options, isEmpty)
+    internal ChartCurve(Chart chart, string name, Entity entity, PolylineOptions options, Func<float, float> function, int samples)
+        : base(name, entity, options)
     {
         _chart = chart;
-        Function = spec.Function;
-        SampleCount = spec.SampleCount;
-        SampleDensity = spec.SampleDensity;
+        _function = function;
+        _sampleCount = samples;
+
+        // Samples per chart unit at creation, so a wider range later is sampled at the same detail per
+        // unit instead of stretching a fixed count across it
+        _sampleDensity = samples / (chart.Options.Range.XMax - chart.Options.Range.XMin);
     }
 
     /// <summary>
@@ -48,7 +52,27 @@ public sealed class ChartCurve : ChartSeries
         ArgumentNullException.ThrowIfNull(f);
         ObjectDisposedException.ThrowIf(IsDisposed, this);
 
-        Function = f;
-        _chart.Rebuild(this);
+        _function = f;
+        Rebuild(_chart);
+    }
+
+    /// <inheritdoc />
+    internal override void Rebuild(Chart chart)
+    {
+        var r = chart.Options.Range;
+
+        // Never fewer samples than asked for; the cap bounds the cost at deep zoom-out
+        var samples = Math.Clamp((int)(_sampleDensity * (r.XMax - r.XMin)), _sampleCount, MaxSamples);
+        var points = PolylineSampling.Function(_function, r.XMin, r.XMax, samples);
+        var branches = PolylineClipping.SplitAtJumps(points, (r.YMax - r.YMin) * 0.25f, extendEnds: true);
+
+        var runs = new List<IReadOnlyList<Vector3>>();
+
+        foreach (var branch in branches)
+        {
+            runs.AddRange(chart.Clip(branch));
+        }
+
+        ReplaceRibbons(chart, runs, closed: false);
     }
 }
