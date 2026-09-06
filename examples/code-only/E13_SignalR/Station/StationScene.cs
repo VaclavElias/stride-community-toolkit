@@ -161,8 +161,10 @@ public sealed class StationScene(Game game)
             _shapes.DrawPixelLine(new Vector3(-inset, Lift, line), new Vector3(inset, Lift, line), 1f, grid);
         }
 
-        // Landing pad: a ring, and a dashed ring outside it that turns
+        // Landing pad: a ring, and a dashed ring outside it that turns. The pad is lit, so its glow
+        // adds light to the deck rather than painting over it
         _shapes.Glow.Set(6f, Hex.WithAlpha(glow, 140));
+        _shapes.Glow.Additive = true;
         _shapes.DrawRing(new Vector3(0, Lift, 0), Vector3.UnitY, PadRadius, accent);
         _shapes.Glow.Clear();
 
@@ -170,15 +172,16 @@ public sealed class StationScene(Game game)
         _shapes.DrawRing(new Vector3(0, Lift, 0), Vector3.UnitY, PadRadius + 1.2f, dim);
         _shapes.Dash.Clear();
 
-        // Corner ticks on the deck
+        // Corner ticks on the deck: each a three-point stroke on the deck plane, one round join
         const float Tick = 1.5f;
 
         foreach (var (signX, signZ) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
         {
-            var corner = new Vector3(signX * inset, Lift, signZ * inset);
+            var corner = new Vector2(signX * inset, signZ * inset);
 
-            _shapes.DrawPixelLine(corner, corner - new Vector3(signX * Tick, 0, 0), 2f, accent);
-            _shapes.DrawPixelLine(corner, corner - new Vector3(0, 0, signZ * Tick), 2f, accent);
+            ReadOnlySpan<Vector2> tick = [corner - new Vector2(signX * Tick, 0), corner, corner - new Vector2(0, signZ * Tick)];
+
+            _shapes.DrawPixelPolyline(tick, new Vector3(0, Lift, 0), Vector3.UnitX, Vector3.UnitZ, 2f, accent);
         }
 
         // The open edge, marked as the hazard it is - in the scheme's own colour, dashed and marching
@@ -190,6 +193,7 @@ public sealed class StationScene(Game game)
         var hatch = new Vector3(0, Deck.HatchHeight, 0);
 
         _shapes.Glow.Set(6f + _hatchPulse * 18f, Hex.WithAlpha(glow, (byte)(120 + _hatchPulse * 135)));
+        _shapes.Glow.Additive = true;
         _shapes.DrawRing(hatch, Vector3.UnitY, 3f + _hatchPulse * 0.4f, accent);
         _shapes.Glow.Clear();
 
@@ -283,4 +287,4 @@ public sealed class StationScene(Game game)
     }
 
     private readonly record struct Star(Vector3 Direction, float Size, Color Tint, byte Alpha, float Speed, float Phase);
-}
+}

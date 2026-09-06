@@ -172,7 +172,10 @@ void Update(Scene scene, GameTime gameTime)
 
 // --- Widgets ---------------------------------------------------------------------------------
 
-/// <summary>Four L-brackets in the corners: the edge of the canopy glass, the frame of the whole thing.</summary>
+/// <summary>
+/// Four L-brackets in the corners: the edge of the canopy glass, the frame of the whole thing.
+/// Each one is a three-point stroke, so the corner is one round join rather than two lines meeting.
+/// </summary>
 void DrawFrame(Scheme theme)
 {
     const float Arm = 1.6f;
@@ -181,10 +184,11 @@ void DrawFrame(Scheme theme)
 
     foreach (var (sx, sy) in new[] { (-1f, -1f), (-1f, 1f), (1f, -1f), (1f, 1f) })
     {
-        var corner = new Vector3(sx * 16.2f, sy * 9.0f, 0f);
+        var corner = new Vector2(sx * 16.2f, sy * 9.0f);
 
-        shapes!.DrawPixelLine(corner, corner - new Vector3(sx * Arm, 0f, 0f), ThickLine, theme.Accent);
-        shapes.DrawPixelLine(corner, corner - new Vector3(0f, sy * Arm, 0f), ThickLine, theme.Accent);
+        ReadOnlySpan<Vector2> bracket = [corner - new Vector2(sx * Arm, 0f), corner, corner - new Vector2(0f, sy * Arm)];
+
+        shapes!.DrawPixelPolyline(bracket, ThickLine, theme.Accent);
     }
 }
 
@@ -257,10 +261,13 @@ void DrawHeadingTape(Vector2 center, float width, Scheme theme)
     _ = LabelHeight;
 }
 
-/// <summary>The gun-sight: two rings, four gaps, a dot.</summary>
+/// <summary>
+/// The gun-sight: two rings, four gaps, a dot. The sight is projected light on the canopy, so it
+/// carries a small additive glow - light added to the dark behind it, never a shadow.
+/// </summary>
 void DrawReticle(Vector2 center, Scheme theme)
 {
-    Style(ThinLine, 0f);
+    Style(ThinLine, 0f, glow: 3f, glowColour: theme.Glow, additive: true);
 
     // Four arcs with gaps at the cardinal points read as a sight; a full ring reads as a target
     for (var i = 0; i < 4; i++)
@@ -270,7 +277,10 @@ void DrawReticle(Vector2 center, Scheme theme)
         shapes!.DrawArc(center, 0.42f, start, MathF.PI / 2f - 0.5f, theme.Text);
     }
 
+    Style(0f, 1f, theme.Text, glow: 2.5f, glowColour: theme.Glow, additive: true);
     shapes!.DrawSolidCircle(center, 0.035f, theme.Text);
+
+    Style(ThinLine, 0f);
 
     foreach (var (dx, dy) in new[] { (1f, 0f), (-1f, 0f), (0f, 1f), (0f, -1f) })
     {
@@ -369,8 +379,8 @@ void DrawVerticalGauge(Vector2 center, float height, float value, string key, Sc
 
 /// <summary>
 /// Range rings, a cross-hair, a sweep that leaves a fading wedge behind it, and the contacts it
-/// finds. The rings are drawn as broken arcs - a dozen short arcs each - which is what a dashed
-/// ring costs until the shader can dash one for us.
+/// finds. The range rings are dashed rings, one shape each; the sweep's leading edge is the one
+/// bright thing on the scope, and adds its light.
 /// </summary>
 void DrawRadar(Vector2 center, float radius, Scheme theme)
 {
@@ -397,10 +407,11 @@ void DrawRadar(Vector2 center, float radius, Scheme theme)
     Style(0f, 1f, WithAlpha(theme.Accent, 0.45f), gradientTo: WithAlpha(theme.Accent, 0f), gradientAlong: new Vector2(-MathF.Sin(middle), MathF.Cos(middle)));
     shapes.DrawSector(center, radius - 0.03f, sweep, Trail, theme.Accent);
 
-    Style(ThinLine, 0f);
+    Style(ThinLine, 0f, glow: 6f, glowColour: theme.Glow, additive: true);
     shapes.DrawPixelLine(new Vector3(center, 0f), new Vector3(center.X + MathF.Cos(sweep) * radius, center.Y + MathF.Sin(sweep) * radius, 0f), ThickLine, theme.Accent);
 
-    // Contacts: friendly in the accent, the one hostile in red with a ring around it
+    // Contacts: friendly in the accent, the one hostile in red with a ring around it that pulses
+    // its light out over the scope
     for (var i = 0; i < ship.Contacts.Length; i++)
     {
         var contact = ship.Contacts[i];
@@ -412,7 +423,9 @@ void DrawRadar(Vector2 center, float radius, Scheme theme)
 
         if (contact.Hostile)
         {
-            Style(ThinLine, 0f);
+            var pulse = 0.5f + 0.5f * MathF.Sin(time * 5f);
+
+            Style(ThinLine, 0f, glow: 4f + 6f * pulse, glowColour: colour, additive: true);
             shapes.DrawArc(position, 0.18f, 0f, MathF.Tau, colour);
         }
     }
@@ -466,8 +479,8 @@ void DrawRingGauge(Vector2 center, float radius, float value, string key, Color 
     Style(0f, 0.35f, theme.Fill);
     shapes!.DrawAnnulus(center, radius, radius - 0.22f, theme.Dim);
 
-    // Progress, clockwise from twelve o'clock, square-ended
-    Style(0f, 0.95f, colour, 3f, colour);
+    // Progress, clockwise from twelve o'clock, square-ended, its glow adding light to the track
+    Style(0f, 0.95f, colour, 3f, colour, additive: true);
     shapes.DrawSector(center, radius, MathF.PI / 2f, -MathF.Tau * value, colour, radius - 0.22f);
 
     // Tick ring outside, and the bezel
@@ -480,7 +493,10 @@ void DrawRingGauge(Vector2 center, float radius, float value, string key, Color 
     SetLabel($"{key}-caption", key.ToUpperInvariant(), center - new Vector2(0f, radius + 0.42f));
 }
 
-/// <summary>A framed trace of the last few seconds of a signal, drawn as a chain of pixel lines.</summary>
+/// <summary>
+/// A framed trace of the last few seconds of a signal: sixty-four samples as one stroke with round
+/// joins, glowing like a phosphor trace.
+/// </summary>
 void DrawSparkline(Vector2 center, Vector2 size, Scheme theme)
 {
     Style(ThinLine, 0.45f, theme.Fill);
@@ -492,18 +508,19 @@ void DrawSparkline(Vector2 center, Vector2 size, Scheme theme)
     var height = size.Y - 0.6f;
     var samples = ship.Trace;
 
-    Style(ThinLine, 0f);
+    Span<Vector2> trace = stackalloc Vector2[samples.Length];
 
-    for (var i = 1; i < samples.Length; i++)
+    for (var i = 0; i < samples.Length; i++)
     {
-        var from = new Vector3(left + width * (i - 1) / (samples.Length - 1), bottom + height * samples[i - 1], 0f);
-        var to = new Vector3(left + width * i / (samples.Length - 1), bottom + height * samples[i], 0f);
-
-        shapes!.DrawPixelLine(from, to, ThinLine, theme.Text);
+        trace[i] = new Vector2(left + width * i / (samples.Length - 1), bottom + height * samples[i]);
     }
 
+    Style(ThinLine, 0f, glow: 4f, glowColour: theme.Glow, additive: true);
+    shapes!.DrawPixelPolyline(trace, ThinLine, theme.Text);
+
     // Baseline
-    shapes!.DrawPixelLine(new Vector3(left, bottom, 0f), new Vector3(left + width, bottom, 0f), ThinLine, theme.Dim);
+    Style(ThinLine, 0f);
+    shapes.DrawPixelLine(new Vector3(left, bottom, 0f), new Vector3(left + width, bottom, 0f), ThinLine, theme.Dim);
 
     SetLabel("trace-caption", "PMT", new Vector2(center.X - size.X / 2f + 0.5f, center.Y + size.Y / 2f - 0.22f));
 }
@@ -576,8 +593,9 @@ void DrawWarningStrip(Vector2 center, Scheme theme)
     {
         var colour = ship.Systems.Shield < 0.15f ? Scheme.Danger : Scheme.Warning;
 
-        // The panel is the colour; the lettering is dark on it, the way a lit annunciator reads
-        Style(ThinLine, 0.55f + 0.35f * pulse, colour, 6f * pulse, colour);
+        // The panel is the colour; the lettering is dark on it, the way a lit annunciator reads,
+        // and its glow is the lamp's light spilling onto the glass - added, not painted over
+        Style(ThinLine, 0.55f + 0.35f * pulse, colour, 6f * pulse, colour, additive: true);
         ChamferedPanel(center, size, 0.14f, colour);
         SetLabel("warning", ship.Systems.Shield < 0.15f ? "SHIELD CRITICAL" : "SHIELD LOW", center, colour: new Color(12, 8, 8));
 
@@ -599,14 +617,15 @@ void DrawTargetBox(Scheme theme)
     var half = 0.5f + 0.05f * MathF.Sin(time * 4f);
     var arm = 0.22f;
 
-    Style(ThinLine, 0f, null, 3f, theme.Glow);
+    Style(ThinLine, 0f, null, 3f, theme.Glow, additive: true);
 
     foreach (var (sx, sy) in new[] { (-1f, -1f), (-1f, 1f), (1f, -1f), (1f, 1f) })
     {
-        var corner = new Vector3(center.X + sx * half, center.Y + sy * half, 0f);
+        var corner = new Vector2(center.X + sx * half, center.Y + sy * half);
 
-        shapes!.DrawPixelLine(corner, corner - new Vector3(sx * arm, 0f, 0f), ThickLine, theme.Text);
-        shapes.DrawPixelLine(corner, corner - new Vector3(0f, sy * arm, 0f), ThickLine, theme.Text);
+        ReadOnlySpan<Vector2> bracket = [corner - new Vector2(sx * arm, 0f), corner, corner - new Vector2(0f, sy * arm)];
+
+        shapes!.DrawPixelPolyline(bracket, ThickLine, theme.Text);
     }
 
     SetLabel("target", $"TGT  {ship.TargetRange:0.0} KM", center - new Vector2(0f, half + 0.3f));
@@ -625,7 +644,7 @@ void DrawStatusTile(Vector2 center, Vector2 size, int index, Scheme theme)
 
     if (selected)
     {
-        Style(ThickLine, 0.75f, theme.Fill, 4f + 4f * pulse, theme.Glow);
+        Style(ThickLine, 0.75f, theme.Fill, 4f + 4f * pulse, theme.Glow, additive: true);
         ChamferedPanel(center, size, 0.16f, theme.Accent);
     }
     else
@@ -654,7 +673,7 @@ void DrawModeButton(Vector2 center, Vector2 size, int index, Scheme theme)
 
     // Active is filled solid in the accent with dark lettering - inverted, the way a lit button is.
     // Disabled is the same button through the batch's opacity: one number, every colour it draws.
-    Style(border: active ? ThickLine : ThinLine, fillAlpha: active ? 0.9f : 0.5f, fill: active ? theme.Accent : theme.Fill, glow: active ? 4f : 0f, glowColour: theme.Glow, opacity: opacity);
+    Style(border: active ? ThickLine : ThinLine, fillAlpha: active ? 0.9f : 0.5f, fill: active ? theme.Accent : theme.Fill, glow: active ? 4f : 0f, glowColour: theme.Glow, opacity: opacity, additive: active);
     ChamferedPanel(center, size, 0.16f, active ? theme.Text : theme.Accent);
 
     var caption = index == 3 ? $"{modeNames[index]}\n{ship.Decoys}" : modeNames[index];
@@ -709,11 +728,15 @@ void SegmentedBar(Vector2 center, Vector2 size, int cells, float value, Color co
 }
 
 /// <summary>Sets the whole of the batch's captured state at once, so no draw inherits a stale value.</summary>
-void Style(float border, float fillAlpha, Color? fill = null, float glow = 0f, Color? glowColour = null, float dash = 0f, float gap = 0f, float phase = 0f, Color? gradientTo = null, Vector2? gradientAlong = null, float opacity = 1f)
+void Style(float border, float fillAlpha, Color? fill = null, float glow = 0f, Color? glowColour = null, float dash = 0f, float gap = 0f, float phase = 0f, Color? gradientTo = null, Vector2? gradientAlong = null, float opacity = 1f, bool additive = false)
 {
     shapes!.BorderWidth = border;
     shapes.Fill.Set(fill, fillAlpha);
     shapes.Glow.Set(glow, glowColour);
+    // Additive: light on the canopy glass adds to what is behind it; a covering glow is a halo that
+    // can darken. On this dark ground the lit things - the sight, the sweep, the selected tile,
+    // the annunciator - add their light.
+    shapes.Glow.Additive = additive;
     shapes.Dash.Set(dash, gap, phase);
     shapes.Gradient.Color = gradientTo;
     shapes.Gradient.Direction = gradientAlong ?? Vector2.UnitY;
@@ -993,22 +1016,27 @@ description:
   en: |-
     A cockpit HUD composed from the toolkit's shapes and world text: a heading tape that scrolls, a
     pitch ladder, a gun-sight, speed and altitude tapes with moving readouts, a radar with a sweep
-    and contacts, ring gauges, a sparkline and a spectrum, a comms log in a framed panel, four status
-    tiles with a selected one that glows, mode buttons with one disabled, and a warning strip that
-    goes amber and then red as the shield drops. Every shape is one draw call; five colour schemes
-    switch live; the ship flies itself so every widget moves.
+    and contacts, ring gauges, a sparkline drawn as one glowing stroke, a spectrum, a comms log in a
+    framed panel, four status tiles with a selected one that glows, mode buttons with one disabled,
+    and a warning strip that goes amber and then red as the shield drops. The lit things - the
+    sight, the sweep, the selected tile, the annunciator - add their light with additive glows.
+    Every shape is one draw call; five colour schemes switch live; the ship flies itself so every
+    widget moves.
   cs: |-
     HUD kokpitu složený z tvarů a textu ve světě: rolující páska kurzu, žebřík sklonu, zaměřovač,
     pásky rychlosti a výšky s pohyblivými údaji, radar s paprskem a kontakty, kruhové ukazatele,
-    křivka signálu a spektrum, komunikační log v orámovaném panelu, čtyři stavové dlaždice s jednou
-    vybranou a zářící, tlačítka režimů s jedním vypnutým a varovný pruh, který se šieldem zežloutne
-    a pak zčervená. Všechny tvary v jednom volání; pět barevných schémat lze přepínat za běhu; loď
-    letí sama, takže se každý prvek hýbe.
+    křivka signálu jako jeden zářící tah, spektrum, komunikační log v orámovaném panelu, čtyři
+    stavové dlaždice s jednou vybranou a zářící, tlačítka režimů s jedním vypnutým a varovný pruh,
+    který se šieldem zežloutne a pak zčervená. Svítící prvky - zaměřovač, paprsek, vybraná dlaždice,
+    kontrolka - přidávají své světlo aditivní září. Všechny tvary v jednom volání; pět barevných
+    schémat lze přepínat za běhu; loď letí sama, takže se každý prvek hýbe.
 concepts:
   - Composing a HUD from ShapeBatch panels, bars, arcs, sectors and pixel lines in one draw call
   - Framed panels with chamfered corners as a single convex polygon
   - Selected against idle, disabled, and warning states as border, fill alpha and glow
-  - Dashed rings and a fading sweep built from arcs and sectors, pending shader support
+  - Dashed rings as one shape each, and a fading sweep as a sector with a gradient
+  - Strokes with DrawPixelPolyline - a sixty-four-point trace, corner brackets with one round join
+  - Additive glows for the things that emit light, covering glows for halos
   - World text updated in place, reused for scrolling tape labels
   - A theme that leaves warning and danger colours alone
   - A simulated ship as functions of time, frozen by freezing the clock

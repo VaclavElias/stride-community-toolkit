@@ -162,6 +162,7 @@ public sealed class StationBoard
             if (hovered || selected)
             {
                 shapes.Glow.Set(hovered ? 9f : 5f, Hex.WithAlpha(accent, (byte)(hovered ? 170 : 110)));
+                shapes.Glow.Additive = true;
             }
 
             shapes.DrawRectangle(_board.Place(center), _board.AxisX, _board.AxisY, ButtonSize, selected ? accent : Hex.WithAlpha(accent, 210), 0.12f);
@@ -182,6 +183,7 @@ public sealed class StationBoard
         shapes.BorderWidth = 0f;
         shapes.Fill.Set(color, 1f);
         shapes.Glow.Set(6f, Hex.WithAlpha(color, 150));
+        shapes.Glow.Additive = true;
         shapes.DrawDisc(_board.Place(-Margin + 0.25f, LinkRow), _board.Normal, 0.15f, color);
         shapes.Glow.Clear();
         shapes.Fill.Set(null, 0f);
@@ -266,6 +268,7 @@ public sealed class StationBoard
 
             shapes.Fill.Set(color, 0.95f);
             shapes.Glow.Set(3f, Hex.WithAlpha(color, 90));
+            shapes.Glow.Additive = true;
             shapes.DrawRectangle(_board.Place(from + filled / 2f, v, 0.04f), _board.AxisX, _board.AxisY, new Vector2(filled, BarHeight), color, 0.08f);
             shapes.Glow.Clear();
         }
@@ -315,4 +318,4 @@ public sealed class StationBoard
 
         return new Vector2(first + index * (ButtonSize.X + ButtonGap), TopRow);
     }
-}
+}

@@ -138,6 +138,7 @@ public sealed class DeckEffects
             // Opacity is the fade: the ring goes out as it goes wide
             shapes.Opacity = 1f - t;
             shapes.Glow.Set(6f, Hex.WithAlpha(ring.Color, 120));
+            shapes.Glow.Additive = true;
             shapes.DrawRing(ring.Center, Vector3.UnitY, MathUtil.Lerp(ring.From, ring.To, t), ring.Color);
             shapes.Glow.Clear();
         }
@@ -149,6 +150,7 @@ public sealed class DeckEffects
 
             shapes.Opacity = HazardFlash;
             shapes.Glow.Set(14f, Hex.WithAlpha(LostColor, 200));
+            shapes.Glow.Additive = true;
             shapes.DrawPixelLine(new Vector3(-inset, StationScene.Lift + 0.01f, z), new Vector3(inset, StationScene.Lift + 0.01f, z), 3f, LostColor);
             shapes.Glow.Clear();
         }
@@ -242,4 +244,4 @@ public sealed class DeckEffects
 
         public float Age { get; set; }
     }
-}
+}
