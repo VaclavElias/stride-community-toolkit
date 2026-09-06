@@ -1,4 +1,7 @@
+using Stride.CommunityToolkit.Rendering.Gizmos;
 using Stride.Core.Mathematics;
+using Stride.Engine;
+using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using Buffer = Stride.Graphics.Buffer;
@@ -54,43 +57,6 @@ internal static class PolylineMeshBuilder
     }
 
     /// <summary>
-    /// Builds many separate two-point ribbons as a single mesh - for tick marks, grids and anything else
-    /// made of disconnected straight segments, where one mesh is far cheaper than one entity per segment.
-    /// </summary>
-    /// <param name="device">The device to create the vertex and index buffers on.</param>
-    /// <param name="segments">The segments, each a start and an end point. At least one is required.</param>
-    /// <param name="options">Width and plane of the ribbons. <see cref="PolylineOptions.Closed"/> is ignored.</param>
-    /// <returns>A mesh whose bounds are set, ready to be put in a <see cref="Model"/>.</returns>
-    /// <exception cref="ArgumentNullException">If any argument is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">If there are no segments, or <see cref="PolylineOptions.Normal"/> has no length.</exception>
-    internal static Mesh BuildSegments(GraphicsDevice device, IReadOnlyList<(Vector3 Start, Vector3 End)> segments, PolylineOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(device);
-        ArgumentNullException.ThrowIfNull(segments);
-        ArgumentNullException.ThrowIfNull(options);
-
-        if (segments.Count == 0)
-        {
-            throw new ArgumentException("At least one segment is required.", nameof(segments));
-        }
-
-        var normal = NormalOf(options);
-        var halfWidth = options.Width * 0.5f;
-        var vertices = new List<VertexPositionNormalTexture>(segments.Count * 4);
-        var indices = new List<int>(segments.Count * 6);
-        var pair = new Vector3[2];
-
-        foreach (var (start, end) in segments)
-        {
-            pair[0] = start;
-            pair[1] = end;
-            AppendRibbon(vertices, indices, pair, normal, halfWidth, closed: false);
-        }
-
-        return ToMesh(device, vertices, indices);
-    }
-
-    /// <summary>
     /// Builds several open ribbons as one mesh - the pieces of a curve cut by <see cref="PolylineClipping"/>,
     /// or any lines that share a material and are shown and hidden together.
     /// </summary>
@@ -127,6 +93,21 @@ internal static class PolylineMeshBuilder
         }
 
         return ToMesh(device, vertices, indices);
+    }
+
+    /// <summary>
+    /// Wraps a ribbon mesh in a model with an unlit emissive material in the ribbon's colour, double-sided
+    /// so it reads from behind the chart too.
+    /// </summary>
+    /// <param name="game">The game whose device compiles the material.</param>
+    /// <param name="mesh">A mesh from <see cref="Build"/> or <see cref="BuildMany"/>.</param>
+    /// <param name="options">The colour and emissive intensity of the material.</param>
+    internal static ModelComponent CreateModel(IGame game, Mesh mesh, PolylineOptions options)
+    {
+        var material = GizmoEmissiveColorMaterial.Create(game.GraphicsDevice, options.Color, options.EmissiveIntensity);
+        material.Passes[0].CullMode = CullMode.None;
+
+        return new ModelComponent(new Model { mesh, material });
     }
 
     /// <summary>

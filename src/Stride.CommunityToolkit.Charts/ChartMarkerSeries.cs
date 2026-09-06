@@ -1,14 +1,12 @@
-using Stride.CommunityToolkit.Charts.Lines;
 using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
-using Stride.Engine;
 
 namespace Stride.CommunityToolkit.Charts;
 
 /// <summary>
 /// Scatter markers: one small × per data point, drawn every frame in pixels so they keep their size at any
-/// zoom or distance and need no mesh. Created with <see cref="Chart.AddMarkers"/>. Points outside the
-/// chart's ranges are simply not drawn until panning or zooming brings them back.
+/// zoom or distance. Created with <see cref="Chart.AddMarkers"/>. Points outside the chart's ranges are
+/// simply not drawn until panning or zooming brings them back.
 /// </summary>
 public sealed class ChartMarkerSeries : ChartSeries
 {
@@ -17,8 +15,8 @@ public sealed class ChartMarkerSeries : ChartSeries
     /// <summary>The data points, in chart units, as given.</summary>
     public IReadOnlyList<Vector3> Points { get; }
 
-    internal ChartMarkerSeries(string name, Entity entity, PolylineOptions options, IReadOnlyList<Vector3> points, float size)
-        : base(name, entity, options)
+    internal ChartMarkerSeries(Chart chart, string name, Color color, ChartSeriesStyle style, IReadOnlyList<Vector3> points, float size)
+        : base(chart, name, color, style)
     {
         Points = points;
         _size = size;
@@ -26,13 +24,15 @@ public sealed class ChartMarkerSeries : ChartSeries
     }
 
     /// <summary>Nothing to do: the glyphs are filtered against the ranges as they are drawn.</summary>
-    internal override void Rebuild(Chart chart)
+    internal override void Rebuild()
     {
     }
 
     /// <summary>Submits a glyph for every point inside the chart's ranges.</summary>
-    internal void Draw(ShapeBatch batch, in ChartView view, ChartOptions o, bool is3D)
+    internal override void Draw(ShapeBatch batch, in ChartView view)
     {
+        var o = Chart.Options;
+
         // Just above the curves' layer, so the depth test keeps markers on top of a curve they sit on
         var lift = 2.5f * Chart.LayerStep;
 
@@ -44,7 +44,7 @@ public sealed class ChartMarkerSeries : ChartSeries
             if (p.X < o.Range.XMin || p.X > o.Range.XMax || p.Y < o.Range.YMin || p.Y > o.Range.YMax)
                 continue;
 
-            if (is3D && (p.Z < o.Range.ZMin || p.Z > o.Range.ZMax))
+            if (Chart.Is3D && (p.Z < o.Range.ZMin || p.Z > o.Range.ZMax))
                 continue;
 
             DrawGlyph(batch, in view, new Vector3(p.X, p.Y, p.Z + lift));
@@ -58,7 +58,7 @@ public sealed class ChartMarkerSeries : ChartSeries
     internal void DrawGlyph(ShapeBatch batch, in ChartView view, Vector3 local)
     {
         var half = view.ToUnits(_size, local) * 0.5f;
-        var width = Options.Width;
+        var width = Width;
 
         batch.DrawPixelLine(view.ToWorld(local + new Vector3(-half, -half, 0f)), view.ToWorld(local + new Vector3(half, half, 0f)), width, Color);
         batch.DrawPixelLine(view.ToWorld(local + new Vector3(-half, half, 0f)), view.ToWorld(local + new Vector3(half, -half, 0f)), width, Color);

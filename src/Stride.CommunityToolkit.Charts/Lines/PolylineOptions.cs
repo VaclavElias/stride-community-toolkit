@@ -12,23 +12,23 @@ namespace Stride.CommunityToolkit.Charts.Lines;
 /// that faces the camera for your scene: <see cref="Vector3.UnitZ"/> for a chart drawn in the XY plane,
 /// <see cref="Vector3.UnitY"/> for one drawn on the ground.
 /// </remarks>
-public sealed class PolylineOptions
+internal sealed class PolylineOptions
 {
     /// <summary>The ribbon width in world units.</summary>
-    public float Width { get; set; } = 0.05f;
+    internal float Width { get; set; } = 0.05f;
 
     /// <summary>The line colour.</summary>
-    public Color Color { get; set; } = Color.White;
+    internal Color Color { get; set; } = Color.White;
 
     /// <summary>
     /// Emissive strength. Values above <c>1</c> exceed the bloom threshold, so with post effects enabled
     /// (the toolkit's default 3D compositor) the line glows; <c>1</c> is a flat, unlit-looking line.
     /// </summary>
-    public float EmissiveIntensity { get; set; } = 1f;
+    internal float EmissiveIntensity { get; set; } = 1f;
 
     /// <summary>The normal of the plane the ribbon lies in. See the class remarks for how to choose it.</summary>
-    public Vector3 Normal { get; set; } = Vector3.UnitZ;
+    internal Vector3 Normal { get; set; } = Vector3.UnitZ;
 
     /// <summary>When <see langword="true"/>, the last point is joined back to the first.</summary>
-    public bool Closed { get; set; }
+    internal bool Closed { get; set; }
 }

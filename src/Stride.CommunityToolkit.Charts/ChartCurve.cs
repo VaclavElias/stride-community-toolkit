@@ -1,6 +1,6 @@
 using Stride.CommunityToolkit.Charts.Lines;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
-using Stride.Engine;
 
 namespace Stride.CommunityToolkit.Charts;
 
@@ -22,15 +22,14 @@ public sealed class ChartCurve : ChartSeries
     // The most samples a re-sample may use, so a deep zoom-out cannot make a rebuild arbitrarily expensive
     private const int MaxSamples = 8000;
 
-    private readonly Chart _chart;
     private readonly int _sampleCount;
     private readonly float _sampleDensity;
     private Func<float, float> _function;
+    private List<Vector2[]> _runs = [];
 
-    internal ChartCurve(Chart chart, string name, Entity entity, PolylineOptions options, Func<float, float> function, int samples)
-        : base(name, entity, options)
+    internal ChartCurve(Chart chart, string name, Color color, ChartSeriesStyle? style, Func<float, float> function, int samples)
+        : base(chart, name, color, style)
     {
-        _chart = chart;
         _function = function;
         _sampleCount = samples;
 
@@ -40,9 +39,8 @@ public sealed class ChartCurve : ChartSeries
     }
 
     /// <summary>
-    /// Swaps the function and rebuilds just this curve, in place: it keeps its name, colour and legend row,
-    /// and no entity is created or destroyed. This is how a curve is animated - a parameter changing every
-    /// frame - without the churn of removing and plotting it again.
+    /// Swaps the function and re-samples just this curve, in place: it keeps its name, colour and legend
+    /// row. This is how a curve is animated - a parameter changing every frame.
     /// </summary>
     /// <param name="f">The new function, sampled with the density this curve was created with.</param>
     /// <exception cref="ArgumentNullException">If <paramref name="f"/> is <see langword="null"/>.</exception>
@@ -53,26 +51,44 @@ public sealed class ChartCurve : ChartSeries
         ObjectDisposedException.ThrowIf(IsDisposed, this);
 
         _function = f;
-        Rebuild(_chart);
+        Rebuild();
     }
 
     /// <inheritdoc />
-    internal override void Rebuild(Chart chart)
+    internal override void Rebuild()
     {
-        var r = chart.Options.Range;
+        var r = Chart.Options.Range;
 
         // Never fewer samples than asked for; the cap bounds the cost at deep zoom-out
         var samples = Math.Clamp((int)(_sampleDensity * (r.XMax - r.XMin)), _sampleCount, MaxSamples);
         var points = PolylineSampling.Function(_function, r.XMin, r.XMax, samples);
         var branches = PolylineClipping.SplitAtJumps(points, (r.YMax - r.YMin) * 0.25f, extendEnds: true);
 
-        var runs = new List<IReadOnlyList<Vector3>>();
+        var runs = new List<Vector2[]>();
 
         foreach (var branch in branches)
         {
-            runs.AddRange(chart.Clip(branch));
+            foreach (var run in Chart.Clip(branch))
+            {
+                runs.Add(ToPlane(run));
+            }
         }
 
-        ReplaceRibbons(chart, runs, closed: false);
+        _runs = runs;
+        IsEmpty = runs.Count == 0;
+    }
+
+    /// <inheritdoc />
+    internal override void Draw(ShapeBatch batch, in ChartView view)
+    {
+        if (IsEmpty)
+            return;
+
+        using var pen = Strokes(batch, in view, Chart.CurveLayer);
+
+        foreach (var run in _runs)
+        {
+            pen.Draw(run);
+        }
     }
 }

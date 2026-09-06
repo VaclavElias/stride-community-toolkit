@@ -11,7 +11,7 @@ namespace Stride.CommunityToolkit.Charts;
 /// says only what is different rather than repeating the defaults.
 /// </para>
 /// <code>
-/// chart.Plot(MathF.Sin, style: new ChartSeriesStyle { Width = 0.1f });   // default colour and glow, twice the width
+/// chart.Plot(MathF.Sin, style: new ChartSeriesStyle { Width = 5f });     // default colour and glow, twice the width
 /// chart.Plot(MathF.Cos, color: Color.Orange);                            // the common case needs no style at all
 /// </code>
 /// <para>
@@ -21,15 +21,15 @@ namespace Stride.CommunityToolkit.Charts;
 /// </remarks>
 public sealed class ChartSeriesStyle
 {
-    /// <summary>Ribbon width in chart units. Unset takes <see cref="ChartSeriesOptions.CurveWidth"/>.</summary>
+    /// <summary>Stroke width in pixels. Unset takes <see cref="ChartSeriesOptions.CurveWidth"/>, live.</summary>
     public float? Width { get; set; }
 
     /// <summary>The line colour. Unset takes the next colour from <see cref="ChartSeriesOptions.Palette"/>.</summary>
     public Color? Color { get; set; }
 
     /// <summary>
-    /// Emissive intensity; above <c>1</c> glows when bloom is on. Unset takes
-    /// <see cref="ChartSeriesOptions.Glow"/>.
+    /// The glow halo in pixels, <c>0</c> for none. Unset takes
+    /// <see cref="ChartSeriesOptions.Glow"/>, live.
     /// </summary>
     public float? Glow { get; set; }
 }

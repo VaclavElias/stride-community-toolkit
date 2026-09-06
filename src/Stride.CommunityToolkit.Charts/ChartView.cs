@@ -5,16 +5,16 @@ using Stride.Engine.Processors;
 namespace Stride.CommunityToolkit.Charts;
 
 /// <summary>
-/// One frame's view of a chart: the root's world matrix and what one screen pixel measures in chart units
-/// at any point of it. Built by <see cref="Chart.Update(CameraComponent)"/> and handed to everything that draws furniture,
-/// so a tick length, a legend row or a marker asked for in pixels lands as the right number of chart units.
+/// What one frame's drawing needs to know about where the chart is and how the camera sees it: the
+/// root's world matrix, and the conversion between a length in screen pixels and a length in chart
+/// units at any point of the chart. Built once per <see cref="Chart.Update(CameraComponent)"/>.
 /// </summary>
 /// <remarks>
-/// The widths <see cref="Shapes.ShapeBatch"/> draws are measured per fragment and need none of this; it is the
-/// <i>lengths</i> and <i>positions</i> laid out in pixels - how long a tick is, where the next legend row
-/// sits - that have to be converted before they are submitted as world geometry. Under an orthographic
-/// camera the answer is one number; under a perspective one it depends on how deep the point is, which is
-/// why the conversion takes the point.
+/// Under an orthographic camera the conversion is one number for the whole chart. Under a perspective
+/// camera it depends on how far the point is from the eye, so a tick that is eight pixels long is a
+/// different length in chart units at the near and far ends of a 3D chart, and each is measured where it
+/// is. The pixel scale it is built with is the display scale the batch draws pixels at, so a length
+/// that the batch will multiply by it is measured in the same pixels.
 /// </remarks>
 internal readonly struct ChartView
 {
@@ -23,25 +23,25 @@ internal readonly struct ChartView
     private readonly float _tanHalfFov;
     private readonly float _pixelHeight;
     private readonly float _pixelScale;
-    private readonly float _rootScale;
+    private readonly Vector2 _scale;
     private readonly Vector3 _eye;
     private readonly Vector3 _forward;
 
     /// <summary>The chart root's world matrix, refreshed for this frame.</summary>
     internal Matrix World { get; }
 
-    /// <param name="root">The chart's root entity; its world matrix is refreshed here.</param>
-    /// <param name="camera">The camera looking at the chart.</param>
-    /// <param name="pixelHeight">The back buffer height in physical pixels.</param>
-    /// <param name="pixelScale">The display scale pixel sizes are multiplied by, or <c>1</c> for exact pixels.</param>
+    /// <summary>Whether the root is drawn at unit scale, so chart units are world units and no point needs scaling.</summary>
+    internal bool IsUnitScale { get; }
+
     internal ChartView(Entity root, CameraComponent camera, float pixelHeight, float pixelScale)
     {
         root.Transform.UpdateWorldMatrix();
         World = root.Transform.WorldMatrix;
 
-        // A scaled root shrinks every chart unit on screen; the up vector's length is the Y scale, which
-        // is the one the vertical pixel measure runs along
-        _rootScale = MathF.Max(World.Up.Length(), MathUtil.ZeroTolerance);
+        // A scaled root shrinks every chart unit on screen: the axis vectors' lengths are the scales, and
+        // the up vector's is the one the vertical pixel measure runs along
+        _scale = new Vector2(World.Right.Length(), World.Up.Length());
+        IsUnitScale = MathF.Abs(_scale.X - 1f) < 1e-4f && MathF.Abs(_scale.Y - 1f) < 1e-4f;
 
         _pixelHeight = MathF.Max(pixelHeight, 1f);
         _pixelScale = pixelScale;
@@ -57,13 +57,23 @@ internal readonly struct ChartView
         _tanHalfFov = MathF.Tan(MathUtil.DegreesToRadians(camera.VerticalFieldOfView) * 0.5f);
     }
 
-    /// <summary>The chart-local point in world space.</summary>
+    /// <summary>A chart-local point in world space.</summary>
     internal Vector3 ToWorld(Vector3 local) => Vector3.TransformCoordinate(local, World);
 
     /// <summary>
-    /// How many chart units one pixel spans at <paramref name="local"/>. Multiply a pixel length by it to
-    /// get the chart units to lay out.
+    /// The plane strokes are drawn in at a chart-local depth: its origin in world space and the root's X
+    /// and Y axes, which the batch normalizes. Points in that plane are chart-local <c>x</c> and <c>y</c>
+    /// through <see cref="ToPlane"/>.
     /// </summary>
+    internal ChartPlane PlaneAt(float z) => new(ToWorld(new Vector3(0f, 0f, z)), World.Right, World.Up);
+
+    /// <summary>
+    /// A chart-local point as a coordinate in a plane from <see cref="PlaneAt"/>: the root's scale applied,
+    /// since the plane's axes are unit length however the root is scaled.
+    /// </summary>
+    internal Vector2 ToPlane(Vector2 local) => local * _scale;
+
+    /// <summary>How long one screen pixel is in chart units at a chart-local point.</summary>
     internal float UnitsPerPixel(Vector3 local)
     {
         float worldPerPixel;
@@ -80,9 +90,9 @@ internal readonly struct ChartView
             worldPerPixel = 2f * depth * _tanHalfFov / _pixelHeight;
         }
 
-        return worldPerPixel * _pixelScale / _rootScale;
+        return worldPerPixel * _pixelScale / MathF.Max(_scale.Y, MathUtil.ZeroTolerance);
     }
 
-    /// <summary>A length in pixels as chart units at <paramref name="local"/>.</summary>
+    /// <summary>A length in screen pixels as a length in chart units at a chart-local point.</summary>
     internal float ToUnits(float pixels, Vector3 local) => pixels * UnitsPerPixel(local);
 }

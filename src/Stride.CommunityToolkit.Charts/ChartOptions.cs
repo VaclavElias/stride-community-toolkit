@@ -20,13 +20,14 @@ namespace Stride.CommunityToolkit.Charts;
 /// </code>
 /// <para>
 /// The options stay live after the chart is built: <see cref="Chart.Update(Stride.Engine.CameraComponent)"/> applies whatever changed
-/// since the last frame, so a range, a visibility or a glow is changed by writing the option, the same
-/// way it was set up. The exception is <see cref="Series"/>, whose values are the defaults a series takes
-/// when it is added and stay with it - only <see cref="ChartSeriesOptions.Glow"/> is pushed into
-/// existing series. Whether the chart is 3D (a Z spread) is read once, when it is built.
+/// since the last frame, so a range, a visibility, a colour or a glow is changed by writing the option,
+/// the same way it was set up. <see cref="Series"/> holds the defaults a series takes when added, and a
+/// series whose style left a value unset keeps reading the default, so those are live too. Whether the
+/// chart is 3D (a Z spread) is read once, when it is built.
 /// </para>
 /// <para>
-/// Distances are in the chart's own units; scale the chart's root entity to change its size in the world.
+/// Ranges are in the chart's own units; scale the chart's root entity to change its size in the world.
+/// Every width, length and glow is in pixels on a 100% display, and stays that size at any zoom or distance.
 /// </para>
 /// </remarks>
 public sealed class ChartOptions
@@ -64,9 +65,7 @@ public sealed class ChartOptions
 
     /// <summary>
     /// A flat, paper-like chart for an orthographic 2D camera on a light background - no glow, dark axes, a
-    /// major and minor grid, and labels that keep their pixel size while zooming. The curve width is chosen
-    /// for the 2D controller's default orthographic size of 10 on a window around 720 pixels tall, with
-    /// MSAA on; everything else is in pixels and holds at any zoom.
+    /// major and minor grid, slightly heavier curves, and labels that keep their pixel size while zooming.
     /// </summary>
     public static ChartOptions Light2D() => new()
     {
@@ -84,9 +83,9 @@ public sealed class ChartOptions
         {
             Visible = true,
             Color = new Color(190, 190, 190),
-            Width = 0.02f,
+            Width = 1.5f,
             MinorColor = new Color(228, 228, 228),
-            MinorWidth = 0.015f,
+            MinorWidth = 1f,
         },
         Labels = new ChartLabelOptions
         {
@@ -96,8 +95,9 @@ public sealed class ChartOptions
         },
         Series = new ChartSeriesOptions
         {
-            CurveWidth = 0.045f,
-            Glow = 1f,
+            CurveWidth = 3f,
+            Glow = 0f,
+            AdditiveGlow = false,
             Palette =
             [
                 new Color(45, 112, 179),   // blue

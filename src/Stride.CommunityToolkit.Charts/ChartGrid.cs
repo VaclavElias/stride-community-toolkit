@@ -1,230 +1,126 @@
-using Stride.CommunityToolkit.Charts.Lines;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
-using Stride.Engine;
-using Stride.Extensions;
-using Stride.Graphics;
-using Stride.Graphics.GeometricPrimitives;
-using Stride.Rendering;
 
 namespace Stride.CommunityToolkit.Charts;
 
 /// <summary>
-/// The chart's grid: one textured plane per requested coordinate plane and line weight, using the scene
-/// editor's technique - the lines live in a mip-mapped texture filtered by the GPU sampler, so they are
-/// stable at every zoom, and a range change only moves transforms instead of rebuilding geometry.
+/// The chart's grid: pixel-width lines on every tick value, drawn each frame on whichever coordinate planes
+/// <see cref="ChartGridOptions.Planes"/> asks for, the minor grid first and the major on top. Nothing is
+/// built or kept, so every grid option is live, and a view-driven chart's grid covers the screen simply
+/// because its ranges do.
 /// </summary>
-/// <remarks>
-/// The grid has two layouts. <b>Bounded</b>, the default, sizes each plane exactly to the chart's ranges,
-/// so the grid ends where the axes end - the right look for a fixed figure, 2D or 3D. <b>Infinite</b>,
-/// switched on with <see cref="ChartRangeOptions.FollowCamera"/>, uses oversized planes snapped to cell multiples so the
-/// grid appears endless while the view-driven chart pans and zooms - there the ranges always equal the
-/// screen, so the oversize never shows as a mismatch.
-/// </remarks>
-internal sealed class ChartGrid : IDisposable
+internal sealed class ChartGrid
 {
-    private readonly Game _game;
     private readonly Chart _chart;
-    private readonly List<Entry> _planes = [];
-    private Texture? _texture;
-    private bool _infinite;
-    private bool _isDisposed;
 
-    internal ChartGrid(Game game, Chart chart)
+    internal ChartGrid(Chart chart)
     {
-        _game = game;
         _chart = chart;
     }
 
-    /// <summary>
-    /// Applies <see cref="ChartGridOptions.Visible"/> to the planes; the minor planes only show when there
-    /// are minor divisions. The options are the one source of truth, so nothing here is read back.
-    /// </summary>
-    internal void ApplyVisibility()
+    /// <summary>Submits the grid lines for this frame, or nothing while the grid is hidden.</summary>
+    internal void Draw(ShapeBatch batch, in ChartView view)
     {
         var o = _chart.Options;
 
-        foreach (var entry in _planes)
-        {
-            entry.Model.Enabled = o.Grid.Visible && (!entry.IsMinor || o.Range.MinorDivisions > 1);
-        }
-    }
+        if (!o.Grid.Visible)
+            return;
 
-    /// <summary>
-    /// Creates the planes once: a flat chart draws only the chart plane, a 3D one draws whichever planes
-    /// were asked for, one major and one minor plane each - the editor's grid gizmo runs up to three the
-    /// same way.
-    /// </summary>
-    internal void Create()
-    {
-        _texture ??= ChartGridTexture.Create(_game.GraphicsDevice);
-
-        var planes = _chart.Is3D ? _chart.Options.Grid.Planes : _chart.Options.Grid.Planes & ChartGridPlanes.XY;
+        var planes = _chart.Is3D ? o.Grid.Planes : o.Grid.Planes & ChartGridPlanes.XY;
+        var step = o.Range.TickStep;
 
         foreach (var plane in new[] { ChartGridPlanes.XY, ChartGridPlanes.XZ, ChartGridPlanes.YZ })
         {
             if ((planes & plane) == 0)
                 continue;
 
-            Add(plane, isMinor: false, _chart.Options.Grid.Color, -Chart.LayerStep);
-            Add(plane, isMinor: true, _chart.Options.Grid.MinorColor, -2f * Chart.LayerStep);
+            if (o.Range.MinorDivisions > 1)
+            {
+                DrawLines(batch, in view, plane, new Weight(step / o.Range.MinorDivisions, step, o.Grid.MinorColor, o.Grid.MinorWidth, -2f * Chart.LayerStep));
+            }
+
+            DrawLines(batch, in view, plane, new Weight(step, 0f, o.Grid.Color, o.Grid.Width, -Chart.LayerStep));
         }
     }
 
     /// <summary>
-    /// Switches between the infinite layout of a view-driven chart and the bounded one of a figure, and
-    /// rebuilds the planes; the texture is shared and kept. Idempotent.
+    /// The lines of one weight on one plane: at every multiple of the weight's step along each of the
+    /// plane's two axes, spanning the ranges of those axes.
     /// </summary>
-    internal void SetInfinite(bool infinite)
+    private void DrawLines(ShapeBatch batch, in ChartView view, ChartGridPlanes plane, in Weight w)
     {
-        if (_infinite == infinite)
-            return;
+        var r = _chart.Options.Range;
 
-        _infinite = infinite;
-
-        RemovePlanes();
-        Create();
-        Update();
-    }
-
-    /// <summary>
-    /// Points every plane at the current ranges. Bounded planes are sized and centred on the ranges;
-    /// infinite ones are scaled so one texture cell equals their step and snapped to a cell multiple near
-    /// the view centre, so the grid appears endless and its lines land exactly on the tick values.
-    /// </summary>
-    internal void Update()
-    {
-        var o = _chart.Options;
-        var centre = new Vector3((o.Range.XMin + o.Range.XMax) * 0.5f, (o.Range.YMin + o.Range.YMax) * 0.5f, (o.Range.ZMin + o.Range.ZMax) * 0.5f);
+        // The plane sits on the third coordinate's zero, or its nearest edge, nudged behind the axes
         var anchor = new Vector3(
-            Math.Clamp(0f, o.Range.XMin, o.Range.XMax),
-            Math.Clamp(0f, o.Range.YMin, o.Range.YMax),
-            _chart.Is3D ? Math.Clamp(0f, o.Range.ZMin, o.Range.ZMax) : 0f);
-        var range = new Vector3(o.Range.XMax - o.Range.XMin, o.Range.YMax - o.Range.YMin, o.Range.ZMax - o.Range.ZMin);
+            Math.Clamp(0f, r.XMin, r.XMax) + w.Offset,
+            Math.Clamp(0f, r.YMin, r.YMax) + w.Offset,
+            (_chart.Is3D ? Math.Clamp(0f, r.ZMin, r.ZMax) : 0f) + w.Offset);
 
-        // Minor divisions may have changed with the tick step, which is what decides the minor planes
-        ApplyVisibility();
-
-        foreach (var entry in _planes)
+        // Each case: first the lines across one spanned axis, then across the other, at the anchor on the
+        // third
+        switch (plane)
         {
-            var cell = entry.IsMinor ? o.Range.TickStep / Math.Max(1, o.Range.MinorDivisions) : o.Range.TickStep;
-
-            if (_infinite)
-            {
-                entry.Entity.Transform.Scale = new Vector3(cell, cell, 1f);
-
-                // Snap the two spanned coordinates to cell multiples; hold the third on its axis
-                entry.Entity.Transform.Position = entry.Plane switch
+            case ChartGridPlanes.XZ:
+                foreach (var x in w.Ticks(r.XMin, r.XMax))
                 {
-                    ChartGridPlanes.XZ => new Vector3(Snap(centre.X, cell), anchor.Y + entry.Offset, Snap(centre.Z, cell)),
-                    ChartGridPlanes.YZ => new Vector3(anchor.X + entry.Offset, Snap(centre.Y, cell), Snap(centre.Z, cell)),
-                    _ => new Vector3(Snap(centre.X, cell), Snap(centre.Y, cell), anchor.Z + entry.Offset),
-                };
-            }
-            else
-            {
-                // The plane covers the ranges exactly, so the grid ends where the axes end; the local X
-                // and Y axes map onto the world axes the plane's rotation chose
-                (entry.Entity.Transform.Scale, entry.Entity.Transform.Position) = entry.Plane switch
-                {
-                    ChartGridPlanes.XZ => (new Vector3(range.X, range.Z, 1f), new Vector3(centre.X, anchor.Y + entry.Offset, centre.Z)),
-                    ChartGridPlanes.YZ => (new Vector3(range.Z, range.Y, 1f), new Vector3(anchor.X + entry.Offset, centre.Y, centre.Z)),
-                    _ => (new Vector3(range.X, range.Y, 1f), new Vector3(centre.X, centre.Y, anchor.Z + entry.Offset)),
-                };
-            }
-        }
-
-        static float Snap(float value, float cell) => MathF.Round(value / cell) * cell;
-    }
-
-    /// <summary>Removes the planes and frees their quad meshes and the shared grid texture.</summary>
-    public void Dispose()
-    {
-        if (_isDisposed)
-            return;
-
-        _isDisposed = true;
-
-        RemovePlanes();
-        _texture?.Dispose();
-        _texture = null;
-    }
-
-    private void RemovePlanes()
-    {
-        foreach (var entry in _planes)
-        {
-            if (entry.Model.Model is { } model)
-            {
-                foreach (var mesh in model.Meshes)
-                {
-                    PolylineMeshBuilder.Release(mesh);
+                    Line(batch, in view, new Vector3(x, anchor.Y, r.ZMin), new Vector3(x, anchor.Y, r.ZMax), in w);
                 }
-            }
 
-            _chart.Root.RemoveChild(entry.Entity);
-        }
-
-        _planes.Clear();
-    }
-
-    private void Add(ChartGridPlanes plane, bool isMinor, Color color, float offset)
-    {
-        var device = _game.GraphicsDevice;
-        var o = _chart.Options;
-        var cell = isMinor ? o.Range.TickStep / Math.Max(1, o.Range.MinorDivisions) : o.Range.TickStep;
-
-        // Bounded planes are unit quads scaled to the ranges, with as many texture cells baked into the
-        // material as steps fit the ranges; infinite ones carry a fixed cell count and get scaled so one
-        // cell equals one step. Cell boundaries land on tick values when the ranges start on a step.
-        Vector2 tiles;
-        float planeSize;
-
-        if (_infinite)
-        {
-            tiles = new Vector2(ChartGridTexture.PlaneCells);
-            planeSize = ChartGridTexture.PlaneCells;
-        }
-        else
-        {
-            var spans = plane switch
-            {
-                ChartGridPlanes.XZ => new Vector2(o.Range.XMax - o.Range.XMin, o.Range.ZMax - o.Range.ZMin),
-                ChartGridPlanes.YZ => new Vector2(o.Range.ZMax - o.Range.ZMin, o.Range.YMax - o.Range.YMin),
-                _ => new Vector2(o.Range.XMax - o.Range.XMin, o.Range.YMax - o.Range.YMin),
-            };
-
-            tiles = new Vector2(MathF.Max(1f, MathF.Round(spans.X / cell)), MathF.Max(1f, MathF.Round(spans.Y / cell)));
-            planeSize = 1f;
-        }
-
-        var material = ChartGridTexture.CreateMaterial(device, _texture!, color, tiles);
-
-        var entity = new Entity($"{plane} {(isMinor ? "minor" : "major")} grid")
-        {
-            new ModelComponent
-            {
-                Model = new Model
+                foreach (var z in w.Ticks(r.ZMin, r.ZMax))
                 {
-                    material,
-                    new Mesh { Draw = GeometricPrimitive.Plane.New(device, planeSize, planeSize).ToMeshDraw() },
-                },
-            },
-        };
+                    Line(batch, in view, new Vector3(r.XMin, anchor.Y, z), new Vector3(r.XMax, anchor.Y, z), in w);
+                }
 
-        // The plane primitive lies in XY; rotate it onto the other coordinate planes
-        entity.Transform.Rotation = plane switch
-        {
-            ChartGridPlanes.XZ => Quaternion.RotationX(MathUtil.PiOverTwo),
-            ChartGridPlanes.YZ => Quaternion.RotationY(MathUtil.PiOverTwo),
-            _ => Quaternion.Identity,
-        };
+                break;
 
-        var model = entity.Get<ModelComponent>()!;
-        model.Enabled = _chart.Options.Grid.Visible && (!isMinor || _chart.Options.Range.MinorDivisions > 1);
+            case ChartGridPlanes.YZ:
+                foreach (var y in w.Ticks(r.YMin, r.YMax))
+                {
+                    Line(batch, in view, new Vector3(anchor.X, y, r.ZMin), new Vector3(anchor.X, y, r.ZMax), in w);
+                }
 
-        _planes.Add(new Entry(entity, model, plane, isMinor, offset));
-        _chart.Root.AddChild(entity);
+                foreach (var z in w.Ticks(r.ZMin, r.ZMax))
+                {
+                    Line(batch, in view, new Vector3(anchor.X, r.YMin, z), new Vector3(anchor.X, r.YMax, z), in w);
+                }
+
+                break;
+
+            default:
+                foreach (var x in w.Ticks(r.XMin, r.XMax))
+                {
+                    Line(batch, in view, new Vector3(x, r.YMin, anchor.Z), new Vector3(x, r.YMax, anchor.Z), in w);
+                }
+
+                foreach (var y in w.Ticks(r.YMin, r.YMax))
+                {
+                    Line(batch, in view, new Vector3(r.XMin, y, anchor.Z), new Vector3(r.XMax, y, anchor.Z), in w);
+                }
+
+                break;
+        }
     }
 
-    private sealed record Entry(Entity Entity, ModelComponent Model, ChartGridPlanes Plane, bool IsMinor, float Offset);
+    private static void Line(ShapeBatch batch, in ChartView view, Vector3 from, Vector3 to, in Weight w)
+        => batch.DrawPixelLine(view.ToWorld(from), view.ToWorld(to), w.Width, w.Color);
+
+    /// <summary>
+    /// One weight of grid line: its spacing, the spacing of the other weight whose lines it leaves out
+    /// (0 for none), its colour and pixel width, and how far behind the axes it sits.
+    /// </summary>
+    private readonly record struct Weight(float Step, float Skip, Color Color, float Width, float Offset)
+    {
+        /// <summary>The tick values of this weight's step, leaving out those that are also multiples of <see cref="Skip"/>.</summary>
+        internal IEnumerable<float> Ticks(float min, float max)
+        {
+            foreach (var value in ChartFraming.TickValues(min, max, Step))
+            {
+                if (Skip > 0f && MathF.Abs(value / Skip - MathF.Round(value / Skip)) < 1e-4f)
+                    continue;
+
+                yield return value;
+            }
+        }
+    }
 }
