@@ -24,9 +24,10 @@ The `Program.cs` file shows how to:
 - Skipping instancing work while every Box2D body sleeps with Box2DEntityInstancing
 - Disabling contact events on fixtures nothing listens to
 - Switching shape, batch size and layout at runtime with DebugTextDropdown
+- Picking bodies out of the pile with Grabber2DScript, on a perspective camera
 
 ![Basic 2D Scene (Stress Pile, Box2D)](media/stress-pile-2d-box2d.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E10_2D_StressPile_Box2D).
 
-[!code-csharp[](../../../../examples/code-only/E10_2D_StressPile_Box2D/Program.cs?start=1&end=509)]
+[!code-csharp[](../../../../examples/code-only/E10_2D_StressPile_Box2D/Program.cs?start=1&end=513)]

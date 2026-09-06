@@ -22,6 +22,7 @@ One new idea at a time, on top of the base scene. Toolkit helpers only, with no 
 - [2D Panels and Text](2d-scene-panels.md): Sixteen HUD panel recipes side by side, each one property away from the last: fill only, border only, transparent fill over a stripe that proves it, a fill colour of its own, rounded corners, heavy borders, glows of three strengths and colours, glass, a ship-console panel with corner ticks and a gauge, dashed rings and lines that turn and march, a gradient to the text colour, a gradient to nothing, and a panel at a third opacity.
 - [Basic2D Scene (Multiple Primitives)](primitives-2d.md): Create a minimal 2D scene using toolkit helpers and place multiple different primitive shapes.
 - [Basic2D Scene (Falling Shapes)](falling-shapes-2d.md): Create a minimal 2D scene using toolkit helpers and place multiple capsule primitives with flat materials.
+- [Box2D Explosion](box2d-explosion.md): A grenade in one call: Explode gives every shape within a radius an impulse away from the centre, per metre of perimeter facing the blast, so a wide slab flies harder than a ball of the same mass.
 - [Basic2D Scene (Debug Rendering)](debug-render-2d.md): A pile of falling 2D shapes with the physics debug overlays turned on, so what the simulation is actually solving can be seen rather than inferred.
 - [DPI-Aware Window](dpi-aware.md): The capsule scene again, with two differences.
 

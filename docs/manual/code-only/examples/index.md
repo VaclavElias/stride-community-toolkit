@@ -209,6 +209,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/box2d-explosion.webp" class="card-img-top" alt="Screenshot of the Box2D Explosion example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-explosion.md">Box2D Explosion</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A grenade in one call: Explode gives every shape within a radius an impulse away from the centre, per metre of perimeter facing the blast, so a wide...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/debug-render-2d.webp" class="card-img-top" alt="Screenshot of the Basic2D Scene (Debug Rendering) example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="debug-render-2d.md">Basic2D Scene (Debug Rendering)</a></h3>
@@ -344,11 +354,61 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/box2d-joints.webp" class="card-img-top" alt="Screenshot of the Box2D Joints example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-joints.md">Box2D Joints</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">Every Box2D joint, one rig each, in a row you can pull on: a hinge pendulum with a motor and a limit, a slider on a spring, a wheel on a suspension, a...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/box2d-car.webp" class="card-img-top" alt="Screenshot of the Box2D Car example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-car.md">Box2D Car</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A car on two wheel joints over hilly terrain: the wheel joint pins the wheel, lets it turn, springs it along the suspension axis with a travel limit,...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/box2d-character-mover.webp" class="card-img-top" alt="Screenshot of the Box2D Character Mover example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-character-mover.md">Box2D Character Mover</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A platformer character with no rigid body, on Box2D v3's mover API: a capsule the game moves itself, Quake style, asking the world only what it...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/multiple-simulations.webp" class="card-img-top" alt="Screenshot of the Multiple Physics Simulations example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="multiple-simulations.md">Multiple Physics Simulations</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
                 <p class="card-text">Two Bepu simulations in one game, side by side: the left lane falls under Earth gravity, the right under Moon gravity, and an amber ball that belongs...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/car.webp" class="card-img-top" alt="Screenshot of the Car example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="car.md">Car</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A drivable car from four constraints per wheel, the recipe of bepuphysics2's own car demo in Stride's components: a linear axis servo as the...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/cloth.webp" class="card-img-top" alt="Screenshot of the Cloth example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="cloth.md">Cloth</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">Cloth from ordinary bodies and constraints, the way bepuphysics2's own demo does it: a lattice of sphere nodes tied by distance limits that may bunch...</p>
             </div>
         </div>
     </div>

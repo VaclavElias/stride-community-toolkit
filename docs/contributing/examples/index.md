@@ -154,6 +154,23 @@ Two metadata fields control capture:
 
 Every image is looked at by a person before it is committed. A capture that renders black, catches a scene mid-explosion or frames nothing but sky looks like a complete success to the script.
 
+### Gold images: catching a rendering change by its pixels
+
+The same capture path doubles as a regression test for the renderer. A refactor of a shader that should change nothing, or a deliberate change to an anti-aliasing profile or a colour curve, is checked against a **golden** PNG committed under `tests/gold`:
+
+```bash
+dotnet run --file build/gold-images.cs                                  # compare every golden
+dotnet run --file build/gold-images.cs -- --only shape-batch            # compare one example
+dotnet run --file build/gold-images.cs -- --only shape-batch --update   # capture and make it the golden
+dotnet run --file build/gold-images.cs -- --only shape-batch --noise    # capture twice, report run-to-run drift
+```
+
+The comparison is Stride's own: the maximum channel difference of every pixel goes into a histogram (`1-2`, `3-5`, `6-15`, `16+`), and the default rule fails the image if **any** pixel differs by 3 or more. `tests/gold/thresholds.jsonc` relaxes that per image, with a comment saying why, for a scene that cannot be made fully deterministic. Every run writes the new capture, a diff mask (red for 3 and above, yellow for 1 and 2) and a side-by-side contact sheet to `screenshots-review/gold/`, and prints the bounding box of the failing pixels so a failure can be placed without opening anything.
+
+What makes a capture reproducible: capture runs on a fixed timestep with exactly one update per draw, so frame N is the same simulated instant every run; the profiler readout is hidden because it refreshes on a real-time clock; and auto-exposure is set to adapt instantly, because Stride's tone map adapts on a real-time stopwatch and would otherwise leave every 3D capture at a slightly different brightness. With those three, 2D and 3D scenes alike come back bit-identical on the same machine. A scene driven by unseeded randomness, real-time text or network traffic cannot be a golden at all, so use `--noise` on a candidate first: it shows what the harness would see with no change made.
+
+`--warp` runs the example on the WARP software adapter, the way Stride's own graphics tests do, for goldens that must match across machines; it is slow, and on one machine the real GPU is deterministic.
+
 ## Editing a generated page
 
 A documentation page carrying `generated: true` is overwritten on every run - change the metadata block, not the page.

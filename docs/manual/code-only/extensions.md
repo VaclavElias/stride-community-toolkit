@@ -44,6 +44,8 @@ The `SetupBase*` methods are the shortcut: one call instead of assembling the pi
 
 See [Camera Controllers](../camera-extensions/camera-controllers.md) for the keys, the on-screen help and every option on both scripts.
 - [`GrabberScript`](xref:Stride.CommunityToolkit.Bepu.GrabberScript) - On the camera entity too: left mouse picks up any dynamic body, carries it, and throws it on release, through servo constraints so the body still collides. One line that makes any Bepu scene a toy.
+- [`Grabber2DScript`](xref:Stride.CommunityToolkit.Box2D.Grabber2DScript) - The same for a Box2D world: give it the `Box2DSimulation` and the left mouse picks up, drags and throws through a kinematic anchor and a motor joint.
+- [`CharacterMover2D`](xref:Stride.CommunityToolkit.Box2D.CharacterMover2D) - A platformer character for a Box2D world with no rigid body: a capsule moved Quake style on Box2D v3's mover API, registered with the simulation, driven by `Throttle` and `Jump()`.
 - [`SetCameraPosition()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetCameraPosition(Stride.Engine.Game,Stride.Core.Mathematics.Vector3,System.String)) - Moves the existing camera. Use this after `SetupBase3DScene()` rather than calling `Add3DCamera()` again, which would create a second camera competing for the same slot.
 - [`SetCameraRotation()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetCameraRotation(Stride.Engine.Game,Stride.Core.Mathematics.Vector3,System.String)) - Aims the existing camera, taking yaw, pitch and roll in degrees.
 

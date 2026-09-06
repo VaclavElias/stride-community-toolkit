@@ -17,7 +17,7 @@
     href: code-only/create-project.md
   - name: Create File-Based App
     href: code-only/create-file-based-app.md
-  - name: Examples (72)
+  - name: Examples (80)
     # href supplies the children (the generated per-level toc); topicHref makes the node itself
     # clickable, landing on the visual gallery.
     href: code-only/examples/toc.yml
@@ -67,6 +67,8 @@
     href: rendering/debug-overlay.md
   - name: Debug Shapes
     href: rendering/debug-shapes.md
+  - name: ShapeBatch
+    href: rendering/shape-batch.md
   - name: MeshBuilder
     href: rendering/mesh-builder.md
   - name: TextureCanvas

@@ -14,7 +14,7 @@
     href: basic-2d-scene-bullet.md
   - name: Basic3D Scene (Capsule) - Bullet Physics
     href: capsule-with-rigid-body-bullet.md
-- name: C# Beginner (16)
+- name: C# Beginner (17)
   href: beginner-examples.md
   items:
   - name: Basic3D Scene (Every Primitive)
@@ -45,11 +45,13 @@
     href: primitives-2d.md
   - name: Basic2D Scene (Falling Shapes)
     href: falling-shapes-2d.md
+  - name: Box2D Explosion
+    href: box2d-explosion.md
   - name: Basic2D Scene (Debug Rendering)
     href: debug-render-2d.md
   - name: DPI-Aware Window
     href: dpi-aware.md
-- name: C# Intermediate (27)
+- name: C# Intermediate (32)
   href: intermediate-examples.md
   items:
   - name: Procedural Geometry
@@ -74,8 +76,18 @@
     href: collision-group.md
   - name: Collision Layer
     href: collision-layer.md
+  - name: Box2D Joints
+    href: box2d-joints.md
+  - name: Box2D Car
+    href: box2d-car.md
+  - name: Box2D Character Mover
+    href: box2d-character-mover.md
   - name: Multiple Physics Simulations
     href: multiple-simulations.md
+  - name: Car
+    href: car.md
+  - name: Cloth
+    href: cloth.md
   - name: Simple Constraint
     href: simple-constraint.md
   - name: Constraints - Servo vs Motor vs Limit
