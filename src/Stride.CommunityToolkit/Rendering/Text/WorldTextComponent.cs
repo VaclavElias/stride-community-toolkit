@@ -174,13 +174,16 @@ public class WorldTextComponent : EntityComponent
 
     /// <summary>
     /// Gets or sets the distance from the camera at which the text starts fading out, in world units.
+    /// 0, the default, is no fade. Needs <see cref="MaxDistance"/> as well: the text fades from fully
+    /// opaque at this distance to invisible at that one.
     /// </summary>
-    public float? FadeStartDistance { get; set; }
+    public float FadeStartDistance { get; set; }
 
     /// <summary>
-    /// Gets or sets the distance beyond which the text is not drawn, in world units.
+    /// Gets or sets the distance beyond which the text is not drawn, in world units. 0, the default,
+    /// is no limit.
     /// </summary>
-    public float? MaxDistance { get; set; }
+    public float MaxDistance { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WorldTextComponent"/> class.

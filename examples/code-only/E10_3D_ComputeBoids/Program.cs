@@ -9,6 +9,7 @@ using Stride.CommunityToolkit.Skyboxes;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Engine.Design;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
@@ -36,16 +37,10 @@ WindowsDpiManager.EnablePerMonitorV2();
 using var game = new Game();
 
 // Compute shaders with more than one writable buffer need shader model 5, which is Direct3D
-// feature level 11. A code-only game has no settings asset, and as it starts the engine then
-// applies its built-in defaults - feature level 10 - over anything set on the device manager,
-// so those defaults are switched off and the level asked for directly. At level 10 the shader
-// compiles for cs_4_0, which has a single UAV slot and refuses the second buffer.
-game.AutoLoadDefaultSettings = false;
-
-var deviceManager = (GraphicsDeviceManager)game.GraphicsDeviceManager;
-
-deviceManager.PreferredGraphicsProfile = [GraphicsProfile.Level_11_0];
-deviceManager.ShaderProfile = GraphicsProfile.Level_11_0;
+// feature level 11. A code-only game has no settings asset and starts at the engine's default,
+// level 10, where the shader compiles for cs_4_0 - one UAV slot, so the second buffer is refused.
+// UseGameSettings is how a code-only game asks for a profile.
+game.UseGameSettings(settings => settings.GetOrCreateConfiguration<RenderingSettings>().DefaultGraphicsProfile = GraphicsProfile.Level_11_0);
 
 BoidsSimulation? simulation = null;
 BoidsComputeRenderer? computeRenderer = null;

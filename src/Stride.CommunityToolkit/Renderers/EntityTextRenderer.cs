@@ -186,15 +186,15 @@ public class EntityTextRenderer : SceneRendererBase
         var worldPosition = data.Entity.Transform.WorldMatrix.TranslationVector;
         var component = data.Component;
 
-        if (component.MaxDistance is { } maxDistance || component.FadeStartDistance is not null)
+        if (component.MaxDistance > 0f || component.FadeStartDistance > 0f)
         {
             var distance = Vector3.Distance(cameraPosition, worldPosition);
 
-            if (component.MaxDistance is { } limit && distance > limit) return false;
+            if (component.MaxDistance > 0f && distance > component.MaxDistance) return false;
 
-            if (component.FadeStartDistance is { } fadeStart && component.MaxDistance is { } fadeEnd && fadeEnd > fadeStart)
+            if (component.FadeStartDistance > 0f && component.MaxDistance > component.FadeStartDistance)
             {
-                var fade = 1f - MathUtil.Clamp((distance - fadeStart) / (fadeEnd - fadeStart), 0f, 1f);
+                var fade = 1f - MathUtil.Clamp((distance - component.FadeStartDistance) / (component.MaxDistance - component.FadeStartDistance), 0f, 1f);
 
                 opacity *= fade;
 

@@ -226,23 +226,23 @@ public class EntityTextComponent : EntityComponent
 
     /// <summary>
     /// Gets or sets the distance from the camera at which the text starts fading out, in world units.
-    /// Leave <see langword="null"/> to disable fading.
+    /// 0, the default, is no fade.
     /// </summary>
     /// <remarks>
     /// Only applies in <see cref="TextPositionMode.World"/>. Requires <see cref="MaxDistance"/> to be
     /// set as well; the text fades from fully opaque at this distance to invisible at that one.
     /// </remarks>
-    public float? FadeStartDistance { get; set; }
+    public float FadeStartDistance { get; set; }
 
     /// <summary>
     /// Gets or sets the distance from the camera beyond which the text is not drawn, in world units.
-    /// Leave <see langword="null"/> for no limit.
+    /// 0, the default, is no limit.
     /// </summary>
     /// <remarks>
     /// Only applies in <see cref="TextPositionMode.World"/>. Useful on its own as a cutoff, without
     /// <see cref="FadeStartDistance"/>, when labels should simply stop rather than fade.
     /// </remarks>
-    public float? MaxDistance { get; set; }
+    public float MaxDistance { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EntityTextComponent"/> class.

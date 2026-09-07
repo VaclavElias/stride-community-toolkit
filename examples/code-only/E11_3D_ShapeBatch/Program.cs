@@ -359,9 +359,10 @@ void DrawPanels(ShapeBatch shapes)
 }
 
 /// <summary>
-/// Thick 3D lines and a wire box. Hardware line rendering clamps to one pixel on most drivers; these
-/// are capsules swung about their own axis to face the camera, so the width is real and holds up
-/// close. The box is the twelve edges drawn as twelve lines.
+/// Thick 3D lines, a wire box and two space strokes. Hardware line rendering clamps to one pixel on
+/// most drivers; these are capsules swung about their own axis to face the camera, so the width is
+/// real and holds up close. The box is the twelve edges drawn as twelve lines; the strokes are runs
+/// of 3D points measured on screen.
 /// </summary>
 void DrawLines(ShapeBatch shapes, float seconds)
 {
@@ -415,6 +416,40 @@ void DrawLines(ShapeBatch shapes, float seconds)
     var tallestHeight = pillarHeights[PillarCount - 1];
 
     shapes.DrawWireBox(new Vector3(tallest.X, tallestHeight * 0.5f, tallest.Z), new Vector3(2.6f, tallestHeight + 0.8f, 2.6f), 0.08f, Color.Yellow);
+
+    // Space strokes: a run of 3D points stroked on screen, with no plane and no geometry. A helix
+    // of pixel width with a glow climbing the back-left pillar, and a closed trefoil of world width
+    // hanging in the sky beside it, thin where it is far and thick where it is near, in two pieces
+    // that share a point
+    var coil = pillars[PillarCount - 2].Transform.Position;
+    var coilHeight = pillarHeights[PillarCount - 2];
+    Span<Vector3> helix = stackalloc Vector3[64];
+
+    for (var i = 0; i < helix.Length; i++)
+    {
+        var t = (float)i / (helix.Length - 1);
+        var angle = t * MathF.Tau * 3f + seconds;
+
+        helix[i] = new Vector3(coil.X + MathF.Cos(angle) * 2.2f, 0.6f + t * (coilHeight + 0.4f), coil.Z + MathF.Sin(angle) * 2.2f);
+    }
+
+    shapes.Glow.Set(8f, new Color(255, 120, 40, 140));
+    shapes.DrawPixelPolyline(helix, 3f, Color.Orange);
+    shapes.Glow.Clear();
+
+    Span<Vector3> trefoil = stackalloc Vector3[96];
+
+    for (var i = 0; i < trefoil.Length; i++)
+    {
+        var angle = i * MathF.Tau / trefoil.Length;
+
+        trefoil[i] = new Vector3(
+            -11f + (MathF.Sin(angle) + 2f * MathF.Sin(2f * angle)) * 1.6f,
+            10f + MathF.Sin(3f * angle) * 1.2f,
+            -9f + (MathF.Cos(angle) - 2f * MathF.Cos(2f * angle)) * 1.6f);
+    }
+
+    shapes.DrawPolyline(trefoil, 0.12f, Color.DeepSkyBlue, closed: true);
 }
 
 /// <summary>
@@ -717,6 +752,7 @@ concepts:
   - HUD panels with glowing edges and glowing world text, including a live counter
   - Thick 3D lines and wire boxes from camera-facing capsules
   - Polyline strokes with round joins - curves, dashed frames, concave outlines - in pixels or world units
+  - Space strokes through 3D points - a helix and a knot - stroked on screen with no geometry
   - Billboards that keep their shape from any viewpoint, and pixel-radius markers that keep their size at any distance
   - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
   - An outer glow measured in pixels, for halos and neon

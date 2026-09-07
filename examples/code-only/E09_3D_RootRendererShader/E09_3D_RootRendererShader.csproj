@@ -9,10 +9,4 @@
         <ProjectReference Include="..\..\..\src\Stride.CommunityToolkit.Windows\Stride.CommunityToolkit.Windows.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Update="Effects\RibbonBackgroundShader.sdsl">
-            <LastGenOutput>RibbonBackgroundShader.sdsl.cs</LastGenOutput>
-        </None>
-    </ItemGroup>
-
 </Project>

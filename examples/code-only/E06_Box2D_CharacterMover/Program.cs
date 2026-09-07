@@ -136,7 +136,7 @@ void BuildBridge(Scene scene, B2BodyId ground1, B2BodyId ground2)
     for (var i = 0; i < PlankCount; i++)
     {
         var centre = new Vector2(BridgeStart + 0.5f + i, BridgeHeight);
-        var entity = Spawn(scene, "Plank", new ShapeComponent { Vertices = plank, Color = Color.RoyalBlue }, centre);
+        var entity = Spawn(scene, "Plank", new ShapeComponent { Vertices = [.. plank], Color = Color.RoyalBlue }, centre);
 
         var body = simulation!.CreateDynamicBody(entity, new Vector3(centre, 0));
         b2Body_SetAngularDamping(body, 0.2f);
@@ -188,7 +188,7 @@ void BuildElevator(Scene scene)
 {
     var start = elevatorBase - new Vector2(0, ElevatorAmplitude);
     Vector2[] slab = [new(-2, -0.1f), new(2, -0.1f), new(2, 0.1f), new(-2, 0.1f)];
-    var entity = Spawn(scene, "Elevator", new ShapeComponent { Vertices = slab, Color = Color.Plum }, start);
+    var entity = Spawn(scene, "Elevator", new ShapeComponent { Vertices = [.. slab], Color = Color.Plum }, start);
 
     var body = simulation!.CreateKinematicBody(entity, new Vector3(start, 0));
     var def = b2DefaultShapeDef();

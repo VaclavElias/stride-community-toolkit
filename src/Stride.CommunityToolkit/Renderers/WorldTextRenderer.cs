@@ -268,15 +268,15 @@ public class WorldTextRenderer : SceneRendererBase
     /// </summary>
     private static bool TryApplyDistance(WorldTextComponent component, Vector3 cameraPosition, Vector3 origin, ref float opacity)
     {
-        if (component.MaxDistance is null && component.FadeStartDistance is null) return true;
+        if (component.MaxDistance <= 0f && component.FadeStartDistance <= 0f) return true;
 
         var distance = Vector3.Distance(cameraPosition, origin);
 
-        if (component.MaxDistance is { } limit && distance > limit) return false;
+        if (component.MaxDistance > 0f && distance > component.MaxDistance) return false;
 
-        if (component.FadeStartDistance is { } fadeStart && component.MaxDistance is { } fadeEnd && fadeEnd > fadeStart)
+        if (component.FadeStartDistance > 0f && component.MaxDistance > component.FadeStartDistance)
         {
-            opacity *= 1f - MathUtil.Clamp((distance - fadeStart) / (fadeEnd - fadeStart), 0f, 1f);
+            opacity *= 1f - MathUtil.Clamp((distance - component.FadeStartDistance) / (component.MaxDistance - component.FadeStartDistance), 0f, 1f);
         }
 
         return opacity > 0f;

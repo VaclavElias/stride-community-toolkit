@@ -58,9 +58,12 @@ public static class GameSettingsExtensions
     ///   <item><description>
     ///   A <see cref="RenderingSettings"/> configuration, if one was added, is applied to the
     ///   <see cref="GraphicsDeviceManager"/> immediately - graphics profile, back buffer size and
-    ///   colour space - mirroring <c>Game.PrepareContext</c>. As in the engine, the back buffer and
-    ///   colour space are only applied while <see cref="Game.AutoLoadDefaultSettings"/> is
-    ///   <see langword="true"/>.
+    ///   colour space - mirroring <c>Game.PrepareContext</c>, and again from <c>WindowCreated</c>:
+    ///   with <see cref="Game.AutoLoadDefaultSettings"/> on and no asset, <c>PrepareContext</c>
+    ///   writes the engine's built-in defaults (feature level 10) over the device manager, so
+    ///   the caller's values are put back before the device is created. As in the engine, the
+    ///   back buffer and colour space are only applied while <see cref="Game.AutoLoadDefaultSettings"/>
+    ///   is <see langword="true"/>.
     ///   </description></item>
     ///   <item><description>
     ///   <see cref="GameSettings.CompilationMode"/> and a <see cref="StreamingSettings"/>
@@ -174,6 +177,11 @@ public static class GameSettingsExtensions
 
                 return;
             }
+
+            // PrepareContext has just run and, with AutoLoadDefaultSettings on, has written a fresh
+            // RenderingSettings - feature level 10 - over the device manager. The device is created
+            // after this event, so the caller's settings go back on now, and stick.
+            ApplyRenderingSettings(game, settings);
 
             game.Services.AddService<IGameSettingsService>(new CodeOnlyGameSettingsService(settings));
 
