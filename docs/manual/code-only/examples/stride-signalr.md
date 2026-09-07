@@ -4,7 +4,7 @@ An orbital cargo deck with two consoles: a Stride game window and a Blazor web p
 
 The hub is an optional feature. The game connects in the background and keeps retrying; when there is no hub, the keyboard does everything and the overlay says `LINK OFFLINE`. Start the host afterwards and the game picks it up on its next attempt, with no restart.
 
-![Stride + SignalR Example](media/stride-game-engine-example17-signalr.webp)
+![Stride + SignalR Example](media/stride-signalr.webp)
 
 ## Running it
 

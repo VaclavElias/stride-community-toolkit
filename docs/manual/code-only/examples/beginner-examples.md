@@ -9,6 +9,7 @@ One new idea at a time, on top of the base scene. Toolkit helpers only, with no 
 ## Examples Overview
 
 - [Basic3D Scene (Every Primitive)](primitives-3d.md): Every 3D primitive the toolkit can build - cube, cone, capsule, sphere, cylinder, teapot, torus and triangular prism - dropped into one scene so the shapes, their default sizes and their generated colliders can be compared side by side.
+- [Basic Gum UI Setup](gum-stride-ui-basic.md): Initialize Gum UI in Stride using the official Gum.Stride runtime and the Stride Community Toolkit.
 - [Material](material.md): A row of cubes that differ only in their material, so the effect of each property is visible in isolation.
 - [Post Effects](post-effects.md): Every post effect Stride ships, one key each: bloom, ambient occlusion, screen-space reflections, depth of field, light streaks, lens flare, fog, outline, FXAA, and the vignette, film-grain and dither colour transforms.
 - [Mesh Line](mesh-line.md): A line drawn between two spheres, built as a real mesh rather than a debug primitive.

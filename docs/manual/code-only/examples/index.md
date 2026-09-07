@@ -79,6 +79,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/gum-stride-ui-basic.webp" class="card-img-top" alt="Screenshot of the Basic Gum UI Setup example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="gum-stride-ui-basic.md">Basic Gum UI Setup</a></h3>
+                <p><span class="badge text-bg-secondary">UI</span></p>
+                <p class="card-text">Initialize Gum UI in Stride using the official Gum.Stride runtime and the Stride Community Toolkit.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/stride-game-engine-example-01-material.webp" class="card-img-top" alt="Screenshot of the Material example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="material.md">Material</a></h3>
@@ -729,6 +739,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/compute-boids.webp" class="card-img-top" alt="Screenshot of the Compute Shader Boids example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="compute-boids.md">Compute Shader Boids</a></h3>
+                <p><span class="badge text-bg-secondary">Performance</span></p>
+                <p class="card-text">A flock of thousands of boids that lives entirely on the GPU.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/imgui-net.webp" class="card-img-top" alt="Screenshot of the ImGui.NET Text Rendering example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="imgui-net.md">ImGui.NET Text Rendering</a></h3>
@@ -739,7 +759,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example17-signalr.webp" class="card-img-top" alt="Screenshot of the Stride + SignalR - Orbital Cargo Deck example" width="1280" height="720" loading="lazy">
+            <img src="media/stride-signalr.webp" class="card-img-top" alt="Screenshot of the Stride + SignalR - Orbital Cargo Deck example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-signalr.md">Stride + SignalR - Orbital Cargo Deck</a></h3>
                 <p><span class="badge text-bg-secondary">Networking</span></p>

@@ -273,7 +273,6 @@ tags:
   - EntityText
 related:
   - E13_SignalR_Blazor
-media: stride-game-engine-example17-signalr.webp
 tocName: Stride + SignalR
 screenshotFrame: 480
 enabled: true
