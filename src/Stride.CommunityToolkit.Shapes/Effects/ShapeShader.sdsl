@@ -1,0 +1,410 @@
+namespace Stride.CommunityToolkit.Shapes
+{
+    // Shapes drawn as instanced quads, with the outline a constant number of PIXELS wide whatever
+    // the zoom, distance or window size, because it is measured per fragment from a signed
+    // distance function rather than built as geometry.
+    //
+    // Derived from the Box2D testbed's solid_polygon.vs/fs (Erin Catto, MIT), extended here with an
+    // arbitrary 3D plane per shape, billboarding, per-shape border width and fill, a thickness term
+    // that stays correct under a perspective projection, hollow bands and angular cuts (annuli,
+    // sectors, arcs), an outer glow, dashes, a fill gradient, an opacity, and polyline strokes.
+    //
+    // The vertex stage only places the quad. Everything else is read straight from the shape's
+    // record in the pixel stage: the record is one buffer read per fragment, coherent across the
+    // quad, where fifteen interpolated registers used to carry the same values and left no room
+    // for another. The points sit in a second buffer, so a shape has as many as it needs.
+    internal shader ShapeShader : ShaderBase, ShapeDistance, ShapeColor
+    {
+        struct ShapeData
+        {
+            // xyz: world position of the shape's local origin
+            // w:   plane mode - 0 fixed (use AxisX/AxisY), 1 screen-aligned, 2 axial about AxisX
+            float4 Position;
+            // xyz: the plane's X axis, unit length; w: border width in pixels
+            float4 AxisX;
+            // xyz: the plane's Y axis, unit length; w: fill alpha, 0 for an unfilled outline
+            float4 AxisY;
+            // The shape's own normalized space: its points were shifted by Center and divided by
+            // LocalScale - the rounding radius plus half the widest extent - so they fit a 2x2
+            // quad with the outline just inside it. Scale multiplies the world footprint only.
+            float2 Center;
+            float LocalScale;
+            float Scale;
+            // Where the shape's points start in the point buffer, and how many there are
+            uint PointOffset;
+            int Count;
+            // The rounding radius, in world units - or in pixels on screen, when the flag says so
+            float Radius;
+            // 1:  Hollow - only the band Slice.x deep inside the outline is the shape
+            // 2:  RoundCaps - the angular cut ends in semicircles rather than radial edges (circles only)
+            // 4:  Gradient - the fill runs from FillColor to GradientColor along Gradient.xy
+            // 8:  PixelRadius - Radius, Slice.x and LocalScale are pixels on screen, converted at the shape's depth
+            // 16: Polyline - the points are a run to stroke, not a convex polygon
+            // 32: AdditiveGlow - the glow adds light to what is behind it instead of covering it
+            int Flags;
+            // Colours as uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit
+            // pattern, and GPUs canonicalize NaNs on float reads, destroying the red channel.
+            // FillColor is the fill's own, so a shape can be filled in one colour and outlined in
+            // another; GradientColor is the far end of the fill's gradient.
+            uint Color;
+            uint FillColor;
+            uint GlowColor;
+            uint GradientColor;
+            // x: how deep the band reaches inward from the outline, in world units, when Hollow -
+            //    an annulus is a circle with a band, a stroke-only ring a band of 0
+            // y, z: angular cut about the centre - start in radians from the plane's X axis,
+            //    counter-clockwise, and sweep; a sweep of 0 means no cut, callers map a full turn to 0
+            // w: outer glow width in pixels, 0 for none
+            float4 Slice;
+            // Dash pattern along the outline, in pixels: x length (0 for solid), y gap, z phase.
+            // Circles, arcs, two-point lines and polylines. w: for a polyline, the arc length along
+            // the whole run at its first point, in world units, so the pattern continues.
+            float4 Dash;
+            // xy: the direction the fill's gradient runs in, in the plane's local axes
+            // z: opacity, a multiplier on every alpha the shape produces
+            float4 Gradient;
+        };
+
+        cbuffer PerView
+        {
+            stage float4x4 ViewProjection;
+
+            // Pixels per world unit at clip w = 1. Under an orthographic projection w is always 1,
+            // so this alone fixes the on-screen size; under perspective the per-fragment w scales it.
+            stage float PixelScale;
+
+            // Camera basis for billboarded shapes
+            stage float3 CameraRight;
+            stage float3 CameraUp;
+            stage float3 EyePosition;
+
+            // 1 when the target is linear - Stride's default, an sRGB backbuffer that re-encodes
+            // on the way out - so the sRGB palette has to be decoded here; 0 for a gamma pipeline,
+            // where the bytes pass straight through
+            stage uint LinearOutput;
+        }
+
+        cbuffer PerDraw
+        {
+            // Every batch of the frame shares the two buffers; these say where this batch's
+            // records and points start. The instance id counts from 0 for every draw.
+            stage uint InstanceBase;
+            stage uint PointBase;
+        }
+
+        rgroup PerDraw.Shapes
+        {
+            stage StructuredBuffer<ShapeData> Shapes;
+        }
+
+        stream float2 LocalPosition : POSITION;
+
+        // xy: position in the shape's normalized local space; z: clip w; w: local units per pixel
+        // at clip w = 1
+        stream float4 FragPosition;
+
+        // Lengths in the normalized local space, before the perspective term: x rounding radius,
+        // y band depth (or, for a polyline, where it starts along its run), z border thickness,
+        // w glow width
+        stream float4 FragScale;
+
+        // Which record the fragment belongs to. Integer streams are flat, so it arrives exact.
+        stream uint ShapeIndex;
+
+        override stage void VSMain()
+        {
+            uint index = InstanceBase + streams.InstanceID;
+            ShapeData data = Shapes[index];
+
+            bool polyline = (data.Flags & 16) != 0;
+
+            float radius = data.Radius;
+            float localScale = data.LocalScale;
+            // A polyline has no band; the slot carries where it starts along its run instead
+            float band = polyline ? data.Dash.w : data.Slice.x;
+
+            // A pixel-measured radius: converted to world units at the shape's own depth before
+            // anything else is derived from it, so a marker is the same size on screen at any
+            // distance. World units per pixel at depth w is w / PixelScale, the same relation the
+            // border uses. Such a shape is a single point, so its scale is the radius alone.
+            if ((data.Flags & 8) != 0)
+            {
+                float originW = mul(float4(data.Position.xyz, 1.0), ViewProjection).w;
+                float pixelToWorld = max(originW, 0.0001) / PixelScale;
+
+                radius *= pixelToWorld;
+                band *= pixelToWorld;
+                localScale *= pixelToWorld;
+            }
+
+            float invScale = 1.0 / localScale;
+
+            // A uniform scale multiplies the shape's world footprint only: every point, the centre
+            // and the radius scale together, so the normalized SDF comes out identical
+            float worldScale = localScale * data.Scale;
+            float2 worldCenter = data.Center * data.Scale;
+
+            // Border and glow widths in the normalized local space, before the perspective term.
+            // Under an orthographic projection the pixel shader's w is 1 and these are already final.
+            float pixelToLocal = 1.0 / (PixelScale * worldScale);
+            float thickness = data.AxisX.w * pixelToLocal;
+            float glow = data.Slice.w * pixelToLocal;
+
+            streams.FragScale = float4(invScale * radius, invScale * band, thickness, glow);
+
+            // Resolve the plane the shape lives in
+            float mode = data.Position.w;
+            float3 origin = data.Position.xyz;
+            float3 axisX = data.AxisX.xyz;
+            float3 axisY = data.AxisY.xyz;
+
+            if (mode > 1.5)
+            {
+                // Axial billboard: AxisX stays put and the plane swings about it to face the eye.
+                // This is what turns a two-point capsule into a thick, round-capped 3D line.
+                float3 toEye = EyePosition - origin;
+                float3 side = cross(toEye, axisX);
+                float sideLength = length(side);
+
+                if (sideLength > 0.000001)
+                {
+                    axisY = side / sideLength;
+                }
+                else
+                {
+                    axisY = CameraUp;
+                }
+            }
+            else if (mode > 0.5)
+            {
+                // Screen-aligned billboard
+                axisX = CameraRight;
+                axisY = CameraUp;
+            }
+
+            // The quad needs a margin around the shape or a thick border is clipped at the edge.
+            // The border straddles the outline, so half its thickness has to fit outside, and the
+            // glow sits entirely outside it.
+            float3 centerWorld = origin + worldCenter.x * axisX + worldCenter.y * axisY;
+            float centerW = mul(float4(centerWorld, 1.0), ViewProjection).w;
+            float margin = 1.0 + max(0.1, (thickness + glow) * max(centerW, 0.0001));
+
+            float2 local = margin * streams.LocalPosition;
+
+            float2 q = worldScale * local + worldCenter;
+            float3 worldPosition = origin + q.x * axisX + q.y * axisY;
+
+            float4 clip = mul(float4(worldPosition, 1.0), ViewProjection);
+
+            // A varying carrying w interpolates perspective-correctly to exactly the fragment's w,
+            // which is what makes the border a constant pixel width at any depth
+            streams.FragPosition = float4(local, clip.w, pixelToLocal);
+            streams.ShapeIndex = index;
+            streams.ShadingPosition = clip;
+        }
+
+        override stage void PSMain()
+        {
+            ShapeData data = Shapes[streams.ShapeIndex];
+
+            float2 p = streams.FragPosition.xy;
+            float clipW = streams.FragPosition.z;
+            float radius = streams.FragScale.x;
+            float ringWidth = streams.FragScale.y;
+
+            int flags = data.Flags;
+            int count = data.Count;
+            uint offset = PointBase + data.PointOffset;
+            float fillAlpha = data.AxisY.w;
+            float opacity = data.Gradient.z;
+            float start = data.Slice.y;
+            float sweep = data.Slice.z;
+
+            bool hollow = (flags & 1) != 0;
+            bool roundCaps = (flags & 2) != 0;
+            bool gradient = (flags & 4) != 0;
+            bool polyline = (flags & 16) != 0;
+            bool additiveGlow = (flags & 32) != 0;
+            bool cut = sweep > 0.0;
+            bool linearTarget = LinearOutput != 0;
+
+            float4 borderColor = BitsToColor(data.Color);
+            float4 fillColor = BitsToColor(data.FillColor);
+
+            // The cut's two edge directions; the first doubles as the dash pattern's start
+            float4 wedge = float4(cos(start), sin(start), cos(start + sweep), sin(start + sweep));
+
+            // The fill's gradient: where this fragment sits between the shape's two extremes along
+            // the direction, then the near colour blended toward the far one. Straight alpha, so a
+            // far colour at alpha 0 is a fade to nothing rather than to black.
+            if (gradient)
+            {
+                float2 direction = data.Gradient.xy;
+                float directionLength = length(direction);
+                direction = directionLength > 0.000001 ? direction / directionLength : float2(0.0, 1.0);
+
+                // The gradient spans the shape's own extent along its direction: the furthest
+                // corners either way plus the rounding radius - or, for a cut disc, the furthest
+                // points of the wedge itself, so a sector's gradient runs across the sector and
+                // not across the disc it was cut from
+                float low = 1e9;
+                float high = -1e9;
+
+                if (count == 1 && cut)
+                {
+                    // The wedge's extremes along the direction are among: the centre, the two ends
+                    // of its edges, and the rim wherever the direction itself (or its opposite)
+                    // lies inside
+                    float2 centre = Points[offset];
+                    float atCentre = dot(centre, direction);
+                    float atStart = dot(centre + radius * wedge.xy, direction);
+                    float atEnd = dot(centre + radius * wedge.zw, direction);
+
+                    low = min(atCentre, min(atStart, atEnd));
+                    high = max(atCentre, max(atStart, atEnd));
+
+                    float forward = atan2(direction.y, direction.x) - start;
+                    forward -= 2.0 * PI * floor(forward / (2.0 * PI));
+                    if (forward <= sweep) high = max(high, atCentre + radius);
+
+                    float backward = forward + PI;
+                    backward -= 2.0 * PI * floor(backward / (2.0 * PI));
+                    if (backward <= sweep) low = min(low, atCentre - radius);
+                }
+                else
+                {
+                    for (int k = 0; k < count; ++k)
+                    {
+                        float along = dot(Points[offset + k], direction);
+                        low = min(low, along - radius);
+                        high = max(high, along + radius);
+                    }
+                }
+
+                float span = max(high - low, 0.000001);
+                float t = saturate((dot(p, direction) - low) / span);
+
+                fillColor = lerp(fillColor, BitsToColor(data.GradientColor), t);
+            }
+
+            // The testbed's fill: the fill alpha scales the colour's brightness as well as its
+            // opacity, in the sRGB values the caller gave. Decoded to the target's light after.
+            fillColor = ToTarget(fillColor * fillAlpha, linearTarget);
+            borderColor = ToTarget(borderColor, linearTarget);
+
+            // Perspective term: near shapes have a large w, far ones a small one, so the same pixel
+            // width maps to more or fewer world units with distance
+            float localPerPixel = streams.FragPosition.w * clipW;
+            float thickness = streams.FragScale.z * clipW;
+            float glowWidth = streams.FragScale.w * clipW;
+
+            // Signed distance to the shape's outline, negative inside. Everything below - fill,
+            // border, glow - is a function of this one number.
+            float s;
+
+            if (roundCaps && count == 1)
+            {
+                // A round-capped arc is its own distance field: the band's centreline is an arc
+                // and the shape is everything within half the band width of it, which is what
+                // makes the ends semicircles. Only a circle has a centreline arc, hence count == 1.
+                // Rotate so the arc is symmetric about +Y; the endpoint is then a fixed half-sweep away.
+                float halfSweep = cut ? 0.5 * sweep : PI;
+                float turn = 0.5 * PI - (start + halfSweep);
+                float2 rotation = float2(cos(turn), sin(turn));
+                float2 sc = float2(sin(halfSweep), cos(halfSweep));
+
+                float2 q = float2(p.x * rotation.x - p.y * rotation.y, p.x * rotation.y + p.y * rotation.x);
+                q.x = abs(q.x);
+
+                float halfBand = 0.5 * ringWidth;
+                float centreline = radius - halfBand;
+
+                // Past the endpoint's direction the nearest point of the arc is the endpoint itself
+                float toArc = sc.y * q.x > sc.x * q.y ? length(q - sc * centreline) : abs(length(q) - centreline);
+
+                s = toArc - halfBand;
+            }
+            else
+            {
+                // A single point is a circle of radius - the polygon SDF cannot handle it, the
+                // point distance trivially can. Two points + radius make a capsule through the loop.
+                // A polyline is the distance to the nearest of its segments, and a stroke around it
+                float dw = polyline ? SdPolyline(p, offset, count) : (count == 1 ? length(p - Points[offset]) : SdConvexPolygon(p, offset, count));
+
+                s = dw - radius;
+
+                // Keep only the band ringWidth deep inside the outline: the inner edge is the
+                // outline pushed inward, so its distance is the same field with the sign flipped
+                if (hollow && !polyline)
+                {
+                    s = max(s, -(s + ringWidth));
+                }
+
+                // Intersect with the wedge between the two edge directions
+                if (cut && !polyline)
+                {
+                    s = max(s, SdWedge(p, wedge, sweep));
+                }
+            }
+
+            // Dashes: the gaps are cuts through the shape along its outline, folded into the same
+            // distance field, so fill, border and glow all stop at a dash end and the ends are
+            // anti-aliased by the same smoothstep as every other edge
+            if (data.Dash.x > 0.0 && (count <= 2 || polyline))
+            {
+                s = max(s, SdDashes(p, offset, count, hollow, cut, radius, ringWidth, sweep, localPerPixel, data.Dash.xyz, wedge.xy, polyline, ringWidth));
+            }
+
+            // The anti-aliasing ramp: half a pixel either side of an edge. Half a pixel of local
+            // space is known exactly for a plane facing the camera; seen at a slant the field
+            // changes faster across the screen along one axis than the other, which the screen
+            // derivative measures and the analytic figure does not, so the wider of the two wins.
+            // The derivative is capped: the field has creases (a dash end, a wedge corner) where
+            // a 2x2 quad straddles two definitions and the derivative has nothing to say.
+            float aa = clamp(0.5 * fwidth(s), 0.5 * localPerPixel, 2.0 * localPerPixel);
+
+            // The border is a flat band of full colour, half the thickness either side of the
+            // outline, with the ramp at both edges - so a four-pixel border is four opaque pixels,
+            // not a peak that only reaches full colour on the outline itself. A thickness of 0 is
+            // no border at all.
+            float halfWidth = 0.5 * thickness;
+            float border = thickness > 0.0 ? smoothstep(halfWidth + aa, halfWidth - aa, abs(s)) : 0.0;
+
+            // The fill covers everything inside the outline; its edge is under the border's
+            // inner half wherever there is a border, and its own ramp where there is none
+            float coverage = smoothstep(aa, -aa, s);
+
+            // Outer glow: full strength under the border and falling off quadratically from its outer
+            // edge outward. Inside the outline the fill owns the pixels, so the glow stops there - it
+            // must, or a glow in the outline colour would fill a translucent shape solid from
+            // underneath - and it must reach in to the outline, or the border ramp would show the
+            // background through a light seam.
+            float glowAlpha = 0.0;
+            if (glowWidth > 0.0 && s > 0.0)
+            {
+                float fade = 1.0 - saturate((s - halfWidth) / glowWidth);
+                glowAlpha = fade * fade;
+            }
+
+            float4 glowColor = ToTarget(BitsToColor(data.GlowColor), linearTarget);
+            glowAlpha *= glowColor.a;
+
+            // Composited premultiplied, in the target's light: layers add with no division, the
+            // target's alpha comes out right for rendering into a texture, and an additive glow is
+            // the same colour with no alpha - light added, nothing covered
+            float4 glow = float4(glowColor.rgb * glowAlpha, additiveGlow ? 0.0 : glowAlpha);
+            float4 fill = Premultiply(float4(fillColor.rgb, fillColor.a * coverage));
+            float4 stroke = Premultiply(float4(borderColor.rgb, borderColor.a * border));
+
+            float4 blended = Over(stroke, Over(fill, glow));
+
+            // Opacity last, over everything the shape produced, so a fill under a border under a
+            // glow dims as one thing rather than as three overlapping ones
+            blended *= saturate(opacity);
+
+            blended.rgb = Dither(blended.rgb, Bayer(streams.ShadingPosition.xy), linearTarget);
+
+            streams.ColorTarget = blended;
+        }
+    };
+}

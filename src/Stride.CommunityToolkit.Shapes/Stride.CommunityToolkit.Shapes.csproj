@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Title>Stride Community Toolkit - Shapes</Title>
+        <Description>Immediate-mode vector shapes for Stride: filled convex shapes whose outline stays a constant few pixels wide at any zoom, distance or window size, because a signed distance function measures it per fragment instead of building it as geometry.
+
+What's inside:
+- ShapeBatch, registered with game.AddShapeBatch(): polygons, discs, rings, rounded rectangles, wire boxes, camera-facing billboards, and 3D lines in either a real world-space width or a constant on-screen pixel width, where hardware line rendering clamps to one pixel
+- Flat shapes placed anywhere in 3D - on a plane you choose, facing the camera, or swung about an axis - as well as the plain 2D case
+- Thousands of shapes per frame in one instanced draw call: no models, materials or assets involved
+- ShapeComponent to draw a shape from an entity's transform, so shapes join the component system without needing a model
+- Per-shape outline width and fill, and per-batch depth testing for scene decals versus overlay gizmos
+
+Ported from the Box2D testbed's solid_polygon shader (Erin Catto, MIT) and extended to 3D.$(StrideVersionNote)</Description>
+    </PropertyGroup>
+
+    <Import Project="..\CommonSettings.props" />
+
+    <ItemGroup>
+        <!-- This library ships a shader. Shaders are assets compiled by the asset compiler according
+             to the Graphics API target, so the package that owns the shader owns the dependency.
+             Its targets also stage Effects/ into the package as stride/Assets/Effects and generate
+             the matching .sdpkg manifest - do not hand-write either, or the generated manifest is
+             replaced by one that points at a folder the package does not have. -->
+        <PackageReference Include="Stride.AssetCompiler" Version="$(StrideVersion)" IncludeAssets="build;buildTransitive" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
+    </ItemGroup>
+
+</Project>

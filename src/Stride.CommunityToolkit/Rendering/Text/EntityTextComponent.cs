@@ -48,6 +48,15 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 // two. Without this Stride rejects the second with "Cannot add a component of type ... multiple
 // times". LightComponent and ScriptComponent opt in the same way.
 [AllowMultipleComponents]
+// DataContract is what makes the component usable from Game Studio at all: without it the editor
+// cannot clone the component to the game side and reports "No serializer available for type".
+[DataContract("EntityTextComponent")]
+// The renderer is registered by the running game, not by the component, so a component added in
+// Game Studio draws nothing until someone calls AddEntityTextRenderer - with no error to explain it.
+// Stride has no description or tooltip attribute, so the display name carries the reminder; it shows
+// in the Add-component menu and the component header, which is exactly where the decision is made.
+[Display("Entity Text (call AddEntityTextRenderer)", Expand = ExpandRule.Once)]
+[ComponentCategory("Text")]
 public class EntityTextComponent : EntityComponent
 {
     /// <summary>
@@ -61,13 +70,29 @@ public class EntityTextComponent : EntityComponent
     public SpriteFont? Font { get; set; }
 
     /// <summary>
-    /// Gets or sets the size the glyphs are rasterised at, in pixels. Defaults to 18.
+    /// Gets or sets the size the glyphs are rasterised at, in pixels on a 100% display. Defaults to 18.
     /// </summary>
     /// <remarks>
     /// Animate <see cref="Scale"/> rather than this. Changing the font size re-rasterises the glyphs
-    /// and re-measures the text every frame it changes; scaling does neither.
+    /// and re-measures the text every frame it changes; scaling does neither. On a scaled display
+    /// the glyphs are rasterised that much larger while <see cref="AutoScale"/> is on, so they stay
+    /// sharp rather than being stretched.
     /// </remarks>
     public float FontSize { get; set; } = 18;
+
+    /// <summary>
+    /// Gets or sets whether everything measured in pixels - <see cref="FontSize"/>, <see cref="Offset"/>,
+    /// <see cref="ScreenPosition"/>, <see cref="Padding"/> and <see cref="ShadowOffset"/> - follows
+    /// the display's scale, so the text is the same size to the eye on a 150% laptop as on a 100%
+    /// monitor. Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// The factor comes from <c>DisplayScale</c>, shared with everything else in the toolkit that
+    /// draws in pixels, and is re-read when the window moves to another monitor. Turn it off to get
+    /// exactly the pixels asked for - a screenshot at a known size, or a game applying its own
+    /// UI-scale setting through <c>DisplayScale.Override</c> and nothing else should compound it.
+    /// </remarks>
+    public bool AutoScale { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a multiplier applied to the drawn size. Defaults to 1.

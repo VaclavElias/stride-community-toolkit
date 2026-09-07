@@ -33,10 +33,10 @@ This is the rationale; the rules themselves are in [Example Metadata Schema](met
 | D24 | Level prefixes on slugs | **No** - see below |
 | D25 | Default `media` | Defaults to `<slug>.webp`; the explicit field exists only for the legacy inconsistent names |
 | D26 | Landing pages | One per `(language, level)` group, generated from the manifest, for SEO. Old URLs stay as `redirect_url` stubs |
-| D29 | `category` vocabulary | A closed set of twelve, listed in the schema page. A category names the lesson, not the scenery |
+| D29 | `category` vocabulary | A closed set of thirteen, listed in the schema page. A category names the lesson, not the scenery |
 | D30 | Level in `tags` | Strip it. `level` is a field, not a tag, and duplicating it puts the same fact somewhere nothing validates |
 | D31 | What "Getting Started" admits | Exactly the "your first code-only app" examples - 3D, 2D, file-based, plus the F#/VB ports. Everything else that builds on the base scene is Beginner |
-| D32 | `Example_CubicleCalamity` | **Advanced**, not `Other`. `Other` is for playgrounds and WIP; a complete game belongs on the Advanced page |
+| D32 | `E20_3D_CubeCollapse` | **Advanced**, not `Other`. `Other` is for playgrounds and WIP; a complete game belongs on the Advanced page |
 | D33 | Unknown frontmatter keys | **Reported, with a suggestion.** Proof it matters: `Order:` against `order:` was silently discarded from two examples under the camelCase convention, and both reached the manifest with no order at all |
 | D34 | `order` scale | Renumber per `(language, level)` group with gaps of 10. Do not carry a global scheme forward |
 | D36 | Scanned extensions | `.cs`, `.fs` **and** `.vb`, each with its own comment syntax. The `(language, level)` grouping needs F#/VB examples to carry frontmatter at all |
@@ -47,7 +47,7 @@ This is the rationale; the rules themselves are in [Example Metadata Schema](met
 | D41 | Missing translations | **Fall back to English**, encoded as `TitleFor` / `DescriptionFor` on the model so no consumer can forget it. A missing `cs` must read as "not translated yet", never as a blank label |
 | D42 | Playgrounds | `Example_2D_Playground` and `Example_Bepu_Playground` get **no metadata block at all**. They are scratch space, not examples |
 | D43 | Legacy Bullet variants | **They keep their docs.** Documented like any other example |
-| D45 | `Example17_SignalR_Blazor` | `docs: false`. It is the server half of a pair that one page documents, and it stays in the launchers so the pair can be started |
+| D45 | `E13_SignalR_Blazor` | `docs: false`. It is the server half of a pair that one page documents, and it stays in the launchers so the pair can be started |
 | D46 | Duplicate `order` | **Warning, not an error.** The tie breaks on `slug`, which is required and unique, so the order stays stable and reproducible - the author has just not chosen between the two |
 | D47 | Where findings are written | Warnings and errors to **stderr**, everything else to stdout. The pre-build hook raises `StandardErrorImportance` and lowers `StandardOutputImportance`, so a clean build prints one line and a build with something to say prints every finding |
 | D48 | Metadata block in the rendered code listing | Excluded with a DocFX **line range**, computed at generation time - see below |
@@ -58,6 +58,7 @@ This is the rationale; the rules themselves are in [Example Metadata Schema](met
 | D53 | ImGui frame pairing | Guard with a `_frameBegun` flag rather than reordering game systems. The problem was never draw ordering - a fixed timestep can issue several `Update`s per `Draw`, so `NewFrame` must close any frame it finds already open |
 | D54 | Camera aiming API | Separate **read** (the F2 overlay prints live position and YPR) from **write** (`SetCameraPosition` / `SetCameraRotation`). Not a new `Add3DCamera` overload - that creates a second entity contending for camera slot 0 |
 | D55 | A deliberate outcome is not a warning | Third severity, `Info`, kept out of the warning count. A `related:` link dropped because its target is `enabled: false` is the pipeline working, not an authoring mistake - see below |
+| D56 | Project naming | `E{NN}_[{Dimension}_]{Subject}[_{Qualifier}...]`, where the number is a **shelf label, not a classification** - see below |
 
 ## D24 - why slugs stay level-free
 
@@ -105,7 +106,7 @@ A code include renders the whole file, metadata block and all - so every generat
 DocFX takes a **line range** on a code include, and the generator already knows where the block starts, because the extractor found it:
 
 ```markdown
-[!code-csharp[](../../../../examples/code-only/Example01_Letters3D/Program.cs?start=1&end=86)]
+[!code-csharp[](../../../../examples/code-only/E03_3D_MeshText/Program.cs?start=1&end=86)]
 ```
 
 Chosen over the two obvious alternatives: a DocFX post-processing plugin (a build-time dependency to maintain against DocFX versions) and a script rewriting the generated HTML (fragile, and skipped by anyone who rebuilds the site by hand). A line range needs neither and behaves identically under `docfx serve`.
@@ -124,7 +125,7 @@ If the depth ever does bother people, the options are:
 
 ## D55 - a deliberate outcome is not a warning
 
-Two examples list `Example07_CubeClicker` in their `related:`. It is `enabled: false`, so it never reaches the manifest and the link is dropped - and the validator warned about that on **every build**, twice, once per launcher project.
+Two examples list `E04_CubeClicker` in their `related:`. It is `enabled: false`, so it never reaches the manifest and the link is dropped - and the validator warned about that on **every build**, twice, once per launcher project.
 
 The warning was accurate and completely unactionable. Nothing is wrong: the link is meant to come back when the example does. Its old wording conflated two genuinely different situations - "this project has no metadata block yet" (an authoring gap worth fixing) and "this project is deliberately unpublished" (working as designed) - under one severity, so the only way to silence it was to delete information that should be kept.
 
@@ -152,3 +153,52 @@ Two changes together:
 A clean build now prints one line: `Generating examples metadata manifest...`. A build with a warning prints the warning. A build with an error prints every finding and then fails, exactly as before.
 
 If you add output to this tool, keep the pattern in mind: **never write a line where `error` or `warning` follows a colon**, or the IDE will invent a diagnostic out of it.
+
+## D56 - why the project number is a shelf, not a classification
+
+Before this, project names carried a running number claimed in order of arrival: `Example01_` through
+`Example40_`, with `Example05_*` and `Example08_*` and `Example13_*` having quietly become grab-bags
+for whatever arrived while those numbers were current. Seventy-four projects in one flat folder, and
+the only way to find the physics examples was to know their numbers.
+
+Two things were considered and rejected before the current scheme:
+
+- **Encoding the taxonomy in the name** - `E03_Physics_3D_Constraints_Motors`, with the number and
+  word both naming the category. This is the D30 mistake at folder scale: `category` would live in
+  two places, one of them validated and one not, and reclassifying an example would mean renaming its
+  folder. It also made every name longer to say something the metadata already says.
+- **Numbering the levels** - `01-03` for Getting Started and so on. `level` is the field most likely
+  to change as the toolkit matures and harder material arrives, which is the same reason D24 keeps it
+  out of slugs.
+
+What stayed is the weakest possible claim: **the number groups, and nothing more.** No tool reads it,
+`level` and `category` and `tags` do all the real work, and a shelf can be renamed or split without
+touching the metadata. That is also why the 20s are reserved as a block for games and 14-15 are held
+for Input and Math - a shelf that fills up should be able to grow without disturbing its neighbours.
+
+Three conventions in the naming rules exist because a specific pair of examples forced them:
+
+- **The dimension token marks the lesson, not the scenery.** Clusters 04, 06, 12 and 13 carry no
+  dimension at all - a Myra window in front of a 3D scene is not a 3D example. The same test as the
+  one categories already use.
+- **An engine name is the subject when the example exists to show it, and a trailing variant when it
+  is a port.** `E06_Box2D_Junkyard` against `E10_2D_StressPile_Box2D`. Without the split, a port
+  either loses its engine or stops sorting next to the original it exists to be compared with.
+- **"Playground" means scratch space with no metadata block** (D42), so it cannot also mean "a tour
+  of a feature". That is why `Example_Shapes_Playground` became `E11_3D_ShapeBatch` and
+  `Example02_Junkyard_Playground_Box2D` became `E06_Box2D_JunkyardInteractive`.
+
+**A Stride package file must be named after its project.** `E20_3D_CubeCollapse` is the only example
+with assets, and its `.sdpkg` is how they get compiled. Stride derives the asset URL prefix from the
+package, and at runtime resolves an unqualified `Content.Load<Sound>("cube-clear-1")` against the
+*project* name - so leaving `Example_CubicleCalamity.sdpkg` beside `E20_3D_CubeCollapse.csproj`
+compiled the assets to `/Example_CubicleCalamity/cube-clear-1` while the game asked for
+`/E20_3D_CubeCollapse/cube-clear-1`. The build stays green either way; it fails at load with
+`ContentManagerException: The asset ... could not be found`. Rename the `.sdpkg` with the project.
+
+The one thing a rename cannot be casually done to: **`related:` stores project names, not slugs**
+(D6), and an unresolvable name is a hard error under `--strict` (D10). Any future renaming has to
+move every `related:` entry in the same commit. `GlobalSuppression.cs` is the quieter hazard - its
+targets are `AssemblyName:CodeElementFullName` with no wildcards, and a suppression whose target has
+been renamed **silently does nothing**, so the issues it covered reappear at the next NDepend run
+rather than failing the build.

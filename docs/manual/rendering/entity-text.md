@@ -92,6 +92,17 @@ The background is axis-aligned and does not turn with `Rotation`.
 
 `IsVisible` hides the text without removing the component, which keeps the cached measurement alive.
 
+## High-DPI displays
+
+Every pixel figure on the component - `FontSize`, `Offset`, `ScreenPosition`, `Padding`,
+`ShadowOffset` - is a figure for a 100% display. On a scaled display the renderer multiplies them
+by the toolkit's shared `DisplayScale`, so a label designed at 18 px reads the same size to the eye
+on a 150% laptop as on a 100% monitor; the glyphs are rasterised at the larger size rather than
+stretched, so they stay sharp. A projected world position is not scaled - it is where the entity is,
+not a design figure. `AutoScale = false` on the component turns this off for exactly the pixels
+asked for. The same applies to `EntityDebugSceneRendererOptions`, and it only works when the process
+is DPI aware; see [the debug overlay page](debug-overlay.md#size-and-high-dpi-displays) for the manifest.
+
 For world text, `FadeStartDistance` and `MaxDistance` fade labels out with distance, or simply stop
 drawing them past a cutoff when only `MaxDistance` is set.
 

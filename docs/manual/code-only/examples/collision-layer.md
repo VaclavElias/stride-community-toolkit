@@ -10,6 +10,6 @@ The example creates a scene with two player cubes (green and purple) that can in
 
 ![Stride UI Example](media/stride-game-engine-example16-collision-layer.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example16_CollisionLayer).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_CollisionLayer).
 
-[!code-csharp[](../../../../examples/code-only/Example16_CollisionLayer/Program.cs?start=1&end=89)]
+[!code-csharp[](../../../../examples/code-only/E05_3D_CollisionLayer/Program.cs?start=1&end=89)]

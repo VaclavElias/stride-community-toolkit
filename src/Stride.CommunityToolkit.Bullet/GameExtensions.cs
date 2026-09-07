@@ -1,5 +1,4 @@
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Games;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Engine;
 using Stride.Games;
@@ -52,7 +51,7 @@ public static class GameExtensions
     /// </summary>
     /// <param name="game">The game instance to which the ground entity will be added.</param>
     /// <param name="options">
-    /// Optional 2D physics options used to configure the ground. When provided, <see cref="Primitive2DEntityOptions.Size"/> is mapped to X/Y while Z uses <see cref="GameDefaults.Default2DGroundSize"/>, and <see cref="PrimitiveEntityOptions.Position"/> defaults to <see cref="GameDefaults.Default2DGroundPosition"/>.
+    /// Optional 2D physics options used to configure the ground. When provided, <see cref="Primitive2DEntityOptions.Size"/> is mapped to X/Y while Z uses <see cref="GameDefaults.Default2DGroundSize"/>, and <see cref="PrimitiveEntityOptionsBase.Position"/> defaults to <see cref="GameDefaults.Default2DGroundPosition"/>.
     /// </param>
     /// <returns>The newly created ground <see cref="Entity"/> added to the game.</returns>
     /// <remarks>
@@ -81,7 +80,7 @@ public static class GameExtensions
     /// <param name="options">Optional 3D physics options used to configure the ground. If <c>null</c>, defaults will be used.</param>
     /// <returns>The newly created ground <see cref="Entity"/> added to the game.</returns>
     /// <remarks>
-    /// When <paramref name="options"/> is <see langword="null"/>, default options are created with a <see cref="StaticColliderComponent"/>. If <see cref="PrimitiveEntityOptions.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
+    /// When <paramref name="options"/> is <see langword="null"/>, default options are created with a <see cref="StaticColliderComponent"/>. If <see cref="PrimitiveEntityOptionsBase.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
     /// </remarks>
     public static Entity Add3DGround(this Game game, Bullet3DPhysicsOptions? options = null)
     {
@@ -100,7 +99,7 @@ public static class GameExtensions
     /// <param name="options">Optional 3D physics options used to configure the ground. If <c>null</c>, defaults will be used.</param>
     /// <returns>The newly created infinite ground <see cref="Entity"/> added to the game.</returns>
     /// <remarks>
-    /// When <paramref name="options"/> is <see langword="null"/>, default options are created with a <see cref="StaticColliderComponent"/>. If <see cref="PrimitiveEntityOptions.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
+    /// When <paramref name="options"/> is <see langword="null"/>, default options are created with a <see cref="StaticColliderComponent"/>. If <see cref="PrimitiveEntityOptionsBase.EntityName"/> is not provided, <see cref="GameDefaults.DefaultGroundName"/> is used.
     /// The visible part of the ground is defined by <paramref name="options"/>, while the collider is infinite and extends beyond the visible ground.
     /// </remarks>
     public static Entity AddInfinite3DGround(this Game game, Bullet3DPhysicsOptions? options = null)
@@ -112,6 +111,27 @@ public static class GameExtensions
 
         return CreateGround(game, PrimitiveModelType.InfinitePlane, options);
     }
+
+    /// <summary>
+    /// Creates a 2D primitive entity with a matching Bullet collider, using the default options.
+    /// </summary>
+    /// <param name="game">The game instance.</param>
+    /// <param name="type">The type of 2D primitive shape to create.</param>
+    /// <returns>The newly created <see cref="Entity"/> with Bullet 2D physics attached.</returns>
+    /// <remarks>
+    /// <para>Exists so that <c>game.Create2DPrimitive(type)</c> resolves here rather than to the physics-free
+    /// overload in <c>Stride.CommunityToolkit.Engine</c>, which has the same shape and is in scope whenever this
+    /// package is. Both are applicable to that call; C# prefers the candidate that needs no default argument
+    /// substituted, so this exact-arity overload wins, and F# applies the same preference. VB does not, so VB
+    /// callers pass the options explicitly. Passing a <see cref="Bullet2DPhysicsOptions"/> reaches the overload
+    /// below; passing a <c>Primitive2DEntityOptions</c> reaches the physics-free one.</para>
+    /// <para>Two things keep this working: a literal <c>null</c> for the options is still ambiguous, so use a typed
+    /// null as the forwarding call here does; and the core method must not grow an exact-arity overload of its
+    /// own, or the tie returns. This shadowing is a bridge until physics is selected once at setup, at which
+    /// point these overloads go.</para>
+    /// </remarks>
+    public static Entity Create2DPrimitive(this IGame game, Primitive2DModelType type)
+        => game.Create2DPrimitive(type, (Bullet2DPhysicsOptions?)null);
 
     /// <summary>
     /// Creates a 2D primitive entity and attaches Bullet 2D physics as defined by <paramref name="options"/>.
@@ -130,6 +150,27 @@ public static class GameExtensions
 
         return entity;
     }
+
+    /// <summary>
+    /// Creates a 3D primitive entity with a matching Bullet collider, using the default options.
+    /// </summary>
+    /// <param name="game">The game instance.</param>
+    /// <param name="type">The type of 3D primitive shape to create.</param>
+    /// <returns>The newly created <see cref="Entity"/> with Bullet 3D physics attached.</returns>
+    /// <remarks>
+    /// <para>Exists so that <c>game.Create3DPrimitive(type)</c> resolves here rather than to the physics-free
+    /// overload in <c>Stride.CommunityToolkit.Engine</c>, which has the same shape and is in scope whenever this
+    /// package is. Both are applicable to that call; C# prefers the candidate that needs no default argument
+    /// substituted, so this exact-arity overload wins, and F# applies the same preference. VB does not, so VB
+    /// callers pass the options explicitly. Passing a <see cref="Bullet3DPhysicsOptions"/> reaches the overload
+    /// below; passing a <c>Primitive3DEntityOptions</c> reaches the physics-free one.</para>
+    /// <para>Two things keep this working: a literal <c>null</c> for the options is still ambiguous, so use a typed
+    /// null as the forwarding call here does; and the core method must not grow an exact-arity overload of its
+    /// own, or the tie returns. This shadowing is a bridge until physics is selected once at setup, at which
+    /// point these overloads go.</para>
+    /// </remarks>
+    public static Entity Create3DPrimitive(this IGame game, PrimitiveModelType type)
+        => game.Create3DPrimitive(type, (Bullet3DPhysicsOptions?)null);
 
     /// <summary>
     /// Creates a 3D primitive entity and attaches Bullet 3D physics as defined by <paramref name="options"/>.

@@ -110,7 +110,93 @@
     </Group>
     <Group Name="Code Smells" Active="True" ShownInReport="False">
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1000$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1001$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid types with too many methods</Name>
+// <Id>ND1001:AvoidTypesWithTooManyMethods</Id>
+warnif count > 0 from t in JustMyCode.Types 
+
+  // Optimization: Fast discard of non-relevant types 
+  where !t.IsInterface &&  // Specially handled by the rule 'Avoid interfaces too big'
+         t.NbMethods > 20 &&
+         // Require at least a non-constant field
+         // because it is ok to have a class with many stateless methods
+         //
+         // Stride Community Toolkit tweak: that carve-out is the right idea, but keying it on any
+         // non-constant field loses it the moment a static holder gains one configuration property.
+         // TransformExtensions was reported at 29 methods purely because of the compiler-generated
+         // backing field of its WorldUp property, while Easing (64 methods) and GameExtensions (28)
+         // were not, their only fields being const. Whether a holder is a function library is decided
+         // by its methods, not by whether its knobs are written as const or as properties. A static
+         // class with a hand-written mutable field still counts as stateful and is still reported.
+         t.Fields.Any(f => !f.IsLiteral && !(t.IsStatic && f.IsGeneratedByCompiler))
+
+  // Don't match these methods
+  let methods = t.Methods.Where(
+       m => !(m.IsGeneratedByCompiler ||
+              // m.IsConstructor || m.IsClassConstructor ||  // ctor/cctor not enumerated through IType.Methods
+              m.IsPropertyGetter || m.IsPropertySetter ||
+              m.IsEventAdder || m.IsEventRemover))
+
+  where methods.Count() > 20 
+  orderby methods.Count() descending
+
+  let isStaticWithNoMutableState = (t.IsStatic && t.Fields.Any(f => !f.IsImmutable))
+  let staticFactor = (isStaticWithNoMutableState ? 0.2 : 1)
+
+select new { 
+   t, 
+   nbMethods = methods.Count(),
+   instanceMethods = methods.Where(m => !m.IsStatic), 
+   staticMethods = methods.Where(m => m.IsStatic),
+
+   t.NbLinesOfCode,
+
+   Debt = (staticFactor*methods.Count().Linear(20, 1, 200, 10)).ToHours().ToDebt(),
+
+   // The annual interest varies linearly from interest for severity major for 30 methods
+   // to interest for severity critical for 200 methods
+   AnnualInterest = (staticFactor*methods.Count().Linear(
+                              20,  Severity.Medium.AnnualInterestThreshold().Value.TotalMinutes, 
+                              200, Severity.Critical.AnnualInterestThreshold().Value.TotalMinutes)).ToMinutes().ToAnnualInterest()
+}
+
+//<Expl>The *{0}* has {1} methods. This is too many suggesting 
+// the need to divide it into multiple smaller implementations, 
+// each focused on a single responsibility.</Expl>
+
+//<Desc>
+// This rule matches types with more than 20 methods. 
+// Such type might be hard to understand and maintain.
+//
+// This rule doesn't match type with at least a non-constant
+// field because it is ok to have a class with many 
+// stateless methods
+
+//
+// Notice that methods like constructors or property 
+// and event accessors are not taken account.
+//
+// Having many methods for a type might be a symptom
+// of too many responsibilities implemented.
+//
+// Maybe you are facing the **God Class** phenomenon:
+// A **God Class** is a class that controls way too many other classes 
+// in the system and has grown beyond all logic to become 
+// *The Class That Does Everything*.
+//</Desc>
+
+//<HowToFix>
+// To refactor properly a *God Class* please read *HowToFix advices* 
+// from the default rule **Types too Big**.
+//
+// The estimated Debt, which means the effort to fix such issue,
+// varies linearly from 1 hour for a type with 20 methods,
+// up to 10 hours for a type with 200 or more methods.
+//
+// In Debt and Interest computation, this rule takes account of the fact 
+// that static types with no mutable fields are just a collection of 
+// static methods that can be easily split and moved from one type 
+// to another.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1002$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1003$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1004$]]></Query>
@@ -138,7 +224,157 @@
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1204$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND1205$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1206$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1207$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Non-static classes should be instantiated or turned to static</Name>
+// <Id>ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic</Id>
+warnif count > 0
+
+let testAttributes = Types
+                     .Where(t => t.IsAttributeClass && t.SimpleName.Contains("Test")).ToArray()
+
+from t in JustMyCode.Types
+where  t.IsClass &&
+    //!t.IsPublic &&   // if you are developing a framework,
+                       // you might not want to match public classes
+      !t.IsStatic &&
+      !t.IsAbstract &&
+      !t.IsDelegate &&
+      !t.IsAttributeClass && // Attributes class are never seen as instantiated
+
+       // Don't suggest to turn to static, classes that implement interfaces
+       t.InterfacesImplemented.Count() == 0 &&
+
+       // Find the first constructor of t called
+       // match t if none of its constructors is called.
+       t.Constructors.FirstOrDefault(ctor => ctor.NbMethodsCallingMe > 0) == null &&
+
+       // Don't warn on Program classes generated by designers
+       t.SimpleName != "Program" &&
+
+       // Types instantiated through remoting infrastructure
+      !t.DeriveFrom("System.MarshalByRefObject".AllowNoMatch()) &&
+
+      // JSON, XML and binary serialized types might not be seen as instantiated.
+      !t.IsUsing("Newtonsoft.Json".MatchNamespace().AllowNoMatch()) &&
+      !t.IsUsing("System.Text.Json".MatchNamespace().AllowNoMatch()) &&
+      !t.HasAttribute("System.Xml.Serialization.XmlRootAttribute".AllowNoMatch()) &&
+      !t.IsUsing("System.Xml.Serialization.XmlElementAttribute".AllowNoMatch()) &&
+      !t.IsUsing("System.Xml.Serialization.XmlAttributeAttribute".AllowNoMatch()) &&
+      !t.HasAttribute ("System.SerializableAttribute".AllowNoMatch()) &&
+
+      // Serialized type might never be seen as instantiated.
+      !t.HasAttribute("System.Runtime.Serialization.DataContractAttribute".AllowNoMatch()) &&
+      !t.IsUsing("System.Runtime.Serialization.DataMemberAttribute".AllowNoMatch()) &&
+
+      // ASP.NET Core ViewModel and Repository
+      !t.SimpleName.EndsWithAny("Model","Repository") &&
+      !t.IsUsing("System.ComponentModel.DataAnnotations".AllowNoMatch().MatchNamespace()) &&
+
+      // ASP.NET Classes that are instantiated by the ASP.NET infrastructure.
+      !t.BaseClasses.Any(bc => bc.ParentNamespace.Name.StartsWithAny("System.Web", "Microsoft.AspNetCore"))  &&
+      !(t.Constructors.Count() == 1 && t.Constructors.Single().Name.Contains("(IHostingEnvironment)")) &&
+
+      // Entity Framework ModelSnapshot and DbContext and Migration
+      !t.DeriveFrom("Microsoft.EntityFrameworkCore.Infrastructure.ModelSnapshot".AllowNoMatch()) &&
+      !t.DeriveFrom("Microsoft.EntityFrameworkCore.DbContext".AllowNoMatch()) &&
+      !t.DeriveFrom("Microsoft.EntityFrameworkCore.Migrations.Migration".AllowNoMatch()) &&
+
+      // ASP.NET Core Tag Helpers
+      !t.HasAttribute("Microsoft.AspNetCore.Razor.TagHelpers.HtmlTargetElementAttribute".AllowNoMatch()) &&
+      !t.DeriveFrom("HtmlTags.HtmlTagTagHelper".AllowNoMatch()) &&
+
+      // UWP Pages
+      !t.InstanceMethods.WithName("GetBindingConnector(Int32,Object)").Any() &&
+
+      // Don't match test classes
+      !testAttributes.Any(tAttr => t.HasAttribute(tAttr)) &&
+
+      // Validtor classes might not be instantiated
+      !t.SimpleName.EndsWith("Validator") &&
+
+      // Don't warn about classes instantiated by Dependency Injection frameworks
+      !t.TypesUsingMe.Any(t1 => t1.TypesUsed.ParentNamespaces().Any(n => n.Name.StartsWithAny(
+            "Microsoft.Extensions.DependencyInjection",
+            "Autofac", "Microsoft.Practices.Unity", "Ninject",
+            "StructureMap", "SimpleInjector", "Castle.Windsor",
+            "LightInject", "Spring", "Lamar", "AutoMapper"
+       ))) &&
+       !t.BaseClasses.Any(bc => bc.FullName.StartsWith("AutoMapper")) &&
+
+      // Don't warn if the type is used by some types using some third-party Json related types.
+      // The type is potentially instantiated by a Json serializer like the GetFromJsonAsync() extension methods.
+      !t.TypesUsingMe.SelectMany(t1 => t1.TypesUsed)
+                     .Where(t1 => t1.IsThirdParty && t1.SimpleName.Contains("Json")).Any() &&
+
+      // Classes that derive from Unity classes are instantiated implicitly by the Unity engine
+      !t.BaseClasses.Any(bc => bc.ParentNamespace.Name.StartsWithAny("UnityEngine","UnityEditor")) &&
+
+      // Stride Community Toolkit tweak - the exact counterpart of the UnityEngine line above:
+      // an EntityProcessor is instantiated by the Stride engine, never by user code. Stride creates
+      // one the first time a component carrying [DefaultEntityComponentProcessor(typeof(TheProcessor))]
+      // enters a scene, and that is a reflection call the analysis cannot see, so every processor we
+      // write is a guaranteed false positive.
+      //
+      // Matching on the base class rather than on the attribute is deliberate. Reading the processor
+      // type out of the attribute does not work: NDepend surfaces the typeof() argument only when the
+      // attribute carries no named argument (ShapeComponent yields Arg0, but
+      // FirstPersonControllerComponent, which also passes ExecutionMode, yields nothing), and the
+      // typeof() reference is not tracked as a type usage either - FirstPersonControllerProcessor has
+      // no TypesUsingMe at all. The base class is the one link that is always present.
+      !t.DeriveFrom("Stride.Engine.EntityProcessor".AllowNoMatch()) &&
+
+      // Don't match marker classes
+      !(t.IsSealed && t.Members.Count() == 1 &&
+        t.Members.Single().IsMethod &&
+        t.Members.Single().AsMethod.IsConstructor &&
+        t.Members.Single().AsMethod.NbParameters == 0)
+
+
+select new {
+   t,
+   t.Visibility,
+   Debt = 2.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+}
+
+// Notice that classes only instantiated through reflection,
+// like plug-in root classes are matched by this rules.
+
+//<Expl>
+// The *{0}* is not instantiated in the context of the analyzed code.
+// Should it be declared as a *static class* or is it a potential candidate for removal?
+//</Expl>
+
+//<Desc>
+// If the constructors of a class are never called, the class is
+// never instantiated, and should be defined as a *static class*.
+//
+// However this rule doesn't match instantiation through reflection.
+// As a consequence, plug-in root classes, instantiated through reflection
+// via *IoC frameworks*, can be *false positives* for this rule.
+//
+// This rule doesn't match also classes instantiated by the ASP.NET
+// infrastructure, ASP.NET view model classes
+// and Entity Framework ModelSnapshot, DbContext and Migration classes.
+//
+// Stride Community Toolkit tweak: classes deriving from Stride.Engine.EntityProcessor
+// are not matched either, because the engine instantiates them by reflection from the
+// [DefaultEntityComponentProcessor] attribute on the matching component.
+//
+// Notice that by default this rule matches also *public* class.
+// If you are developing a framework with classes that are intended
+// to be instantiated by your clients, just uncomment the line
+// *!t.IsPublic*.
+//</Desc>
+
+//<HowToFix>
+// First it is important to investigate why the class is never instantiated.
+// If the reason is *the class hosts only static methods* then the class
+// can be safely declared as *static*.
+//
+// Others reasons like, *the class is meant to be instantiated via reflection*,
+// or *is meant to be instantiated only by client code* should lead to
+// adapt this rule code to avoid these matches.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1208$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1209$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1210$]]></Query>
@@ -338,7 +574,52 @@ select new {
 //</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1308$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1309$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1310$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Attribute classes should be sealed</Name>
+// <Id>ND1310:AttributeClassesShouldBeSealed</Id>
+
+warnif count > 0 from t in Application.Types where 
+  t.IsAttributeClass && 
+  // Stride Community Toolkit tweak: Stride's assembly processor injects its own
+  // Stride.Core.AssemblyProcessedAttribute into every assembly it touches, so the stock rule reports
+  // the same non-toolkit type 82 times. Nothing without a source declaration was written here, and
+  // the ND3002 notmycode discard cannot help because this rule reads Application.Types directly.
+  t.SourceFileDeclAvailable &&
+ !t.IsSealed && 
+ !t.IsAbstract && 
+  t.IsPublic
+select new {
+   t, 
+   t.NbLinesOfCode,
+   Debt = 2.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+} 
+
+//<Expl>
+// To potentially enhance the performance of .NET 
+// methods designed for custom attributes, it is 
+// advisable to seal the attribute *{0}*.
+//</Expl>
+
+//<Desc>
+// .NET offers methods to fetch custom attributes. 
+// By default, these methods explore the attribute 
+// inheritance hierarchy. For instance, the 
+// *System.Attribute.GetCustomAttribute()* method 
+// scans for the specified attribute type or any 
+// attribute type that inherits from it. 
+// If the attribute is sealed, this removes the
+// search within the inheritance hierarchy, 
+// potentially enhancing performance.
+//
+// Sealing the attribute removes the need to search 
+// through the inheritance hierarchy, which 
+// can result in performance improvements.
+//</Desc>
+
+//<HowToFix>
+// To fix a violation of this rule, seal the attribute 
+// type or make it abstract.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1311$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND1312$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Override equals and operator equals on value types</Name>
@@ -438,7 +719,13 @@ from nB in namespacesMutuallyDependentWith_nA.Where(
    // Don't match namespaces generated by PostSharp
    n => !n.Name.StartsWith("PostSharp.ImplementationDetails") &&
    // Stride Community Toolkit tweak: skip the global (anonymous) namespace (see above)
-   n.Name.Length > 0)
+   n.Name.Length > 0 &&
+   // Stride Community Toolkit tweak: apply to this end of the pair the same JustMyCode test the
+   // nA side already makes above - the stock rule filters only one end, so a cycle between your
+   // code and a generated namespace still gets reported against the generated types. The case
+   // that forced it: Launcher <-> CompiledAvaloniaXaml, Avalonia's generated XAML loader, which
+   // instantiates App and MainWindow and cannot be restructured by anyone.
+   JustMyCode.Contains(n))
 
 // nA and nB are mutually dependent
 // Infer which one is low level and which one is high level,
@@ -771,7 +1058,53 @@ select new {
     </Group>
     <Group Name="Security" Active="True" ShownInReport="False">
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3100$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3101$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Don't use System.Random for security purposes</Name>
+// <Id>ND3101:DontUseSystemRandomForSecurityPurposes</Id>
+warnif count > 0 
+
+// Stride Community Toolkit tweak: JustMyCode rather than Application, so the rule stops reporting
+// compiler-generated closures. A captured "new Random()" is hoisted into a <>c__DisplayClass, which
+// ND3002 already discards from JustMyCode but the stock rule never consulted. Every hand-written use
+// still matches - verified against all 16 of them at the time of the change.
+from m in JustMyCode.Methods
+where m.CreateA("System.Random".AllowNoMatch())
+select new { 
+  m,
+  Debt = 15.ToMinutes().ToDebt(),
+  AnnualInterest = 1.ToHours().ToAnnualInterest()
+}
+
+//<Expl>
+// The *{0}* should not use *System.Random* because it is a
+// *weak* pseudo-random number generator. 
+// This can potentially allow an attacker to predict security-sensitive
+// values that are generated.
+//</Expl>
+
+//<Desc>
+// The algorithm used by the implementation of **System.Random** is weak
+// because random numbers generated can be predicted.
+//
+// Using predictable random values in a security critical context
+// can lead to vulnerabilities.
+//</Desc>
+
+//<HowToFix>
+// If the matched method is meant to be executed in a security 
+// critical context use **System.Security.Cryptography.RandomNumberGenerator** 
+// or **System.Security.Cryptography.RNGCryptoServiceProvider** instead.
+// These random implementations are slower to execute but the random numbers 
+// generated cannot be predicted.
+//
+// Find more on using *RNGCryptoServiceProvider* to generate random values here:
+// https://stackoverflow.com/questions/32932679/using-rngcryptoserviceprovider-to-generate-random-string
+// 
+// Otherwise you can use the faster **System.Random** implementation and 
+// suppress corresponding issues.
+//
+// More information about the weakness of *System.Random* implementation
+// can be found here: https://stackoverflow.com/a/6842191/27194
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3102$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3103$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND3104$]]></Query>
@@ -1191,8 +1524,17 @@ select new {
 // <Id>ND2000:InstanceFieldsNamingConvention</Id>
 
 warnif count > 0 
+// Stride Community Toolkit tweak: the conventions below are this repo's C# ones (.editorconfig).
+// The F# and VB examples follow their own languages' conventions instead, so this rule does not
+// apply to them. An assembly built from one of those languages is recognised by the compiler
+// runtime it necessarily references. Paste this guard into any other naming rule that starts
+// reporting F# or VB code.
+let nonCSharpAssemblies = Application.Assemblies.Where(a =>
+   a.IsUsing("FSharp.Core".AllowNoMatch()) ||
+   a.IsUsing("Microsoft.VisualBasic.Core".AllowNoMatch())).ToHashSet()
 let isUnityProject = ThirdParty.Assemblies.Any(a => a.Name.StartsWith("UnityEngine"))
 from f in JustMyCode.Fields where 
+  !nonCSharpAssemblies.Contains(f.ParentAssembly) &&
   !f.IsStatic && 
   !f.IsLiteral && 
   !f.IsGeneratedByCompiler  && 
@@ -1277,7 +1619,16 @@ select new {
 // <Id>ND2001:StaticFieldsNamingConvention</Id>
 
 warnif count > 0 
+// Stride Community Toolkit tweak: the conventions below are this repo's C# ones (.editorconfig).
+// The F# and VB examples follow their own languages' conventions instead, so this rule does not
+// apply to them. An assembly built from one of those languages is recognised by the compiler
+// runtime it necessarily references. Paste this guard into any other naming rule that starts
+// reporting F# or VB code.
+let nonCSharpAssemblies = Application.Assemblies.Where(a =>
+   a.IsUsing("FSharp.Core".AllowNoMatch()) ||
+   a.IsUsing("Microsoft.VisualBasic.Core".AllowNoMatch())).ToHashSet()
 from f in JustMyCode.Fields where 
+  !nonCSharpAssemblies.Contains(f.ParentAssembly) &&
    f.IsStatic && 
   !f.IsLiteral && 
   !f.IsGeneratedByCompiler && 
@@ -1345,7 +1696,54 @@ select new {
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2004$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2005$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2006$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2007$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Methods name should begin with an Upper character</Name>
+// <Id>ND2007:MethodsNameShouldBeginWithAnUpperCharacter</Id>
+
+warnif count > 0 
+// Stride Community Toolkit tweak: the conventions below are this repo's C# ones (.editorconfig).
+// The F# and VB examples follow their own languages' conventions instead, so this rule does not
+// apply to them. An assembly built from one of those languages is recognised by the compiler
+// runtime it necessarily references. Paste this guard into any other naming rule that starts
+// reporting F# or VB code.
+let nonCSharpAssemblies = Application.Assemblies.Where(a =>
+   a.IsUsing("FSharp.Core".AllowNoMatch()) ||
+   a.IsUsing("Microsoft.VisualBasic.Core".AllowNoMatch())).ToHashSet()
+from m in JustMyCode.Methods where 
+  !nonCSharpAssemblies.Contains(m.ParentAssembly) &&
+  !m.NameLike (@"^[A-Z]") && 
+  !m.IsSpecialName && 
+  !m.IsGeneratedByCompiler &&
+  !m.IsExplicitInterfaceImpl && // This can generate unexpected method name.
+
+  // For records some generated methods are not marked as generated
+  !(m.SimpleName.Length > 0 && m.SimpleName[0] == '<') &&
+
+  // Some extension property accessors must start with these
+  !m.SimpleName.StartsWithAny("get_", "set_")
+  
+select new {
+   m,
+   Debt = 3.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+}
+
+//<Expl>
+// The *{0}'s name* should begin with an uppercase letter.
+//</Expl>
+
+//<Desc>
+// This rule warns about *methods* whose names don't start
+// with an Upper character. It is a common practice in the .NET 
+// world to use **Pascal Casing Style** to name methods.
+//
+// **Pascal Casing Style** : The first letter in the identifier 
+// and the first letter of each subsequent concatenated word 
+// are capitalized. For example:  *ComputeSize*
+//</Desc>
+
+//<HowToFix>
+// *Pascal Case* the names of matched methods.
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2008$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2009$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2010$]]></Query>
@@ -1447,18 +1845,165 @@ select new {
       <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2013$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2014$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="True"><![CDATA[$ND2015$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2016$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Methods prefixed with 'Try' should return a boolean</Name>
+// <Id>ND2016:MethodsPrefixedWithTryShouldReturnABoolean</Id>
+
+warnif count > 0
+
+// Stride Community Toolkit tweak: JustMyCode.Methods instead of the stock Application.Methods.
+// A naming convention can only be honoured by whoever chose the name, so a generated method is
+// never actionable here. The case that forced it: Avalonia's XAML compiler emits
+// CompiledAvaloniaXaml.!XamlLoader.TryLoad(...) returning object, and the ND3002 notmycode discard
+// of the CompiledAvaloniaXaml namespace could not silence it because this rule queried
+// Application. Scoping to JustMyCode keeps every hand-written hit (e.g. CubeClickScript.TryClear,
+// which returns void) and drops only the generated ones.
+from m in JustMyCode.Methods where
+  m.SimpleNameLike("^Try") &&
+  m.ReturnType != null &&
+  m.ReturnType.FullName != "System.Boolean" &&
+ !m.ReturnType.Name.Contains("Task")
+select new {
+   m,
+   m.ReturnType,
+   Debt = 10.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+}
+
+//<Expl>
+// The *{0}* returns the *{1}*.
+// Usually a method whose name starts with *Try* returns a *bool* value
+// to allow client code to test whether its execution succeeded or not.
+//</Expl>
+
+//<Desc>
+// When a method has a name prefixed with **Try**, it is expected that
+// it returns a *boolean* or a *Task<bool>* if async. This returned flag
+// reflects the method execution status, *success* or *failure*.
+//
+// Such method usually returns a result through an *out parameter*.
+// For example:  *System.Int32.TryParse(int,out string):bool*
+//
+// Stride Community Toolkit tweak: only hand-written methods are matched, generated code is not.
+//</Desc>
+
+//<HowToFix>
+// To fix a violation of this rule,
+// Rename the method, or transform it into an operation that can fail.
+//</HowToFix>]]></Query>
       <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2017$]]></Query>
       <Query Active="False" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2018$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2019$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2020$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid various capitalizations for method name</Name>
+// <Id>ND2020:AvoidVariousCapitalizationsForMethodName</Id>
+
+warnif count > 0
+
+// Stride Community Toolkit tweak: the conventions below are this repo's C# ones (.editorconfig).
+// The F# and VB examples follow their own languages' conventions instead, so this rule does not
+// apply to them. An assembly built from one of those languages is recognised by the compiler
+// runtime it necessarily references. Paste this guard into any other naming rule that starts
+// reporting F# or VB code.
+let nonCSharpAssemblies = Application.Assemblies.Where(a =>
+   a.IsUsing("FSharp.Core".AllowNoMatch()) ||
+   a.IsUsing("Microsoft.VisualBasic.Core".AllowNoMatch())).ToHashSet()
+
+let lookup = JustMyCode.Methods.Where(m => !nonCSharpAssemblies.Contains(m.ParentAssembly)).ToLookup(m => m.SimpleName, StringComparer.OrdinalIgnoreCase)
+from grouping in lookup
+where grouping.Count() > 1
+let name = grouping.First().SimpleName
+let method = grouping.FirstOrDefault(m => m.SimpleName != name)
+where method != null
+let nbCapitalizations = grouping.ToLookup(m => m.SimpleName).Count
+
+// Increase the severity if various capitalizations are found in same class
+let differentCapitalizationInSameType = 
+   grouping.ToLookup(m => m.ParentType)
+           .Any(groupingPerType => groupingPerType.ToLookup(m => m.SimpleName).Count > 1)
+
+select new { 
+  method, 
+  methods = grouping.Distinct(m => m.SimpleName).ToArray(),
+  nbCapitalizations,
+  Debt = (nbCapitalizations * 6).ToMinutes().ToDebt(),
+  Severity = differentCapitalizationInSameType  ? Severity.Critical : Severity.Medium
+}
+
+//<Expl>
+// Several capitalizations for this method name are used:
+// *{1}*. Choose a single capitalization to improve 
+// overall readability, maintainability, team collaboration
+// and consistency.
+//</Expl>
+
+//<Desc>
+// This rule matches application methods whose names differ 
+// only in capitalization.
+//
+// With this rule you'll discover various names like 
+// *ProcessOrderId* and *ProcessOrderID*. It is important to 
+// choose a single capitalization used accross the whole application
+// to improve  overall readability, maintainability, team
+// collaboration and consistency.
+//
+// Matched methods are not necessarily declared in the same type.
+// However if various capitalizations of a method name are found
+// within the same type, the issue severity goes from *Medium*
+// to *Critical*. Indeed, this situation is not just a matter
+// of convention, it is error-prone. It forces type's clients 
+// to investigate which version of the method to call.
+//</Desc>
+
+//<HowToFix>
+// Choose a single capitalization for the method name
+// used accross the whole application.
+//
+// Or alternatively make the distinction clear by having
+// different method names that don't only differ by 
+// capitalization.
+//
+// The technical-debt for each issue, the estimated cost
+// to fix an issue, is proportional to the number
+// of capitalizations found (2 minimum).
+//</HowToFix>]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2021$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2022$]]></Query>
     </Group>
     <Group Name="Source Files Organization" Active="True" ShownInReport="False">
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2100$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2101$]]></Query>
-      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2102$]]></Query>
+      <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Avoid defining multiple types in a source file</Name>
+// <Id>ND2102:AvoidDefiningMultipleTypesInASourceFile</Id>
+
+warnif count > 0
+
+// Stride Community Toolkit tweak - replaces the stock rule:
+//  - scoped to the shipped library assemblies. A code-only example is one Program.cs by
+//    design - top-level statements plus the few records and enums it needs - so several
+//    types in that file is the convention there, not a smell.
+//  - a source file linked into two assemblies (the launchers share their manifest code)
+//    yields the same type twice; that is one declaration, not two.
+//  - ignores nested and compiler-generated types, as the stock rule does.
+let candidates = JustMyCode.Types.Where(t =>
+      !t.IsGeneratedByCompiler &&
+      !t.IsNested &&
+      t.ParentAssembly.Name.StartsWith("Stride.CommunityToolkit") &&
+      t.SourceFileDeclAvailable &&
+      t.SourceDecls.Count() == 1).ToArray()
+
+let byFile = candidates.ToLookup(t => t.SourceDecls.Single().SourceFile.FilePathString, StringComparer.OrdinalIgnoreCase)
+
+from g in byFile
+let distinct = g.GroupBy(x => x.FullName).Select(x => x.First()).ToArray()
+where distinct.Length > 1
+let t = distinct[0]
+let others = distinct.Skip(1).ToArray()
+let debt = (3 * others.Length).ToMinutes().ToDebt()
+select new { t, Others = others, File = g.Key, Debt = debt }
+
+// <Expl>The source file *{2}* should contain only one type declaration: *{0}* shares it with *{1}*.</Expl>
+// <Desc>A source file that declares several top-level types is harder to find things in - the file name names one of them and hides the rest - and invites the small ones to grow unnoticed.</Desc>
+// <HowToFix>Move each additional type into its own file, named after the type. Nested types and the top-level-statements Program class are not counted.</HowToFix>
+]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2103$]]></Query>
       <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Types with source files stored in the same directory, should be declared in the same namespace</Name>
 // <Id>ND2104:TypesWithSourceFilesStoredInTheSameDirectoryShouldBeDeclaredInTheSameNamespace</Id>
@@ -1582,7 +2127,84 @@ select new {
         <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2211$]]></Query>
       </Group>
       <Group Name="System.Collections" Active="True" ShownInReport="False">
-        <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2300$]]></Query>
+        <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[// <Name>Collection properties should be read only</Name>
+// <Id>ND2300:CollectionPropertiesShouldBeReadOnly</Id>
+
+warnif count > 0
+
+// First find collectionTypes 
+let collectionInterfaces = ThirdParty.Types.WithFullNameIn(
+      "System.Collections.ICollection", 
+      "System.Collections.Generic.ICollection<T>")
+
+let collectionTypes = Types.ThatImplementAny(collectionInterfaces)
+                           .Union(collectionInterfaces)
+                           .Union(Types.WithFullName("System.Array"))
+                           .ToHashSetEx()
+where collectionTypes.Count() > 0
+
+// Find all Read/Write property that is typed with a collection type
+from property in JustMyCode.Properties.Where(
+   p =>
+        // Stride Community Toolkit tweak: skip properties declared on records. The rule wants a
+        // collection that cannot be replaced after construction, and a positional record property is
+        // exactly that - init-only - but an init accessor is indistinguishable from a setter in the
+        // model this rule sees, so it reports what it asked for. IsRecord is the same proxy ND1903 uses
+        // for init-only state. At the time of the change this spares three example records and nothing
+        // else; a record that declares a genuinely settable collection would slip through, which is the
+        // trade accepted here.
+        !p.ParentType.IsRecord &&
+        p.IsReadWrite &&
+        p.PropertyType != null &&
+        collectionTypes.Contains(p.PropertyType))
+
+let propSetter = property.SetMethod
+
+where  propSetter != null &&
+      !propSetter.IsPrivate && // Ignore private setters since this is private implementation detail
+      !propSetter.ParentType.IsPrivate && // Ignore setters of private types
+
+       // Ignore properties of serializable types
+      !propSetter.ParentType.TypesUsed.Any(t1 => t1.IsAttributeClass && 
+        (t1.ParentNamespace.Name == "Newtonsoft.Json" || t1.ParentNamespace.Name == "System.Text.Json")
+       ) &&
+      !propSetter.ParentType.HasAttribute("System.Runtime.Serialization.DataContractAttribute".AllowNoMatch()) &&
+      !propSetter.ParentType.HasAttribute("System.Xml.Serialization.XmlRootAttribute".AllowNoMatch()) &&
+      !propSetter.ParentType.HasAttribute("System.SerializableAttribute".AllowNoMatch())
+
+select new { 
+   property, 
+   CollectionType = property.PropertyType,
+   Debt = 10.ToMinutes().ToDebt(),
+   Severity = Severity.Medium
+}
+
+//<Expl>
+// The *{0}* should be read-only because it is typed with the collection *{1}*.
+// Doing so favors *encapsulation*, *predictable behavior* and *consistency*.
+//</Expl>
+
+//<Desc>
+// A writable collection property allows a user to replace the collection with 
+// a completely different collection. A read-only property stops the collection 
+// from being replaced but still allows the individual members to be set. If 
+// replacing the collection is a goal, the preferred *design pattern* is to include
+// a method to remove all the elements from the collection and a method to 
+// re-populate the collection. See the *Clear()* and *AddRange()* methods of the 
+// *System.Collections.Generic.List<T>* class for an example of this pattern.
+// 
+// Both binary and XML serialization support read-only properties that are 
+// collections. The *System.Xml.Serialization.XmlSerializer* class has specific 
+// requirements for types that implement *ICollection* and *System.Collections.IEnumerable*
+// in order to be serializable.
+//
+// This rule matches property setter methods that assign a collection object.
+//</Desc>
+
+//<HowToFix>
+// To fix a violation of this rule, make the property read-only and, if 
+// the design requires it, add methods to clear and re-populate the collection.
+//</HowToFix>]]></Query>
         <Query Active="True" DisplayList="True" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2301$]]></Query>
         <Query Active="True" DisplayList="False" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2302$]]></Query>
         <Query Active="True" DisplayList="False" DisplayStat="False" DisplaySelectionView="False" IsCriticalRule="False"><![CDATA[$ND2303$]]></Query>
@@ -1673,9 +2295,15 @@ let generatedNamespace = Application.Namespaces.WithFullNameIn(
    n => n.Name.StartsWith("PostSharp.ImplementationDetails")))
 
 .Concat(Application.Namespaces.Where(
-   // Stride Community Toolkit tweak: namespaces emitted by Stride's assembly processor
+   // Stride Community Toolkit tweak: namespaces emitted by Stride's assembly processor, plus the
+   // CompiledAvaloniaXaml namespace that Avalonia's XAML compiler emits wholesale from the
+   // launcher's .axaml files. Discarding the Avalonia types in ND3002 is not enough on its own:
+   // a namespace's JustMyCode membership is decided here and not by its types, so ND1400/ND1401
+   // went on reporting the XamlLoader <-> Launcher cycle with all 12 child types already
+   // discarded. Both clauses are needed - this one for the namespace, ND3002 for the types.
    n => n.Name == "Stride.Core.DataSerializers" ||
-        n.Name.StartsWith("Stride.Core.CompilerServices.AutoGenerated")))
+        n.Name.StartsWith("Stride.Core.CompilerServices.AutoGenerated") ||
+        n.Name.StartsWith("CompiledAvaloniaXaml")))
 
 // Discard types generated in Microsoft.Office.* namespaces.
 // Issues won't be reported on this code. Especially issues related 
@@ -1751,6 +2379,16 @@ from t in Application.Types where
   // file (e.g. the *ShaderKeys classes emitted by Stride's shader generator) are not user code.
   (t.SourceFileDeclAvailable &&
    t.SourceDecls.All(sd => sd.SourceFile.FileName.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase))) ||
+
+  // Stride Community Toolkit tweak: Avalonia's XAML compiler emits the whole CompiledAvaloniaXaml
+  // namespace (!XamlLoader, !AvaloniaResources, XamlIlContext, XamlIlHelpers, XamlIlTrampolines,
+  // XamlDynamicSetters, !IndexerAccessorFactoryClosure and their nested NamespaceInfo types) from the
+  // .axaml files of the launcher. There is no hand-written source behind any of it - the types carry
+  // no GeneratedCodeAttribute and no .g.cs source declaration, so none of the clauses above catch
+  // them - and the rules it trips are all artefacts of how the generator writes IL: stateless holder
+  // classes, loader entry points that are only ever called by reflection, TryLoad methods that
+  // return an object, and empty static constructors on the resource records.
+  t.ParentNamespace.Name.StartsWith("CompiledAvaloniaXaml") ||
 
   // Don't consider anonymous types as JustMyCode  
   // C# and VB.NET anonymous types generated by the compiler satisfies these conditions

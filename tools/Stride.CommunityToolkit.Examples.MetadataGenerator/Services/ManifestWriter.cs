@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Stride.CommunityToolkit.Examples.MetadataGenerator.Core;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -45,7 +46,7 @@ public class ManifestWriter(ILogger<ManifestWriter> logger)
 
         var manifest = new ExampleManifest
         {
-            GeneratedAt = generatedAtUtc.UtcDateTime.ToString("O"),
+            GeneratedAt = generatedAtUtc.UtcDateTime.ToString("O", CultureInfo.InvariantCulture),
             ToolVersion = GetToolVersion(),
             Examples = examples
         };

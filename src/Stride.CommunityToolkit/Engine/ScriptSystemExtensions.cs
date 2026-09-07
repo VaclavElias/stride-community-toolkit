@@ -576,12 +576,17 @@ public static class ScriptSystemExtensions
     }
 
     /// <summary>
-    /// Returns the <see cref="IGame"/> the <paramref name="scriptSystem"/> belongs to.
+    /// Returns the game the <paramref name="scriptSystem"/> belongs to.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// If the <paramref name="scriptSystem"/> has no game, which Stride only allows in a mock environment.
     /// </exception>
-    private static IGame GetGame(ScriptSystem scriptSystem) =>
+    /// <remarks>
+    /// Typed as the concrete <see cref="GameBase"/> rather than <see cref="IGame"/> because that is what
+    /// the script system already holds; every caller here is on a per-frame path, so the
+    /// interface dispatch this avoids is worth more than the abstraction on a private helper.
+    /// </remarks>
+    private static GameBase GetGame(ScriptSystem scriptSystem) =>
         scriptSystem.Game ?? throw new InvalidOperationException($"The {nameof(ScriptSystem)} is not attached to a game.");
 
     /// <summary>

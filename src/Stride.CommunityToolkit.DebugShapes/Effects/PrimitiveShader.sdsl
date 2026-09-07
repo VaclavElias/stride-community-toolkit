@@ -1,19 +1,25 @@
 namespace Stride.CommunityToolkit.DebugShapes
 {
-    internal shader PrimitiveShader : ShaderBase, ColorBase
+    internal shader PrimitiveShader : ShaderBase, ColorBase, ColorUtility
     {
         struct TransformData {
             float4x4 Matrix;
         };
 
+        // Colour bytes as a uint, never a float: with alpha 255 and blue >= 128 the bytes form a NaN
+        // bit pattern, which GPUs canonicalize on a float read, destroying the red channel
         struct ColorData {
-            float Color;
+            uint Color;
         };
 
         float4x4 ViewProjection;
         StructuredBuffer<TransformData> Transforms;
         StructuredBuffer<ColorData> Colors;
         int InstanceOffset;
+
+        // 1 when the target is linear - Stride's default, an sRGB backbuffer that re-encodes on the
+        // way out - so the sRGB colour bytes are decoded here; 0 for a gamma pipeline
+        stage uint LinearOutput;
 
         float LineWidthMultiplier = 1.0f;
 
@@ -24,7 +30,9 @@ namespace Stride.CommunityToolkit.DebugShapes
         {
             int offsetInstanceId = streams.InstanceID + InstanceOffset;
             streams.ShadingPosition = mul(mul(float4(streams.Position, 1), Transforms[offsetInstanceId].Matrix), ViewProjection);
-            streams.Color = BitsToColor(Colors[offsetInstanceId].Color);
+            float4 color = BitsToColor(Colors[offsetInstanceId].Color);
+
+            streams.Color = LinearOutput != 0 ? ToLinear(color) : color;
         }
 
         override stage void PSMain()
@@ -43,18 +51,15 @@ namespace Stride.CommunityToolkit.DebugShapes
 
         }
 
-        float4 BitsToColor(float f)
+        float4 BitsToColor(uint u)
         {
-            uint u = asuint(f);
-            float4 c; // it has to be split up like this, don't change it..
-            c = float4(
-                (u >> 0) % 256,
-                (u >> 8) % 256,
-                (u >> 16) % 256,
-                (u >> 24) % 256
+            return float4(
+                (u >> 0) & 255,
+                (u >> 8) & 255,
+                (u >> 16) & 255,
+                (u >> 24) & 255
             ) / 255.0;
-            return c;
         }
 
     };
-}
+}

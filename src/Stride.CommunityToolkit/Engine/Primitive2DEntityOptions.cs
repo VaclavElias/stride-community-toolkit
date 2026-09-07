@@ -6,10 +6,10 @@ namespace Stride.CommunityToolkit.Engine;
 /// Option set for creating a 2D primitive entity using the toolkit's code-only helpers.
 /// </summary>
 /// <remarks>
-/// Inherits common properties from <see cref="PrimitiveEntityOptions"/> and adds sizing + thickness information
+/// Inherits common properties from <see cref="PrimitiveEntityOptionsBase"/> and adds sizing + thickness information
 /// suitable for 2D style content that still lives in a 3D world / physics space.
 /// </remarks>
-public class Primitive2DEntityOptions : PrimitiveEntityOptions
+public class Primitive2DEntityOptions : PrimitiveEntityOptionsBase
 {
     /// <summary>
     /// Gets or sets the logical size values for the generated 2D primitive.

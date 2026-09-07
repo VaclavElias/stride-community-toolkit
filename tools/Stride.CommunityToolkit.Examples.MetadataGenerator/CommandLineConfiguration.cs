@@ -71,7 +71,6 @@ public class CommandLineConfiguration(IServiceProvider serviceProvider)
 
             var service = scope.ServiceProvider.GetRequiredService<ManifestService>();
             var validator = scope.ServiceProvider.GetRequiredService<MetadataValidator>();
-            var scanner = scope.ServiceProvider.GetRequiredService<ExampleScanner>();
             var path = parseResult.GetValue(pathArgument);
 
             var scan = await service.ScanExamplesAsync(path, cancellationToken);
@@ -82,7 +81,7 @@ public class CommandLineConfiguration(IServiceProvider serviceProvider)
             }
 
             var published = scan.Examples.Where(example => example.Metadata.Enabled != false).ToList();
-            var messages = validator.Validate(published, parseResult.GetValue(mediaOption), scanner.FindProjectNames(path!));
+            var messages = validator.Validate(published, parseResult.GetValue(mediaOption), ExampleScanner.FindProjectNames(path!));
             var errorCount = service.ReportValidation(messages) + scan.Failures;
 
             return errorCount > 0 ? ManifestService.ExitValidationFailed : ManifestService.ExitSuccess;

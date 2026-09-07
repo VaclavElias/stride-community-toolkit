@@ -1,6 +1,9 @@
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
+using Stride.Profiling;
+using Stride.Rendering.Images;
+using System.Reflection;
 
 namespace Stride.CommunityToolkit.Engine;
 
@@ -69,6 +72,15 @@ public static class ScreenshotCapture
         game.IsFixedTimeStep = true;
         game.IsDrawDesynchronized = false;
 
+        // A fixed timestep alone still lets a slow tick - the first frames, while shaders compile, or
+        // any run on a software renderer - run two or more updates before one draw to catch up, so
+        // frame N would sit at a different simulated time from one run to the next. One update per
+        // draw pins frame N to exactly N steps. The property is protected internal on GameBase,
+        // which a plain Game cannot reach; reflection is the honest cost of not subclassing.
+        typeof(GameBase)
+            .GetProperty("ForceOneUpdatePerDraw", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.SetValue(game, true);
+
         game.GameSystems.Add(new ScreenshotSystem(game, outputPath, frame));
 
         return true;
@@ -93,6 +105,7 @@ public static class ScreenshotCapture
         private readonly int _targetFrame;
         private int _frame;
         private bool _captured;
+        private bool _exposurePinned;
 
         internal ScreenshotSystem(Game game, string outputPath, int targetFrame)
             : base(game.Services)
@@ -106,6 +119,35 @@ public static class ScreenshotCapture
 
             // Last in the frame, so the scene has already been rendered into the target being saved.
             DrawOrder = int.MaxValue;
+        }
+
+        public override void Update(GameTime gameTime)
+        {
+            base.Update(gameTime);
+
+            // The profiler readout refreshes on a real-time stopwatch, so its frame counter and
+            // timings differ from run to run and no two captures of the same scene can match while
+            // it is drawn. It has nothing to say about a scene anyway.
+            if (_game.Services.GetService<GameProfilingSystem>() is { Visible: true } profiler)
+            {
+                profiler.Visible = false;
+            }
+
+            // Auto-exposure adapts toward the frame's average luminance on a real-time stopwatch,
+            // so how far it has adapted by frame N depends on how long the process has been
+            // running, and two captures of a 3D scene differ across the whole frame. An
+            // effectively infinite adaptation rate lands it on the fully adapted value at once:
+            // the exposure a viewer sees once the scene has settled, and a function of the frame
+            // alone.
+            if (!_exposurePinned && _game.GetPostEffects() is { } postEffects)
+            {
+                foreach (var toneMap in postEffects.ColorTransforms.Transforms.OfType<ToneMap>())
+                {
+                    toneMap.AdaptationRate = float.MaxValue;
+                }
+
+                _exposurePinned = true;
+            }
         }
 
         public override void Draw(GameTime gameTime)

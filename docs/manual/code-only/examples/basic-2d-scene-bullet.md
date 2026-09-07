@@ -17,6 +17,6 @@ The `Program.cs` file shows how to:
 
 ![Basic2D Scene (Capsule) - Bullet Physics](media/basic-2d-scene-bullet.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic2DScene_BulletPhysics).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E01_2D_BasicScene_Bullet).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic2DScene_BulletPhysics/Program.cs?start=1&end=43)]
+[!code-csharp[](../../../../examples/code-only/E01_2D_BasicScene_Bullet/Program.cs?start=1&end=43)]

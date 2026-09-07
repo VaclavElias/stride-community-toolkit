@@ -14,6 +14,6 @@ The line is attached as a child to one of the spheres, creating a visual connect
 
 ![Stride UI Example](media/stride-game-engine-example-01-mesh-line.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic3DScene_MeshLine).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E07_3D_MeshLine).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic3DScene_MeshLine/Program.cs?start=1&end=63)]
+[!code-csharp[](../../../../examples/code-only/E07_3D_MeshLine/Program.cs?start=1&end=63)]

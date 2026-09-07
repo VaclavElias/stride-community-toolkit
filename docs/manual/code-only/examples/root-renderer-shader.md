@@ -26,6 +26,6 @@ This approach to custom rendering is particularly useful for creating background
 
 ![Stride UI Example](media/stride-game-engine-example-13-root-renderer-shader.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example13_RootRendererShader).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_RootRendererShader).
 
-[!code-csharp[](../../../../examples/code-only/Example13_RootRendererShader/Program.cs?start=1&end=57)]
+[!code-csharp[](../../../../examples/code-only/E09_3D_RootRendererShader/Program.cs?start=1&end=57)]

@@ -35,54 +35,30 @@ These repository instructions guide GitHub Copilot (and similar AI assistants) t
     - `Helpers/`: Helper classes
     - `Mathematics/`: Math utilities (e.g., easing)
     - `Physics/`: Physics extensions
-    - `Rendering/`: Rendering utilities
+    - `Rendering/`: Rendering utilities, including world text (`Rendering/Text`), the debug overlay and display scale
     - `Scripts/`: Reusable script components
   - **Stride.CommunityToolkit.Bepu**: Bepu physics integration (primary)
+  - **Stride.CommunityToolkit.Box2D**: Box2D.NET integration for 2D physics (not packed yet)
   - **Stride.CommunityToolkit.Bullet**: Bullet physics integration (legacy / transitional, pending deprecation)
+  - **Stride.CommunityToolkit.Charts**: 2D and 3D charts drawn with ShapeBatch (not packed yet)
   - **Stride.CommunityToolkit.DebugShapes**: Debug visualization tools
   - **Stride.CommunityToolkit.ImGui**: ImGui integration
   - **Stride.CommunityToolkit.ImGuiNet**: ImGui.NET bindings and helpers
   - **Stride.CommunityToolkit.Linux**: Linux-specific features
+  - **Stride.CommunityToolkit.Shapes**: `ShapeBatch`, the signed-distance-field shape renderer behind the HUD, panel and gizmo examples (see `docs/manual/rendering/shape-batch.md`)
   - **Stride.CommunityToolkit.Skyboxes**: Skybox utilities
   - **Stride.CommunityToolkit.Windows**: Windows-specific features
 - `examples/`: Code-only and snippet example projects (C#, F#, VB)
 - `benchmarks/`: BenchmarkDotNet-based performance tests
-- `tests/`: Unit and regression test projects (xUnit, targeting net10.0)
+- `tests/`: Unit and regression test projects (xUnit, targeting net10.0), and `tests/gold/`, the golden images that `build/gold-images.cs` compares example captures against
 - `tools/`: Supporting tools, not shipped as packages
   - **Stride.CommunityToolkit.Examples**: Console example launcher
   - **Stride.CommunityToolkit.Examples.Launcher**: Avalonia example launcher
   - **Stride.CommunityToolkit.Examples.MetadataGenerator**: Generates `examples-manifest.json` from example metadata
-- `build/`: Repository build scripts (e.g. `pack-local.cs` for local dev NuGet packages)
+- `build/`: Repository scripts, all .NET file-based apps run with `dotnet run --file build/<name>.cs`: `pack-local.cs` (local dev NuGet packages), `capture-screenshots.cs` (the documentation screenshots), `gold-images.cs` (rendering regression against `tests/gold`)
 - `docs/`: DocFX sources (manuals, API reference, contributing)
 - `.github/`: GitHub workflows, release metadata, automation, and this instruction file
-- `notes/ARCHITECTURE.md`: running backlog of API-design observations — see below
-
-Solutions: `Stride.CommunityToolkit.slnx` contains everything; `Stride.CommunityToolkit.Core.slnf`
-is a solution filter loading only libraries, tests and tools, because the 56 example projects slow
-IDE load noticeably. See [Building the Toolkit](../docs/contributing/toolkit/building.md).
-
-## Build configuration lives outside the .csproj files
-
-> [!IMPORTANT]
-> Project files are deliberately sparse. If a `.csproj` appears to be missing `TargetFramework`,
-> `Nullable`, `ImplicitUsings`, a Stride version, or package metadata, that is not an oversight —
-> it is supplied by one of the files below. Check these before "fixing" a project file, and prefer
-> changing the shared file over adding a local override.
-
-| File | Applies to | Supplies |
-|---|---|---|
-| `Directory.Build.props` (root) | Every project in the repository | `TargetFramework` (net10.0), `ImplicitUsings`, `Nullable`, `StrideVersion` |
-| `src/CommonSettings.props` | Library projects, imported explicitly | Package metadata: version, licence, authors, icon, readme, SourceLink |
-| `examples/Directory.Build.props` | Example projects only | Host-only `RuntimeIdentifier`, `SelfContained`, output-path settings that keep the example build small |
-| `examples/Directory.Build.targets` | Example projects only | Strips package XML documentation from build output |
-
-Two rules when editing these:
-
-- **MSBuild imports only the *nearest* `Directory.Build.props` / `.targets`.** A nested file must
-  explicitly `Import` the one above it, or the parent's settings are silently lost. The files under
-  `examples/` do this; preserve it.
-- **`StrideVersion` is the single place the Stride version is set.** Reference it as
-  `Version="$(StrideVersion)"` in a `PackageReference` rather than hard-coding a version.
+- `notes/`: maintainer working documents, never published; `notes/README.md` says what each file is for. `notes/ARCHITECTURE.md` is the running backlog of API-design observations (see below) and `notes/plans/backlog.md` the one living to-do list
 
 Solutions: `Stride.CommunityToolkit.slnx` contains everything; `Stride.CommunityToolkit.Core.slnf`
 is a solution filter loading only libraries, tests and tools, because the 56 example projects slow
@@ -211,9 +187,33 @@ void Start(Scene rootScene)
   - Dispose GPU/graphics resources deterministically (`using` / `Dispose`).
 - Threading: Mutations to the scene graph, entities, components, or graphics resources must occur on the main thread.
 - Physics: Do not combine Bepu and Bullet physics components on the same entity.
-- Shaders (*.sdsl): After adding, removing, or changing shader properties, manually regenerate the associated `*.cs` file (remind contributors when shaders are touched).
+- Shaders (*.sdsl): see [Shaders](#shaders-sdsl) below. Nothing is regenerated by hand; a shader change is verified against the golden images.
 - Experimental / provisional APIs: consider marking with an `[Experimental]` attribute (future) or note in the XML summary.
-- Tests: Use xUnit under `tests/` targeting net10.0; keep deterministic and avoid relying on real-time frame counts.
+- Tests: Use xUnit under `tests/` targeting net10.0; keep deterministic and avoid relying on real-time frame counts. Rendering changes are verified with `build/gold-images.cs` against `tests/gold` (see [Screenshots and golden images](#screenshots-and-golden-images)).
+
+### Shaders (SDSL)
+
+- Stride 4.4 compiles SDSL through its **SPIR-V** toolchain (`sources/shaders/` in the engine clone):
+  SDSL to SPIR-V, then SPIRV-Cross to HLSL for Direct3D 11. The old HLSL-based compiler is gone.
+- **Key classes are generated at build time** by a Roslyn source generator that the
+  `Stride.Shaders.Compilers` package wires up for every `.sdsl`/`.sdfx` in the project. There is no
+  `*.sdsl.cs` on disk and nothing to regenerate; do not add `<None Update>` / `LastGenOutput` blocks
+  to a project file, they are a vestige of the old Visual Studio custom tool. `Stride.AssetCompiler`
+  is what stages `Effects/` into the package.
+- **Reserved words that are easy to trip over:** `linear` and `half` (interpolation modifier and a
+  type) cannot be identifiers. The parse error points at the wrong line; look for these first.
+- Integer streams are flat (`nointerpolation`) automatically; the keyword itself is parsed and
+  ignored. `StructuredBuffer` and `Buffer<T>` can be read in the pixel stage. Put constants in an
+  explicit `cbuffer` and resources in an `rgroup`; loose uniforms land in an implicit `Globals`
+  block that the engine has marked as a future breaking change.
+- Split a shader into mixins by concern (`ShapeShader : ShaderBase, ShapeDistance, ShapeColor` is
+  the model): pure function libraries are callable qualified without inheriting them, which is
+  how the engine ships `Math`, `ColorUtility` and `HSVUtils`.
+- **Verify, do not infer.** The compiler writes every effect's per-stage HLSL and SPIR-V
+  disassembly next to the game: `bin/.../cache/effects/<Effect>/<hash>_vs.hlsl`, `_ps.hlsl`,
+  `.spvdis`. Read those for register counts, interpolation and buffer bindings.
+- A shader refactor that should change nothing is proven with the golden images; a deliberate
+  visual change is reviewed on the contact sheet and then re-baselined with `--update`.
 
 ## Modern C# / .NET guidance
 
@@ -309,9 +309,11 @@ Guidance for the Bepu demos specifically:
 
 ## Adding a new example
 
-- Create a folder under `examples/code-only/` named `Example<NN>_<Name>`, optionally with a
-  `_<Variant>` suffix. Existing variants each get their own folder (`Example01_Basic3DScene_Primitives`,
-  `_MeshLine`, `_FSharp`), not sibling files in a shared folder.
+- Create a folder under `examples/code-only/` named `E<NN>_<Dimension>_<Subject>`, optionally with
+  a `_<Qualifier>` suffix: `E11_3D_ShapeBatch`, `E06_Box2D_Junkyard`, `E01_3D_BasicScene_FSharp`.
+  The dimension is `2D` or `3D`, or the library when that is the point (`Box2D`, `Jitter2`,
+  `Audio`); the number groups examples by topic, not by order of creation. Each variant gets its
+  own folder, not sibling files in a shared one.
 - Add the project to `Stride.CommunityToolkit.slnx`.
 - End `Program.cs` with an `---example-metadata` YAML block inside a block comment. Copy the shape
   from a neighbouring example; `Stride.CommunityToolkit.Examples.MetadataGenerator` parses it into
@@ -337,8 +339,8 @@ Code-only examples are GUI applications that run until the window is closed, so 
 
 ```powershell
 $out = "$env:TEMP\example-run.txt"
-dotnet build examples\code-only\Example02_GiveMeACube\Example02_GiveMeACube.csproj -v q --nologo
-$exe = "examples\code-only\Example02_GiveMeACube\bin\Debug\net10.0\Example02_GiveMeACube.exe"
+dotnet build examples\code-only\E02_3D_GiveMeACube\E02_3D_GiveMeACube.csproj -v q --nologo
+$exe = "examples\code-only\E02_3D_GiveMeACube\bin\Debug\net10.0\E02_3D_GiveMeACube.exe"
 $process = Start-Process $exe -PassThru -RedirectStandardOutput $out -WorkingDirectory (Split-Path $exe)
 Start-Sleep -Seconds 12
 if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
@@ -365,26 +367,32 @@ Log.Warning($"DIAG position={Entity.Transform.Position}");
 
 Gating on `% N` alone can produce no output at all when the run is short or the frame rate is low, which is easily misread as "the code never ran". Prefix diagnostic lines with a unique token such as `DIAG` so they can be filtered out of Stride's own logging.
 
-### Screenshots
+### Screenshots and golden images
 
-Useful for confirming a visual change, and the resulting PNG can be read back directly.
+Capture is **in-engine**, never off the screen: with `STRIDE_TOOLKIT_CAPTURE` set to a PNG path
+(and optionally `STRIDE_TOOLKIT_CAPTURE_FRAME`), every example saves its render target at that
+frame and exits. Capture runs on a fixed timestep with one update per draw, hides the profiler
+readout and pins auto-exposure, so the same frame is the same image on every run.
 
 ```powershell
-Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-$screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
-$bitmap = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
-$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-$graphics.CopyFromScreen($screen.Left, $screen.Top, 0, 0, $bitmap.Size)
-$bitmap.Save("$env:TEMP\shot.png", [System.Drawing.Imaging.ImageFormat]::Png)
-$graphics.Dispose(); $bitmap.Dispose()
+dotnet run --file build/capture-screenshots.cs -- --review --only shape-batch --keep-png   # look at one example
+dotnet run --file build/gold-images.cs -- --only shape-batch                              # compare with tests/gold
+dotnet run --file build/gold-images.cs -- --only shape-batch --noise                      # what drift looks like with no change
+dotnet run --file build/gold-images.cs -- --only shape-batch --update                     # accept a reviewed change
 ```
 
-`VirtualScreen` is used rather than a fixed size so the capture covers all monitors. A hard-coded
-region anchored at `0,0` silently misses the window on a multi-monitor setup, which reads as "the
-app never rendered".
+- `--review` writes to `screenshots-review/`, the gold script to `screenshots-review/gold/`, each
+  with an `index.html` contact sheet. Nothing is committed by either.
+- The raw PNG carries whatever alpha the renderer left; flatten it or view it through the contact
+  sheet, and never composite it onto black.
+- The gold rule is Stride's: any pixel off by 3 or more fails; `tests/gold/thresholds.jsonc` relaxes
+  it per image, with a reason. A scene driven by unseeded randomness, real-time text or the network
+  cannot be a golden - run `--noise` on a candidate first.
+- A golden is only valid for the renderer that made it; goldens meant to match across machines are
+  captured with `--warp` (Stride's software adapter).
+- To see the moment a scene reaches, capture two frames apart (`--frame`), not two runs.
 
-- Prefer positioning the window from the example itself (`game.Window.Position`, `game.Window.AllowUserResizing`) over forcing it with a `SetWindowPos` P/Invoke. Forcing a resize leaves Stride's `Window.ClientBounds` out of sync with the captured region, which can make correctly rendered UI look as though it is missing.
-- Capture two screenshots a few seconds apart to confirm that animation or physics is actually progressing.
+The full write-up is in [Contributing: examples](../docs/contributing/examples/index.md#screenshots).
 
 ### Do not assert a mechanism you have not read
 
@@ -422,7 +430,7 @@ that did not exist.
 - Highlight potential breaking changes when modifying public APIs.
 - Because the toolkit is still in Preview, do not avoid breaking-change proposals solely for backward compatibility. Prefer the cleaner long-term API, document the impact, and update examples/docs together with the change.
 - Prefer Bepu examples over Bullet unless addressing migration or legacy parity.
-- Remind contributors to regenerate shader code when shaders are changed.
+- When a shader changes, run the golden images before and after, and say which goldens were re-baselined and why.
 - For Blazor content: keep solutions Blazor-appropriate; avoid server-only MVC/Razor patterns unless necessary.
 - Avoid speculative APIs; ground suggestions in existing patterns.
 - When changing public APIs, update XML docs, examples, and conceptual documentation as needed.
@@ -432,7 +440,15 @@ that did not exist.
 
 ## Formatting rules for edits
 
-- Do not add an empty line at the end of a file.
+- **Keep the file's line endings.** Files in this repository are CRLF. Never convert a file to LF, and
+  never mix the two: a tool that writes LF (a heredoc, a script, a whole-file rewrite) must be followed
+  by normalising the file back to CRLF, and the result checked (`file <path>` should say "CRLF" and
+  nothing else). A line-ending change turns a one-line diff into a whole-file diff and hides the real
+  change from review.
+- **Do not add an empty line at the end of a file.** The last line ends with one newline and nothing
+  after it. If a file already ends with a blank line, it can be removed as part of an edit to that
+  file.
+- Trailing whitespace is trimmed (`.editorconfig`); do not introduce any.
 - When moving or copying code, preserve existing blank lines.
 - When adding new code, separate logical blocks with a single blank line. It is acceptable to group closely related declarations or multiple similar statements without intervening blank lines.
 
@@ -454,7 +470,7 @@ that did not exist.
 - [ ] Fluent extensions return `this` where appropriate
 - [ ] Examples updated (if API changes)
 - [ ] Conceptual + API docs updated
-- [ ] Shader regeneration reminder (if shaders changed)
+- [ ] Golden images run, and re-baselined only for reviewed visual changes (if shaders or renderers changed)
 - [ ] Provenance clarified for imported code
 
 ---

@@ -1,0 +1,115 @@
+@page "/"
+<PageTitle>@Constants.StationName</PageTitle>
+
+<div class="console" style="--accent:@_scheme.Accent; --fill:@_scheme.Fill; --text:@_scheme.Text; --glow:@_scheme.Glow;">
+
+    <header>
+        <div class="title">
+            <h1>@Constants.StationName.ToUpperInvariant()</h1>
+            <span class="subtitle">web console &middot; Stride + SignalR</span>
+        </div>
+
+        <div class="lamps">
+            <span class="lamp @(IsHubConnected ? "on" : "")" title="This page's connection to the hub">HUB</span>
+            <span class="lamp @(IsGameOnline ? "on" : "")" title="A census arrived from the game in the last few seconds">GAME</span>
+            <span class="readout">@(IsGameOnline ? $"uptime {FormatUptime(_deck?.UptimeSeconds ?? 0)}" : _deck is null ? "no census yet" : $"game offline since {_lastCensus.ToLocalTime():HH:mm:ss}")</span>
+        </div>
+
+        <div class="schemes">
+            @foreach (var scheme in Schemes.All)
+            {
+                <button class="scheme @(scheme == _scheme ? "active" : "")"
+                        style="--swatch:@scheme.Accent"
+                        disabled="@(!IsHubConnected)"
+                        @onclick="() => SelectSchemeAsync(scheme)">@scheme.Name</button>
+            }
+        </div>
+    </header>
+
+    <main>
+        <section class="panel release">
+            <h2>Release</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        @foreach (var size in Enum.GetValues<ContainerSize>())
+                        {
+                            <th>@size</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var paint in Paints.All)
+                    {
+                        <tr>
+                            <th><span class="swatch" style="background:@Paints.Hex(paint)"></span>@paint</th>
+                            @foreach (var size in Enum.GetValues<ContainerSize>())
+                            {
+                                <td>
+                                    <button disabled="@(!IsHubConnected)" @onclick="() => ReleaseAsync(size, paint)">@size.ToString()[0]</button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="row">
+                <button disabled="@(!IsHubConnected)" @onclick="() => ReleaseAsync(null, null)">Random</button>
+                <button disabled="@(!IsHubConnected)" @onclick="ReleaseBatchAsync">Batch of @Constants.BatchSize</button>
+            </div>
+        </section>
+
+        <section class="panel deck">
+            <h2>Deck</h2>
+            <div class="figures">
+                <div><span class="value">@(_deck?.OnDeck ?? 0)</span><span class="label">on deck</span></div>
+                <div><span class="value">@(_deck?.Released ?? 0)</span><span class="label">released</span></div>
+                <div><span class="value">@(_deck?.Lost ?? 0)</span><span class="label">lost</span></div>
+                <div><span class="value">@((_deck?.TotalMass ?? 0).ToString("0.0"))</span><span class="label">tonnes</span></div>
+            </div>
+
+            <h3>By size</h3>
+            @foreach (var size in Enum.GetValues<ContainerSize>())
+            {
+                <div class="bar"><span class="name">@size</span><span class="track"><span class="fillbar" style="width:@BarWidth(_deck?.BySize, (int)size)"></span></span><span class="count">@Count(_deck?.BySize, (int)size)</span></div>
+            }
+
+            <h3>By paint</h3>
+            @foreach (var paint in Paints.All)
+            {
+                <div class="bar"><span class="name"><span class="swatch" style="background:@Paints.Hex(paint)"></span>@paint</span><span class="track"><span class="fillbar" style="width:@BarWidth(_deck?.ByPaint, (int)paint); background:@Paints.Hex(paint)"></span></span><span class="count">@Count(_deck?.ByPaint, (int)paint)</span></div>
+            }
+
+            <div class="row">
+                <button class="danger" disabled="@(!IsHubConnected)" @onclick="ClearAsync">Clear deck</button>
+                <button disabled="@(!IsHubConnected)" @onclick="ShakeAsync">Shake deck</button>
+            </div>
+        </section>
+
+        <section class="panel hail">
+            <h2>Hail the game</h2>
+            <div class="row">
+                <input placeholder="A line for the game's console" @bind="_hailText" @bind:event="oninput" @onkeydown="HailOnEnterAsync" disabled="@(!IsHubConnected)" />
+                <button disabled="@(!IsHubConnected || string.IsNullOrWhiteSpace(_hailText))" @onclick="HailAsync">Send</button>
+            </div>
+        </section>
+
+        <section class="panel feed">
+            <h2>Feed <span class="readout">@(_feed.Count) of @FeedLength</span></h2>
+            <ul>
+                @foreach (var entry in _feed)
+                {
+                    <li @key="entry.Sequence" class="@entry.Kind">
+                        <span class="time">@entry.At.ToString("HH:mm:ss")</span>
+                        @if (entry.Paint is { } paint)
+                        {
+                            <span class="swatch" style="background:@Paints.Hex(paint)"></span>
+                        }
+                        <span class="text">@entry.Text</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    </main>
+</div>

@@ -204,12 +204,16 @@ public class DocPageBuilder(DirectoryInfo? mediaDirectory)
             $"            <img src=\"{DocPaths.MediaFolder}/{ExistingMedia(example)}\" class=\"card-img-top\" " +
             $"alt=\"Screenshot of the {Escape(TitleOf(example))} example\" width=\"1280\" height=\"720\" loading=\"lazy\">");
 
+    ///// <summary>
+    ///// The title, as a real heading so the page keeps a usable document outline for search engines.
+    ///// </summary>
+    //private static void AppendCardTitle(StringBuilder page, ExampleMetadata example)
+    //    => page.AppendLine($"                <h3 class=\"card-title h6\">{Escape(TitleOf(example))}</h3>");
+
     /// <summary>
     /// The title, as a real heading so the page keeps a usable document outline for search engines.
+    /// Wrapped in a <c>stretched-link</c>, which makes the whole card clickable.
     /// </summary>
-    private static void AppendCardTitle(StringBuilder page, ExampleMetadata example)
-        => page.AppendLine($"                <h3 class=\"card-title h6\">{Escape(TitleOf(example))}</h3>");
-
     private static void AppendCardLinkTitle(StringBuilder page, ExampleMetadata example)
         => page.AppendLine($"                <h3 class=\"card-title h6\"><a class=\"stretched-link text-decoration-none text-body\" href=\"{example.Slug}.md\">{Escape(TitleOf(example))}</a></h3>");
 
@@ -239,12 +243,12 @@ public class DocPageBuilder(DirectoryInfo? mediaDirectory)
         page.AppendLine($"                <p class=\"card-text\">{Escape(summary)}</p>");
     }
 
-    /// <summary>
-    /// The link. <c>stretched-link</c> makes the whole card clickable, so the text stays short.
-    /// </summary>
-    private static void AppendCardLink(StringBuilder page, ExampleMetadata example)
-        => page.AppendLine(
-            $"            <p class=\"px-3 mb-3\"><a class=\"stretched-link\" href=\"{example.Slug}.md\">Open example</a></p>");
+    ///// <summary>
+    ///// The link. <c>stretched-link</c> makes the whole card clickable, so the text stays short.
+    ///// </summary>
+    //private static void AppendCardLink(StringBuilder page, ExampleMetadata example)
+    //    => page.AppendLine(
+    //        $"            <p class=\"px-3 mb-3\"><a class=\"stretched-link\" href=\"{example.Slug}.md\">Open example</a></p>");
 
     /// <summary>
     /// Renders a landing page listing every example in one language and level.

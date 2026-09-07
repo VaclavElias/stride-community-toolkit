@@ -20,6 +20,6 @@ The `Program.cs` file shows how to:
 
 ![Debug Render Component](media/debug-render-component.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example08_DebugRenderComponent).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E08_3D_DebugRenderComponent).
 
-[!code-csharp[](../../../../examples/code-only/Example08_DebugRenderComponent/Program.cs?start=1&end=38)]
+[!code-csharp[](../../../../examples/code-only/E08_3D_DebugRenderComponent/Program.cs?start=1&end=38)]

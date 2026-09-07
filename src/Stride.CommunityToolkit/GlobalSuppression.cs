@@ -8,16 +8,31 @@
 //      is excluded there, not here);
 //   3. only then add a targeted suppression below, with a real justification.
 //
-// Target format is "AssemblyName:CodeElementFullName" - the assembly prefix is mandatory,
-// wildcards are not supported. A suppression silently does nothing once its target is gone,
-// so prune entries when examples are removed.
+// Target format is "AssemblyName:CodeElementFullName" - the assembly prefix is mandatory, and
+// wildcards are not supported. Members of types in the global namespace cannot be targeted at all,
+// and Scope = "deep" reaches a type's own members but not its nested types or child namespaces.
+// A suppression silently does nothing once its target is gone, so prune entries when code moves.
+//
+// The file has two sections, and a new entry belongs in one of them depending on what its
+// justification asserts:
+//
+//   SETTLED - the justification states an intent. "This is a GPU payload and needs a blittable
+//             layout", "this mirrors the native API parameter for parameter", "this randomness is
+//             gameplay". It stays true for as long as the code exists, so there is nothing to
+//             revisit and no trigger to write down.
+//
+//   REVISIT - the justification states a measurement or points at work not done yet. "Six
+//             statements over the threshold", "the baseline counts this refactor as an addition".
+//             Those rot: a threshold suppression keeps the rule quiet as the type grows, so one
+//             accepted at six over stays silent at sixty over. Every entry there carries a trigger
+//             saying what should re-open it - a condition, never a date, because dated reviews do
+//             not happen.
 
 using System.Diagnostics.CodeAnalysis;
 
-// --- Naming: entry points of languages with their own conventions --------------------------
-[assembly: SuppressMessage("NDepend", "ND2007:MethodsNameShouldBeginWithAnUpperCharacter", Target = "Example01_Basic3DScene_FSharp:Program.main(String[])", Justification = "F# entry point is conventionally named 'main'.")]
-[assembly: SuppressMessage("NDepend", "ND2007:MethodsNameShouldBeginWithAnUpperCharacter", Target = "Example05_PartialTorus_FSharp:Program.main(String[])", Justification = "F# entry point is conventionally named 'main'.")]
-[assembly: SuppressMessage("NDepend", "ND2020:AvoidVariousCapitalizationsForMethodName", Target = "Example01_Basic3DScene_VBasic:Example01_Basic3DScene_VBasic.Program.Main()", Justification = "VB.NET 'Main' next to the F# 'main' entry points: different language conventions, not inconsistent naming.")]
+// ==================================================================================================
+// SETTLED - the rule is wrong about this code, and will still be wrong next year.
+// ==================================================================================================
 
 // --- DebugShapes: GPU/interop payload structs ---------------------------------------------
 [assembly: SuppressMessage("NDepend", "ND1905:AFieldMustNotBeAssignedFromOutsideItsParentHierarchyTypes", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Circle", Scope = "field", Justification = "Interop/GPU payload - requires blittable sequential fields.")]
@@ -27,13 +42,15 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1905:AFieldMustNotBeAssignedFromOutsideItsParentHierarchyTypes", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Cube", Scope = "field", Justification = "Interop/GPU payload - requires blittable sequential fields.")]
 [assembly: SuppressMessage("NDepend", "ND1905:AFieldMustNotBeAssignedFromOutsideItsParentHierarchyTypes", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Capsule", Scope = "field", Justification = "Interop/GPU payload - requires blittable sequential fields.")]
 [assembly: SuppressMessage("NDepend", "ND1905:AFieldMustNotBeAssignedFromOutsideItsParentHierarchyTypes", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Cylinder", Scope = "field", Justification = "Interop/GPU payload - requires blittable sequential fields.")]
+[assembly: SuppressMessage("NDepend", "ND1300:AvoidCustomDelegates", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Audio.SampleFiller", Scope = "type", Justification = "Action<Span<short>, int, int> would leave the two integers (sample rate, channels) indistinguishable at the call site; the parameter names are the API.")]
 [assembly: SuppressMessage("NDepend", "ND1905:AFieldMustNotBeAssignedFromOutsideItsParentHierarchyTypes", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Cone", Scope = "field", Justification = "Interop/GPU payload - requires blittable sequential fields.")]
 [assembly: SuppressMessage("NDepend", "ND1905:AFieldMustNotBeAssignedFromOutsideItsParentHierarchyTypes", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Line", Scope = "field", Justification = "Interop/GPU payload - requires blittable sequential fields.")]
 [assembly: SuppressMessage("NDepend", "ND1905:AFieldMustNotBeAssignedFromOutsideItsParentHierarchyTypes", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.Primitives", Scope = "field", Justification = "Per-primitive vertex/index ranges filled by the mesh builders (SetupPrimitiveOffsets, BuildVertexData, BuildIndexData); plain data struct by design.")]
 
-// --- Generated code that cannot be excluded from JustMyCode ---------------------------------
-[assembly: SuppressMessage("NDepend", "ND1401:AvoidNamespacesDependencyCycles", Target = "Stride.CommunityToolkit.Examples.Launcher:Stride.CommunityToolkit.Examples.Launcher", Justification = "Avalonia-generated CompiledAvaloniaXaml.!XamlLoader instantiates App/MainWindow; not fixable in user code.")]
-[assembly: SuppressMessage("NDepend", "ND1400:AvoidNamespacesMutuallyDependent", Target = "Stride.CommunityToolkit.Examples.Launcher:CompiledAvaloniaXaml", Scope = "deep", Justification = "Avalonia-generated XAML loader.")]
+// --- Deliberate design the rules read as a defect ------------------------------------------------
+[assembly: SuppressMessage("NDepend", "ND1901:AvoidNonReadOnlyStaticFields", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Helpers.VectorHelper._defaultRandom", Justification = "Reassigned by SeedRandom, which is the point: an example that seeds the helper gets the same layout every run. Making it readonly would delete that API.")]
+[assembly: SuppressMessage("NDepend", "ND1306:NestedTypesShouldNotBeVisible", Target = "Stride.CommunityToolkit.Windows:Stride.CommunityToolkit.Windows.WindowsDpiManager+ProcessDpiAwareness", Justification = "Returned by WindowsDpiManager.GetProcessDpiAwareness and meaningful only next to it; un-nesting would break callers for a purely taxonomic gain, as for the ImGui nested types below.")]
+
 // --- Deliberate naming / API mirroring ---------------------------------------------------------
 [assembly: SuppressMessage("NDepend", "ND2020:AvoidVariousCapitalizationsForMethodName", Target = "Stride.CommunityToolkit.Bepu:Stride.CommunityToolkit.Bepu.SimulationExtensions", Scope = "deep", Justification = "RayCast/RayCastPenetrating mirror Stride.BepuPhysics.BepuSimulation's own casing; the Bullet wrapper mirrors Stride.Physics.Simulation.Raycast. Each wrapper matches its engine on purpose.")]
 [assembly: SuppressMessage("NDepend", "ND2020:AvoidVariousCapitalizationsForMethodName", Target = "Stride.CommunityToolkit.Bullet:Stride.CommunityToolkit.Bullet.SimulationExtensions", Scope = "deep", Justification = "Raycast/RaycastPenetrating mirror Stride.Physics.Simulation's own casing; the Bepu wrapper mirrors Stride.BepuPhysics.BepuSimulation.RayCast. Each wrapper matches its engine on purpose.")]
@@ -77,10 +94,43 @@ using System.Diagnostics.CodeAnalysis;
 // would only scatter one renderer's state across several types.
 [assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiSystem", Justification = "Rendering backend: pipeline, buffers, shader, io and input references are its state.")]
 [assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor", Justification = "Profiler window: graphs, per-thread samples and Stride profiler plumbing are its state.")]
-[assembly: SuppressMessage("NDepend", "ND1107:AvoidAddingInstanceFieldsToATypeThatAlreadyHadManyInstanceFields", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiSystem", Scope = "deep", Justification = "See ND1002 above; the baseline comparison counts the texture-manager refactor as an addition.")]
 [assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiExtension", Scope = "deep", Justification = "PlotLines mirrors the native Dear ImGui signature parameter for parameter.")]
 [assembly: SuppressMessage("NDepend", "ND1701:PotentiallyDeadMethods", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor+ThreadSampleCollection", Scope = "deep", Justification = "Instantiated through the generic new() constraint in PerfMonitorHelpers.Guaranteed, which static analysis cannot see.")]
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.DebugTools.PerfMonitor+ThreadSampleCollection", Justification = "Instantiated through the generic new() constraint in PerfMonitorHelpers.Guaranteed, which static analysis cannot see.")]
+// --- Overload families the rule's own remedies cannot collapse ---------------------------------
+// ND1005 suggests optional parameters, named arguments or params. For these three, none of the three
+// applies, so the count is a fact about the API rather than something to fix.
+//
+// Get<T1..T16>: an arity family. C# has no variadic generics, so this is the only way to express it,
+// and it is the shape the framework itself uses for Func, Action and ValueTuple. Optional parameters
+// and params say nothing about generic type parameters.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.EntityExtensions.Get<TComponent1,TComponent2>(Entity)", Justification = "Generic arity family, two through sixteen components; C# has no variadic generics.")]
+// Interpolate: one overload per value type - float, Vector2, Vector3, Vector4, Color - each with a
+// by-ref form. Collapsing them needs an arithmetic constraint Stride's math types do not implement,
+// and the shape mirrors Stride's own MathUtil.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Mathematics.MathUtilEx.Interpolate(Single,Single,Single,EasingFunction)", Justification = "One overload per interpolated value type, each with a by-ref form; mirrors Stride's MathUtil.")]
+// SetMaterialParameter: one overload per Stride parameter key type - value, object and permutation,
+// each in accessor and key form - times how the value arrives. Those key types share no interface to
+// unify on, so this family mirrors the engine's ParameterCollection surface, as the raycast wrappers
+// mirror each physics engine's casing.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.ModelComponentExtensions.SetMaterialParameter<T>(ModelComponent,ObjectParameterAccessor<T>,T,Int32,Int32)", Justification = "One overload per Stride parameter key type; they share no interface to unify on.")]
+
+// --- Metrics that do not fit an extension-method library ---------------------------------------
+// Relational cohesion counts how often the types in a namespace reference each other. It is built
+// for domain models, where types collaborate. Stride.CommunityToolkit.Engine is a namespace of
+// independent extension holders, and an extension class collaborates with the engine, never with
+// its neighbours, so this number is low by construction and will stay low. It also pulls against
+// ND1305: folding the thin namespaces into Engine, which that rule asks for, would add more mutually
+// unrelated types here and lower cohesion further. Satisfying one guarantees failing the other.
+[assembly: SuppressMessage("NDepend", "ND1406:NamespacesWithPoorRelationalCohesion", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine", Justification = "A namespace of extension-method holders has no inter-type references to measure.")]
+
+// --- GPU vertex layouts -------------------------------------------------------------------------
+// A vertex struct is a memory layout the graphics device reads, with public fields at fixed offsets,
+// exactly as Stride's own VertexPositionNormalTexture is written. Making the fields readonly would
+// break the in-place edits a mesh builder performs (FlipWinding here) and buy nothing: the struct
+// exists to be copied into a vertex buffer, not to be shared.
+[assembly: SuppressMessage("NDepend", "ND1903:StructuresShouldBeImmutable", Target = "Stride.CommunityToolkit.Bullet:Stride.CommunityToolkit.Bullet.VertexTypePosTexNormColor", Justification = "GPU vertex layout with public fields, the same shape as Stride's own vertex structs.")]
+
 // --- DebugShapes: the tagged-union design -------------------------------------------------------
 // Renderable and DebugRenderable are tagged unions: one constructor per shape kind, all payloads at
 // the same FieldOffset. That is what lets a frame of debug shapes live in one flat list with no
@@ -101,16 +151,179 @@ using System.Diagnostics.CodeAnalysis;
 // default, so a call is normally DrawCapsule(position, height, radius). Folding them into an options
 // object would make the common call longer, not shorter.
 [assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.DebugShapes:Stride.CommunityToolkit.DebugShapes.Code.ImmediateDebugRenderSystem", Scope = "deep", Justification = "Debug-draw API: geometry first, then all-defaulted color/duration/depthTest/solid.")]
-// --- Charts playground: grown in final namespaces ahead of extraction ----------------------
-[assembly: SuppressMessage("NDepend", "ND2103:NamespaceNameShouldCorrespondToFileLocation", Target = "Example_Charts_Playground:Stride.CommunityToolkit.Charts", Justification = "Chart helpers grow in the playground in their final library namespace so extraction is a move, not a rewrite.")]
-[assembly: SuppressMessage("NDepend", "ND2103:NamespaceNameShouldCorrespondToFileLocation", Target = "Example_Charts_Playground:Stride.CommunityToolkit.Rendering.Lines", Justification = "Same as Stride.CommunityToolkit.Charts: final namespace ahead of extraction into the core library.")]
-[assembly: SuppressMessage("NDepend", "ND1204:OverridesOfMethodShouldCallBaseMethod", Target = "Example_Charts_Playground:Stride.CommunityToolkit.Charts.ChartTrajectory.ReleaseResources()", Justification = "Replace, not refine, by design: the trajectory's buffers are owned and disposed by its GrowingPolyline; calling base would double-release them.")]
-[assembly: SuppressMessage("NDepend", "ND2020:AvoidVariousCapitalizationsForMethodName", Target = "Example_Charts_Playground:Stride.CommunityToolkit.Charts.Chart.get_Game()", Justification = "Collides only with the F# examples' lowercase 'game' bindings; each language follows its own convention, like the entry-point entries above.")]
+// --- Charts -------------------------------------------------------------------------------
+[assembly: SuppressMessage("NDepend", "ND2003:AbstractBaseClassShouldBeSuffixedWithBase", Target = "Stride.CommunityToolkit.Charts:Stride.CommunityToolkit.Charts.ChartSeries", Justification = "ChartSeries is the name users meet - the element type of Chart.Series, the parameter of Remove, the thing a legend row stands for. It is abstract only because every kind of series knows how to rebuild itself; a Base suffix would put an implementation detail into every signature that mentions a series.")]
+[assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.Charts:Stride.CommunityToolkit.Charts.Chart.PlotParametric(Func<Single,Vector3>,Single,Single,Nullable<Color>,String,Int32,Boolean,ChartSeriesStyle)", Justification = "Every parameter past the curve itself is optional and named at the call site - colour, name, samples, closed, style. The alternative is an options object per call, which the API review removed on purpose because it forced callers to copy chart defaults by hand.")]
+[assembly: SuppressMessage("NDepend", "ND1000:AvoidTypesTooBig", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Scripts.Utilities.DebugOverlay", Justification = "The overlay is one thing - a block of lines in a corner - and its lookup half is already split into DebugOverlayFontResolver. What remains is the settings surface (font, scale, colours, keys, position) plus one draw routine, and crossed the statement threshold by the dozen lines that made it follow DisplayScale; splitting the draw from the settings would put the two halves of every property in different files.")]
 
 // --- Box2D: the simulation facade ---
 [assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DSimulation", Justification = "The public facade over world, bridge, queries and events - the Box2D counterpart of BepuSimulation; its methods are one-line delegations to those parts.")]
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DCollisionMatrix", Justification = "Library API instantiated by consumers; nothing in the toolkit itself needs one yet.")]
-[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Example18_Box2DPhysics:Example18_Box2DPhysics.MeshOutlineComponent.PolygonVertices", Justification = "The accessor is init-only (C# 9), which is read-only after construction; the analysis cannot see the IsExternalInit modreq that distinguishes init from set.")]
 [assembly: SuppressMessage("NDepend", "ND2500:DontCreateThreadsExplicitly", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DTaskScheduler..ctor(Int32)", Justification = "Deliberate: Box2D requires each concurrently running task callback to hold a distinct worker index, which dedicated threads guarantee structurally; the workers also park in a blocking dequeue for the world lifetime, which thread-pool threads must never do.")]
-[assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DDebugShapeProcessor", Justification = "Instantiated by Stride through the DefaultEntityComponentProcessor attribute via reflection, which static analysis cannot see.")]
-[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DDebugShapeComponent.Vertices", Justification = "A runtime-swappable shape outline is the point of the component; the next frame draws whatever array is assigned.")]
+[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeComponent.Vertices", Justification = "A runtime-swappable shape outline is the point of the component; the next frame draws whatever array is assigned.")]
+// ShapeInstance is a wire format: the shader's ShapeData struct field for field, 160 bytes, uploaded
+// as-is through a structured buffer. Grouping the fields into smaller types would be a layout change,
+// not a design improvement, and the shader would have to change with it.
+[assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeInstance", Justification = "GPU instance layout mirrored by ShapeShader.sdsl; the field list is the byte layout.")]
+// The other two Vertices properties are inputs, not live collections: an options bag filled in an object
+// initializer and handed to a builder, and a procedural model's outline, shaped like Stride's own
+// procedural models. Nothing is wired to the array, so replacing it breaks nothing; an outline's length
+// is the polygon's, so a get-only array could not be filled by the caller; and on the options bag null
+// means "no custom outline, use Size", which a get-only collection cannot say.
+[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.Primitive2DEntityOptions.Vertices", Justification = "Options bag: the outline is assigned in an object initializer and read once by the builder; null means use Size.")]
+[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.ProceduralModels.PolygonProceduralModel.Vertices", Justification = "Procedural model input, null-guarded in the setter; mirrors how Stride's own procedural models expose their parameters.")]
+
+// --- Examples.Core: one set of sources compiled into both launchers -------------------------
+// Constants/Levels/ExampleManifest/ManifestExample/ExampleEntry/ManifestLoader live in the console
+// runner and are <Compile Include Link=".."> into the Avalonia launcher. That is a deliberate,
+// documented choice - see the comment on the linked ItemGroup in
+// Stride.CommunityToolkit.Examples.Launcher.csproj: both launchers are single-project tools and a
+// third project to hold six small types would cost more than it saves. The two rules below are the
+// unavoidable price of it, and neither describes a real defect: it is one source file compiled
+// twice, not two divergent copies.
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "Stride.CommunityToolkit.Examples:Stride.CommunityToolkit.Examples.Core", Scope = "deep", Justification = "Shared manifest-reading sources linked into both launchers; one file, two compilations.")]
+[assembly: SuppressMessage("NDepend", "ND2100:AvoidReferencingSourceFileOutOfTheProjectDirectory", Target = "Stride.CommunityToolkit.Examples.Launcher:Stride.CommunityToolkit.Examples.Core", Scope = "deep", Justification = "The linked ItemGroup is the point; the files are owned by Stride.CommunityToolkit.Examples next door.")]
+
+// --- Example10: the Bepu and Bullet twins -----------------------------------------------------
+// The two Example10 projects are the same scene on two physics engines, kept side by side so the
+// difference between them is the diff. They deliberately share namespace and type names.
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E04_StrideUI_DragAndDrop:E04_StrideUI_DragAndDrop", Scope = "deep", Justification = "Bepu twin of E04_StrideUI_DragAndDrop_Bullet; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E04_StrideUI_DragAndDrop_Bullet:E04_StrideUI_DragAndDrop", Scope = "deep", Justification = "Bullet twin of E04_StrideUI_DragAndDrop; same scene, different engine, on purpose.")]
+// Scope="deep" on a namespace covers its own types, not those of a child namespace, so the .UI
+// namespace needs its own pair of entries.
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E04_StrideUI_DragAndDrop:E04_StrideUI_DragAndDrop.UI", Scope = "deep", Justification = "Bepu twin of E04_StrideUI_DragAndDrop_Bullet; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E04_StrideUI_DragAndDrop_Bullet:E04_StrideUI_DragAndDrop.UI", Scope = "deep", Justification = "Bullet twin of E04_StrideUI_DragAndDrop; same scene, different engine, on purpose.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_StrideUI_DragAndDrop:E04_StrideUI_DragAndDrop.PrimitiveGenerator", Scope = "deep", Justification = "Scatters cubes around the scene; nothing security-related, same as Helpers.VectorHelper above.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_StrideUI_DragAndDrop_Bullet:E04_StrideUI_DragAndDrop.PrimitiveGenerator", Scope = "deep", Justification = "Scatters cubes around the scene; nothing security-related, same as Helpers.VectorHelper above.")]
+
+// --- Launcher: the Avalonia entry-point contract -----------------------------------------------
+// Avalonia's project template declares BuildAvaloniaApp as a public static method on an internal
+// Program, and the XAML previewer finds it by name through reflection. Narrowing it to internal or
+// private is what both rules ask for and would change nothing for any caller - Program is already
+// internal - but it is exactly the shape the tooling looks for, so it stays as the template has it.
+[assembly: SuppressMessage("NDepend", "ND1800:MethodsThatCouldHaveALowerVisibility", Target = "Stride.CommunityToolkit.Examples.Launcher:Stride.CommunityToolkit.Examples.Launcher.Program.BuildAvaloniaApp()", Justification = "Avalonia entry-point contract; found by the XAML previewer through reflection.")]
+[assembly: SuppressMessage("NDepend", "ND1807:AvoidPublicMethodsNotPubliclyVisible", Target = "Stride.CommunityToolkit.Examples.Launcher:Stride.CommunityToolkit.Examples.Launcher.Program.BuildAvaloniaApp()", Justification = "Avalonia entry-point contract; found by the XAML previewer through reflection.")]
+
+// --- ImGuiNet: the same two facts already recorded for the ImGui package -----------------------
+[assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend: pipeline, buffers, shader, context, DPI and input references are its state - same as ImGuiSystem above.")]
+[assembly: SuppressMessage("NDepend", "ND1004:AvoidMethodsWithTooManyParameters", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetExtensions.DrawText(ImGuiNetSystem,Int32,Int32,String,Byte,Byte,Byte,Byte)", Justification = "Byte-per-channel colour mirrors the Box2D.NET draw API this overload exists to match; the Vector4 overload on ImGuiNetSystem.DrawString is the shorter path.")]
+// --- E13 SignalR: the orbital cargo deck ---
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E13_SignalR:E13_SignalR.SignalR.SignalRHubClient", Scope = "deep", Justification = "Jitter on the reconnect backoff delay, so a room full of clients does not retry in lockstep after a server restart; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E13_SignalR:E13_SignalR.Station.Deck", Scope = "deep", Justification = "Which size and paint a random release gets, the scatter under the hatch, and the direction of a shake; gameplay randomness, nothing security-related.")]
+// --- Cube Collapse: a game example ---
+// Colours for the board, positions for the falling game-over letters, and the shuffle behind a
+// spawn. Gameplay randomness, same as Helpers.VectorHelper above; a seedable System.Random is the
+// point, and CubeSpawner deliberately seeds it so the same board comes up while tuning.
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E20_3D_CubeCollapse:CubeCollapse.Setup.CubeSpawner", Scope = "deep", Justification = "Cube colours; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E20_3D_CubeCollapse:CubeCollapse.Setup.FallingLetters", Scope = "deep", Justification = "Scatter on the game-over letters; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E20_3D_CubeCollapse:CubeCollapse.Scripts.CubeClickScript", Scope = "deep", Justification = "Picks which of the interchangeable click sounds to play; nothing security-related.")]
+// The class the example's own docs tell a reader to start from: it owns the order things happen in
+// and holds one reference per part it drives - grid, score, levels, progress, materials, spawner,
+// audio, the four scripts, simulation and scene. Splitting it would scatter one game's wiring across
+// several types and cost exactly the readability the example is for.
+[assembly: SuppressMessage("NDepend", "ND1002:AvoidTypesWithTooManyFields", Target = "E20_3D_CubeCollapse:CubeCollapse.CubeCollapseGame", Justification = "Game root: one field per part it owns, which is what makes the startup order readable in one place.")]
+// --- Examples: gameplay randomness -------------------------------------------------------------
+// Every System.Random below places, colours or shuffles something on screen. None of it is security
+// related, and the seedable constructor is wanted rather than tolerated: an example that seeds gets
+// the same scene every run, which is what makes a screenshot or a stress measurement repeatable.
+// Kept as one entry per example, so a genuinely security-sensitive use in a future example is still
+// reported rather than silently covered.
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E08_2D_DebugRender:Program", Scope = "deep", Justification = "Spawn positions for the debug-rendered shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E02_2D_Primitives:Program", Scope = "deep", Justification = "Spawn positions for the primitive shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_2D_SpawnMenu:Program", Scope = "deep", Justification = "Spawn positions for menu-created shapes.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E10_2D_StressPile:Program", Scope = "deep", Justification = "Spawn positions and colours for the stress pile; seeding it is what makes one run comparable to the next.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E10_2D_StressPile_Box2D:Program", Scope = "deep", Justification = "The Box2D twin of the stress pile above, and seeded for the same reason.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E06_Box2D_JunkyardInteractive:Program", Scope = "deep", Justification = "Spawn positions and shape choice for the rocks raining into the yard.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_CubeClicker:E04_CubeClicker.Scripts.ClickHandlerComponent", Scope = "deep", Justification = "Where a clicked cube is replaced; nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E08_3D_DebugShapes:E08_3D_DebugShapes.Scripts.ShapeUpdater", Scope = "deep", Justification = "Positions, rotations and velocities for the debug shapes on screen.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E10_3D_Instancing_EntityTransform:Program", Scope = "deep", Justification = "Transforms for the instanced entities.")]
+
+// --- Examples: helper types that live beside top-level statements -------------------------------
+// A code-only example is one file: top-level statements, plus the few small types they need. Two
+// examples that teach the same scene through different physics engines therefore declare the same
+// helper type, which reads as duplication across assemblies but is the point - each example has to
+// stand alone and be runnable on its own. The matching CA1050 (types outside a namespace) is turned
+// off for examples/ in examples/.editorconfig.
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E02_2D_Primitives:ShapeItem", Justification = "Shared with E04_2D_SpawnMenu, which teaches the same catalogue through a menu.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E10_2D_StressPile:SpawnLayout", Justification = "Shared with the Box2D twin of the same stress pile.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E01_3D_BasicScene_FSharp:Program", Justification = "The F# examples each compile a module named Program, as F# requires for an entry point.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E06_Box2D_Junkyard:PusherDriver", Justification = "Shared with E06_Box2D_JunkyardInteractive, which is the same scene with controls added.")]
+[assembly: SuppressMessage("NDepend", "ND2101:AvoidDuplicatingATypeDefinitionAcrossAssemblies", Target = "E06_Jitter2:CubeInstance", Justification = "Shared with E06_Jitter2_ConstrainedTo2D, which is the same scene constrained to 2D.")]
+[assembly: SuppressMessage("NDepend", "ND2102:AvoidDefiningMultipleTypesInASourceFile", Target = "E06_Box2D_JunkyardInteractive:ShapeDefinition", Justification = "The example is deliberately one readable file; its catalogue entry, spawned-shape and sensor-watcher types sit at the end of it rather than in files a reader has to open separately.")]
+
+// ==================================================================================================
+// REVISIT - accepted for now. Each entry says what should re-open it.
+// ==================================================================================================
+
+// --- Rendering backends carried over a size threshold by their own refactoring ------------------
+// ImGuiNetSystem is 206 statements against a 200 threshold, and gained two instance fields against
+// the baseline. Splitting RenderImGuiDrawData and Update into named steps - which is what cleared the
+// two "even more complex / even larger" regressions on them - is what carried it over: extraction
+// trades branches inside a method for a handful of call statements on the type. That is the better
+// shape to read, so it stays. The honest fix for the remaining size is to give the draw-data
+// rendering and the font atlas their own types, the way the ImGui package already did with
+// ImGuiTextureManager and ImGuiNetTextOverlay; the font atlas owns _fontTexture, which the renderer
+// and Destroy both use, so that is a real refactor of a graphics path and wants a run of
+// E04_ImGuiNet behind it rather than a quiet edit.
+//
+// TRIGGER: when that extraction lands, or if ImGuiNetSystem grows past roughly 230 statements -
+// six over a threshold is a rounding error, thirty over is a different type.
+[assembly: SuppressMessage("NDepend", "ND1000:AvoidTypesTooBig", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Justification = "Rendering backend, 6 statements over the threshold; see the note above on the pending renderer/font-atlas extraction.")]
+
+// --- Field counts the baseline diff reads as growth --------------------------------------------
+// These two are artefacts of comparing against the 2026-08-03 baseline: both systems were refactored
+// since, and the rule counts the fields that refactoring introduced as an addition to a type that
+// already had many. The types themselves are covered by the ND1002 entries in SETTLED above, which
+// record why a rendering backend holds that much state.
+//
+// TRIGGER: refresh the analysis baseline. These should then match nothing and can be deleted.
+[assembly: SuppressMessage("NDepend", "ND1107:AvoidAddingInstanceFieldsToATypeThatAlreadyHadManyInstanceFields", Target = "Stride.CommunityToolkit.ImGui:Stride.CommunityToolkit.ImGui.ImGuiSystem", Scope = "deep", Justification = "Baseline diff counts the texture-manager refactor as an addition; the field count itself is covered by the ND1002 entry in SETTLED.")]
+[assembly: SuppressMessage("NDepend", "ND1107:AvoidAddingInstanceFieldsToATypeThatAlreadyHadManyInstanceFields", Target = "Stride.CommunityToolkit.ImGuiNet:Stride.CommunityToolkit.ImGuiNet.ImGuiNetSystem", Scope = "deep", Justification = "Baseline diff counts the DPI/font-scaling refactor as an addition; the field count itself is covered by the ND1002 entry in SETTLED.")]
+
+// --- Stateful builders with many small methods -------------------------------------------------
+// Both are stateful, so ND1001 is working as designed rather than misjudging a function library -
+// the static extension-method holders are handled in the rule itself, in Stride.CommunityToolkit.ndproj.
+// These two are a judgement call instead: a fluent builder is many small methods by nature, each of
+// them a few lines, and the toolkit is young enough that the right seams are not obvious yet. Accepting them now is not the same as saying they will never need splitting.
+//
+// TRIGGER: if either passes roughly 45 methods by that count, or gains a second responsibility -
+// a canvas that starts loading textures, a mesh builder that starts owning materials - split it then.
+[assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Utilities.MeshBuilder", Justification = "Fluent mesh builder: 24 methods by the rule's count over 121 lines, one responsibility.")]
+[assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Utilities.TextureCanvas", Justification = "Drawing surface: 32 methods by the rule's count over 200 lines, mostly Draw/Fill overloads over one canvas.")]
+[assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeBatch", Justification = "Immediate-mode batch in the SpriteBatch mould: 29 methods by the rule's count, of which 13 are the accessors of its current-state properties and the rest one Draw overload per shape family over one instance list.")]
+
+// --- Prefab instantiation: the one overload family with a real remedy --------------------------
+// Unlike the three ND1005 families in SETTLED, this one the rule could be right about. Half of each
+// family is forced: a ref parameter cannot have a default, so every by-reference form needs its own
+// signature. The by-value half is five overloads covering which of translation, rotation and scale
+// the caller supplies, and that half is exactly what optional parameters are for. What stops it
+// being an obvious win is the cost of nullable value types on a per-instantiation path, which is a
+// measurement rather than a guess.
+//
+// Worth seeing together: NDepend counts these as two problems, but they are one family written
+// twice. Twenty-one methods express "instantiate a prefab, optionally with a transform", differing
+// only in whether one entity or a list comes back. If anything here matures, that is the thing to
+// look at rather than the overload count.
+//
+// TRIGGER: a decision on collapsing the by-value half with optional parameters, taken with an
+// allocation measurement behind it; or any move to merge the single and multiple variants.
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.PrefabExtensions.InstantiateSingle(Prefab)", Justification = "Eleven overloads: transform combinations times by-value/by-ref. The by-ref half cannot take defaults; the by-value half could collapse, pending a measurement.")]
+[assembly: SuppressMessage("NDepend", "ND1005:AvoidMethodsWithTooManyOverloads", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Engine.PrefabExtensions.Instantiate(Prefab,Vector3&)", Justification = "The list-returning twin of InstantiateSingle above, with the same ten transform combinations.")]
+
+// --- Namespaces still filling in ---------------------------------------------------------------
+// ND1305 asks for at least five types per namespace, to spare callers a pile of usings. These five
+// mirror Stride's own layout - Stride.Graphics, Stride.Rendering, Stride.Rendering.Compositing - and
+// that mirror is what makes a Stride user's mental model transfer. The toolkit is in preview; each of
+// these has helpers planned and no good neighbour to fold into today. Two thin ones were dealt with
+// instead of parked: Games merged into Engine (its class duplicated a name already there, and every
+// caller had the Engine using anyway), and Physics moved to the Bullet package, where heightfield
+// colliders actually live.
+//
+// TRIGGER: leaving preview, or the next major version - whichever comes first - when a namespace
+// move is on the table anyway. Fold any namespace still at one or two types into its parent then.
+// Graphics and Rendering are the ones to look at first: one two-method class each, used by no example.
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Graphics", Justification = "One class, GraphicsDeviceExtensions; mirrors Stride.Graphics and has device-level helpers planned.")]
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering", Justification = "One class, MaterialExtensions; the hub over Rendering.* and the home for planned material helpers.")]
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Compositing", Justification = "One class, GraphicsCompositorExtensions, used by twelve examples; mirrors Stride.Rendering.Compositing.")]
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Scripts", Justification = "Four camera controllers and a profiler, with more scripts planned; Scripts.Utilities beneath it is already at ten types.")]
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Instancing", Justification = "Four types with a written plan for more; mirrors where instancing sits in Stride.")]

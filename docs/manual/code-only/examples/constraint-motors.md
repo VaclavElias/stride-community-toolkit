@@ -13,7 +13,7 @@ neither does the job alone. Two identical pendulums show the limit case, where o
 SwingLimit. Every constraint can be switched off while the scene is running, which is the
 quickest way to see what it was contributing. The example also shows the trap that catches most
 hand-built joints: a constraint does not stop two bodies colliding, so a joint whose parts share
-space simply jams. Extends Example15_Constraint, which covers servos and limits but never motors.
+space simply jams. Extends E05_3D_Constraints, which covers servos and limits but never motors.
 
 The `Program.cs` file shows how to:
 
@@ -32,10 +32,11 @@ The `Program.cs` file shows how to:
 - Enabling and disabling a constraint at runtime
 - Why a constraint anchor must be a kinematic body, not a static one
 - Why a velocity set from the start callback is lost
+- Picking up and throwing bodies with GrabberScript
 - Using helpers: SetupBase3DScene, AddSkybox, AddGroundGizmo, AddProfiler
 
 ![Constraints - Servo vs Motor vs Limit](media/constraint-motors.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example15_Constraint_Motors).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_Constraints_Motors).
 
-[!code-csharp[](../../../../examples/code-only/Example15_Constraint_Motors/Program.cs?start=1&end=415)]
+[!code-csharp[](../../../../examples/code-only/E05_3D_Constraints_Motors/Program.cs?start=1&end=420)]

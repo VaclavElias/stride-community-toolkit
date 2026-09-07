@@ -49,9 +49,11 @@ public class Basic2DCameraController : SyncScript
 
     // Zoom Properties
     /// <summary>
-    /// Gets or sets the default orthographic size used when resetting the camera with the 'H' key.
+    /// Gets or sets the orthographic size the 'H' key resets the camera to. <see langword="null"/>, the
+    /// default, restores the size the camera had when the controller started - so a scene that set
+    /// its own framing gets that framing back, not a fixed number.
     /// </summary>
-    public float OrthographicSizeDefault { get; set; } = 10.0f;
+    public float? OrthographicSizeDefault { get; set; }
 
     /// <summary>
     /// Gets or sets the fraction by which the visible area scales per mouse-wheel notch. Defaults to 0.1 (10 %).
@@ -186,7 +188,7 @@ public class Basic2DCameraController : SyncScript
     /// <remarks>
     /// Only applies when <see cref="EnableMouseDragPan"/> is true.
     /// </remarks>
-    public MouseButton MouseDragButton { get; set; } = MouseButton.Middle;
+    public MouseButton MouseDragButton { get; set; } = MouseButton.Right;
 
     /// <summary>
     /// Gets or sets whether on-screen camera instructions are displayed.
@@ -203,6 +205,7 @@ public class Basic2DCameraController : SyncScript
 
     private CameraComponent? _camera;
     private Vector3 _defaultCameraPosition;
+    private float _defaultOrthographicSize = 10f;
     private Vector3 _targetPosition;
     private float _targetOrthographicSize;
     private Vector2? _lastMousePosition;
@@ -254,6 +257,8 @@ public class Basic2DCameraController : SyncScript
                 var lines = new List<TextElement>
                 {
                     new("F3: Reposition Help", Color.LightGoldenrodYellow),
+                    new("F4: Hide Help", Color.LightGoldenrodYellow),
+                    new("H: Reset Camera"),
                     new(EnableWasdMovement ? "WASD / Arrow Keys: Move" : "Arrow Keys: Move"),
                     new("Hold Shift: Increase speed"),
                     new("Mouse Wheel: Zoom"),
@@ -261,8 +266,6 @@ public class Basic2DCameraController : SyncScript
 
                 if (EnableMouseDragPan)
                     lines.Add(new($"{MouseDragButton} Mouse Drag: Pan"));
-
-                lines.Add(new("H: Reset Camera"));
 
                 // Live state, matching the 3D controller's help: where the camera is and how much of
                 // the world is visible (OrthographicSize is the view height in world units)
@@ -301,7 +304,10 @@ public class Basic2DCameraController : SyncScript
 
             if (_camera is null) return; // Ensure we have a camera component
 
+            // Captured here rather than in Start: a scene sets its framing in its own Start, which
+            // runs before this script's first update, and this is what H restores
             _targetOrthographicSize = _camera.OrthographicSize;
+            _defaultOrthographicSize = _camera.OrthographicSize;
         }
 
 
@@ -337,32 +343,11 @@ public class Basic2DCameraController : SyncScript
     }
 
     /// <summary>
-    /// Handles keyboard input for toggling instruction visibility and repositioning the instruction overlay.
-    /// </summary>
-    /// <remarks>
-    /// <para>Supported keys:</para>
-    /// <list type="bullet">
-    /// <item><description>F2: Toggles the visibility of on-screen instructions.</description></item>
-    /// <item><description>F3: Changes the position of the instruction overlay on screen.</description></item>
-    /// </list>
-    /// </remarks>
-
-    /// <summary>
     /// Processes keyboard-driven camera translation.
     /// </summary>
     private void ProcessCameraMovement()
     {
-        var moveDirection = Vector3.Zero;
-
-        // Update moveDirection based on key input
-        if (Input.IsKeyDown(Keys.Up) || (EnableWasdMovement && Input.IsKeyDown(Keys.W)))
-            moveDirection.Y++;
-        if (Input.IsKeyDown(Keys.Down) || (EnableWasdMovement && Input.IsKeyDown(Keys.S)))
-            moveDirection.Y--;
-        if (Input.IsKeyDown(Keys.Left) || (EnableWasdMovement && Input.IsKeyDown(Keys.A)))
-            moveDirection.X--;
-        if (Input.IsKeyDown(Keys.Right) || (EnableWasdMovement && Input.IsKeyDown(Keys.D)))
-            moveDirection.X++;
+        var moveDirection = ReadMovementKeys();
 
         // Normalize the moveDirection to ensure consistent movement speed, for example, when moving diagonally
         if (moveDirection.LengthSquared() > 1)
@@ -372,8 +357,45 @@ public class Basic2DCameraController : SyncScript
         if (Input.IsKeyDown(Keys.LeftShift) || Input.IsKeyDown(Keys.RightShift))
             moveDirection *= SpeedFactor;
 
-        // Apply movement to the target position or directly to the camera
-        var movement = moveDirection * CameraMoveSpeed * DeltaTime;
+        Pan(moveDirection * CameraMoveSpeed * DeltaTime);
+    }
+
+    /// <summary>
+    /// Reads the movement keys as a direction, before any speed or frame-time scaling.
+    /// </summary>
+    /// <returns>A direction whose components are -1, 0 or 1, so opposite keys cancel out.</returns>
+    /// <remarks>
+    /// The arrow keys always move the camera; WASD does so only when <see cref="EnableWasdMovement"/>
+    /// is set, because a 2D game that uses WASD for the player cannot also spend it on the camera.
+    /// </remarks>
+    private Vector3 ReadMovementKeys()
+    {
+        var direction = Vector3.Zero;
+
+        if (Input.IsKeyDown(Keys.Up) || (EnableWasdMovement && Input.IsKeyDown(Keys.W)))
+            direction.Y++;
+        if (Input.IsKeyDown(Keys.Down) || (EnableWasdMovement && Input.IsKeyDown(Keys.S)))
+            direction.Y--;
+        if (Input.IsKeyDown(Keys.Left) || (EnableWasdMovement && Input.IsKeyDown(Keys.A)))
+            direction.X--;
+        if (Input.IsKeyDown(Keys.Right) || (EnableWasdMovement && Input.IsKeyDown(Keys.D)))
+            direction.X++;
+
+        return direction;
+    }
+
+    /// <summary>
+    /// Applies a world-space movement to the camera.
+    /// </summary>
+    /// <param name="movement">The movement in world units.</param>
+    /// <remarks>
+    /// With <see cref="EnableSmoothing"/> the movement goes to the target position and
+    /// <see cref="ApplySmoothMovement"/> eases the camera towards it; without it the transform moves
+    /// at once. Every source of panning - keys, screen edges, zoom-to-cursor and drag - goes through
+    /// here, so that choice is made once rather than repeated at each of them.
+    /// </remarks>
+    private void Pan(Vector3 movement)
+    {
         if (EnableSmoothing)
         {
             _targetPosition += movement;
@@ -389,44 +411,15 @@ public class Basic2DCameraController : SyncScript
     /// </summary>
     private void ProcessScreenEdgeMovement()
     {
-        var moveDirection = Vector3.Zero;
-        var mousePosition = Input.MousePosition;
+        var backBuffer = Game.GraphicsDevice.Presenter.BackBuffer;
 
-        // Calculate the screen dimensions
-        var screenWidth = Game.GraphicsDevice.Presenter.BackBuffer.Width;
-        var screenHeight = Game.GraphicsDevice.Presenter.BackBuffer.Height;
-
-        // Convert normalized mouse coordinates to screen coordinates
-        var screenMouseX = mousePosition.X * screenWidth;
-        var screenMouseY = mousePosition.Y * screenHeight;
-
-        // Check if the mouse is within the screen bounds. We are detecting -1 because the mouse keeps detected outside the screen
-        if (screenMouseX > 0 && screenMouseX < screenWidth - 1 && screenMouseY > 0 && screenMouseY < screenHeight - 1)
-        {
-            // Check if the mouse is near the edges of the screen and update moveDirection accordingly
-            if (screenMouseX < ScreenEdgeBorderWidth)
-                moveDirection.X--;
-            if (screenMouseX > screenWidth - ScreenEdgeBorderWidth)
-                moveDirection.X++;
-            if (screenMouseY < ScreenEdgeBorderWidth)
-                moveDirection.Y++;
-            if (screenMouseY > screenHeight - ScreenEdgeBorderWidth)
-                moveDirection.Y--;
-        }
+        var moveDirection = Camera2DMath.ScreenEdgeDirection(
+            Input.MousePosition, backBuffer.Width, backBuffer.Height, ScreenEdgeBorderWidth);
 
         if (moveDirection.LengthSquared() > 1)
             moveDirection.Normalize();
 
-        // Apply movement to the target position or directly to the camera
-        var movement = moveDirection * CameraMoveSpeed * DeltaTime;
-        if (EnableSmoothing)
-        {
-            _targetPosition += movement;
-        }
-        else
-        {
-            Entity.Transform.Position += movement;
-        }
+        Pan(moveDirection * CameraMoveSpeed * DeltaTime);
     }
 
     /// <summary>
@@ -476,20 +469,7 @@ public class Basic2DCameraController : SyncScript
                 var backBuffer = Game.GraphicsDevice.Presenter.BackBuffer;
                 var aspect = (float)backBuffer.Width / backBuffer.Height;
 
-                // The cursor's offset from the view centre in world units at the old zoom; scaling the
-                // view scales that offset by newSize/oldSize, so shifting the camera by the difference
-                // keeps the world point under the cursor exactly where it is
-                var offset = new Vector3((mouse.X - 0.5f) * oldSize * aspect, (0.5f - mouse.Y) * oldSize, 0f);
-                var shift = offset * (1f - newSize / oldSize);
-
-                if (EnableSmoothing)
-                {
-                    _targetPosition += shift;
-                }
-                else
-                {
-                    Entity.Transform.Position += shift;
-                }
+                Pan(Camera2DMath.ZoomToCursorShift(mouse, aspect, oldSize, newSize));
             }
         }
 
@@ -501,8 +481,9 @@ public class Basic2DCameraController : SyncScript
     /// Resets the camera to its default position and orthographic size when the 'H' key is pressed.
     /// </summary>
     /// <remarks>
-    /// <para>The camera is reset to a position of (0, 0, 50), and the orthographic size is set to <see cref="OrthographicSizeDefault"/>.
-    /// Both the target position (for smoothing) and the actual transform position are updated immediately.</para>
+    /// <para>The camera returns to the position it started at and to <see cref="OrthographicSizeDefault"/>, or
+    /// to the orthographic size it started with when that is not set. Both the target values (for
+    /// smoothing) and the actual camera are updated immediately.</para>
     /// </remarks>
     private void ResetCameraToDefault()
     {
@@ -511,8 +492,10 @@ public class Basic2DCameraController : SyncScript
         _targetPosition = _defaultCameraPosition;
         Entity.Transform.Position = _defaultCameraPosition;
 
-        _targetOrthographicSize = OrthographicSizeDefault;
-        _camera!.OrthographicSize = OrthographicSizeDefault;
+        var size = OrthographicSizeDefault ?? _defaultOrthographicSize;
+
+        _targetOrthographicSize = size;
+        _camera!.OrthographicSize = size;
     }
 
     /// <summary>
@@ -629,15 +612,7 @@ public class Basic2DCameraController : SyncScript
 
                 var worldDelta = new Vector3(-mouseDelta.X * height * aspect, mouseDelta.Y * height, 0);
 
-                // Apply movement to the target position or directly to the camera
-                if (EnableSmoothing)
-                {
-                    _targetPosition += worldDelta;
-                }
-                else
-                {
-                    Entity.Transform.Position += worldDelta;
-                }
+                Pan(worldDelta);
             }
 
             _lastMousePosition = currentMousePos;

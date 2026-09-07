@@ -13,6 +13,6 @@ This example demonstrates key concepts for interactive physics-based games, incl
 
 ![Stride UI Example](media/stride-game-engine-example-14-raycast.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example14_Raycast).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_Raycast).
 
-[!code-csharp[](../../../../examples/code-only/Example14_Raycast/Program.cs?start=1&end=193)]
+[!code-csharp[](../../../../examples/code-only/E05_3D_Raycast/Program.cs?start=1&end=193)]

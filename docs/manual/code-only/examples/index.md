@@ -28,7 +28,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="file-based-app.md">Basic3D Scene (Capsule) - File-Based App</a></h3>
                 <p><span class="badge text-bg-secondary">Shapes</span></p>
-                <p class="card-text">The same minimal 3D scene as Example01_Basic3DScene, written as a .NET 10 file-based app: a single C# file with no .csproj.</p>
+                <p class="card-text">The same minimal 3D scene as E01_3D_BasicScene, written as a .NET 10 file-based app: a single C# file with no .csproj.</p>
             </div>
         </div>
     </div>
@@ -58,7 +58,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="capsule-with-rigid-body-bullet.md">Basic3D Scene (Capsule) - Bullet Physics</a></h3>
                 <p><span class="badge text-bg-secondary">Shapes</span></p>
-                <p class="card-text">The same first scene as Example01_Basic3DScene, running on the legacy Bullet physics engine instead of Bepu.</p>
+                <p class="card-text">The same first scene as E01_3D_BasicScene, running on the legacy Bullet physics engine instead of Bepu.</p>
             </div>
         </div>
     </div>
@@ -79,11 +79,31 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/gum-stride-ui-basic.webp" class="card-img-top" alt="Screenshot of the Basic Gum UI Setup example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="gum-stride-ui-basic.md">Basic Gum UI Setup</a></h3>
+                <p><span class="badge text-bg-secondary">UI</span></p>
+                <p class="card-text">Initialize Gum UI in Stride using the official Gum.Stride runtime and the Stride Community Toolkit.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/stride-game-engine-example-01-material.webp" class="card-img-top" alt="Screenshot of the Material example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="material.md">Material</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
                 <p class="card-text">A row of cubes that differ only in their material, so the effect of each property is visible in isolation.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/post-effects.webp" class="card-img-top" alt="Screenshot of the Post Effects example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="post-effects.md">Post Effects</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">Every post effect Stride ships, one key each: bloom, ambient occlusion, screen-space reflections, depth of field, light streaks, lens flare, fog,...</p>
             </div>
         </div>
     </div>
@@ -99,11 +119,41 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/wav-file.webp" class="card-img-top" alt="Screenshot of the Wav File example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="wav-file.md">Wav File</a></h3>
+                <p><span class="badge text-bg-secondary">Audio</span></p>
+                <p class="card-text">Play a .wav read from disk at runtime, with no compiled asset: LoadWav decodes the file into memory and each CreateInstance is an independent...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/procedural-sound.webp" class="card-img-top" alt="Screenshot of the Procedural Sound example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="procedural-sound.md">Procedural Sound</a></h3>
+                <p><span class="badge text-bg-secondary">Audio</span></p>
+                <p class="card-text">A tone with no sound file: a callback computes the samples as they play.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/stride-game-engine-example02-give-me-cube.webp" class="card-img-top" alt="Screenshot of the Give Me a Cube example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="give-me-cube-body.md">Give Me a Cube</a></h3>
                 <p><span class="badge text-bg-secondary">Scripts</span></p>
                 <p class="card-text">Add behaviour to an entity with a SyncScript component instead of the update callback of game.Run.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/grabber.webp" class="card-img-top" alt="Screenshot of the Grabber example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="grabber.md">Grabber</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A gravity gun: click any body to pick it up, carry it on the end of the camera ray, and let go - with its velocity, so a flick throws it.</p>
             </div>
         </div>
     </div>
@@ -139,6 +189,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/2d-scene-panels.webp" class="card-img-top" alt="Screenshot of the 2D Panels and Text example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="2d-scene-panels.md">2D Panels and Text</a></h3>
+                <p><span class="badge text-bg-secondary">Shapes</span></p>
+                <p class="card-text">Twenty-four HUD panel recipes side by side, each one property away from the last: fill only, border only, transparent fill over a stripe that proves...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/primitives-2d.webp" class="card-img-top" alt="Screenshot of the Basic2D Scene (Multiple Primitives) example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="primitives-2d.md">Basic2D Scene (Multiple Primitives)</a></h3>
@@ -159,6 +219,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/box2d-explosion.webp" class="card-img-top" alt="Screenshot of the Box2D Explosion example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-explosion.md">Box2D Explosion</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A grenade in one call: Explode gives every shape within a radius an impulse away from the centre, per metre of perimeter facing the blast, so a wide...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/debug-render-2d.webp" class="card-img-top" alt="Screenshot of the Basic2D Scene (Debug Rendering) example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="debug-render-2d.md">Basic2D Scene (Debug Rendering)</a></h3>
@@ -173,7 +243,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="dpi-aware.md">DPI-Aware Window</a></h3>
                 <p><span class="badge text-bg-secondary">Debug</span></p>
-                <p class="card-text">The capsule scene again, with one difference that is not in the C# at all: an app.manifest declaring the process per-monitor DPI aware, referenced...</p>
+                <p class="card-text">The capsule scene again, with two differences.</p>
             </div>
         </div>
     </div>
@@ -254,6 +324,26 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/hud.webp" class="card-img-top" alt="Screenshot of the Ship HUD example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="hud.md">Ship HUD</a></h3>
+                <p><span class="badge text-bg-secondary">Shapes</span></p>
+                <p class="card-text">A cockpit HUD composed from the toolkit's shapes and world text: a heading tape that scrolls, a pitch ladder, a gun-sight, speed and altitude tapes...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/spatial-sound.webp" class="card-img-top" alt="Screenshot of the Spatial Sound example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="spatial-sound.md">Spatial Sound</a></h3>
+                <p><span class="badge text-bg-secondary">Audio</span></p>
+                <p class="card-text">3D positional audio for a runtime sound: a looping pad on an orb that circles a pillar, heard from the camera.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/stride-game-engine-example16-collision-group.webp" class="card-img-top" alt="Screenshot of the Collision Group example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="collision-group.md">Collision Group</a></h3>
@@ -269,6 +359,66 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="collision-layer.md">Collision Layer</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
                 <p class="card-text">The same players-and-enemy scene as the collision group example, solved the other way.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/box2d-joints.webp" class="card-img-top" alt="Screenshot of the Box2D Joints example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-joints.md">Box2D Joints</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">Every Box2D joint, one rig each, in a row you can pull on: a hinge pendulum with a motor and a limit, a slider on a spring, a wheel on a suspension, a...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/box2d-car.webp" class="card-img-top" alt="Screenshot of the Box2D Car example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-car.md">Box2D Car</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A car on two wheel joints over hilly terrain: the wheel joint pins the wheel, lets it turn, springs it along the suspension axis with a travel limit,...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/box2d-character-mover.webp" class="card-img-top" alt="Screenshot of the Box2D Character Mover example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-character-mover.md">Box2D Character Mover</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A platformer character with no rigid body, on Box2D v3's mover API: a capsule the game moves itself, Quake style, asking the world only what it...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/multiple-simulations.webp" class="card-img-top" alt="Screenshot of the Multiple Physics Simulations example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="multiple-simulations.md">Multiple Physics Simulations</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">Two Bepu simulations in one game, side by side: the left lane falls under Earth gravity, the right under Moon gravity, and an amber ball that belongs...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/car.webp" class="card-img-top" alt="Screenshot of the Car example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="car.md">Car</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">A drivable car from four constraints per wheel, the recipe of bepuphysics2's own car demo in Stride's components: a linear axis servo as the...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/cloth.webp" class="card-img-top" alt="Screenshot of the Cloth example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="cloth.md">Cloth</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">Cloth from ordinary bodies and constraints, the way bepuphysics2's own demo does it: a lattice of sphere nodes tied by distance limits that may bunch...</p>
             </div>
         </div>
     </div>
@@ -344,11 +494,31 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/shape-batch.webp" class="card-img-top" alt="Screenshot of the ShapeBatch Shapes example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="shape-batch.md">ShapeBatch Shapes</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, glowing HUD panels with world text on them, genuinely thick 3D lines and...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/stride-game-engine-example03-stride-ui-basic-window.webp" class="card-img-top" alt="Screenshot of the Stride UI - Capsule and Window example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-ui-capsule-with-rigid-body.md">Stride UI - Capsule and Window</a></h3>
                 <p><span class="badge text-bg-secondary">UI</span></p>
                 <p class="card-text">A capsule in a 3D scene with a "Hello, World" panel drawn over it using Stride's built-in UI.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/stride-ui-button-hover-animation.webp" class="card-img-top" alt="Screenshot of the Stride UI - Button Hover Animation example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-ui-button-hover-animation.md">Stride UI - Button Hover Animation</a></h3>
+                <p><span class="badge text-bg-secondary">UI</span></p>
+                <p class="card-text">A main menu built from code whose buttons grow a blue underline while the pointer is over them.</p>
             </div>
         </div>
     </div>
@@ -379,6 +549,26 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-ui-cube-clicker.md">Cube Clicker</a></h3>
                 <p><span class="badge text-bg-secondary">UI</span></p>
                 <p class="card-text">A small clicker game: cubes appear, left and right clicks are counted, and both the score and the cube positions are written to disk so the next run...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/charts-2d.webp" class="card-img-top" alt="Screenshot of the Charts 2D example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="charts-2d.md">Charts 2D</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">A flat, paper-like chart drawn entirely in code - no assets, no chart control, every line a pixel-width stroke in a shape batch.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/charts-3d.webp" class="card-img-top" alt="Screenshot of the Charts 3D example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="charts-3d.md">Charts 3D</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">The same code-only chart API as the 2D example, in a lit 3D scene.</p>
             </div>
         </div>
     </div>
@@ -443,7 +633,37 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stress-pile-2d.md">Basic2D Scene (Stress Pile)</a></h3>
                 <p><span class="badge text-bg-secondary">Performance</span></p>
-                <p class="card-text">Thousands of 2D physics bodies piling up, drawn in a single draw call through instancing, with the shape, batch size and spawn layout switchable while...</p>
+                <p class="card-text">Thousands of 2D physics bodies piling up, drawn in two instanced draw calls - awake bodies through one master, sleeping bodies tinted green through...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/stress-pile-2d-box2d.webp" class="card-img-top" alt="Screenshot of the Basic 2D Scene (Stress Pile, Box2D) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stress-pile-2d-box2d.md">Basic 2D Scene (Stress Pile, Box2D)</a></h3>
+                <p><span class="badge text-bg-secondary">Performance</span></p>
+                <p class="card-text">The Box2D twin of the stress pile: thousands of bodies piling up, drawn in two instanced draw calls - awake bodies through one master, sleeping bodies...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/junkyard-box2d.webp" class="card-img-top" alt="Screenshot of the Junkyard (Box2D) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="junkyard-box2d.md">Junkyard (Box2D)</a></h3>
+                <p><span class="badge text-bg-secondary">Performance</span></p>
+                <p class="card-text">A faithful replica of the Box2D.NET BenchmarkJunkyard sample: 8,000 small five-sided rocks rain into a walled yard and a kinematic plow sweeps back...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/junkyard-playground-box2d.webp" class="card-img-top" alt="Screenshot of the Junkyard Playground (Box2D) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="junkyard-playground-box2d.md">Junkyard Playground (Box2D)</a></h3>
+                <p><span class="badge text-bg-secondary">Physics</span></p>
+                <p class="card-text">The playground sibling of the Junkyard replica: the same walled yard and sweeping plow, built the Stride way - every shape is an entity carrying...</p>
             </div>
         </div>
     </div>
@@ -519,6 +739,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/compute-boids.webp" class="card-img-top" alt="Screenshot of the Compute Shader Boids example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="compute-boids.md">Compute Shader Boids</a></h3>
+                <p><span class="badge text-bg-secondary">Performance</span></p>
+                <p class="card-text">A flock of thousands of boids that lives entirely on the GPU.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/imgui-net.webp" class="card-img-top" alt="Screenshot of the ImGui.NET Text Rendering example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="imgui-net.md">ImGui.NET Text Rendering</a></h3>
@@ -529,19 +759,19 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example17-signalr.webp" class="card-img-top" alt="Screenshot of the Stride + SignalR example" width="1280" height="720" loading="lazy">
+            <img src="media/stride-signalr.webp" class="card-img-top" alt="Screenshot of the Stride + SignalR - Orbital Cargo Deck example" width="1280" height="720" loading="lazy">
             <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-signalr.md">Stride + SignalR</a></h3>
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-signalr.md">Stride + SignalR - Orbital Cargo Deck</a></h3>
                 <p><span class="badge text-bg-secondary">Networking</span></p>
-                <p class="card-text">A Stride game and a Blazor web page talking to each other in real time over a SignalR hub, so a button in a browser can spawn an entity in the running...</p>
+                <p class="card-text">A Stride game and a Blazor web page as two consoles of the same orbital cargo deck, talking both ways over a SignalR hub.</p>
             </div>
         </div>
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/cubicle-calamity.webp" class="card-img-top" alt="Screenshot of the Game - Cubicle Calamity example" width="1280" height="720" loading="lazy">
+            <img src="media/cube-collapse.webp" class="card-img-top" alt="Screenshot of the Game - Cube Collapse example" width="1280" height="720" loading="lazy">
             <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="cubicle-calamity.md">Game - Cubicle Calamity</a></h3>
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="cube-collapse.md">Game - Cube Collapse</a></h3>
                 <p><span class="badge text-bg-secondary">Game</span></p>
                 <p class="card-text">A colour-match collapse puzzle built entirely from code.</p>
             </div>

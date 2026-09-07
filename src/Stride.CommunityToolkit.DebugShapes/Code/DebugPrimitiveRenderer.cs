@@ -195,6 +195,8 @@ internal sealed class DebugPrimitiveRenderer
         _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.ViewProjection, renderView.ViewProjection);
         _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.Transforms, _transformBuffer);
         _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.Colors, _colorBuffer);
+        // Colours are sRGB bytes; decoded in the shader only when the backbuffer is sRGB (the default)
+        _primitiveEffect.Parameters.Set(PrimitiveShaderKeys.LinearOutput, context.GraphicsDevice.ColorSpace == ColorSpace.Linear ? 1u : 0u);
 
         _primitiveEffect.UpdateEffect(context.GraphicsDevice);
         _primitiveEffect.Apply(context.GraphicsContext);
@@ -292,6 +294,7 @@ internal sealed class DebugPrimitiveRenderer
         commandList.SetPipelineState(_pipelineState!.CurrentState);
 
         _lineEffect!.Parameters.Set(LinePrimitiveShaderKeys.ViewProjection, renderView.ViewProjection);
+        _lineEffect.Parameters.Set(LinePrimitiveShaderKeys.LinearOutput, context.GraphicsDevice.ColorSpace == ColorSpace.Linear ? 1u : 0u);
         _lineEffect.UpdateEffect(context.GraphicsDevice);
         _lineEffect.Apply(context.GraphicsContext);
 

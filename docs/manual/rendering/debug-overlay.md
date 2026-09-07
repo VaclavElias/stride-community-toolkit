@@ -16,7 +16,7 @@ pixel text that a 4K display makes unreadable. The overlay exists so that text h
 ## Adding text
 
 Get the shared instance and add a section. The callback runs every frame the overlay is drawn, so
-values that change need no pushing - this is `Example01_Basic3DScene_Primitives`:
+values that change need no pushing - this is `E02_3D_Primitives`:
 
 ```csharp
 var overlay = DebugOverlay.GetOrCreate(game);
@@ -48,7 +48,7 @@ section can be disabled, collapsed or removed later.
 > [!TIP]
 > Something that already knows how to describe itself as lines - `DebugTextDropdown.GetLines()`, for
 > example - plugs straight in: `overlay.AddSection("Spawn", () => spawnMenu.GetLines())`. That is what
-> keeps the spawn menu in `Example01_Basic2DScene_SpawnMenu` in the same block as the camera help
+> keeps the spawn menu in `E04_2D_SpawnMenu` in the same block as the camera help
 > instead of being a second patch of text somewhere else.
 
 ## Keys and position
@@ -72,20 +72,24 @@ off still takes effect.
 ## Size, and high-DPI displays
 
 The overlay draws with a real font, rasterised at the size asked for, so it can be any size and is
-sharp at every one of them. Two properties control it:
+sharp at every one of them. It follows the display by default: on a laptop at 150% it draws one and
+a half times larger than on a monitor at 100%, so it reads the same size to the eye on both. The
+factor comes from `DisplayScale`, which is shared with everything else that draws in pixels and is
+re-read when the window moves to a differently scaled monitor. Three properties control the rest:
 
-- **`Scale`** multiplies everything - text, line spacing, margins, padding - so the block keeps its
-  layout. Set it from the display's DPI factor and the overlay reads the same on a 4K screen at 200%
-  as on a 1080p one. This is `Example_Charts_Playground`:
+- **`AutoScale`** is that behaviour, on by default. Turn it off to draw at exactly `Scale`, for a
+  screenshot at a known size or when the game applies its own UI-scale setting.
+- **`Scale`** multiplies everything - text, line spacing, margins, padding - on top of the display's
+  factor, so the block keeps its layout. It is a preference, "a bit bigger", not a DPI figure:
+  `1.25` on a 150% display draws at 1.875.
+- **`FontSize`** is the text height at scale 1 on a 100% display, in pixels. Defaults to 16, the
+  height of Stride's own debug text.
 
-  ```csharp
-  overlay.Scale = MathF.Max(1f, WindowsDpiManager.GetPrimaryScale() ?? 1f);
-  ```
-
-  `WindowsDpiManager` is in the `Stride.CommunityToolkit.Windows` package and returns `null` off
-  Windows, so the line is safe everywhere. Any factor works, including `1.5`.
-- **`FontSize`** is the text height at scale 1, in pixels. Defaults to 16, the height of Stride's own
-  debug text.
+The display factor is only right if the process is DPI aware - otherwise Windows is already
+stretching the whole window and the factor correctly reads 1. Declare awareness in an
+`app.manifest`, as the Stride templates do, or call `WindowsDpiManager.EnablePerMonitorV2()` from
+the `Stride.CommunityToolkit.Windows` package before the game is created; see the
+[DPI-aware example](../code-only/examples/dpi-aware.md).
 
 Why not just scale Stride's debug text? Because it is a bitmap: an 8 by 16 pixel glyph sheet that
 `DebugTextSystem` draws at exactly that size, with a grey strip baked behind every glyph. The first
@@ -106,7 +110,7 @@ picked by `FontFamily`:
 
 The first family found in the system font folders wins. Monospace is the default for the same reason
 Stride's own debug font is fixed-width: columns line up, a number does not shift its neighbours as its
-digits change, and text aligned with spaces keeps its shape - `Example22_Instancing_EntityTransform`
+digits change, and text aligned with spaces keeps its shape - `E10_3D_Instancing_EntityTransform`
 lays out its comparison table with `{count,6}` and would fall apart in a proportional font.
 
 To be specific rather than pick a family:
@@ -170,10 +174,10 @@ unscaled pixels overrides the calculation entirely.
 
 ## Where it is used in the toolkit
 
-| Piece | In `Example_Charts_Playground` | Concept |
+| Piece | In `E11_2D_Charts` | Concept |
 |---|---|---|
 | `DebugOverlay.GetOrCreate(game)` | `Program.cs`, `Start` | one shared instance, registered as a service |
-| `overlay.Scale = ... GetPrimaryScale()` | `Program.cs` | DPI-independent size |
+| `WindowsDpiManager.EnablePerMonitorV2()` | `Program.cs`, before `new Game()` | a sharp window; the overlay's size then follows `DisplayScale` on its own |
 | `overlay.BackgroundColor = new Color(0, 0, 0, 200)` | `Program.cs`, 2D branch | readable on a white scene |
 | `overlay.AddSection("Chart", () => [...])` | `Program.cs` | a live line: `Press G to toggle the grid (on)` |
 | `Add3DCameraController()` | via `SetupBase3DScene` | the collapsible `F2 - Camera controls` section, order `-100` |

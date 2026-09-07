@@ -21,7 +21,7 @@ This article lists the most significant changes in Stride Community Toolkit prev
 * docs: Update troubleshooting guide by @VaclavElias in https://github.com/stride3d/stride-community-toolkit/pull/204
 
 ### 🎓 Examples
-* feat: New example added - Example01_Basic3DScene_MeshLine by @VaclavElias in https://github.com/stride3d/stride-community-toolkit/pull/203
+* feat: New example added - E07_3D_MeshLine by @VaclavElias in https://github.com/stride3d/stride-community-toolkit/pull/203
 
 ### 🔁 Build & Deploy
 * Update Stride NuGet packages by @github-actions in https://github.com/stride3d/stride-community-toolkit/pull/252

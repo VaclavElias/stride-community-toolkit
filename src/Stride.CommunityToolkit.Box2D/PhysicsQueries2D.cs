@@ -138,12 +138,24 @@ public static class PhysicsQueries2D
     /// <param name="radius">Circle radius.</param>
     /// <returns>List of body ids (no duplicates).</returns>
     public static List<B2BodyId> OverlapCircle(B2WorldId worldId, Vector2 center, float radius)
+        => OverlapCircle(worldId, center, radius, b2DefaultQueryFilter());
+
+    /// <summary>
+    /// Collects all unique bodies whose shapes overlap a circle centered at <paramref name="center"/> with <paramref name="radius"/>,
+    /// restricted to shapes whose category bits pass <paramref name="filter"/>.
+    /// </summary>
+    /// <param name="worldId">Target Box2D world.</param>
+    /// <param name="center">World-space circle center.</param>
+    /// <param name="radius">Circle radius.</param>
+    /// <param name="filter">Category and mask bits the overlapped shapes must satisfy.</param>
+    /// <returns>List of body ids (no duplicates).</returns>
+    public static List<B2BodyId> OverlapCircle(B2WorldId worldId, Vector2 center, float radius, B2QueryFilter filter)
     {
         var bodies = new List<B2BodyId>();
         var circle = new B2Circle(new B2Vec2(center.X, center.Y), radius);
         var proxy = b2MakeProxy(circle.center, 1, circle.radius);
 
-        b2World_OverlapShape(worldId, ref proxy, b2DefaultQueryFilter(), (shapeId, userData) =>
+        b2World_OverlapShape(worldId, ref proxy, filter, (shapeId, userData) =>
         {
             var bodyId = b2Shape_GetBody(shapeId);
             if (!bodies.Contains(bodyId))
@@ -154,5 +166,63 @@ public static class PhysicsQueries2D
         }, null);
 
         return bodies;
+    }
+
+    /// <summary>
+    /// Sweeps a circle (or a point, when <paramref name="radius"/> is zero) from <paramref name="center"/>
+    /// along <paramref name="translation"/> and returns the closest thing it strikes.
+    /// </summary>
+    /// <param name="worldId">Target Box2D world.</param>
+    /// <param name="center">World-space centre of the circle at the start of the sweep.</param>
+    /// <param name="radius">Circle radius; zero casts a point.</param>
+    /// <param name="translation">The sweep, as a world-space displacement.</param>
+    /// <param name="filter">Category and mask bits the struck shapes must satisfy.</param>
+    /// <returns>The closest hit, or null when the sweep is clear.</returns>
+    public static ShapeCastHit? CastCircleClosest(B2WorldId worldId, Vector2 center, float radius, Vector2 translation, B2QueryFilter filter)
+    {
+        var proxy = b2MakeProxy(new B2Vec2(center.X, center.Y), 1, radius);
+
+        return CastShapeClosest(worldId, ref proxy, translation, filter);
+    }
+
+    /// <summary>
+    /// Sweeps a line segment from <paramref name="a"/> to <paramref name="b"/> along
+    /// <paramref name="translation"/> and returns the closest thing it strikes.
+    /// </summary>
+    /// <param name="worldId">Target Box2D world.</param>
+    /// <param name="a">One end of the segment at the start of the sweep, in world space.</param>
+    /// <param name="b">The other end.</param>
+    /// <param name="translation">The sweep, as a world-space displacement.</param>
+    /// <param name="filter">Category and mask bits the struck shapes must satisfy.</param>
+    /// <returns>The closest hit, or null when the sweep is clear.</returns>
+    public static ShapeCastHit? CastSegmentClosest(B2WorldId worldId, Vector2 a, Vector2 b, Vector2 translation, B2QueryFilter filter)
+    {
+        var proxy = b2MakeProxy(new B2Vec2(a.X, a.Y), new B2Vec2(b.X, b.Y), 2, 0f);
+
+        return CastShapeClosest(worldId, ref proxy, translation, filter);
+    }
+
+    /// <summary>
+    /// Sweeps any convex proxy (see <c>b2MakeProxy</c>) along <paramref name="translation"/> and returns
+    /// the closest thing it strikes. The circle and segment overloads build the proxy for you.
+    /// </summary>
+    /// <param name="worldId">Target Box2D world.</param>
+    /// <param name="proxy">The shape to sweep, already in world space.</param>
+    /// <param name="translation">The sweep, as a world-space displacement.</param>
+    /// <param name="filter">Category and mask bits the struck shapes must satisfy.</param>
+    /// <returns>The closest hit, or null when the sweep is clear.</returns>
+    public static ShapeCastHit? CastShapeClosest(B2WorldId worldId, ref B2ShapeProxy proxy, Vector2 translation, B2QueryFilter filter)
+    {
+        ShapeCastHit? closest = null;
+
+        b2World_CastShape(worldId, ref proxy, new B2Vec2(translation.X, translation.Y), filter, (shapeId, point, normal, fraction, userData) =>
+        {
+            closest = new ShapeCastHit(shapeId, b2Shape_GetBody(shapeId), new Vector2(point.X, point.Y), new Vector2(normal.X, normal.Y), fraction);
+
+            // Returning the fraction clips the sweep to this hit, so only a nearer one can replace it.
+            return fraction;
+        }, null);
+
+        return closest;
     }
 }

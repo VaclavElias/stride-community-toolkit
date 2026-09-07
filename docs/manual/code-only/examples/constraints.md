@@ -17,6 +17,6 @@ This demonstrates how constraints can be used to create complex physical behavio
 
 ![Stride UI Example](media/stride-game-engine-example-15-constraints.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example15_Constraint).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_Constraints).
 
-[!code-csharp[](../../../../examples/code-only/Example15_Constraint/Program.cs?start=1&end=583)]
+[!code-csharp[](../../../../examples/code-only/E05_3D_Constraints/Program.cs?start=1&end=583)]

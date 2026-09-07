@@ -27,9 +27,9 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 ### 🎓 Examples
 * fix: Example 7 removed from the solution temporarily by @VaclavElias in [#314](https://github.com/stride3d/stride-community-toolkit/pull/314)
 * feat: jitter2 physics example by @ourabigdev in [#318](https://github.com/stride3d/stride-community-toolkit/pull/318)
-* feat: Add Example20_BepuFirstPersonCharacter code-only example by @Spajker7 in [#370](https://github.com/stride3d/stride-community-toolkit/pull/370)
+* feat: Add E05_3D_FirstPersonCharacter code-only example by @Spajker7 in [#370](https://github.com/stride3d/stride-community-toolkit/pull/370)
 * Upgrade to Stride 4.4.0 and streamline build workflows by @VaclavElias in [#380](https://github.com/stride3d/stride-community-toolkit/pull/380)
-* feat: New example added Example19_Jitter2Physics_Constraints by @VaclavElias in [#384](https://github.com/stride3d/stride-community-toolkit/pull/384)
+* feat: New example added E06_Jitter2_ConstrainedTo2D by @VaclavElias in [#384](https://github.com/stride3d/stride-community-toolkit/pull/384)
 ### 🔁 Build & Deploy
 * Add GitHub Agentic Workflow for daily activity reports by @VaclavElias with @Copilot in [#323](https://github.com/stride3d/stride-community-toolkit/pull/323)
 * ci: Update workflow actions and .NET version by @VaclavElias in [#329](https://github.com/stride3d/stride-community-toolkit/pull/329)

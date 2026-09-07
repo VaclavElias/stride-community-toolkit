@@ -7,6 +7,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
         <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="Xunit.SkippableFact" Version="1.5.85" />
         <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -18,22 +19,22 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Bepu\Stride.CommunityToolkit.Bepu.csproj" />
+        <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Box2D\Stride.CommunityToolkit.Box2D.csproj" />
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
     </ItemGroup>
     <ItemGroup>
         <!--
-            Cubicle Calamity keeps its rules in plain, scene-free classes precisely so they can be
+            Cube Collapse keeps its rules in plain, scene-free classes precisely so they can be
             tested here. Referencing an example project from tests is unusual, and is done because the
             alternative is game logic with no coverage at all.
         -->
-        <ProjectReference Include="..\..\examples\code-only\Example_CubicleCalamity\Example_CubicleCalamity.csproj" />
+        <ProjectReference Include="..\..\examples\code-only\E20_3D_CubeCollapse\E20_3D_CubeCollapse.csproj" />
     </ItemGroup>
     <ItemGroup>
         <!--
-            The charts playground grows line and chart helpers in their final toolkit namespaces before
-            they move into the library. Its clipping code is pure point arithmetic and is tested here
-            for the same reason as Cubicle Calamity above.
+            The chart library's line, area and framing maths are pure arithmetic; the mesh builders are
+            internal to the package and reach these tests through its InternalsVisibleTo.
         -->
-        <ProjectReference Include="../../examples/code-only/Example_Charts_Playground/Example_Charts_Playground.csproj" />
+        <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Charts\Stride.CommunityToolkit.Charts.csproj" />
     </ItemGroup>
 </Project>

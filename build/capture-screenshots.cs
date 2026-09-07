@@ -41,6 +41,7 @@ var keepPng = false;
 string? outputDirectory = null;
 int? frameOverride = null;
 var timeout = TimeSpan.FromMinutes(5);
+bool updateIndex = false;
 
 // The folder --review writes to. Gitignored, and at the repository root so it is easy to find.
 const string ReviewDirectory = "screenshots-review";
@@ -54,6 +55,10 @@ for (var i = 0; i < args.Length; i++)
             break;
         case "--force":
             force = true;
+            break;
+        case "--update-index":
+            updateIndex = true;
+            outputDirectory ??= ReviewDirectory;
             break;
         case "--review":
             outputDirectory ??= ReviewDirectory;
@@ -158,7 +163,7 @@ foreach (var example in examples)
 
     // An existing screenshot was almost certainly taken and reviewed by a person. Replacing 25 of those
     // in one unattended run, silently, is not something a script should be able to do by accident.
-    if (File.Exists(webpPath) && !force && !reviewing)
+    if (File.Exists(webpPath) && !force && !reviewing || updateIndex)
     {
         Console.WriteLine($"  - {slug}: already has {mediaName}, pass --force to replace it");
         skipped++;
@@ -204,7 +209,7 @@ if (failed.Count > 0)
     Console.WriteLine($"Failed: {string.Join(", ", failed)}");
 }
 
-if (reviewing)
+if (reviewing || updateIndex)
 {
     var indexPath = Path.Combine(reviewDirectory!, "index.html");
 

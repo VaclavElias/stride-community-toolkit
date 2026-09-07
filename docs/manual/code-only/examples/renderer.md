@@ -23,6 +23,6 @@ Both techniques utilize SpriteBatch for efficient 2D rendering within a 3D scene
 
 ![Stride UI Example](media/stride-game-engine-example09-renderer.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example09_Renderer).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_SceneRenderer).
 
-[!code-csharp[](../../../../examples/code-only/Example09_Renderer/Program.cs?start=1&end=100)]
+[!code-csharp[](../../../../examples/code-only/E09_3D_SceneRenderer/Program.cs?start=1&end=100)]

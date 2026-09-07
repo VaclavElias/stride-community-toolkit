@@ -34,6 +34,9 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 /// </remarks>
 [DefaultEntityComponentProcessor(typeof(WorldTextProcessor), ExecutionMode = ExecutionMode.Runtime)]
 [AllowMultipleComponents]
+[DataContract("WorldTextComponent")]
+[Display("World Text (call AddWorldTextRenderer)", Expand = ExpandRule.Once)]
+[ComponentCategory("Text")]
 public class WorldTextComponent : EntityComponent
 {
     /// <summary>
@@ -51,9 +54,24 @@ public class WorldTextComponent : EntityComponent
     /// </summary>
     /// <remarks>
     /// This is sharpness, not size on screen - <see cref="Height"/> decides how big the text is in the
-    /// world. Raise it when text is viewed close up and looks soft; it costs glyph cache space.
+    /// world. Raise it when text is viewed close up and looks soft; it costs glyph cache space. On a
+    /// scaled display the glyphs are rasterised that much larger while <see cref="AutoScale"/> is on,
+    /// because the same world height covers that many more pixels there.
     /// </remarks>
     public float FontSize { get; set; } = 32;
+
+    /// <summary>
+    /// Gets or sets whether the rasterisation size follows the display's scale, so text on a 150%
+    /// display is drawn from glyphs 1.5x the size and stays as sharp as it is on a 100% monitor.
+    /// Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// Sharpness only: the text is <see cref="Height"/> tall in the world whatever the display, so
+    /// nothing moves or resizes. The factor comes from <c>DisplayScale</c>, shared with everything else
+    /// in the toolkit that follows the display, and only applies when the process is DPI aware.
+    /// <see cref="GlowSize"/> is in font pixels and scales along, so the glow keeps its reach.
+    /// </remarks>
+    public bool AutoScale { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the height of the text in world units. Defaults to 1.
@@ -68,11 +86,20 @@ public class WorldTextComponent : EntityComponent
     /// <summary>
     /// Gets or sets the text colour. Defaults to <see cref="Color.White"/>.
     /// </summary>
+    /// <remarks>
+    /// Its alpha counts: it is how transparent this text is by nature, and it multiplies with
+    /// <see cref="Opacity"/> and any distance fade. Set it when a label is meant to sit faintly in the
+    /// scene; use <see cref="Opacity"/> to fade the whole thing - glow included - from code.
+    /// </remarks>
     public Color TextColor { get; set; } = Color.White;
 
     /// <summary>
     /// Gets or sets an overall opacity from 0 to 1. Defaults to 1.
     /// </summary>
+    /// <remarks>
+    /// A dimmer over everything the component draws: the letters, at <see cref="TextColor"/>'s own
+    /// alpha, and the <see cref="GlowColor"/> behind them. Distance fading drives this same dimmer.
+    /// </remarks>
     public float Opacity { get; set; } = 1f;
 
     /// <summary>
@@ -127,6 +154,23 @@ public class WorldTextComponent : EntityComponent
     /// Gets or sets whether the text is drawn at all. Defaults to <see langword="true"/>.
     /// </summary>
     public bool IsVisible { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the colour of a soft glow drawn behind the letters. Leave it fully transparent -
+    /// an alpha of zero, the default - for no glow. Its alpha is the glow's strength.
+    /// </summary>
+    /// <remarks>
+    /// A HUD or a neon sign: light text on a glow of a deeper hue reads as lit rather than painted.
+    /// The glow is the text itself drawn again in this colour, offset in a ring around the letters,
+    /// so it scales with the text and follows every glyph exactly.
+    /// </remarks>
+    public Color GlowColor { get; set; }
+
+    /// <summary>
+    /// Gets or sets how far the glow reaches from the letters, in font pixels at <see cref="FontSize"/>.
+    /// Defaults to 0. A tenth of the font size is a crisp halo; a quarter is a bloom.
+    /// </summary>
+    public float GlowSize { get; set; }
 
     /// <summary>
     /// Gets or sets the distance from the camera at which the text starts fading out, in world units.

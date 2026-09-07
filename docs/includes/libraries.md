@@ -8,6 +8,8 @@
   - Provides easy-to-use Debug shapes to be able to visualize and debug your Stride scenes   
 - [Stride.CommunityToolkit.ImGui](https://github.com/stride3d/stride-community-toolkit/tree/main/src/Stride.CommunityToolkit.ImGui)
   - Includes extensions for [Dear ImGui](https://github.com/ocornut/imgui), a fast, simple-to-use graphical user interface (GUI) library, accessed via the C# wrapper [Hexa.NET.ImGui](https://github.com/HexaEngine/Hexa.NET.ImGui). Ideal for creating debugging tools, editor windows, and in-game UI elements.  
+- [Stride.CommunityToolkit.Shapes](https://github.com/stride3d/stride-community-toolkit/tree/main/src/Stride.CommunityToolkit.Shapes)
+  - Draws filled convex shapes whose outline stays a constant few pixels wide at any zoom or distance, because a signed distance function measures it per fragment instead of building it as geometry. Discs, rings, rounded rectangles, wire boxes, camera-facing billboards and genuinely thick 3D lines, flat but placeable on any plane in 3D, thousands per frame in one instanced draw call.
 - [Stride.CommunityToolkit.Skyboxes](https://github.com/stride3d/stride-community-toolkit/tree/main/src/Stride.CommunityToolkit.Skyboxes)
   - Enhances code-only projects by adding skybox functionality.
 - [Stride.CommunityToolkit.Windows](https://github.com/stride3d/stride-community-toolkit/tree/main/src/Stride.CommunityToolkit.Windows)

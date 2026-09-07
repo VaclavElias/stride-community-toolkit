@@ -22,6 +22,6 @@ The `Program.cs` file shows how to:
 
 ![Entity Text (Screen-Space)](media/entity-text.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_EntityText).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E03_3D_EntityText).
 
-[!code-csharp[](../../../../examples/code-only/Example01_EntityText/Program.cs?start=1&end=169)]
+[!code-csharp[](../../../../examples/code-only/E03_3D_EntityText/Program.cs?start=1&end=175)]

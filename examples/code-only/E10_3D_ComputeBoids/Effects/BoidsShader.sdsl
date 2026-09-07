@@ -1,0 +1,159 @@
+namespace E10_3D_ComputeBoids
+{
+    // A flock on the GPU. One thread per boid: it reads every other boid from last frame's buffer,
+    // steers by the three classic rules (keep apart, fly the same way, stay together) plus a pull
+    // back toward home, writes its new state to this frame's buffer, and writes the world matrix
+    // the instanced mesh will be drawn with. Nothing about the flock ever touches the CPU.
+    //
+    // ComputeShaderBase supplies CSMain, the thread counts and the ids; a compute shader here is
+    // just a class that overrides Compute().
+    shader BoidsShader : ComputeShaderBase
+    {
+        struct Boid
+        {
+            // xyz: position; w unused
+            float4 Position;
+            // xyz: velocity; w unused
+            float4 Velocity;
+        };
+
+        // A world matrix as the bytes a Stride Matrix has in memory: four columns, each column a
+        // float4 of (M1k, M2k, M3k, M4k). The mesh renderer reads its float4x4 from exactly these
+        // bytes, so writing the columns by hand keeps the layout explicit - the first attempt wrote
+        // rows and drew the flock as fans, the translation having landed in the projective column.
+        struct Transform
+        {
+            float4 Column0;
+            float4 Column1;
+            float4 Column2;
+            float4 Column3;
+        };
+
+        cbuffer PerDispatch
+        {
+            stage float DeltaTime;
+            stage uint BoidCount;
+            stage float3 FlockCenter;
+            // How far from home a boid may stray before the pull back starts
+            stage float Bounds;
+            stage float MaxSpeed;
+            stage float NeighbourRadius;
+            stage float SeparationRadius;
+            stage float SeparationWeight;
+            stage float AlignmentWeight;
+            stage float CohesionWeight;
+            stage float HomeWeight;
+        }
+
+        // Last frame's flock, read by every thread, and this frame's, written once per thread.
+        // Two buffers, swapped every frame, so no thread ever reads what another is writing.
+        stage StructuredBuffer<Boid> BoidsIn;
+        stage RWStructuredBuffer<Boid> BoidsOut;
+
+        // What the renderer draws: one world matrix per boid, and its inverse for the normals,
+        // in the buffers an InstancingUserBuffer hands to the mesh renderer
+        stage RWStructuredBuffer<Transform> InstanceWorld;
+        stage RWStructuredBuffer<Transform> InstanceWorldInverse;
+
+        override void Compute()
+        {
+            uint index = streams.DispatchThreadId.x;
+
+            if (index >= BoidCount) return;
+
+            float3 position = BoidsIn[index].Position.xyz;
+            float3 velocity = BoidsIn[index].Velocity.xyz;
+
+            float3 separation = float3(0, 0, 0);
+            float3 alignment = float3(0, 0, 0);
+            float3 cohesion = float3(0, 0, 0);
+            float neighbours = 0;
+
+            // Every boid against every other: at a few thousand boids that is millions of pairs a
+            // frame, which is nothing to a GPU and everything to a CPU
+            for (uint other = 0; other < BoidCount; ++other)
+            {
+                if (other == index) continue;
+
+                float3 offset = BoidsIn[other].Position.xyz - position;
+                float distanceSquared = dot(offset, offset);
+
+                if (distanceSquared > NeighbourRadius * NeighbourRadius || distanceSquared < 0.000001) continue;
+
+                float distance = sqrt(distanceSquared);
+
+                // Too close: push away, harder the closer
+                if (distance < SeparationRadius)
+                {
+                    separation -= offset / distance * (SeparationRadius - distance) / SeparationRadius;
+                }
+
+                alignment += BoidsIn[other].Velocity.xyz;
+                cohesion += BoidsIn[other].Position.xyz;
+                neighbours += 1.0;
+            }
+
+            float3 acceleration = float3(0, 0, 0);
+
+            if (neighbours > 0.0)
+            {
+                // Match the neighbours' average heading; drift toward their centre
+                alignment = alignment / neighbours - velocity;
+                cohesion = cohesion / neighbours - position;
+
+                acceleration += separation * SeparationWeight + alignment * AlignmentWeight + cohesion * CohesionWeight;
+            }
+
+            // Past the bounds, home pulls harder the further out the boid is
+            float3 home = FlockCenter - position;
+            float away = length(home);
+
+            if (away > Bounds)
+            {
+                acceleration += home / away * (away - Bounds) * HomeWeight;
+            }
+
+            velocity += acceleration * DeltaTime;
+
+            // Boids fly: never faster than the limit, never slower than half of it
+            float speed = length(velocity);
+            float3 heading = speed > 0.0001 ? velocity / speed : float3(0, 0, 1);
+
+            speed = clamp(speed, 0.5 * MaxSpeed, MaxSpeed);
+            velocity = heading * speed;
+            position += velocity * DeltaTime;
+
+            BoidsOut[index].Position = float4(position, 0);
+            BoidsOut[index].Velocity = float4(velocity, 0);
+
+            // The mesh is a cone with its tip along +Y, so its Y axis is the heading; X and Z are
+            // any two perpendicular axes, chosen so the basis is right-handed and not mirrored
+            float3 worldUp = float3(0, 1, 0);
+            float3 right = cross(worldUp, heading);
+
+            if (dot(right, right) < 0.000001)
+            {
+                right = float3(1, 0, 0);
+            }
+
+            right = normalize(right);
+
+            float3 side = cross(heading, right);
+
+            // The rows of the world matrix are the basis vectors and the translation, the way Stride
+            // multiplies a row vector by a matrix; column k of that matrix is the k-th component of
+            // each of them
+            InstanceWorld[index].Column0 = float4(right.x, heading.x, side.x, position.x);
+            InstanceWorld[index].Column1 = float4(right.y, heading.y, side.y, position.y);
+            InstanceWorld[index].Column2 = float4(right.z, heading.z, side.z, position.z);
+            InstanceWorld[index].Column3 = float4(0, 0, 0, 1);
+
+            // The inverse of a rotation is its transpose, so its columns are the basis vectors
+            // themselves; the translation comes along negated, projected onto each
+            InstanceWorldInverse[index].Column0 = float4(right, -dot(position, right));
+            InstanceWorldInverse[index].Column1 = float4(heading, -dot(position, heading));
+            InstanceWorldInverse[index].Column2 = float4(side, -dot(position, side));
+            InstanceWorldInverse[index].Column3 = float4(0, 0, 0, 1);
+        }
+    };
+}

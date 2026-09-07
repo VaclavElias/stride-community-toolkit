@@ -23,6 +23,6 @@ The `Program.cs` file shows how to:
 
 ![Basic3D Scene (Every Primitive)](media/primitives-3d.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic3DScene_Primitives).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_3D_Primitives).
 
-[!code-csharp[](../../../../examples/code-only/Example01_Basic3DScene_Primitives/Program.cs?start=1&end=114)]
+[!code-csharp[](../../../../examples/code-only/E02_3D_Primitives/Program.cs?start=1&end=118)]

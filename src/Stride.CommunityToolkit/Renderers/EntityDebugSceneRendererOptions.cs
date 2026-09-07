@@ -9,9 +9,20 @@ namespace Stride.CommunityToolkit.Renderers;
 public class EntityDebugSceneRendererOptions
 {
     /// <summary>
-    /// Gets or sets the font size for the debug text. Default is 12.
+    /// Gets or sets the font size for the debug text, in pixels on a 100% display. Default is 12.
     /// </summary>
     public int FontSize { get; set; } = 12;
+
+    /// <summary>
+    /// Gets or sets whether the pixel sizes - <see cref="FontSize"/>, <see cref="Offset"/>,
+    /// <see cref="Padding"/> and <see cref="ShadowOffset"/> - follow the display's scale, so the
+    /// labels read the same size on a 150% laptop as on a 100% monitor. Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// The factor is the toolkit's shared <c>DisplayScale</c>. Turn it off for exactly the pixels
+    /// asked for.
+    /// </remarks>
+    public bool AutoScale { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the font color for the debug text. Default is black.

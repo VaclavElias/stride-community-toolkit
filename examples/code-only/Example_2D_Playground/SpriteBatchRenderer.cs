@@ -10,10 +10,8 @@ public class SpriteBatchRenderer : SyncScript
 {
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _font;
-    private Texture? _texture;
     private Texture? _colorTexture;
-    private float _fontSize = 25;
-    private string _text = "This text is in Arial 20 with anti-alias\nand multiline...";
+    private readonly string _text = "This text is in Arial 20 with anti-alias\nand multiline...";
     private DelegateSceneRenderer? _sceneRenderer;
     private RenderDrawContext? _ctx;
 
@@ -24,8 +22,6 @@ public class SpriteBatchRenderer : SyncScript
         _sceneRenderer = new DelegateSceneRenderer(Draw);
         _ctx = new RenderDrawContext(Services, RenderContext.GetShared(Services), Game.GraphicsContext);
         _colorTexture = Texture.New2D(GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, [Color.White]);
-
-        //_texture = Content.Load<Texture>("Path to your texture asset");
     }
 
     public override void Cancel()
@@ -51,25 +47,14 @@ public class SpriteBatchRenderer : SyncScript
 
         _sceneRenderer.Draw(_ctx);
 
-        var cameraComponent = Entity.Scene.Entities.FirstOrDefault(x => x.Get<CameraComponent>() != null)?.Get<CameraComponent>();
-
-        if (cameraComponent is null) return;
-
-        //var text = "Your Text Here";
-        var viewMatrix = cameraComponent.ViewMatrix;
-        var projectionMatrix = cameraComponent.ProjectionMatrix;
-        var textureToWorldSpace = Matrix.RotationX(MathUtil.Pi) * Matrix.Translation(0, 0, 0.25f);
-        var textScale = 1.0f;
-
-        //_spriteBatch.Begin(
-        //    Game.GraphicsContext,
-        //    textureToWorldSpace * viewMatrix,
-        //    projectionMatrix,
-        //    SpriteSortMode.BackToFront,
-        //    BlendStates.AlphaBlend,
-        //    GraphicsDevice.SamplerStates.LinearClamp,
-        //    DepthStencilStates.None);
-
+        // This Begin draws in screen space. The overload below draws the same batch in world space,
+        // so the text sits in the scene rather than on the window - it needs the scene camera:
+        //
+        //   var camera = Entity.Scene.Entities.FirstOrDefault(x => x.Get<CameraComponent>() != null)?.Get<CameraComponent>();
+        //   var textureToWorldSpace = Matrix.RotationX(MathUtil.Pi) * Matrix.Translation(0, 0, 0.25f);
+        //   _spriteBatch.Begin(Game.GraphicsContext, textureToWorldSpace * camera.ViewMatrix, camera.ProjectionMatrix,
+        //       SpriteSortMode.BackToFront, BlendStates.AlphaBlend, GraphicsDevice.SamplerStates.LinearClamp,
+        //       DepthStencilStates.None);
         _spriteBatch.Begin(Game.GraphicsContext);
 
         var dim = _font.MeasureString(_text);
@@ -79,10 +64,6 @@ public class SpriteBatchRenderer : SyncScript
         _spriteBatch.Draw(_colorTexture, new Rectangle(x, y, (int)dim.X, (int)dim.Y), Color.Green);
         _font.PreGenerateGlyphs(_text, _font.Size * Vector2.One);
         _spriteBatch.DrawString(_font, _text, new Vector2(x, y), Color.White);
-
-        //var textSize = _spriteBatch.MeasureString(_font, text);
-
-        //_spriteBatch.DrawString(_font, text, Vector2.One * 0.5f, Color.White, 0, textSize / 2, Vector2.One / _fontSize * textScale, SpriteEffects.None, 0, TextAlignment.Center);
 
         _spriteBatch.End();
     }

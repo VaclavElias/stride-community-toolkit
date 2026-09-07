@@ -102,6 +102,6 @@ From there it is a normal code-only project: open it in an IDE, add files, add i
 
 ## See it in the toolkit
 
-`examples/code-only/Example01_Basic3DScene_FileBasedApp/Program.cs` is this scene as a file-based app,
+`examples/code-only/E01_3D_BasicScene_FileBasedApp/Program.cs` is this scene as a file-based app,
 built against the toolkit source with `#:project` references; the [example page](examples/file-based-app.md)
 describes it. Because it has no `.csproj` it is not part of the solution and is run from the command line.

@@ -173,7 +173,7 @@ This implementation provides a familiar API for developers coming from Box2D.NET
 
 ## Example Projects
 
-See `examples/code-only/Example11_ImGuiNet/Program.cs` for a complete working example.
+See `examples/code-only/E04_ImGuiNet/Program.cs` for a complete working example.
 
 ## Dependencies
 

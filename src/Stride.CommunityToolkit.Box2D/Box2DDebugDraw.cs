@@ -1,120 +1,211 @@
+using Box2D.NET;
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
-using Stride.Rendering;
-using System.Runtime.InteropServices;
+using static Box2D.NET.B2MathFunction;
+using static Box2D.NET.B2Types;
+using static Box2D.NET.B2Worlds;
 
 namespace Stride.CommunityToolkit.Box2D;
 
 /// <summary>
-/// Immediate-mode 2D shape drawing in the Box2D testbed's style: convex polygons with a fill at 60%
-/// alpha and a border that stays a constant few pixels wide at any zoom, both computed per fragment
-/// by <c>Box2DDebugShader</c> from the shapes submitted this frame.
+/// Box2D's own debug drawing, rendered through a <see cref="ShapeBatch"/>: every shape, joint,
+/// contact point, force, bounding box, island and body name the testbed can show, from one call a
+/// frame, with the testbed's toggles as properties.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Submit shapes every frame from your update logic; they are drawn once, blended in submission
-/// order in the transparent render stage, and the batch resets itself after rendering. One GPU draw
-/// call covers every polygon submitted, however many.
+/// <c>b2World_Draw</c> walks the world and calls back for each primitive - a solid polygon with a
+/// transform and rounding radius, a circle, a capsule, a line, a point. Those map almost one to one
+/// onto the batch, which draws polygons with rounding and pixel-constant borders. Shapes are on by
+/// default, as in Box2D; joints are on here as well, since drawing them is the usual reason to use
+/// this. The rest is off until asked for.
 /// </para>
 /// <para>
-/// Register with <c>game.AddBox2DDebugDraw()</c>, which wires <see cref="Box2DDebugDrawFeature"/>
-/// into the graphics compositor and returns the instance to submit shapes to.
+/// Sizes: lines are <see cref="LinePixels"/> wide on screen at any zoom; a point's size is in
+/// screen pixels in the testbed and has no equivalent in the batch, so it is scaled by
+/// <see cref="PointScale"/> into world units. Text has no renderer of its own; set
+/// <see cref="DrawString"/> to route body names and joint labels wherever you like.
 /// </para>
 /// </remarks>
-public sealed class Box2DDebugDraw : RenderObject
+/// <example>
+/// <code>
+/// var debugDraw = new Box2DDebugDraw(shapeBatch) { DrawContactPoints = true };
+///
+/// // each frame, after the simulation update
+/// debugDraw.Draw(simulation);
+/// </code>
+/// </example>
+public sealed class Box2DDebugDraw
 {
-    /// <summary>The GPU-facing layout of one polygon, mirrored by the shader's PolygonData.</summary>
-    [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct PolygonInstance
-    {
-        public readonly Vector4 Transform;
-        public readonly Vector4 Points12;
-        public readonly Vector4 Points34;
-        public readonly Vector4 Points56;
-        public readonly Vector4 Points78;
-        public readonly int Count;
-        public readonly float Radius;
-        public readonly Color Color;
-        public readonly float Pad;
+    private const int MaxPolygonVertices = 8;
+    private const float TransformAxisLength = 0.4f;
 
-        internal PolygonInstance(Vector4 transform, ReadOnlySpan<Vector4> packedPoints, int count, float radius, Color color)
+    private readonly B2DebugDraw _draw;
+    private readonly ShapeBatch _batch;
+
+    /// <summary>
+    /// Creates the adapter over a batch. Add the batch with <c>game.AddShapeBatch()</c> first.
+    /// </summary>
+    public Box2DDebugDraw(ShapeBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+
+        _batch = batch;
+        _draw = b2DefaultDebugDraw();
+        _draw.drawJoints = true;
+
+        _draw.DrawPolygonFcn = DrawPolygon;
+        _draw.DrawSolidPolygonFcn = DrawSolidPolygon;
+        _draw.DrawCircleFcn = DrawCircle;
+        _draw.DrawSolidCircleFcn = DrawSolidCircle;
+        _draw.DrawSolidCapsuleFcn = DrawSolidCapsule;
+        _draw.drawLineFcn = DrawLine;
+        _draw.DrawTransformFcn = DrawTransform;
+        _draw.DrawPointFcn = DrawPoint;
+        _draw.DrawStringFcn = DrawText;
+    }
+
+    /// <summary>Every shape, in Box2D's body-state colours. On by default.</summary>
+    public bool DrawShapes { get => _draw.drawShapes; set => _draw.drawShapes = value; }
+
+    /// <summary>Joints as lines between their anchors. On by default here, unlike in Box2D.</summary>
+    public bool DrawJoints { get => _draw.drawJoints; set => _draw.drawJoints = value; }
+
+    /// <summary>Joint limits, targets and the like, drawn on top of the joints.</summary>
+    public bool DrawJointExtras { get => _draw.drawJointExtras; set => _draw.drawJointExtras = value; }
+
+    /// <summary>Axis-aligned bounding boxes of every shape.</summary>
+    public bool DrawBounds { get => _draw.drawBounds; set => _draw.drawBounds = value; }
+
+    /// <summary>A marker at each body's centre of mass, with its mass as text.</summary>
+    public bool DrawMass { get => _draw.drawMass; set => _draw.drawMass = value; }
+
+    /// <summary>Body names, through <see cref="DrawString"/>.</summary>
+    public bool DrawBodyNames { get => _draw.drawBodyNames; set => _draw.drawBodyNames = value; }
+
+    /// <summary>Contact points.</summary>
+    public bool DrawContactPoints { get => _draw.drawContactPoints; set => _draw.drawContactPoints = value; }
+
+    /// <summary>Contact normals.</summary>
+    public bool DrawContactNormals { get => _draw.drawContactNormals; set => _draw.drawContactNormals = value; }
+
+    /// <summary>Contact normal impulses, as lines scaled by <see cref="ForceScale"/>.</summary>
+    public bool DrawContactForces { get => _draw.drawContactForces; set => _draw.drawContactForces = value; }
+
+    /// <summary>Contact friction impulses, as lines scaled by <see cref="ForceScale"/>.</summary>
+    public bool DrawFrictionForces { get => _draw.drawFrictionForces; set => _draw.drawFrictionForces = value; }
+
+    /// <summary>Contact feature ids as text.</summary>
+    public bool DrawContactFeatures { get => _draw.drawContactFeatures; set => _draw.drawContactFeatures = value; }
+
+    /// <summary>Colour each shape by its constraint-graph colour instead of its body state.</summary>
+    public bool DrawGraphColors { get => _draw.drawGraphColors; set => _draw.drawGraphColors = value; }
+
+    /// <summary>Sleep islands, as bounding boxes.</summary>
+    public bool DrawIslands { get => _draw.drawIslands; set => _draw.drawIslands = value; }
+
+    /// <summary>Length per unit of force for the force lines.</summary>
+    public float ForceScale { get => _draw.forceScale; set => _draw.forceScale = value; }
+
+    /// <summary>Size of the joint drawings.</summary>
+    public float JointScale { get => _draw.jointScale; set => _draw.jointScale = value; }
+
+    /// <summary>On-screen width of every line, in pixels.</summary>
+    public float LinePixels { get; set; } = 1.5f;
+
+    /// <summary>World units per unit of a point's size; Box2D sizes points in screen pixels.</summary>
+    public float PointScale { get; set; } = 0.02f;
+
+    /// <summary>
+    /// Where text goes: world position, the text, its colour. Nothing is drawn when unset.
+    /// </summary>
+    public Action<Vector2, string, Color>? DrawString { get; set; }
+
+    /// <summary>Submits the whole world to the batch. Call once per frame, after stepping.</summary>
+    public void Draw(B2WorldId world) => b2World_Draw(world, _draw);
+
+    /// <inheritdoc cref="Draw(B2WorldId)"/>
+    public void Draw(Box2DSimulation simulation)
+    {
+        ArgumentNullException.ThrowIfNull(simulation);
+
+        Draw(simulation.GetWorldId());
+    }
+
+    private void DrawPolygon(ReadOnlySpan<B2Vec2> vertices, int vertexCount, B2HexColor color, object context)
+    {
+        var stride = DebugDrawColors.ToColor(color);
+
+        for (var i = 0; i < vertexCount; i++)
         {
-            Transform = transform;
-            Points12 = packedPoints[0];
-            Points34 = packedPoints[1];
-            Points56 = packedPoints[2];
-            Points78 = packedPoints[3];
-            Count = count;
-            Radius = radius;
-            Color = color;
-            Pad = 0;
+            var a = vertices[i];
+            var b = vertices[(i + 1) % vertexCount];
+
+            _batch.DrawPixelLine(new Vector3(a.X, a.Y, 0), new Vector3(b.X, b.Y, 0), LinePixels, stride);
         }
     }
 
-    internal readonly List<PolygonInstance> Instances = [];
-
-    /// <summary>
-    /// Border width in on-screen pixels, constant at any zoom. The testbed default is 3; set 0 for
-    /// borderless fills. Takes effect the next frame.
-    /// </summary>
-    public float BorderWidth { get; set; } = 3f;
-
-    /// <summary>
-    /// Fill intensity relative to the border colour, 0 to 1. The testbed value is 0.6, but its GL
-    /// pipeline blends in sRGB space while Stride blends in linear space, which reads lighter for
-    /// the same value - around 0.5 tends to match the testbed side by side. Takes effect the next frame.
-    /// </summary>
-    public float FillAlpha { get; set; } = 0.6f;
-
-    /// <summary>
-    /// Submits a solid convex polygon for this frame.
-    /// </summary>
-    /// <param name="vertices">The polygon corners in local space, counter-clockwise, at most 8.</param>
-    /// <param name="position">World position of the polygon's local origin.</param>
-    /// <param name="rotation">Rotation in radians about the Z axis.</param>
-    /// <param name="color">The border colour; the fill is drawn at 60% of its alpha.</param>
-    /// <param name="radius">Optional rounding radius added around the polygon, in world units.</param>
-    /// <exception cref="ArgumentException">Thrown when fewer than 1 or more than 8 vertices are provided.</exception>
-    public void DrawSolidPolygon(ReadOnlySpan<Vector2> vertices, Vector2 position, float rotation, Color color, float radius = 0f)
+    private void DrawSolidPolygon(in B2Transform transform, ReadOnlySpan<B2Vec2> vertices, int vertexCount, float radius, B2HexColor color, object context)
     {
-        if (vertices.Length < 1 || vertices.Length > 8)
-            throw new ArgumentException("A polygon needs between 1 and 8 vertices.", nameof(vertices));
+        Span<Vector2> local = stackalloc Vector2[MaxPolygonVertices];
+        var count = Math.Min(vertexCount, MaxPolygonVertices);
 
-        var (sin, cos) = MathF.SinCos(rotation);
+        for (var i = 0; i < count; i++)
+            local[i] = new Vector2(vertices[i].X, vertices[i].Y);
 
-        Span<Vector4> packed = stackalloc Vector4[4];
-
-        for (var i = 0; i < vertices.Length; i++)
-        {
-            ref var slot = ref packed[i / 2];
-
-            if (i % 2 == 0)
-            {
-                slot.X = vertices[i].X;
-                slot.Y = vertices[i].Y;
-            }
-            else
-            {
-                slot.Z = vertices[i].X;
-                slot.W = vertices[i].Y;
-            }
-        }
-
-        Instances.Add(new PolygonInstance(new Vector4(position.X, position.Y, cos, sin), packed, vertices.Length, radius, color));
+        _batch.DrawSolidPolygon(local[..count], new Vector2(transform.p.X, transform.p.Y), b2Rot_GetAngle(transform.q), DebugDrawColors.ToColor(color), radius);
     }
 
-    /// <summary>
-    /// Submits a solid circle for this frame - a single point rounded by the radius.
-    /// </summary>
-    /// <param name="center">World-space circle center.</param>
-    /// <param name="radius">Circle radius in world units.</param>
-    /// <param name="color">The border colour; the fill is drawn at 60% of its alpha.</param>
-    public void DrawSolidCircle(Vector2 center, float radius, Color color)
-    {
-        ReadOnlySpan<Vector2> point = [Vector2.Zero];
+    private void DrawCircle(in B2Vec2 center, float radius, B2HexColor color, object context)
+        => _batch.DrawAnnulus(new Vector2(center.X, center.Y), radius, radius * 0.9f, DebugDrawColors.ToColor(color));
 
-        DrawSolidPolygon(point, center, 0f, color, radius);
+    private void DrawSolidCircle(in B2Transform transform, float radius, B2HexColor color, object context)
+    {
+        var stride = DebugDrawColors.ToColor(color);
+        var centre = new Vector2(transform.p.X, transform.p.Y);
+
+        _batch.DrawSolidCircle(centre, radius, stride);
+
+        // The testbed draws the x-axis so a rolling circle is seen to roll.
+        var axis = b2Rot_GetXAxis(transform.q);
+        _batch.DrawPixelLine(new Vector3(centre, 0), new Vector3(centre.X + axis.X * radius, centre.Y + axis.Y * radius, 0), LinePixels, stride);
     }
 
-    /// <summary>Called by the render feature once the batch is drawn; the next frame starts empty.</summary>
-    internal void Reset() => Instances.Clear();
+    private void DrawSolidCapsule(in B2Vec2 p1, in B2Vec2 p2, float radius, B2HexColor color, object context)
+    {
+        Span<Vector2> ends = [new Vector2(p1.X, p1.Y), new Vector2(p2.X, p2.Y)];
+
+        _batch.DrawSolidPolygon(ends, Vector2.Zero, 0f, DebugDrawColors.ToColor(color), radius);
+    }
+
+    private void DrawLine(in B2Vec2 p1, in B2Vec2 p2, B2HexColor color, object context)
+        => _batch.DrawPixelLine(new Vector3(p1.X, p1.Y, 0), new Vector3(p2.X, p2.Y, 0), LinePixels, DebugDrawColors.ToColor(color));
+
+    private void DrawTransform(in B2Transform transform, object context)
+    {
+        var origin = new Vector3(transform.p.X, transform.p.Y, 0);
+        var x = b2Rot_GetXAxis(transform.q);
+        var y = b2Rot_GetYAxis(transform.q);
+
+        _batch.DrawPixelLine(origin, origin + new Vector3(x.X, x.Y, 0) * TransformAxisLength, LinePixels, Color.Red);
+        _batch.DrawPixelLine(origin, origin + new Vector3(y.X, y.Y, 0) * TransformAxisLength, LinePixels, Color.Green);
+    }
+
+    private void DrawPoint(in B2Vec2 p, float size, B2HexColor color, object context)
+        => _batch.DrawSolidCircle(new Vector2(p.X, p.Y), size * PointScale, DebugDrawColors.ToColor(color));
+
+    private void DrawText(in B2Vec2 p, string s, B2HexColor color, object context)
+        => DrawString?.Invoke(new Vector2(p.X, p.Y), s, DebugDrawColors.ToColor(color));
+}
+
+/// <summary>Box2D's hex colours as Stride colours.</summary>
+internal static class DebugDrawColors
+{
+    /// <summary>A <c>0xRRGGBB</c> value, opaque.</summary>
+    public static Color ToColor(B2HexColor color)
+    {
+        var value = (int)color;
+
+        return new Color((byte)(value >> 16), (byte)(value >> 8), (byte)value);
+    }
 }

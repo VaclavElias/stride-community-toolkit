@@ -32,7 +32,7 @@ way the backlog treats the pre-port Bepu repo.
   best code in the repo. The older parts supply the cautionary tales, which are teachable too.
 - The post-fx stack is configuration only (`Assets/Shared/GraphicsCompositor.sdgfxcomp:172-201`:
   AO, SSR, DoF, Bloom, LightStreak, LensFlare, Hejl2 tonemap, Vignetting, FXAA) — useful as
-  "a shipped game's settings" defaults for the engine sweep's `Example40_PostEffects`.
+  "a shipped game's settings" defaults for the engine sweep's `E09_3D_PostEffects`.
 
 ---
 
@@ -132,7 +132,7 @@ File references are into the local clone.
 ### 7. Hitscan weapon: cone spread, penetrating raycast, hit filtering
 
 - **Level:** Intermediate · **Category:** Gameplay (Physics cross-link) · **Verdict:** example —
-  or contribute the spread/sorting sections to `Example14_Raycast`, which the Bepu plan already
+  or contribute the spread/sorting sections to `E05_3D_Raycast`, which the Bepu plan already
   extends with `RayCastPenetrating`
 - **Source:** `Soldier\SoldierWeapon.cs:189-237`
 - **The mechanic:** spread sampled as a polar disc (`radius = tan(cone/2)·rand`, `angle = 2π·rand`)
@@ -181,7 +181,7 @@ File references are into the local clone.
 ### 11. Sound variation — don't play the same clip twice
 
 - **Level:** Beginners · **Category:** Audio · **Verdict:** merge with the engine sweep's
-  `Example27_Audio_ProceduralSound` — procedural tones + variation selection + stop-before-retrigger
+  `E12_Audio_Procedural` — procedural tones + variation selection + stop-before-retrigger
   is a better example than either half alone
 - **Source:** `Core\RandomSoundSelector.cs`; `Drone.cs:253,381-382`
 - **The mechanic:** `AudioEmitterComponent` is a name→sound dictionary, so `"Hit0".."Hit2"` live on
@@ -377,7 +377,10 @@ undocumented — evidence and tuned values for those examples.
 **Not used by Starbreach**, despite being on the sweep's list — don't expect this repo to help:
 `IBlendTreeBuilder` (hand-rolled instead), virtual buttons (raw `IsKeyDown` + `List<Keys>`),
 gestures, code-built `AnimationClip`, save games, `DynamicSoundSource`/spatial audio beyond the
-emitter component, GPU picking, orbit camera, `IInputEventListener`.
+emitter component, GPU picking, orbit camera, `IInputEventListener`. (The bundled templates and
+tutorials *do* use the first four — see [samples-example-opportunities.md](samples-example-opportunities.md):
+three `IBlendTreeBuilder` state machines, `VirtualButtonsDemo.cs`, `TouchInputsScript.cs`, and a
+dead-but-complete procedural `AnimationClip` in the AnimatedModel sample.)
 
 ---
 
@@ -416,7 +419,7 @@ pointing here.
 | Missile salvo (grid, jitter, stagger) | Intermediate · Gameplay | Zero assets |
 | Projectile lifetime + AoE | Intermediate · Physics | Includes the backwards-falloff bug to fix |
 | Explode into fragments, staged cleanup | Intermediate · Physics | |
-| Sound variation + procedural tones | Beginners · Audio | Merge with sweep `Example27_Audio_ProceduralSound` |
+| Sound variation + procedural tones | Beginners · Audio | Merge with sweep `E12_Audio_Procedural` |
 | Custom SDSL in a standard material | Advanced · Rendering | Merges two sweep inventory rows |
 | Particle initializer/updater (beam) | Advanced · Rendering | Better hook for "particles, part two" |
 | Runtime camera switching | Beginners · Rendering | New — on no prior list |

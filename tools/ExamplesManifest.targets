@@ -46,7 +46,7 @@
 
             Both streams must declare utf-8. Only StdErrEncoding was set at first, and the result was
             legible but absurd: the error line rendered its ✖ correctly while every stdout line above it
-            came through as "Ô£à Example01_Basic2DScene ÔÇö ...". That is ✅ and — as UTF-8 bytes decoded
+            came through as "Ô£à E01_2D_BasicScene ÔÇö ...". That is ✅ and — as UTF-8 bytes decoded
             through the console's OEM code page, one stream getting the encoding it was promised and the
             other falling back to the default.
         -->

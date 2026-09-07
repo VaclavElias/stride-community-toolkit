@@ -21,7 +21,7 @@ The toolkit is optional: Stride doesn't need it, and you can adopt as much or as
 
 **[Physics](physics-extensions/index.md)** - the Bepu and Bullet helpers, plus two long-form pages on the failures that produce no error message at all: [who owns the transform](physics-extensions/bepu-transform-ownership.md) and [why a constraint does nothing](physics-extensions/bepu-constraints.md). Both are worth reading before you spend an afternoon on either problem.
 
-**Rendering** - drawing things the engine has no built-in component for: [Entity Text](rendering/entity-text.md) and [World Text](rendering/world-text.md) for labels, [Debug Shapes](rendering/debug-shapes.md) for immediate-mode wireframes, [MeshBuilder](rendering/mesh-builder.md) and [TextureCanvas](rendering/texture-canvas.md) for building meshes and textures at runtime.
+**Rendering** - drawing things the engine has no built-in component for: [Entity Text](rendering/entity-text.md) and [World Text](rendering/world-text.md) for labels, [ShapeBatch](rendering/shape-batch.md) for vector shapes whose outlines stay a constant pixel width - the panels, rings, gauges and glows in the recent examples - and why it exists at all, [Charts](rendering/charts.md) for plotting functions, points, fills and trails in a scene, step by step, [Debug Shapes](rendering/debug-shapes.md) for immediate-mode wireframes, [MeshBuilder](rendering/mesh-builder.md) and [TextureCanvas](rendering/texture-canvas.md) for building meshes and textures at runtime.
 
 **[Troubleshooting](troubleshooting.md)** - the errors people actually hit.
 

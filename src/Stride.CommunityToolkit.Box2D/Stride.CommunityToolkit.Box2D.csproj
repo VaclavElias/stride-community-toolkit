@@ -7,8 +7,12 @@
 What's inside:
 - Box2DSimulation: a Box2D world bound to Stride entities, with fixed-timestep stepping and transform sync
 - Contact, hit and sensor events routed to your handlers via PhysicsEventRouter2D
-- PhysicsQueries2D: closest-hit and all-hits raycasts plus point, AABB and circle overlap queries
-- ShapeFixtureBuilder: Box2D fixtures matching the toolkit's 2D primitives (box, circle, triangle, capsule)
+- PhysicsQueries2D: closest-hit and all-hits raycasts, circle and segment shape casts, point, AABB and circle overlap queries
+- ShapeFixtureBuilder: Box2D fixtures matching the toolkit's 2D primitives (box, circle, triangle, capsule) and chains
+- Joints2D: revolute, prismatic, wheel, distance, weld, motor and filter joints from world-space anchors
+- CharacterMover2D: a Quake-style platformer capsule on the v3 mover API, with no rigid body
+- Grabber2DScript and Box2DDebugDraw: mouse pick-and-drag and the testbed's debug view through ShapeBatch
+- SvgPath2D: straight-line SVG paths as chain points
 - BodyForces: impulse and velocity helpers for bodies
 
 Requires the Box2D.NET package.$(StrideVersionNote)</Description>
@@ -24,12 +28,14 @@ Requires the Box2D.NET package.$(StrideVersionNote)</Description>
 
     <ItemGroup>
         <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
+        <!-- Box2DDebugDraw renders through ShapeBatch: the testbed look is the shape package. -->
+        <ProjectReference Include="..\Stride.CommunityToolkit.Shapes\Stride.CommunityToolkit.Shapes.csproj" />
     </ItemGroup>
 
+
     <ItemGroup>
-        <None Update="Effects\Box2DDebugShader.sdsl">
-            <LastGenOutput>Box2DDebugShader.sdsl.cs</LastGenOutput>
-        </None>
+        <!-- JointFrames2D is internal; its frame arithmetic is pure and unit tested. -->
+        <InternalsVisibleTo Include="Stride.CommunityToolkit.Tests" />
     </ItemGroup>
 
 </Project>

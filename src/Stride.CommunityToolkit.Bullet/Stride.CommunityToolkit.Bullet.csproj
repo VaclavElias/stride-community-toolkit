@@ -15,6 +15,7 @@ Maintenance mode: kept working, not extended. New projects should use Stride.Com
     <Import Project="..\CommonSettings.props" />
 
     <ItemGroup>
+        <PackageReference Include="Stride.Physics" Version="$(StrideVersion)" />
         <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
     </ItemGroup>
 

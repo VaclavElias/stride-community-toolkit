@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Title>Stride Community Toolkit - Charts</Title>
+        <Description>Code-only math and physics charts for Stride - plots, axes, grid, legend and cursor built from meshes at runtime, with no assets to author.
+
+What's inside:
+- Chart: a chart entity you plot onto - y = f(x), parametric curves, point lists, scatter markers and shaded areas
+- Axes, ticks, legend and markers drawn in pixels every frame, so they stay the same size at any zoom or distance
+- Labels and titles in 2D or 3D, a Desmos-style endless chart that follows an orthographic camera, and a mouse readout that snaps to the chart plane
+- ChartTrajectory: a growing polyline for plotting a simulation as it runs
+- ChartFraming: pure camera-framing maths for fitting a chart in view
+
+Curves are triangle ribbons rather than hardware lines, so they keep their width and can glow through bloom.$(StrideVersionNote)</Description>
+        <!-- Not published to NuGet yet: the API has just come out of the playground and is still settling. -->
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <Import Project="..\CommonSettings.props" />
+
+    <ItemGroup>
+        <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
+        <!-- Axes, ticks, legend swatches, markers and the cursor are drawn per frame as pixel-measured shapes. -->
+        <ProjectReference Include="..\Stride.CommunityToolkit.Shapes\Stride.CommunityToolkit.Shapes.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The line and area mesh builders are internal; their point arithmetic is pure and unit tested. -->
+        <InternalsVisibleTo Include="Stride.CommunityToolkit.Tests" />
+    </ItemGroup>
+
+</Project>

@@ -1,4 +1,5 @@
 using Stride.CommunityToolkit.Renderers;
+using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Games;
 using Stride.Graphics;
@@ -42,6 +43,7 @@ public sealed class DebugOverlay : GameSystemBase
     private Texture? _background;
     private InputManager? _input;
     private IGraphicsDeviceService? _graphicsDeviceService;
+    private DisplayScale? _displayScale;
 
     /// <summary>
     /// Gets or sets a font to draw with, overriding <see cref="FontName"/>. <see langword="null"/>, the default, uses the system font named by <see cref="FontName"/>.
@@ -90,12 +92,25 @@ public sealed class DebugOverlay : GameSystemBase
     public Vector2 BackgroundPadding { get; set; } = new(3f, 1f);
 
     /// <summary>
-    /// Gets or sets how much the whole overlay is enlarged: text, line spacing, margins and padding. <c>1</c> is the size of Stride's debug text, which is small on a high-DPI display; <c>2</c> doubles everything. Any positive value works, since the font is rasterised at the resulting size rather than stretched. Values below a small minimum are treated as that minimum.
+    /// Gets or sets how much the whole overlay is enlarged on top of the display's own scale: text, line spacing, margins and padding. <c>1</c>, the default, is the size of Stride's debug text on a 100% display; <c>2</c> doubles everything. Any positive value works, since the font is rasterised at the resulting size rather than stretched. Values below a small minimum are treated as that minimum.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <see cref="FontSize"/>, <see cref="LineHeight"/>, <see cref="Margin"/>, <see cref="CustomPosition"/> and <see cref="BackgroundPadding"/> are in unscaled pixels and are multiplied by this, so the block keeps its corner and its layout at any scale.
+    /// </para>
+    /// <para>
+    /// This multiplies the <see cref="DisplayScale"/> while <see cref="AutoScale"/> is on, so it is a preference - "a bit bigger" - rather than a DPI figure. To pin the overlay to an exact size regardless of the display, turn <see cref="AutoScale"/> off.
+    /// </para>
     /// </remarks>
     public float Scale { get; set; } = 1f;
+
+    /// <summary>
+    /// Gets or sets whether the overlay follows the display's scale, so it is the same size to the eye on a 150% laptop as on a 100% monitor. Defaults to <see langword="true"/>.
+    /// </summary>
+    /// <remarks>
+    /// A debug overlay that is unreadable on first launch is a bug in the tool, so this is on by default; <see cref="Scale"/> stays yours on top of it. The figure comes from <see cref="DisplayScale"/>, which is shared with everything else that draws in pixels and is re-read when the window moves to another monitor. Turn it off to draw at exactly <see cref="Scale"/> - for a screenshot at a known size, or when the game applies its own UI-scale setting through <see cref="DisplayScale.Override"/> and nothing else should compound it.
+    /// </remarks>
+    public bool AutoScale { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the colour of lines that do not specify one. Defaults to <see cref="Color.LightGreen"/>, the same as Stride's own debug text.
@@ -386,8 +401,16 @@ public sealed class DebugOverlay : GameSystemBase
         base.Destroy();
     }
 
-    /// <summary><see cref="Scale"/> with nonsense values clamped away.</summary>
-    private float EffectiveScale => Math.Max(0.25f, Scale);
+    /// <summary><see cref="Scale"/> times the display's scale when <see cref="AutoScale"/> is on, with nonsense values clamped away.</summary>
+    private float EffectiveScale
+    {
+        get
+        {
+            var display = AutoScale && Game is { } game ? (_displayScale ??= DisplayScale.GetOrCreate(game)).Value : 1f;
+
+            return Math.Max(0.25f, Scale * display);
+        }
+    }
 
     private List<TextElement> CollectLines()
     {

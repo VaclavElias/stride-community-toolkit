@@ -29,28 +29,116 @@ public static class GraphicsCompositorExtensions
                 .Aggregate((mask, next) => mask | next) & ~RenderGroupMask.Group31;
 
     /// <summary>
-    /// Adds a UI render stage and white/clean text effect to the given <see cref="GraphicsCompositor"/>.
+    /// Adds a UI render stage to the given <see cref="GraphicsCompositor"/> and resets its post effects to
+    /// tone mapping only, so UI text and shapes come out clean and white rather than bloomed or blurred.
     /// This alters the GraphicsCompositor's <see cref="PostProcessingEffects"/>, <see cref="RenderStage"/>, and <see cref="RenderFeature"/>.
     /// </summary>
     /// <param name="graphicsCompositor">The GraphicsCompositor to modify.</param>
     /// <returns>Returns the modified GraphicsCompositor instance, allowing for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// "Reset" means what <see cref="GraphicsCompositorHelper.CreateDefault"/> produces: a
+    /// <see cref="PostProcessingEffects"/> with every effect disabled except the colour transforms, which
+    /// hold a <see cref="ToneMap"/>. A bare <c>new PostProcessingEffects()</c> is not that - it ships with
+    /// bloom, ambient occlusion, screen-space reflections, light streaks, lens flare and FXAA
+    /// <em>enabled</em>, which is what this method used to install by accident. Enable effects after this
+    /// call, not before it.
+    /// </para>
+    /// <para>
+    /// Renderers already hanging off the compositor (see <see cref="AddSceneRenderer"/>) are kept; the UI
+    /// stage is drawn last, after them.
+    /// </para>
+    /// </remarks>
     public static GraphicsCompositor AddCleanUIStage(this GraphicsCompositor graphicsCompositor)
     {
-        AddPostEffects(graphicsCompositor);
+        ResetPostEffects(graphicsCompositor);
         AddRenderStagesAndFeatures(graphicsCompositor);
 
         return graphicsCompositor;
     }
 
     /// <summary>
-    /// Adds a UI render stage and white/clean text effect to the given <see cref="GraphicsCompositor"/>.
-    /// This alters the GraphicsCompositor's <see cref="PostProcessingEffects"/>, <see cref="RenderStage"/>, and <see cref="RenderFeature"/>.
+    /// Adds a UI render stage to the given <see cref="GraphicsCompositor"/>, leaving its post effects as they are.
+    /// This alters the GraphicsCompositor's <see cref="RenderStage"/> and <see cref="RenderFeature"/>.
     /// </summary>
     /// <param name="graphicsCompositor">The GraphicsCompositor to modify.</param>
     /// <returns>Returns the modified GraphicsCompositor instance, allowing for method chaining.</returns>
+    /// <remarks>
+    /// Renderers already hanging off the compositor (see <see cref="AddSceneRenderer"/>) are kept; the UI
+    /// stage is drawn last, after them.
+    /// </remarks>
     public static GraphicsCompositor AddUIStage(this GraphicsCompositor graphicsCompositor)
     {
         AddRenderStagesAndFeatures(graphicsCompositor);
+
+        return graphicsCompositor;
+    }
+
+    /// <summary>
+    /// The compositor's post effects, or <see langword="null"/> when it has none.
+    /// </summary>
+    /// <param name="graphicsCompositor">The compositor to look in.</param>
+    /// <returns>
+    /// The <see cref="PostProcessingEffects"/> on the compositor's forward renderer, or <see langword="null"/>
+    /// when the single view is not a <see cref="ForwardRenderer"/>, has no post effects, or has post effects
+    /// of some other type.
+    /// </returns>
+    /// <remarks>
+    /// Two casts stand between a compositor and its post effects - <see cref="GraphicsCompositor.SingleView"/>
+    /// is an <c>ISceneRenderer</c> and <see cref="ForwardRenderer.PostEffects"/> an <c>IPostProcessingEffects</c> -
+    /// and every example that wanted to touch bloom at runtime wrote them out by hand. This is that, once.
+    /// The 2D compositor from <c>Add2DGraphicsCompositor</c> has no post effects, so it returns
+    /// <see langword="null"/>.
+    /// </remarks>
+    public static PostProcessingEffects? GetPostEffects(this GraphicsCompositor graphicsCompositor)
+    {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+
+        return graphicsCompositor.SingleView is ForwardRenderer { PostEffects: PostProcessingEffects effects } ? effects : null;
+    }
+
+    /// <summary>
+    /// Runs <paramref name="configure"/> against the compositor's post effects - the place to switch on
+    /// bloom, fog, ambient occlusion and the rest, all of which start disabled.
+    /// </summary>
+    /// <param name="graphicsCompositor">The compositor to configure.</param>
+    /// <param name="configure">Receives the live <see cref="PostProcessingEffects"/>; set <c>Enabled</c> and tune as needed.</param>
+    /// <returns>The compositor, for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// The default compositor ships every effect switched off and only a <see cref="ToneMap"/> in the
+    /// colour transforms, so enabling is always explicit: <c>fx.Bloom.Enabled = true</c>. Colour transforms
+    /// other than tone mapping - <see cref="Vignetting"/>, <c>FilmGrain</c>, <c>Dither</c> - are not present
+    /// at all and must be added: <c>fx.ColorTransforms.Transforms.Add(new Vignetting())</c>.
+    /// </para>
+    /// <para>
+    /// Call this after <see cref="AddCleanUIStage"/>, which resets the post effects to tone mapping only;
+    /// anything enabled before it is lost.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> or <paramref name="configure"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The compositor has no post effects to configure.</exception>
+    /// <example>
+    /// <code>
+    /// game.AddGraphicsCompositor()
+    ///     .AddCleanUIStage()
+    ///     .ConfigurePostEffects(fx =>
+    ///     {
+    ///         fx.Bloom.Enabled = true;
+    ///         fx.Fog.Enabled = true;
+    ///         fx.ColorTransforms.Transforms.Add(new Vignetting());
+    ///     });
+    /// </code>
+    /// </example>
+    public static GraphicsCompositor ConfigurePostEffects(this GraphicsCompositor graphicsCompositor, Action<PostProcessingEffects> configure)
+    {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var effects = graphicsCompositor.GetPostEffects()
+            ?? throw new InvalidOperationException("The graphics compositor has no post effects to configure. AddGraphicsCompositor() creates them; the 2D compositor has none.");
+
+        configure(effects);
 
         return graphicsCompositor;
     }
@@ -188,15 +276,27 @@ public static class GraphicsCompositorExtensions
         });
     }
 
-    private static void AddPostEffects(GraphicsCompositor graphicsCompositor)
+    /// <summary>
+    /// Tone mapping only, the same way <see cref="GraphicsCompositorHelper.CreateDefault"/> builds it.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="PostProcessingEffects.DisableAll"/> is the whole point: the constructor enables bloom,
+    /// ambient occlusion, screen-space reflections, light streaks, lens flare and FXAA, and only turning
+    /// them off one by one - or all at once - yields the "nothing but tone mapping" that the name promises.
+    /// </remarks>
+    private static void ResetPostEffects(GraphicsCompositor graphicsCompositor)
     {
         var forwardRenderer = (ForwardRenderer)graphicsCompositor.SingleView;
 
-        forwardRenderer.PostEffects = new PostProcessingEffects
+        var postEffects = new PostProcessingEffects
         {
-            DepthOfField = { Enabled = false },
             ColorTransforms = { Transforms = { new ToneMap() } }
         };
+
+        postEffects.DisableAll();
+        postEffects.ColorTransforms.Enabled = true;
+
+        forwardRenderer.PostEffects = postEffects;
     }
 
     private static void AddRenderStagesAndFeatures(GraphicsCompositor graphicsCompositor)
@@ -226,21 +326,48 @@ public static class GraphicsCompositorExtensions
         UpdateSceneRendererCollection(graphicsCompositor, cameraSlot, uiStage);
     }
 
+    /// <summary>
+    /// Rebuilds the compositor's top-level renderer as: the main view (everything but the UI group),
+    /// then whatever other renderers were already attached, then the UI stage.
+    /// </summary>
+    /// <remarks>
+    /// The main view is recreated rather than reused because its render mask changes here - it must
+    /// stop drawing the UI group that the second renderer now owns. Anything else the caller attached
+    /// before this call - a text renderer, a debug renderer - used to be thrown away with the old
+    /// collection; it is carried over so that the order in which helpers are called stops mattering.
+    /// </remarks>
     private static void UpdateSceneRendererCollection(GraphicsCompositor graphicsCompositor, SceneCameraSlot cameraSlot, RenderStage uiStage)
     {
-        graphicsCompositor.Game = new SceneRendererCollection {
-                new SceneCameraRenderer
-                {
-                    Child = graphicsCompositor.SingleView,
-                    Camera = cameraSlot,
-                    RenderMask = RenderGroupMaskAllExcludingGroup31()
-                },
-                new SceneCameraRenderer
-                {
-                    Camera = cameraSlot,
-                    Child = new SingleStageRenderer { RenderStage = uiStage },
-                    RenderMask = RenderGroupMask.Group31
-                }
-            };
+        var singleView = graphicsCompositor.SingleView;
+
+        var collection = new SceneRendererCollection
+        {
+            new SceneCameraRenderer
+            {
+                Child = singleView,
+                Camera = cameraSlot,
+                RenderMask = RenderGroupMaskAllExcludingGroup31()
+            }
+        };
+
+        if (graphicsCompositor.Game is SceneRendererCollection existing)
+        {
+            foreach (var child in existing.Children)
+            {
+                if (child is SceneCameraRenderer { Child: var viewed } && ReferenceEquals(viewed, singleView))
+                    continue; // the old main view; replaced above with the narrower mask
+
+                collection.Children.Add(child);
+            }
+        }
+
+        collection.Children.Add(new SceneCameraRenderer
+        {
+            Camera = cameraSlot,
+            Child = new SingleStageRenderer { RenderStage = uiStage },
+            RenderMask = RenderGroupMask.Group31
+        });
+
+        graphicsCompositor.Game = collection;
     }
 }

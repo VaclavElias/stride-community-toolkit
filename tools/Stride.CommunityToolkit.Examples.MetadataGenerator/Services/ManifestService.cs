@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Stride.CommunityToolkit.Examples.MetadataGenerator.Core;
+using System.Collections.Immutable;
 
 namespace Stride.CommunityToolkit.Examples.MetadataGenerator.Services;
 
@@ -54,7 +55,7 @@ public class ManifestService(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var projectName = exampleScanner.GetProjectName(exampleFile);
+            var projectName = ExampleScanner.GetProjectName(exampleFile);
 
             try
             {
@@ -139,7 +140,7 @@ public class ManifestService(
             logger.LogInformation("Excluded {Count} example(s) marked enabled: false", disabled.Count);
         }
 
-        var messages = metadataValidator.Validate(published, mediaDirectory, exampleScanner.FindProjectNames(examplesRootPath), disabled);
+        var messages = metadataValidator.Validate(published, mediaDirectory, ExampleScanner.FindProjectNames(examplesRootPath), disabled);
         var errorCount = ReportValidation(messages) + scan.Failures;
 
         if (errorCount > 0 && strict)
@@ -205,7 +206,7 @@ public class ManifestService(
             .OfType<string>()
             .ToHashSet(StringComparer.Ordinal);
 
-        var messages = metadataValidator.Validate(published, mediaDirectory, exampleScanner.FindProjectNames(examplesRootPath), disabled);
+        var messages = metadataValidator.Validate(published, mediaDirectory, ExampleScanner.FindProjectNames(examplesRootPath), disabled);
         var errorCount = ReportValidation(messages) + scan.Failures;
 
         if (errorCount > 0)
@@ -264,14 +265,14 @@ public class ManifestService(
     /// <summary>
     /// Gets the position of a value in a vocabulary, sorting anything unrecognised last.
     /// </summary>
-    private static int IndexIn(string[] vocabulary, string? value)
+    private static int IndexIn(ImmutableArray<string> vocabulary, string? value)
     {
         if (value is null)
         {
             return vocabulary.Length;
         }
 
-        var index = Array.IndexOf(vocabulary, value);
+        var index = vocabulary.IndexOf(value);
 
         return index < 0 ? vocabulary.Length : index;
     }

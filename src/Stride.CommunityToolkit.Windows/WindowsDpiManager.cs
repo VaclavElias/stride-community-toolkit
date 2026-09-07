@@ -3,8 +3,23 @@ using System.Diagnostics;
 namespace Stride.CommunityToolkit.Windows;
 
 /// <summary>
-/// Provides Windows DPI awareness configuration and diagnostic capabilities.
+/// Declares the process DPI aware from code, and reports whether it is - the two things about DPI
+/// that are Windows-only.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Windows stretches the window of a process that has not declared itself DPI aware, which on a
+/// 150% display means a blurred, upscaled image. The declaration usually lives in an
+/// <c>app.manifest</c> referenced from the project, as Stride's templates do;
+/// <see cref="EnablePerMonitorV2"/> is the same declaration made from code, for file-based apps and
+/// anything else with no project file to hold a manifest. Either way it has to happen before the
+/// window exists.
+/// </para>
+/// <para>
+/// Reading the display's scale is not Windows-only and does not live here: see
+/// <c>DisplayScale</c> in the core package, which the debug overlay follows by default.
+/// </para>
+/// </remarks>
 public static class WindowsDpiManager
 {
     private static readonly IntPtr DpiAwarenessContextPerMonitorAwareV2 = new(-4);
@@ -30,27 +45,50 @@ public static class WindowsDpiManager
         PerMonitor = 2
     }
 
-    private const int MDT_EFFECTIVE_DPI = 0;
-
     /// <summary>
     /// Enables Per-Monitor-V2 DPI awareness for the current process (Windows 10+). Falls back to Per-Monitor if V2 is unavailable.
     /// This method is a best-effort call and does not throw on unsupported platforms or failures.
     /// </summary>
+    /// <remarks>
+    /// Call it before the game is created - Windows refuses the change once the process has a window.
+    /// It is also refused, harmlessly, when an <c>app.manifest</c> has already made the declaration,
+    /// so a project can have both. Off Windows it does nothing: there is nothing to declare there.
+    /// </remarks>
     public static void EnablePerMonitorV2()
     {
         if (!OperatingSystem.IsWindows()) return;
+
+        // Per-Monitor-V2 is the Windows 10 API and the one worth having. Where it is unavailable the
+        // older per-monitor call is still better than leaving the process DPI-unaware.
+        if (TrySetPerMonitorV2Context()) return;
+
+        FallBackToPerMonitorAwareness();
+    }
+
+    /// <summary>
+    /// Asks for Per-Monitor-V2 awareness through the Windows 10 context API.
+    /// </summary>
+    /// <returns><c>true</c> when the process is now Per-Monitor-V2 aware.</returns>
+    private static bool TrySetPerMonitorV2Context()
+    {
         try
         {
-            if (NativeMethods.SetProcessDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2))
-                return;
+            return NativeMethods.SetProcessDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2);
         }
         catch (Exception ex)
         {
 #if DEBUG
             Debug.WriteLine($"WindowsDpiManager.EnablePerMonitorV2 primary attempt failed: {ex.Message}");
 #endif
+            return false;
         }
+    }
 
+    /// <summary>
+    /// Falls back to the older per-monitor awareness call, for Windows versions without the context API.
+    /// </summary>
+    private static void FallBackToPerMonitorAwareness()
+    {
         try
         {
             // 0=Unaware, 1=System, 2=PerMonitor. Returns an HRESULT; E_ACCESSDENIED (0x80070005) means the
@@ -72,52 +110,8 @@ public static class WindowsDpiManager
     }
 
     /// <summary>
-    /// Attempts to retrieve DPI for the specified window (or primary monitor if <paramref name="hwnd"/> is zero).
-    /// </summary>
-    /// <param name="hwnd">Window handle or <see cref="IntPtr.Zero"/> for primary monitor.</param>
-    /// <param name="dpiX">Horizontal DPI when successful.</param>
-    /// <param name="dpiY">Vertical DPI when successful.</param>
-    /// <returns><c>true</c> if DPI could be retrieved (including fallback), otherwise <c>false</c>.</returns>
-    public static bool TryGetDpi(IntPtr hwnd, out uint dpiX, out uint dpiY)
-    {
-        dpiX = dpiY = 0;
-        if (!OperatingSystem.IsWindows()) return false;
-
-        var info = hwnd == IntPtr.Zero ? InternalGetPrimaryDpi() : InternalGetWindowDpi(hwnd);
-        if (info is null) return false;
-        dpiX = info.Value.DpiX;
-        dpiY = info.Value.DpiY;
-        return true;
-    }
-
-    /// <summary>
-    /// Gets DPI information for the monitor containing the specified window.
-    /// </summary>
-    /// <param name="windowHandle">A window handle.</param>
-    /// <returns>DpiInfo if resolvable; otherwise <c>null</c>.</returns>
-    public static DpiInfo? GetWindowDpi(IntPtr windowHandle) => !OperatingSystem.IsWindows() || windowHandle == IntPtr.Zero ? null : InternalGetWindowDpi(windowHandle);
-
-    /// <summary>
-    /// Gets DPI information for the primary monitor.
-    /// </summary>
-    /// <returns>DpiInfo if resolvable; otherwise <c>null</c>.</returns>
-    public static DpiInfo? GetPrimaryDpi() => !OperatingSystem.IsWindows() ? null : InternalGetPrimaryDpi();
-
-    /// <summary>
-    /// Gets the scale factor (1.0 = 96 DPI) for the monitor containing the specified window.
-    /// </summary>
-    /// <param name="windowHandle">A window handle.</param>
-    /// <returns>Scale value or <c>null</c> if DPI unavailable.</returns>
-    public static float? GetWindowScale(IntPtr windowHandle) => GetWindowDpi(windowHandle)?.Scale;
-
-    /// <summary>
-    /// Gets the scale factor (1.0 = 96 DPI) for the primary monitor.
-    /// </summary>
-    /// <returns>Scale value or <c>null</c> if DPI unavailable.</returns>
-    public static float? GetPrimaryScale() => GetPrimaryDpi()?.Scale;
-
-    /// <summary>
-    /// Gets the current process DPI awareness level.
+    /// Gets the current process DPI awareness level - the way to check that a manifest or
+    /// <see cref="EnablePerMonitorV2"/> actually took effect.
     /// </summary>
     /// <returns>The current <see cref="ProcessDpiAwareness"/> value when available; otherwise <c>null</c>.
     /// </returns>
@@ -148,11 +142,10 @@ public static class WindowsDpiManager
     }
 
     /// <summary>
-    /// Logs DPI related information to the console. When a window handle is supplied, logs its monitor DPI; otherwise logs primary monitor DPI.
+    /// Logs the process DPI awareness to the console, for checking that the declaration took.
     /// </summary>
     /// <param name="prefix">Optional message prefix.</param>
-    /// <param name="windowHandle">Optional window handle.</param>
-    public static void LogDpiInfo(string prefix = "", IntPtr windowHandle = default)
+    public static void LogDpiInfo(string prefix = "")
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -160,66 +153,8 @@ public static class WindowsDpiManager
             return;
         }
 
-        try
-        {
-            var dpi = windowHandle == IntPtr.Zero ? GetPrimaryDpi() : GetWindowDpi(windowHandle);
-            if (dpi is null)
-            {
-                Console.WriteLine($"{prefix}DPI: unavailable");
-            }
-            else
-            {
-                Console.WriteLine($"{prefix}DPI: {dpi.Value}");
-            }
+        var awareness = GetProcessDpiAwareness();
 
-            var procAwareness = GetProcessDpiAwareness();
-            Console.WriteLine($"{prefix}Process DPI awareness: {procAwareness?.ToString() ?? "Unknown"}");
-        }
-        catch (Exception ex)
-        {
-#if DEBUG
-            Debug.WriteLine($"WindowsDpiManager.LogDpiInfo exception: {ex.Message}");
-#endif
-            Console.WriteLine($"{prefix}DPI diagnostics exception: {ex.Message}");
-        }
-    }
-
-    private static DpiInfo? InternalGetPrimaryDpi()
-    {
-        try
-        {
-            var hMon = NativeMethods.MonitorFromPoint(new NativeMethods.POINT(0, 0), 2 /*MONITOR_DEFAULTTOPRIMARY*/);
-            if (hMon == IntPtr.Zero) return null;
-            if (NativeMethods.GetDpiForMonitor(hMon, MDT_EFFECTIVE_DPI, out uint dx, out uint dy) == 0)
-                return new DpiInfo(dx, dy, false);
-        }
-        catch (Exception ex)
-        {
-#if DEBUG
-            Debug.WriteLine($"WindowsDpiManager.InternalGetPrimaryDpi failed: {ex.Message}");
-#endif
-        }
-        // Fallback to GDI desktop DPI if possible (still flagged as fallback)
-        var gdi = GraphicsDeviceContext.GetDesktopDpi();
-        return gdi is null ? null : new DpiInfo(gdi.Value.dpiX, gdi.Value.dpiY, true);
-    }
-
-    private static DpiInfo? InternalGetWindowDpi(IntPtr windowHandle)
-    {
-        try
-        {
-            var hMon = NativeMethods.MonitorFromWindow(windowHandle, 2 /*MONITOR_DEFAULTTONEAREST*/);
-            if (hMon == IntPtr.Zero) return null;
-            if (NativeMethods.GetDpiForMonitor(hMon, MDT_EFFECTIVE_DPI, out uint dx, out uint dy) == 0)
-                return new DpiInfo(dx, dy, false);
-        }
-        catch (Exception ex)
-        {
-#if DEBUG
-            Debug.WriteLine($"WindowsDpiManager.InternalGetWindowDpi failed: {ex.Message}");
-#endif
-        }
-        var gdi = GraphicsDeviceContext.GetDesktopDpi();
-        return gdi is null ? null : new DpiInfo(gdi.Value.dpiX, gdi.Value.dpiY, true);
+        Console.WriteLine($"{prefix}Process DPI awareness: {awareness?.ToString() ?? "Unknown"}");
     }
 }

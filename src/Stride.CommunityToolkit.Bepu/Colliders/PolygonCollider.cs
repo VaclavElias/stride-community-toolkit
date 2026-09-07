@@ -34,6 +34,8 @@ public static class PolygonCollider
         var vertexCount = vertices2D.Length;
         var halfDepth = depth / 2f;
 
+        // The prism as an explicit triangle mesh: the polygon at +halfDepth first, the same polygon
+        // at -halfDepth second, so index i and i+vertexCount are the two ends of one side edge.
         var points = new Vector3[vertexCount * 2];
         for (var i = 0; i < vertexCount; i++)
         {
@@ -43,6 +45,7 @@ public static class PolygonCollider
 
         var indexList = new List<uint>();
 
+        // Front cap: a triangle fan from vertex 0, wound so it faces +Z.
         for (var i = 1; i < vertexCount - 1; i++)
         {
             indexList.Add(0);
@@ -50,6 +53,7 @@ public static class PolygonCollider
             indexList.Add((uint)(i + 1));
         }
 
+        // Back cap: the same fan with the last two indices swapped, so it faces -Z instead.
         var backBase = (uint)vertexCount;
         for (var i = 1; i < vertexCount - 1; i++)
         {
@@ -58,6 +62,8 @@ public static class PolygonCollider
             indexList.Add((uint)(backBase + i));
         }
 
+        // Sides: one quad per edge, as two triangles. The modulo closes the loop from the last
+        // vertex back to the first.
         for (var i = 0; i < vertexCount; i++)
         {
             var firstFrontIndex = (uint)i;
@@ -73,6 +79,7 @@ public static class PolygonCollider
             indexList.Add(firstBackIndex);
         }
 
+        // Bepu computes the actual hull from these points; the triangles are what it decomposes.
         return new ConvexHullCollider
         {
             Hull = new DecomposedHulls(

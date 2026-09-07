@@ -41,7 +41,7 @@ it is easy to pay it for nothing.
 Consider a match-3 style game where every cube needs a colour. Two ways to store it:
 
 ```csharp
-// As a data component - what Cubicle Calamity actually does
+// As a data component - what Cube Collapse actually does
 public class CubeComponent : EntityComponent
 {
     public Color Color { get; set; }
@@ -71,7 +71,7 @@ cannot exist.
 Finally, a typed component is **identity you can query**. "Is this a playable cube?" is answered by
 `entity.Get<CubeComponent>() is not null` - the compiler checks it, a rename refactors it. The
 string alternative (`entity.Name == "Cube"`) matches nothing, silently, the day someone renames the
-entity. Cubicle Calamity even exploits this deliberately: its decorative reference cube uses the
+entity. Cube Collapse even exploits this deliberately: its decorative reference cube uses the
 same mesh as the playable ones but carries no `CubeComponent`, so the raycast and the colour
 matching pass straight over it.
 
@@ -121,7 +121,7 @@ around - but this repository learned, measurably, why deriving from `BodyCompone
 4. **One component, whole concept.** `entity.Get<SlidingCubeComponent>()` returns the body *and*
    the game meaning in one query - nothing can exist half-configured.
 
-Both live examples are in Cubicle Calamity: `SlidingCubeComponent` (pins a cube to its column and
+Both live examples are in Cube Collapse: `SlidingCubeComponent` (pins a cube to its column and
 locks its rotation) and `SlowFallComponent` (a letter that falls under a fraction of gravity):
 
 ```csharp
@@ -193,7 +193,7 @@ count grows or when membership bookkeeping starts leaking.
 
 ## See it all in one example
 
-`examples/code-only/Example_CubicleCalamity` uses every rung of the ladder, each where it belongs:
+`examples/code-only/E20_3D_CubeCollapse` uses every rung of the ladder, each where it belongs:
 
 | Piece | Kind | Why |
 |---|---|---|

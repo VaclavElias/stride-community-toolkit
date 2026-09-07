@@ -23,6 +23,6 @@ The `Program.cs` file shows how to:
 
 ![ImGui.NET Text Rendering](media/imgui-net.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example11_ImGuiNet).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_ImGuiNet).
 
-[!code-csharp[](../../../../examples/code-only/Example11_ImGuiNet/Program.cs?start=1&end=238)]
+[!code-csharp[](../../../../examples/code-only/E04_ImGuiNet/Program.cs?start=1&end=212)]

@@ -20,9 +20,7 @@ var groundSize = new Vector3(20, 0.5f, 20);
 int cubes = 0;
 int debugX = 5;
 int debugY = 30;
-var bgImage = "JumpyJetBackground.jpg";
 
-Model? model = null;
 //Simulation? _simulation = null;
 CameraComponent? _camera = null;
 Scene scene = new();
@@ -30,8 +28,8 @@ Scene scene = new();
 // One master for every instanced shape, created on first use by AddInstancedShapes
 BepuEntityInstancing? _instancing = null;
 //BepuConfiguration? _bepuConfig = null;
-int _simulationIndex = 0;
-float _maxDistance = 100;
+//int _simulationIndex = 0;
+//float _maxDistance = 100;
 
 List<Shape2DModel> _2DShapes = [
     new() { Type = Primitive2DModelType.Square, Color = Color.Green, Size = (Vector2)boxSize },
@@ -86,24 +84,7 @@ game.Run(start: (Action<Scene>?)((Scene rootScene) =>
     //simulation2DEntity.Scene = rootScene;
     //simulation2DEntity.AddGizmo(game.GraphicsDevice, showAxisName: true);
 
-    //AddPhysicsDebugGizmo(rootScene);
-
 }), update: Update);
-
-static void AddPhysicsDebugGizmo(Scene rootScene)
-{
-    var debugGizmoEntity = new Entity("DebugGizmo")
-    {
-        new DebugRenderComponentScript(),
-        new CollidableGizmoScript()
-        {
-            Color = new Color4(0.4f, 0.843f, 0, 0.9f),
-            Visible = false
-        }
-    };
-
-    debugGizmoEntity.Scene = rootScene;
-}
 
 void Update(Scene scene, GameTime time)
 {
@@ -236,7 +217,7 @@ void RenderNavigation()
 
 void ProcessRaycast(MouseButton mouseButton, Vector2 screenPosition)
 {
-    //if (_bepuConfig == null) return;
+    if (_camera is null) return;
 
     if (mouseButton == MouseButton.Left)
     {
@@ -382,7 +363,7 @@ void AddInstancedShapes(Primitive2DModelType type, int count)
     if (shapeModel == null) return;
 
     // Master-Instance pattern: individual physics AND a single draw call for the whole group.
-    // See Example22_Instancing_EntityTransform for the same pattern explained in isolation.
+    // See E10_3D_Instancing_EntityTransform for the same pattern explained in isolation.
 
     // Step 1: the master, created once and reused by later presses. It must carry BOTH a
     // ModelComponent and an InstancingComponent: InstancingProcessor skips a bare Entity holding

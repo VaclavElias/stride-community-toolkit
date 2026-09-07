@@ -1,5 +1,7 @@
+using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Engine;
+using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Rendering.Compositing;
@@ -31,6 +33,10 @@ public class EntityDebugSceneRenderer : SceneRendererBase
     private Texture? _backgroundTexture;
     private readonly StringBuilder _stringBuilder = new();
     private readonly EntityDebugSceneRendererOptions _options;
+    private DisplayScale? _displayScale;
+
+    // The display's scale for this frame, applied to every pixel figure in the options
+    private float _display = 1f;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EntityDebugSceneRenderer"/> class with default rendering options.
@@ -51,6 +57,12 @@ public class EntityDebugSceneRenderer : SceneRendererBase
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _font = Content.Load<SpriteFont>(RendererDefaults.DefaultFontPath);
         _backgroundTexture = ScreenTextDrawer.CreateBackgroundTexture(GraphicsDevice);
+
+        // Absent outside a game, which leaves every size at exactly the pixels asked for
+        if (Services.GetService<IGame>() is { } game)
+        {
+            _displayScale = DisplayScale.GetOrCreate(game);
+        }
     }
 
     /// <inheritdoc />
@@ -74,6 +86,8 @@ public class EntityDebugSceneRenderer : SceneRendererBase
 
         var viewProjection = camera.ViewProjectionMatrix;
         var cameraPosition = camera.Entity?.Transform.WorldMatrix.TranslationVector ?? Vector3.Zero;
+
+        _display = _options.AutoScale && _displayScale is not null ? _displayScale.Value : 1f;
 
         _spriteBatch.Begin(drawContext.GraphicsContext,
             sortMode: SpriteSortMode.Deferred,
@@ -123,7 +137,7 @@ public class EntityDebugSceneRenderer : SceneRendererBase
             return;
         }
 
-        var position = screenPosition + _options.Offset;
+        var position = screenPosition + _options.Offset * _display;
 
         // With a separate colour the two parts have to be drawn separately, so they are stacked
         // instead of chained along one line - see EntityDebugSceneRendererOptions.PositionColor
@@ -134,7 +148,7 @@ public class EntityDebugSceneRenderer : SceneRendererBase
 
             if (!string.IsNullOrEmpty(name))
             {
-                nameSize = _spriteBatch!.MeasureString(_font, name, _options.FontSize);
+                nameSize = Measure(name);
 
                 Draw(name, position, nameSize, _options.FontColor);
             }
@@ -153,7 +167,7 @@ public class EntityDebugSceneRenderer : SceneRendererBase
         Draw(text, position, Measure(text), _options.FontColor);
     }
 
-    private Vector2 Measure(string text) => _spriteBatch!.MeasureString(_font, text, _options.FontSize);
+    private Vector2 Measure(string text) => _spriteBatch!.MeasureString(_font, text, _options.FontSize * _display);
 
     /// <summary>
     /// Draws one line of debug text through the shared drawer.
@@ -169,7 +183,8 @@ public class EntityDebugSceneRenderer : SceneRendererBase
         var style = new ScreenTextStyle
         {
             Font = _font!,
-            FontSize = _options.FontSize,
+            // Rasterised at the scaled size rather than drawn scaled, so the glyphs stay sharp
+            FontSize = _options.FontSize * _display,
             Color = color,
             Anchor = _options.Anchor,
             Alignment = TextAlignment.Left,
@@ -179,10 +194,10 @@ public class EntityDebugSceneRenderer : SceneRendererBase
             LayerDepth = 0f,
             EnableShadow = _options.EnableShadow,
             ShadowColor = _options.ShadowColor,
-            ShadowOffset = _options.ShadowOffset,
+            ShadowOffset = _options.ShadowOffset * _display,
             EnableBackground = _options.EnableBackground,
             BackgroundColor = _options.BackgroundColor ?? RendererDefaults.DefaultDebugBackground,
-            Padding = _options.Padding,
+            Padding = _options.Padding * _display,
         };
 
         ScreenTextDrawer.Draw(_spriteBatch!, _backgroundTexture, text, position, textSize, style);

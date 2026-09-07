@@ -11,8 +11,8 @@ When the game starts, it automatically loads the click data and cube positions f
 
 ![Stride UI Example](media/stride-ui-cube-clicker.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example07_CubeClicker).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_CubeClicker).
 
 To explore the entire project, follow the link above. Below is the `Program.cs` file from the project for a quick overview.
 
-[!code-csharp[](../../../../examples/code-only/Example07_CubeClicker/Program.cs?start=1&end=47)]
+[!code-csharp[](../../../../examples/code-only/E04_CubeClicker/Program.cs?start=1&end=47)]

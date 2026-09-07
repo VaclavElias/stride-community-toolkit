@@ -345,7 +345,8 @@ public static class ModelComponentExtensions
 
     private static unsafe (List<Vector3> vertices, List<int> indices) GetMeshData(Model model, IGame game)
     {
-
+        // Counted first so both lists are allocated once at the right size; a model with many meshes
+        // would otherwise regrow them repeatedly while copying.
         int totalVertices = 0, totalIndices = 0;
         foreach (var meshData in model.Meshes)
         {
@@ -360,6 +361,8 @@ public static class ModelComponentExtensions
         {
             var vBuffer = meshData.Draw.VertexBuffers[0].Buffer;
             var iBuffer = meshData.Draw.IndexBuffer.Buffer;
+            // Reads the buffers back from the GPU. Only the first vertex buffer is considered, which
+            // covers the procedural and imported models the toolkit creates.
             byte[] verticesBytes = vBuffer.GetData<byte>(game.GraphicsContext.CommandList);
             byte[] indicesBytes = iBuffer.GetData<byte>(game.GraphicsContext.CommandList);
 
@@ -369,6 +372,8 @@ public static class ModelComponentExtensions
                 return (combinedVertices, combinedIndices);
             }
 
+            // Meshes are concatenated into one list, so every index of this mesh shifts by the number
+            // of vertices already collected.
             int vertMappingStart = combinedVertices.Count;
 
             fixed (byte* bytePtr = verticesBytes)
@@ -378,6 +383,8 @@ public static class ModelComponentExtensions
                 int stride = vBindings.Declaration.VertexStride;
                 for (int i = 0, vHead = vBindings.Offset; i < count; i++, vHead += stride)
                 {
+                    // Position is the first element of every Stride vertex declaration, so the start
+                    // of each stride-sized block is the Vector3 wanted here.
                     var pos = *(Vector3*)(bytePtr + vHead);
 
                     combinedVertices.Add(pos);
@@ -386,6 +393,8 @@ public static class ModelComponentExtensions
 
             fixed (byte* bytePtr = indicesBytes)
             {
+                // Stride narrows index buffers to 16 bits when a mesh has few enough vertices, so both
+                // widths have to be handled.
                 if (meshData.Draw.IndexBuffer.Is32Bit)
                 {
                     foreach (int i in new Span<int>(bytePtr + meshData.Draw.IndexBuffer.Offset, meshData.Draw.IndexBuffer.Count))

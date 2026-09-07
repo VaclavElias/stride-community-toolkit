@@ -460,8 +460,10 @@ public class ImGuiSystem : GameSystemBase
                     )
                 );
 
-                // Set the projection matrix and apply shader
+                // Set the projection matrix and apply shader. ImGui's colours are sRGB bytes; the
+                // shader decodes them only when the device says the backbuffer is sRGB (the default).
                 imShader.Parameters.Set(ImGuiShaderKeys.proj, ref projMatrix);
+                imShader.Parameters.Set(ImGuiShaderKeys.LinearOutput, device.ColorSpace == ColorSpace.Linear ? 1u : 0u);
                 imShader.Apply(context);
 
                 // Draw the indexed vertices

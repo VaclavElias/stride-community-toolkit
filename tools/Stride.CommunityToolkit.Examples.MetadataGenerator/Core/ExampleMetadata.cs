@@ -117,7 +117,7 @@ public class ExampleMetadata
 
     // --- populated by the generator ---------------------------------------
 
-    /// <summary>Gets or sets the project directory name, for example <c>Example13_MeshOutline</c>.</summary>
+    /// <summary>Gets or sets the project directory name, for example <c>E09_3D_MeshOutline</c>.</summary>
     [YamlIgnore]
     public string? ProjectName { get; set; }
 

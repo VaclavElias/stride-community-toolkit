@@ -153,12 +153,24 @@ internal static class ScreenTextDrawer
     internal static Texture CreateBackgroundTexture(GraphicsDevice graphicsDevice)
         => Texture.New2D(graphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, [Color.White]);
 
+    /// <summary>
+    /// The colour as the sprite batch takes it: its own alpha times the opacity, and the channels
+    /// premultiplied by the result.
+    /// </summary>
+    /// <remarks>
+    /// The premultiply is what makes alpha mean "fade". The batch is begun with
+    /// <see cref="BlendStates.AlphaBlend"/>, which is the premultiplied blend - source factor
+    /// <c>One</c> - so a colour handed over straight is added at full strength while only the
+    /// background is scaled down: text at a tenth opacity stayed at full brightness over a dark
+    /// scene, and the default half-alpha shadow drew as a solid second copy. Scaling the channels
+    /// by the alpha first turns the same blend back into the fade it reads as. The background
+    /// rectangle does not need it: its texture is opaque white, and the sprite batch premultiplies a
+    /// texture's own alpha into the tint on the way through.
+    /// </remarks>
     private static Color4 WithOpacity(Color color, float opacity)
     {
-        var result = color.ToColor4();
+        var alpha = MathUtil.Clamp(color.A / 255f * opacity, 0f, 1f);
 
-        result.A *= opacity;
-
-        return result;
+        return new Color4(color.R / 255f * alpha, color.G / 255f * alpha, color.B / 255f * alpha, alpha);
     }
 }

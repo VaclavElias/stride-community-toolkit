@@ -7,3 +7,9 @@
 # Examples log generously on purpose, and plain log calls are what they should teach; none of this
 # code is performance-sensitive.
 dotnet_diagnostic.CA1873.severity = none
+# CA1050 (declare types in namespaces) asks every type to sit in a namespace. A code-only example is
+# a single file of top-level statements, and the small helper types it needs - a record for one
+# catalogue entry, an enum for a layout mode - belong next to the code that uses them. Wrapping them
+# in a namespace block would add a nesting level to teaching code and say nothing. Library code is
+# unaffected: this file only covers examples/.
+dotnet_diagnostic.CA1050.severity = none

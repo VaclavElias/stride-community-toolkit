@@ -1,11 +1,13 @@
 using Stride.CommunityToolkit.Renderers;
 using Stride.CommunityToolkit.Rendering.Compositing;
+using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts;
 using Stride.Engine;
 using Stride.Engine.Processors;
 using Stride.Games;
 using Stride.Graphics;
+using Stride.Graphics.Font;
 using Stride.Input;
 using Stride.Rendering;
 using Stride.Rendering.Colors;
@@ -21,7 +23,7 @@ namespace Stride.CommunityToolkit.Engine;
 /// such as adding cameras, lights, and ground entities, as well as configuring scenes
 /// and running the game with custom logic.
 /// </summary>
-public static class GameExtensions
+public static partial class GameExtensions
 {
     private const string NoCameraSlotMessage = "Cannot add camera: The GraphicsCompositor does not have any camera slots defined.";
 
@@ -793,6 +795,28 @@ public static class GameExtensions
     }
 
     /// <summary>
+    /// Loads a font installed on the machine, ready to hand to any component that takes a
+    /// <see cref="SpriteFont"/>.
+    /// </summary>
+    /// <param name="game">The game whose services provide Stride's font system.</param>
+    /// <param name="family">The family name as the system knows it, such as <c>"Segoe UI"</c>.</param>
+    /// <param name="size">The height the glyphs are rasterised at, in pixels.</param>
+    /// <param name="style">The weight and slant wanted. Defaults to <see cref="FontStyle.Regular"/>.</param>
+    /// <param name="fontFile">A TrueType file to load the family from, for fonts outside the system font folders.</param>
+    /// <returns>The font, or <see langword="null"/> if the family is not installed.</returns>
+    /// <remarks>
+    /// A code-only game has no compiled font assets, so this is how it gets any font other than
+    /// Stride's default one. Load each font once and keep it - see <see cref="SystemFonts"/>, which
+    /// this forwards to and which can also try a list of families in order.
+    /// </remarks>
+    public static SpriteFont? LoadSystemFont(this Game game, string family, float size, FontStyle style = FontStyle.Regular, string? fontFile = null)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+
+        return SystemFonts.Load(game.Services, family, size, style, fontFile);
+    }
+
+    /// <summary>
     /// Adds a root render feature to the game's graphics compositor.
     /// </summary>
     /// <param name="game">The game instance to which the render feature will be added. Cannot be null.</param>
@@ -836,5 +860,86 @@ public static class GameExtensions
         }
 
         return cameraEntity;
+    }
+    /// <summary>
+    /// Creates an entity with a 3D procedural primitive model of the specified <paramref name="type"/>.
+    /// </summary>
+    /// <param name="game">The <see cref="IGame"/> instance used to access game services.</param>
+    /// <param name="type">The 3D primitive type to create.</param>
+    /// <param name="options">Optional creation parameters, including size, material, render group, entity name, and position. If <see langword="null"/>, default options are used.</param>
+    /// <returns>A new <see cref="Entity"/> with a <see cref="ModelComponent"/> containing the generated primitive model.</returns>
+    /// <remarks>
+    /// <para>The returned entity is not added to a scene automatically. Assign it to a scene before rendering.</para>
+    /// <para>If a material is specified in <paramref name="options"/>, it is added to the generated model's material collection.</para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="game"/> is <see langword="null"/>.</exception>
+    public static Entity Create3DPrimitive(this IGame game, PrimitiveModelType type, Primitive3DEntityOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+
+        options ??= new();
+
+        var modelBase = Procedural3DModelBuilder.Build(type, options.Size);
+
+        var model = modelBase.Generate(game.Services);
+
+        if (options.Material != null)
+        {
+            model.Materials.Add(options.Material);
+        }
+
+        var entity = new Entity(options.EntityName) { new ModelComponent(model) { RenderGroup = options.RenderGroup } };
+
+        if (options.Position is { } position)
+        {
+            entity.Transform.Position = position;
+        }
+
+        return entity;
+    }
+
+    /// <summary>
+    /// Creates an entity with a 2D procedural primitive model of the specified <paramref name="type"/>.
+    /// </summary>
+    /// <param name="game">The <see cref="IGame"/> instance used to access game services.</param>
+    /// <param name="type">The 2D primitive type to create.</param>
+    /// <param name="options">Optional creation parameters, including size, custom polygon vertices, depth, material, render group, entity name, and position. If <see langword="null"/>, default options are used.</param>
+    /// <returns>A new <see cref="Entity"/> with a <see cref="ModelComponent"/> containing the generated primitive model.</returns>
+    /// <remarks>
+    /// <para>The returned entity is not added to a scene automatically. Assign it to a scene before rendering.</para>
+    /// <para>If a material is specified in <paramref name="options"/>, it is added to the generated model's material collection.</para>
+    /// <para>If no size is specified for capsules or rectangles, this method applies default dimensions before building the model.</para>
+    /// <para>The <c>Depth</c> option controls the generated mesh thickness along the Z axis.</para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="game"/> is <see langword="null"/>.</exception>
+    public static Entity Create2DPrimitive(this IGame game, Primitive2DModelType type, Primitive2DEntityOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+
+        options ??= new();
+        options.Size ??= type switch
+        {
+            Primitive2DModelType.Capsule => new Vector2(0.25f, 1f),
+            Primitive2DModelType.Rectangle => new Vector2(0.5f, 1f),
+            _ => options.Size
+        };
+
+        var modelBase = Procedural2DModelBuilder.Build(type, options.Size, options.Depth, options.Vertices);
+
+        var model = modelBase.Generate(game.Services);
+
+        if (options.Material != null)
+        {
+            model.Materials.Add(options.Material);
+        }
+
+        var entity = new Entity(options.EntityName) { new ModelComponent(model) { RenderGroup = options.RenderGroup } };
+
+        if (options.Position is { } position)
+        {
+            entity.Transform.Position = position;
+        }
+
+        return entity;
     }
 }

@@ -473,5 +473,4 @@ public static partial class EntityExtensions
 
         return (entity.Get<TComponent1>(), entity.Get<TComponent2>(), entity.Get<TComponent3>(), entity.Get<TComponent4>(), entity.Get<TComponent5>(), entity.Get<TComponent6>(), entity.Get<TComponent7>(), entity.Get<TComponent8>(), entity.Get<TComponent9>(), entity.Get<TComponent10>(), entity.Get<TComponent11>(), entity.Get<TComponent12>(), entity.Get<TComponent13>(), entity.Get<TComponent14>(), entity.Get<TComponent15>(), entity.Get<TComponent16>());
     }
-
 }

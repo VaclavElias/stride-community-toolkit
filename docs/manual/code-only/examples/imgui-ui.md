@@ -10,6 +10,6 @@ This project will show how to:
 
 ![ImGui UI Example](media/stride-game-engine-example-11-imgui-ui.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example11_ImGui).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_ImGui).
 
-[!code-csharp[](../../../../examples/code-only/Example11_ImGui/Program.cs?start=1&end=34)]
+[!code-csharp[](../../../../examples/code-only/E04_ImGui/Program.cs?start=1&end=34)]

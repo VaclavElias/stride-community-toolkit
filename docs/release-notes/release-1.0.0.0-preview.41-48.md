@@ -50,7 +50,7 @@ This article lists the most significant changes in Stride Community Toolkit prev
 * feat: Root renderer example13 by @Doprez in https://github.com/stride3d/stride-community-toolkit/pull/181
 * feat: New examples added, SceneRenderer and Stride UI Drag and Drop by @VaclavElias in https://github.com/stride3d/stride-community-toolkit/pull/165
 * feat: Render Example code improvements by @VaclavElias in https://github.com/stride3d/stride-community-toolkit/pull/166
-* feat: Example09_Renderer added by @VaclavElias in https://github.com/stride3d/stride-community-toolkit/pull/161
+* feat: E09_3D_SceneRenderer added by @VaclavElias in https://github.com/stride3d/stride-community-toolkit/pull/161
 * fix: Project location corrected by @VaclavElias in https://github.com/stride3d/stride-community-toolkit/pull/162
  
 ### 🔁 Build & Deploy

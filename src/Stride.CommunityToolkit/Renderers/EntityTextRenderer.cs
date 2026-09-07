@@ -1,5 +1,7 @@
+using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Engine;
+using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Rendering.Compositing;
@@ -26,6 +28,7 @@ public class EntityTextRenderer : SceneRendererBase
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _defaultFont;
     private Texture? _backgroundTexture;
+    private DisplayScale? _displayScale;
     private readonly List<EntityTextRenderData> _drawList = [];
 
     /// <inheritdoc />
@@ -37,6 +40,13 @@ public class EntityTextRenderer : SceneRendererBase
         _defaultFont = Content.Load<SpriteFont>(RendererDefaults.DefaultFontPath);
 
         _backgroundTexture = ScreenTextDrawer.CreateBackgroundTexture(GraphicsDevice);
+
+        // The display's scale, for components whose pixel sizes follow it. Absent outside a game,
+        // which leaves every size at exactly the pixels asked for.
+        if (Services.GetService<IGame>() is { } game)
+        {
+            _displayScale = DisplayScale.GetOrCreate(game);
+        }
     }
 
     /// <inheritdoc />
@@ -111,6 +121,11 @@ public class EntityTextRenderer : SceneRendererBase
         var component = data.Component;
         var opacity = MathUtil.Clamp(component.Opacity, 0f, 1f);
 
+        // Everything the component measures in pixels is multiplied by this; a projected world
+        // position is not, because it is not a design figure but where the entity happens to be
+        var display = component.AutoScale && _displayScale is not null ? _displayScale.Value : 1f;
+        var offset = component.Offset * display;
+
         if (component.PositionMode == TextPositionMode.World)
         {
             if (!TryGetWorldScreenPosition(data, ref viewProjection, cameraPosition, screenSize, ref opacity, out var worldScreenPosition))
@@ -118,7 +133,7 @@ public class EntityTextRenderer : SceneRendererBase
                 return;
             }
 
-            DrawAt(data, worldScreenPosition + component.Offset, opacity, component.Anchor);
+            DrawAt(data, worldScreenPosition + offset, opacity, component.Anchor, display);
 
             return;
         }
@@ -128,7 +143,7 @@ public class EntityTextRenderer : SceneRendererBase
         // position, which made a fixed HUD vanish whenever its entity left the frustum.
         if (component.PositionMode == TextPositionMode.Screen)
         {
-            DrawAt(data, component.ScreenPosition + component.Offset, opacity, component.Anchor);
+            DrawAt(data, component.ScreenPosition * display + offset, opacity, component.Anchor, display);
 
             return;
         }
@@ -138,7 +153,7 @@ public class EntityTextRenderer : SceneRendererBase
         // that a HUD wants is the only one that keeps the text visible - and getting it wrong shows
         // up as text half off the edge of the window. Screen mode is there when the caller wants to
         // place and anchor text independently.
-        DrawAt(data, ResolveAnchoredPosition(component, screenSize), opacity, GetAnchorForCorner(component.ScreenAnchor));
+        DrawAt(data, ResolveAnchoredPosition(component.ScreenAnchor, offset, screenSize), opacity, GetAnchorForCorner(component.ScreenAnchor), display);
     }
 
     /// <summary>
@@ -193,24 +208,28 @@ public class EntityTextRenderer : SceneRendererBase
     /// <summary>
     /// Resolves a window corner into a pixel position, with the offset always pointing inwards.
     /// </summary>
-    private static Vector2 ResolveAnchoredPosition(EntityTextComponent component, Vector2 screenSize)
-        => component.ScreenAnchor switch
+    private static Vector2 ResolveAnchoredPosition(DisplayPosition corner, Vector2 offset, Vector2 screenSize)
+        => corner switch
         {
-            DisplayPosition.TopRight => new Vector2(screenSize.X - component.Offset.X, component.Offset.Y),
-            DisplayPosition.BottomLeft => new Vector2(component.Offset.X, screenSize.Y - component.Offset.Y),
-            DisplayPosition.BottomRight => new Vector2(screenSize.X - component.Offset.X, screenSize.Y - component.Offset.Y),
-            _ => component.Offset,
+            DisplayPosition.TopRight => new Vector2(screenSize.X - offset.X, offset.Y),
+            DisplayPosition.BottomLeft => new Vector2(offset.X, screenSize.Y - offset.Y),
+            DisplayPosition.BottomRight => new Vector2(screenSize.X - offset.X, screenSize.Y - offset.Y),
+            _ => offset,
         };
 
-    private void DrawAt(EntityTextRenderData data, Vector2 position, float opacity, TextAnchor anchor)
+    // display: the display's scale, applied to every pixel figure; 1 when not following it
+    private void DrawAt(EntityTextRenderData data, Vector2 position, float opacity, TextAnchor anchor, float display)
     {
         var component = data.Component;
         var font = component.Font ?? _defaultFont!;
 
+        // Rasterised at the scaled size rather than drawn scaled, so the glyphs stay sharp
+        var fontSize = component.FontSize * display;
+
         var style = new ScreenTextStyle
         {
             Font = font,
-            FontSize = component.FontSize,
+            FontSize = fontSize,
             Color = component.TextColor,
             Anchor = anchor,
             Alignment = component.Alignment,
@@ -220,10 +239,10 @@ public class EntityTextRenderer : SceneRendererBase
             LayerDepth = component.LayerDepth,
             EnableShadow = component.EnableShadow,
             ShadowColor = component.ShadowColor,
-            ShadowOffset = component.ShadowOffset,
+            ShadowOffset = component.ShadowOffset * display,
             EnableBackground = component.EnableBackground,
             BackgroundColor = component.BackgroundColor ?? RendererDefaults.DefaultBackground,
-            Padding = component.Padding,
+            Padding = component.Padding * display,
         };
 
         ScreenTextDrawer.Draw(
@@ -231,7 +250,7 @@ public class EntityTextRenderer : SceneRendererBase
             _backgroundTexture,
             component.Text,
             position,
-            data.GetMeasuredSize(_spriteBatch!, font),
+            data.GetMeasuredSize(_spriteBatch!, font, fontSize),
             style);
     }
 

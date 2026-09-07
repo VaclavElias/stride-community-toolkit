@@ -2,9 +2,9 @@
 
 [!INCLUDE [capsule-with-rigid-body](../../../includes/manual/examples/capsule-with-rigid-body.md)]
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example01_Basic3DScene_VBasic).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E01_3D_BasicScene_VisualBasic).
 
-[!code-vb[](../../../../examples/code-only/Example01_Basic3DScene_VBasic/Program.vb?start=1&end=25)]
+[!code-vb[](../../../../examples/code-only/E01_3D_BasicScene_VisualBasic/Program.vb?start=1&end=25)]
 
 - `Private game As New Game()` This line of code creates a new instance of the `Game` class. The Game class is central to the Stride engine, managing the overall game loop, scenes, and updates to the entities.
 - `GameExtensions.Run(game, AddressOf StartGame)` This line initiates the game loop. The `Run` method, from `GameExtensions`, is responsible for starting the game and it takes a reference to the `StartGame` method as a parameter. This method is called once when the game starts.

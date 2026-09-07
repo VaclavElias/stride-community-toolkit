@@ -17,6 +17,6 @@ The `Program.cs` file shows how to:
 
 ![Stride UI - Draggable Window - Bullet Physics](media/stride-ui-draggable-window-bullet.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/Example10_StrideUI_DragAndDrop_BulletPhysics).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_StrideUI_DragAndDrop_Bullet).
 
-[!code-csharp[](../../../../examples/code-only/Example10_StrideUI_DragAndDrop_BulletPhysics/Program.cs?start=1&end=125)]
+[!code-csharp[](../../../../examples/code-only/E04_StrideUI_DragAndDrop_Bullet/Program.cs?start=1&end=125)]
