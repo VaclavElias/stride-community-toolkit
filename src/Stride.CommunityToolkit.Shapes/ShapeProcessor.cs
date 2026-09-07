@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -77,10 +78,7 @@ public sealed class ShapeProcessor : EntityProcessor<ShapeComponent>
         // The render system that draws this scene is its scene system's compositor's. The context's
         // is whichever compositor drew last, which in Game Studio is the editor's own gizmo
         // compositor, and on a game's first frame is nothing at all.
-        var sceneSystem = Services.GetService<SceneSystem>();
-        var renderSystem = sceneSystem is not null && ReferenceEquals(sceneSystem.SceneInstance, sceneInstance)
-            ? sceneSystem.GraphicsCompositor?.RenderSystem
-            : context.RenderSystem;
+        var renderSystem = SceneRendererRegistration.OwningCompositor(Services, sceneInstance)?.RenderSystem ?? context.RenderSystem;
 
         if (renderSystem is null) return null;
 

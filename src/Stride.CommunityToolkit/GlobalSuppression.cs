@@ -341,3 +341,7 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Compositing", Justification = "One class, GraphicsCompositorExtensions, used by twelve examples; mirrors Stride.Rendering.Compositing.")]
 [assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Scripts", Justification = "Four camera controllers and a profiler, with more scripts planned; Scripts.Utilities beneath it is already at ten types.")]
 [assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Rendering.Instancing", Justification = "Four types with a written plan for more; mirrors where instancing sits in Stride.")]
+// Renderers held the text renderers until 2026-09-07, when they moved next to their components and
+// processors in Rendering.Text - the processors register the renderers themselves now, and a processor
+// naming a type in Renderers while Renderers used the processors was a namespace cycle.
+[assembly: SuppressMessage("NDepend", "ND1305:AvoidNamespacesWithFewTypes", Target = "Stride.CommunityToolkit:Stride.CommunityToolkit.Renderers", Justification = "Three types: the entity debug renderer, its options and its registration; the text renderers moved to Rendering.Text.")]

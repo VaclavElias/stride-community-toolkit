@@ -1,7 +1,6 @@
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Graphics;
 
-namespace Stride.CommunityToolkit.Renderers;
+namespace Stride.CommunityToolkit.Rendering.Text;
 
 /// <summary>
 /// The shared drawing path for screen-space text: projecting a world position, resolving the anchor,

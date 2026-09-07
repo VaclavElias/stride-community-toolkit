@@ -16,7 +16,7 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 /// when the text should look like it belongs in the scene.
 /// </para>
 /// <para>
-/// Add <see cref="Stride.CommunityToolkit.Renderers.WorldTextRenderer"/> to the graphics compositor
+/// Add <see cref="WorldTextRenderer"/> to the graphics compositor
 /// for anything to appear.
 /// </para>
 /// <example>
@@ -32,10 +32,10 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 /// </code>
 /// </example>
 /// </remarks>
-[DefaultEntityComponentProcessor(typeof(WorldTextProcessor), ExecutionMode = ExecutionMode.Runtime)]
+[DefaultEntityComponentProcessor(typeof(WorldTextProcessor), ExecutionMode = ExecutionMode.All)]
 [AllowMultipleComponents]
 [DataContract("WorldTextComponent")]
-[Display("World Text (call AddWorldTextRenderer)", Expand = ExpandRule.Once)]
+[Display("World Text", Expand = ExpandRule.Once)]
 [ComponentCategory("Text")]
 public class WorldTextComponent : EntityComponent
 {

@@ -1,12 +1,11 @@
-using Stride.CommunityToolkit.Rendering;
-using Stride.CommunityToolkit.Rendering.Text;
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Rendering.Compositing;
 
-namespace Stride.CommunityToolkit.Renderers;
+namespace Stride.CommunityToolkit.Rendering.Text;
 
 /// <summary>
 /// Draws every <see cref="WorldTextComponent"/> as text standing in the 3D scene rather than over it.
@@ -41,7 +40,7 @@ public class WorldTextRenderer : SceneRendererBase
         base.InitializeCore();
 
         _spriteBatch = new SpriteBatch(GraphicsDevice);
-        _defaultFont = Content.Load<SpriteFont>(RendererDefaults.DefaultFontPath);
+        _defaultFont = RendererDefaults.LoadDefaultFont(Content, Services, 32f);
 
         // The display's scale, for components whose rasterisation size follows it. Absent outside a
         // game, which leaves every text rasterised at exactly the FontSize asked for.
@@ -60,7 +59,7 @@ public class WorldTextRenderer : SceneRendererBase
 
         if (processor is null || processor.Texts.Count == 0) return;
 
-        var camera = context.Tags.Get(GraphicsCompositor.Current)?.Cameras[0]?.Camera;
+        var camera = CompositorCameras.Find(context);
 
         if (camera is null) return;
 

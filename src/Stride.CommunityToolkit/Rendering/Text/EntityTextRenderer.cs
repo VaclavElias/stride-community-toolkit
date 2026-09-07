@@ -1,12 +1,12 @@
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Rendering.Compositing;
 
-namespace Stride.CommunityToolkit.Renderers;
+namespace Stride.CommunityToolkit.Rendering.Text;
 
 /// <summary>
 /// Draws the text of every <see cref="EntityTextComponent"/> in the scene, as a screen-space overlay
@@ -37,7 +37,7 @@ public class EntityTextRenderer : SceneRendererBase
         base.InitializeCore();
 
         _spriteBatch = new SpriteBatch(GraphicsDevice);
-        _defaultFont = Content.Load<SpriteFont>(RendererDefaults.DefaultFontPath);
+        _defaultFont = RendererDefaults.LoadDefaultFont(Content, Services, 32f);
 
         _backgroundTexture = ScreenTextDrawer.CreateBackgroundTexture(GraphicsDevice);
 
@@ -59,7 +59,7 @@ public class EntityTextRenderer : SceneRendererBase
 
         if (processor is null || processor.Texts.Count == 0) return;
 
-        var camera = context.Tags.Get(GraphicsCompositor.Current)?.Cameras[0]?.Camera;
+        var camera = CompositorCameras.Find(context);
 
         if (camera is null) return;
 

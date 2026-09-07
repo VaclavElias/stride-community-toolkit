@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Engine;
@@ -75,7 +76,7 @@ public class EntityDebugSceneRenderer : SceneRendererBase
         // Resolved per frame rather than cached at initialisation, so swapping the scene or the
         // camera does not leave the overlay drawing against the ones it started with
         var scene = SceneInstance.GetCurrent(context)?.RootScene;
-        var camera = context.Tags.Get(GraphicsCompositor.Current)?.Cameras[0]?.Camera;
+        var camera = CompositorCameras.Find(context);
 
         if (scene is null || camera is null || scene.Entities.Count == 0) return;
 

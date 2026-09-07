@@ -1,14 +1,13 @@
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Graphics;
 
-namespace Stride.CommunityToolkit.Renderers;
+namespace Stride.CommunityToolkit.Rendering.Text;
 
 /// <summary>
 /// Everything needed to draw one piece of screen-space text, independent of where the text or the
 /// position came from.
 /// </summary>
 /// <remarks>
-/// This is what lets <see cref="EntityTextRenderer"/> and <see cref="EntityDebugSceneRenderer"/> share
+/// This is what lets <see cref="EntityTextRenderer"/> and <see cref="Renderers.EntityDebugSceneRenderer"/> share
 /// a drawing path while keeping their own answers to <em>which</em> entities to label and
 /// <em>what</em> to write. One builds a style from a component the caller configured, the other from
 /// a single set of options applied to every entity; past that point the two are the same problem.
