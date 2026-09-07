@@ -75,8 +75,8 @@ For image-based ambient light, `AddSkybox()` ships in the `Stride.CommunityToolk
 
 Both register their renderer once, however many times you call them.
 
-- [`AddEntityTextRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddEntityTextRenderer(Stride.Engine.Game)) - Enables `EntityTextComponent`, screen-space text drawn over the scene. See [Entity Text](../rendering/entity-text.md).
-- [`AddWorldTextRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddWorldTextRenderer(Stride.Engine.Game)) - Enables `WorldTextComponent`, text that lives in the 3D scene. See [World Text](../rendering/world-text.md).
+- [`AddEntityTextRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddEntityTextRenderer(Stride.Engine.Game)) - Puts the renderer for `EntityTextComponent`, screen-space text drawn over the scene, on the compositor before the first frame; the component registers it itself when missing. See [Entity Text](../rendering/entity-text.md).
+- [`AddWorldTextRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddWorldTextRenderer(Stride.Engine.Game)) - Puts the renderer for `WorldTextComponent`, text that lives in the 3D scene, on the compositor before the first frame; the component registers it itself when missing. See [World Text](../rendering/world-text.md).
 
 ## Debugging and diagnostics
 
