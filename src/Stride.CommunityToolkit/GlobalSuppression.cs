@@ -160,6 +160,14 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND1001:AvoidTypesWithTooManyMethods", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DSimulation", Justification = "The public facade over world, bridge, queries and events - the Box2D counterpart of BepuSimulation; its methods are one-line delegations to those parts.")]
 [assembly: SuppressMessage("NDepend", "ND1207:NonStaticClassesShouldBeInstantiatedOrTurnedToStatic", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DCollisionMatrix", Justification = "Library API instantiated by consumers; nothing in the toolkit itself needs one yet.")]
 [assembly: SuppressMessage("NDepend", "ND2500:DontCreateThreadsExplicitly", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.Box2DTaskScheduler..ctor(Int32)", Justification = "Deliberate: Box2D requires each concurrently running task callback to hold a distinct worker index, which dedicated threads guarantee structurally; the workers also park in a blocking dequeue for the world lifetime, which thread-pool threads must never do.")]
+// SimulationJoints2D is the simulation.Joints facade: the factories fill in the world id, and Destroy,
+// IsValid and GetAnchors need none, so the rule is right that they could be static. They stay instance
+// members so a caller reaches every joint operation through one object; the Roslyn twin (CA1822) is
+// suppressed on the members themselves.
+[assembly: SuppressMessage("NDepend", "ND1208:MethodsShouldBeDeclaredStaticIfPossible", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.SimulationJoints2D", Scope = "deep", Justification = "Facade: Destroy, IsValid and GetAnchors stay beside the Create* methods on simulation.Joints rather than sending the caller to Joints2D.")]
+// The transform overload is the one JointFrames2DTests exercises on a bare transform; the analysis does
+// not include the test project, so within it the body overload is the only caller.
+[assembly: SuppressMessage("NDepend", "ND1800:MethodsThatCouldHaveALowerVisibility", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.JointFrames2D.LocalFrame(B2Transform&,Vector2,Single)", Justification = "Called by the unit tests, which the analysis does not cover.")]
 [assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeComponent.Vertices", Justification = "A runtime-swappable shape outline is the point of the component; the next frame draws whatever array is assigned.")]
 // ShapeInstance is a wire format: the shader's ShapeData struct field for field, 160 bytes, uploaded
 // as-is through a structured buffer. Grouping the fields into smaller types would be a layout change,
@@ -210,6 +218,11 @@ using System.Diagnostics.CodeAnalysis;
 // --- E13 SignalR: the orbital cargo deck ---
 [assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E13_SignalR:E13_SignalR.SignalR.SignalRHubClient", Scope = "deep", Justification = "Jitter on the reconnect backoff delay, so a room full of clients does not retry in lockstep after a server restart; nothing security-related.")]
 [assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E13_SignalR:E13_SignalR.Station.Deck", Scope = "deep", Justification = "Which size and paint a random release gets, the scatter under the hatch, and the direction of a shake; gameplay randomness, nothing security-related.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E13_SignalR:E13_SignalR.Station.StationScene", Scope = "deep", Justification = "Seeded star field: direction, size, tint and twinkle of each star; the seed is what keeps the sky the same between runs and captures.")]
+// Board is immutable and all value-type fields, which is the rule's picture of a lightweight value; it is
+// also seventy-two bytes of vectors and a quaternion, handed to every Labels.Set and Place call. Copying
+// that per call is the cost a struct would add, and the boards are three shared objects, not values.
+[assembly: SuppressMessage("NDepend", "ND1304:ClassesThatAreCandidateToBeTurnedIntoStructures", Target = "E13_SignalR:E13_SignalR.Station.Board", Justification = "72-byte immutable object shared by reference between the boards and the labels; a struct would copy it on every call.")]
 // --- Cube Collapse: a game example ---
 // Colours for the board, positions for the falling game-over letters, and the shuffle behind a
 // spawn. Gameplay randomness, same as Helpers.VectorHelper above; a seedable System.Random is the
@@ -237,6 +250,7 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E04_CubeClicker:E04_CubeClicker.Scripts.ClickHandlerComponent", Scope = "deep", Justification = "Where a clicked cube is replaced; nothing security-related.")]
 [assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E08_3D_DebugShapes:E08_3D_DebugShapes.Scripts.ShapeUpdater", Scope = "deep", Justification = "Positions, rotations and velocities for the debug shapes on screen.")]
 [assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E10_3D_Instancing_EntityTransform:Program", Scope = "deep", Justification = "Transforms for the instanced entities.")]
+[assembly: SuppressMessage("NDepend", "ND3101:DontUseSystemRandomForSecurityPurposes", Target = "E10_3D_ComputeBoids:BoidsSimulation", Scope = "deep", Justification = "Seeded starting positions and headings for the flock; the seed is what makes the golden image reproducible.")]
 
 // --- Examples: helper types that live beside top-level statements -------------------------------
 // A code-only example is one file: top-level statements, plus the few small types they need. Two
