@@ -158,6 +158,18 @@ of geometry the way a mesh does - the cost being that the shape shader writes de
 the early depth rejection every shape used to get for free. Shapes are alpha blended and rarely
 large on screen, so that has not shown in a frame time yet.
 
+That depth buffer works the other way too. The forward renderer resolves the opaque pass's depth
+as a texture before it draws the transparent stage, and offers it to every render feature; the
+shape feature takes it, so a shape can compare its own distance from the camera with the
+scene's at the same pixel. `DepthFade` is that comparison turned into a fade: over the distance
+you give, in world units, a fragment fades out as it approaches whatever is behind it. A marker
+sunk in the floor melts into it instead of ending in a hard line, and a ring standing a hand in
+front of a wall dims over the wall and stays bright where the ground is far behind. It is the soft
+particles trick, and it has the same limit: the depth test still removes what is behind the
+surface, so the fade only softens the approach. On an overlay batch, where nothing is removed, a
+fragment behind the surface fades to nothing instead, which makes the fade a soft depth test of
+its own. A compositor that turns the resolved depth off leaves every shape at its hard cut.
+
 ## Where it came from, and where it went
 
 The renderer was born as the Box2D package's debug draw on 2026-08-31, because the mesh approach

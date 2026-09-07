@@ -34,7 +34,7 @@ internal sealed class ImGuiScene : IGoldScene
         private static readonly float[] Samples = [0.1f, 0.4f, 0.35f, 0.8f, 0.55f, 0.9f, 0.3f, 0.6f, 0.2f, 0.7f];
         private bool _checked = true;
 
-        public GoldWindow(IServiceRegistry services) : base(services)
+        internal GoldWindow(IServiceRegistry services) : base(services)
         {
         }
 

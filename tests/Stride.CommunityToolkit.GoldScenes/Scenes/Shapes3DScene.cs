@@ -147,6 +147,15 @@ internal sealed class Shapes3DScene : IGoldScene
         shapes.DrawRing(new Vector3(0f, 0.02f, -6f), Vector3.UnitY, 3f, Color.Orange);
         shapes.Dash.Clear();
 
+        // Soft depth fade: a ring standing a hand in front of pillar B's face dims over the face and
+        // stays solid where the ground is far behind it; a billboard disc sunk in the floor melts
+        // into it over a longer fade, instead of the hard slice the depth test gives the helix
+        shapes.DepthFade = 0.6f;
+        shapes.DrawRing(new Vector3(PillarB.X, 2f, PillarB.Z + 1f), Vector3.UnitZ, 1.5f, Color.LightGreen);
+        shapes.DepthFade = 1.5f;
+        shapes.DrawBillboardCircle(new Vector3(-6f, 0.5f, 3f), 0.8f, Color.Gold);
+        shapes.DepthFade = 0f;
+
         // The overlay batch: a ring drawn through pillar B, which must stay whole
         overlay.BorderWidth = 3f;
         overlay.DrawRing(new Vector3(PillarB.X, 1.2f, PillarB.Z), Vector3.UnitZ, 1.4f, Color.HotPink);
