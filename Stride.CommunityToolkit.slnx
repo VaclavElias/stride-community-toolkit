@@ -54,6 +54,7 @@
     <Project Path="examples/code-only/E09_3D_SceneRenderer/E09_3D_SceneRenderer.csproj" />
     <Project Path="examples/code-only/E04_StrideUI_DragAndDrop/E04_StrideUI_DragAndDrop.csproj" />
     <Project Path="examples/code-only/E04_StrideUI_DragAndDrop_Bullet/E04_StrideUI_DragAndDrop_Bullet.csproj" />
+    <Project Path="examples/code-only/E04_GumUI/E04_GumUI.csproj" />
     <Project Path="examples/code-only/E04_ImGui/E04_ImGui.csproj" />
     <Project Path="examples/code-only/E04_ImGuiNet/E04_ImGuiNet.csproj" />
     <Project Path="examples/code-only/E09_3D_Particles/E09_3D_Particles.csproj" />

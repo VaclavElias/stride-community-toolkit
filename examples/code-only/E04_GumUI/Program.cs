@@ -1,4 +1,3 @@
-﻿using System.Drawing;
 using Gum;
 using Gum.Forms.Controls;
 using Gum.Forms.DefaultVisuals.V3;
@@ -7,6 +6,7 @@ using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.Engine;
 using Stride.Games;
+using System.Drawing;
 
 using var game = new Game();
 
@@ -14,11 +14,11 @@ game.Run(start: Start, update: Update);
 
 void Start(Scene rootScene)
 {
-	game.AddGraphicsCompositor().AddCleanUIStage();
-	game.Add2DCamera();
+    game.AddGraphicsCompositor().AddCleanUIStage();
+    game.Add2DCamera();
 
     //Initialize GumUi
-	GumService.Default.Initialize(game);
+    GumService.Default.Initialize(game);
 
     CreateUi();
 }
@@ -43,7 +43,7 @@ void CreateUi()
     var button = new Button();
     mainPanel.AddChild(button);
     button.Text = "Click Me";
-    button.Click += (_,_) => label.Text = $"Button clicked @ {System.DateTime.Now}";
+    button.Click += (_, _) => label.Text = $"Button clicked @ {System.DateTime.Now}";
 
     var disabledButton = new Button();
     mainPanel.AddChild(disabledButton);
@@ -63,7 +63,7 @@ void CreateUi()
 
     //ComboBox
     var comboBox = new ComboBox();
-    for(int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; i++)
     {
         comboBox.Items.Add($"Item {i}");
     }
@@ -78,9 +78,11 @@ void CreateUi()
     listBox.Visual.Width = 150;
     listBox.Height = 100;
 
-    for(int i = 0; i < 10; i++){
-        listBox.Items.Add($"Item{i}");
+    for (int i = 0; i < 10; i++)
+    {
+        listBox.Items?.Add($"Item{i}");
     }
+
     listBox.SelectionChanged += (_, _) =>
     {
         label.Text = $"Selected item is {listBox.SelectedObject} at index {listBox.SelectedIndex}";
