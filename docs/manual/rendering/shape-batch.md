@@ -225,7 +225,9 @@ Honest limits, so you reach for the right tool:
 - **One sort decision per batch.** A batch is a single render object with a meaningless bounding
   box, so how it sorts against *transparent meshes* is one decision for all its shapes. Use an
   overlay batch (`depthTest: false`) for things that must never be covered rather than trusting
-  the sort.
+  the sort. The same goes for two batches with shapes in the same frame: the stage orders them, and
+  with meaningless bounds that order can differ from one run to the next, so anything that has to
+  layer deterministically goes through one batch.
 
 ## Which tool, then?
 

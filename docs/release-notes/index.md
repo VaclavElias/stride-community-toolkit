@@ -55,12 +55,12 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 
 ### 🎓 Examples
 
-- **2D Panels** grew to twenty-four stations; the **HUD** and the **SignalR** deck use strokes and additive glows; **ShapeBatch** shows a glowing helix and a trefoil knot as space strokes.
+- **2D Panels** grew to twenty-four stations; the **HUD** and the **SignalR** deck use strokes and additive glows; **ShapeBatch** shows a glowing helix and a trefoil knot as space strokes, three dashed rings turning at their own gap ratios, and a numbered label on every demo that L widens to name the method it is made of.
 - Five Bepu examples use `game.AddGrabber()`.
 
 ### 🔧 Engineering
 
-- Gold-image harness: `build/gold-images.cs` compares captures of ten examples against `tests/gold` with a per-pixel rule, reproducible frame for frame - fixed timestep, one update per draw, pinned auto-exposure, profiler hidden.
+- Gold-image regression: `build/gold-images.cs` photographs five purpose-built scenes in `tests/Stride.CommunityToolkit.GoldScenes` - 2D shapes, 3D shapes, text, DebugShapes, ImGui - on the WARP software renderer and compares them with `tests/gold` under Stride's per-pixel rule; reproducible frame for frame across machines. The new `gold-images.yml` workflow runs it on pull requests that touch a renderer and uploads the contact sheet.
 - NDepend at zero issues across the solution.
 
 ### 💪 Other Changes

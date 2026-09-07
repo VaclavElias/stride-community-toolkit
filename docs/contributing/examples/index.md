@@ -156,20 +156,28 @@ Every image is looked at by a person before it is committed. A capture that rend
 
 ### Gold images: catching a rendering change by its pixels
 
-The same capture path doubles as a regression test for the renderer. A refactor of a shader that should change nothing, or a deliberate change to an anti-aliasing profile or a colour curve, is checked against a **golden** PNG committed under `tests/gold`:
+The same capture path doubles as a regression test for the renderers, against **scenes built for
+the purpose** rather than the examples: `tests/Stride.CommunityToolkit.GoldScenes` holds one small
+scene per feature area - 2D shapes, 3D shapes, text, DebugShapes, ImGui - with a fixed layout and
+nothing random, changed only to pin something new. The examples stay free to evolve; a golden that
+photographed one would be re-captured with every change and prove nothing about the shader. The
+scenes are listed in `tests/gold/scenes.jsonc` and their goldens live beside it:
 
 ```bash
-dotnet run --file build/gold-images.cs                                  # compare every golden
-dotnet run --file build/gold-images.cs -- --only shape-batch            # compare one example
-dotnet run --file build/gold-images.cs -- --only shape-batch --update   # capture and make it the golden
-dotnet run --file build/gold-images.cs -- --only shape-batch --noise    # capture twice, report run-to-run drift
+dotnet run --file build/gold-images.cs                                  # compare every scene
+dotnet run --file build/gold-images.cs -- --only shapes-2d              # compare one
+dotnet run --file build/gold-images.cs -- --only shapes-2d --update     # capture and make it the golden
+dotnet run --file build/gold-images.cs -- --only shapes-2d --noise      # capture twice, report run-to-run drift
+dotnet run --file build/gold-images.cs -- --gpu                         # the real GPU: quick to look at, never a golden
 ```
 
-The comparison is Stride's own: the maximum channel difference of every pixel goes into a histogram (`1-2`, `3-5`, `6-15`, `16+`), and the default rule fails the image if **any** pixel differs by 3 or more. `tests/gold/thresholds.jsonc` relaxes that per image, with a comment saying why, for a scene that cannot be made fully deterministic. Every run writes the new capture, a diff mask (red for 3 and above, yellow for 1 and 2) and a side-by-side contact sheet to `screenshots-review/gold/`, and prints the bounding box of the failing pixels so a failure can be placed without opening anything.
+The comparison is Stride's own: the maximum channel difference of every pixel goes into a histogram (`1-2`, `3-5`, `6-15`, `16+`), and the default rule fails the image if **any** pixel differs by 3 or more. `tests/gold/thresholds.jsonc` can relax that per image, with a comment saying why; the scenes are built not to need it. Every run writes the new capture, a diff mask (red for 3 and above, yellow for 1 and 2) and a side-by-side contact sheet to `screenshots-review/gold/`, and prints the bounding box of the failing pixels so a failure can be placed without opening anything.
 
-What makes a capture reproducible: capture runs on a fixed timestep with exactly one update per draw, so frame N is the same simulated instant every run; the profiler readout is hidden because it refreshes on a real-time clock; and auto-exposure is set to adapt instantly, because Stride's tone map adapts on a real-time stopwatch and would otherwise leave every 3D capture at a slightly different brightness. With those three, 2D and 3D scenes alike come back bit-identical on the same machine. A scene driven by unseeded randomness, real-time text or network traffic cannot be a golden at all, so use `--noise` on a candidate first: it shows what the harness would see with no change made.
+The goldens are captured on **WARP**, Direct3D's software renderer, which is what the harness uses unless told `--gpu`: it is the one renderer every machine shares, bit-identical run to run, and a real GPU lands within a dozen levels of it - close, but over the rule, so a GPU capture must never become a golden. What else makes a capture reproducible: a fixed timestep with exactly one update per draw, so frame N is the same simulated instant every run; the profiler hidden and auto-exposure pinned, both of which run on real-time clocks; and the display scale pinned to 100% by the scenes, so pixel widths and font sizes do not follow the desktop. Run `--noise` on a new scene first: it shows what the harness would see with no change made.
 
-`--warp` runs the example on the WARP software adapter, the way Stride's own graphics tests do, for goldens that must match across machines; it is slow, and on one machine the real GPU is deterministic.
+The workflow `.github/workflows/gold-images.yml` runs the same comparison on every pull request that touches `src`, the scenes, the goldens or the harness, and uploads `screenshots-review/gold` as an artifact, so a failure is looked at there. A change that is meant to alter a golden updates it in the same pull request with `--update`, and the reviewer sees the new image next to the code.
+
+To pin a new feature, add a scene class to the project, a line to `scenes.jsonc`, capture the golden with `--update`, and check `--noise`. Physics scenes are not in the suite yet: Bepu and Box2D step on the CPU with SIMD, and a pile settled over hundreds of frames has not been shown to land on the same pixels across machines.
 
 ## Editing a generated page
 

@@ -26,6 +26,8 @@ The `Program.cs` file shows how to:
 - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
 - An outer glow measured in pixels, for halos and neon
 - Dashes in pixels on rings and lines, animated through their phase
+- Three dashed rings turning at their own dash-to-gap ratios, one glowing, one breathing through its opacity
+- A numbered label on every demo, widened by L to name the ShapeBatch method it is made of
 - A fill gradient across a shape's own extent, to a colour or to alpha 0
 - One opacity over border, fill and glow together
 - Why a signed distance function keeps an outline a constant pixel width
@@ -34,4 +36,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_ShapeBatch).
 
-[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=721)]
+[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=871)]
