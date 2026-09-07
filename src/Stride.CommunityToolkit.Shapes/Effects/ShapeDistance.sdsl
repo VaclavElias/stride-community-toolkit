@@ -89,34 +89,45 @@ namespace Stride.CommunityToolkit.Shapes
         }
 
         // A space point on screen: xy in pixels, y down, from the same projection the vertex stage
-        // uses; z the stroke radius there in pixels. A point behind the camera has its w clamped,
-        // which keeps the arithmetic finite; a run that crosses the near plane is not supported.
-        float3 ProjectSpacePoint(float4 spacePoint, float4x4 viewProjection, float2 viewSize, float pixelsPerUnit)
+        // uses; z the stroke radius there in pixels; w the depth the rasterizer would give it. A
+        // point behind the camera has its w clamped, which keeps the arithmetic finite; a run that
+        // crosses the near plane is not supported.
+        float4 ProjectSpacePoint(float4 spacePoint, float4x4 viewProjection, float2 viewSize, float pixelsPerUnit)
         {
             float4 clip = mul(float4(spacePoint.xyz, 1.0), viewProjection);
             float w = max(clip.w, 0.0001);
             float2 ndc = clip.xy / w;
 
-            return float3((ndc.x * 0.5 + 0.5) * viewSize.x, (0.5 - ndc.y * 0.5) * viewSize.y, spacePoint.w * pixelsPerUnit / w);
+            return float4((ndc.x * 0.5 + 0.5) * viewSize.x, (0.5 - ndc.y * 0.5) * viewSize.y, spacePoint.w * pixelsPerUnit / w, clip.z / w);
         }
 
         // Signed distance in pixels from a screen position to a space run: the nearest of its
         // segments, each one's radius interpolated between its ends, so a world-width stroke
-        // narrows with distance the way a rope does. Negative inside the stroke.
-        float SdSpacePolyline(float2 pixel, uint offset, int count, float4x4 viewProjection, float2 viewSize, float pixelsPerUnit)
+        // narrows with distance the way a rope does. Negative inside the stroke. Also the depth of
+        // the nearest point of the run, for the fragment to write: depth is affine along a
+        // projected segment, so the screen-space parameter interpolates it exactly.
+        float SdSpacePolyline(float2 pixel, uint offset, int count, float4x4 viewProjection, float2 viewSize, float pixelsPerUnit, out float depth)
         {
-            float3 previous = ProjectSpacePoint(SpacePoints[offset], viewProjection, viewSize, pixelsPerUnit);
+            float4 previous = ProjectSpacePoint(SpacePoints[offset], viewProjection, viewSize, pixelsPerUnit);
             float d = length(pixel - previous.xy) - previous.z;
+
+            depth = previous.w;
 
             for (int i = 1; i < count; ++i)
             {
-                float3 current = ProjectSpacePoint(SpacePoints[offset + i], viewProjection, viewSize, pixelsPerUnit);
+                float4 current = ProjectSpacePoint(SpacePoints[offset + i], viewProjection, viewSize, pixelsPerUnit);
                 float2 e = current.xy - previous.xy;
-                float2 w = pixel - previous.xy;
-                float t = clamp(dot(w, e) / max(dot(e, e), 0.000001), 0.0, 1.0);
-                float2 b = w - e * t;
+                float2 toPixel = pixel - previous.xy;
+                float t = clamp(dot(toPixel, e) / max(dot(e, e), 0.000001), 0.0, 1.0);
+                float2 b = toPixel - e * t;
+                float segment = length(b) - lerp(previous.z, current.z, t);
 
-                d = min(d, length(b) - lerp(previous.z, current.z, t));
+                if (segment < d)
+                {
+                    d = segment;
+                    depth = lerp(previous.w, current.w, t);
+                }
+
                 previous = current;
             }
 

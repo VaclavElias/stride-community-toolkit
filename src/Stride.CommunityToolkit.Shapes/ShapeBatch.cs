@@ -456,9 +456,9 @@ public sealed class ShapeBatch : RenderObject
     /// <param name="color">The stroke colour.</param>
     /// <param name="closed">Whether the last point joins back to the first.</param>
     /// <remarks>
-    /// Same limits as <see cref="DrawPolyline(ReadOnlySpan{Vector3}, float, Color, bool)"/>: pieces
-    /// of 64 points, one depth per piece, the dash pattern restarting at each, no crossing of the
-    /// near plane.
+    /// Same behaviour and limits as <see cref="DrawPolyline(ReadOnlySpan{Vector3}, float, Color, bool)"/>:
+    /// per-fragment depth, pieces of 64 points with the dash pattern restarting at each, no crossing
+    /// of the near plane.
     /// </remarks>
     public void DrawPixelPolyline(ReadOnlySpan<Vector3> points, float pixelWidth, Color color, bool closed = false)
         => AddSpacePolyline(points, OutlineStyle(color, pixelWidth), 0f, closed);

@@ -125,8 +125,9 @@ namespace Stride.CommunityToolkit.Shapes
 
             // A space run is not a flat shape. Its quad is the screen bounding box of its projected
             // points, padded for the widest stroke, the border and the glow, placed at the depth of
-            // the nearest point; the pixel stage then measures the run in pixels, so the perspective
-            // term and the local-to-pixel ratio it is handed are both 1.
+            // the nearest point so that a run entirely behind the near plane is clipped; the pixel
+            // stage measures the run in pixels, so the perspective term and the local-to-pixel ratio
+            // it is handed are both 1, and writes each fragment's own depth.
             if ((data.Flags & 64) != 0)
             {
                 uint spaceOffset = SpacePointBase + data.PointOffset;
@@ -355,6 +356,12 @@ namespace Stride.CommunityToolkit.Shapes
             // border, glow - is a function of this one number.
             float s;
 
+            // What the fragment writes to the depth buffer: the rasterized depth for a flat shape, which
+            // is what it would have been anyway, and for a space run the depth of the nearest point of
+            // the run, so a stroke threads behind and in front of geometry per fragment rather than
+            // testing as one quad at its nearest point
+            float depth = streams.ShadingPosition.z;
+
             if (space)
             {
                 // Measured on screen: every point projected with the matrix the vertex stage used,
@@ -363,7 +370,7 @@ namespace Stride.CommunityToolkit.Shapes
                 uint spaceOffset = SpacePointBase + data.PointOffset;
                 float2 pixel = streams.ShadingPosition.xy;
 
-                s = SdSpacePolyline(pixel, spaceOffset, count, ViewProjection, ViewSize, PixelScale * ScreenScale);
+                s = SdSpacePolyline(pixel, spaceOffset, count, ViewProjection, ViewSize, PixelScale * ScreenScale, depth);
 
                 if (data.Dash.x > 0.0)
                 {
@@ -477,6 +484,7 @@ namespace Stride.CommunityToolkit.Shapes
             blended.rgb = Dither(blended.rgb, Bayer(streams.ShadingPosition.xy), linearTarget);
 
             streams.ColorTarget = blended;
+            streams.Depth = depth;
         }
     };
 }

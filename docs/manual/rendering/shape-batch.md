@@ -87,7 +87,7 @@ without copying them.
 ```mermaid
 flowchart LR
     A["Your update loop<br/><i>shapes.DrawRing(...)</i>"] --> B["ShapeBatch<br/>one record per shape:<br/>plane, colours, style<br/>plus its points, any number"]
-    B --> C["Two structured buffers<br/>records and points,<br/>uploaded once per frame"]
+    B --> C["Three structured buffers<br/>records, points and space points,<br/>uploaded once per frame"]
     C --> D["Vertex shader<br/>one quad per instance,<br/>grown to fit the border and glow"]
     D --> E["Fragment shader<br/>reads the record and its points,<br/>signed distance per pixel:<br/>fill, border, glow, dash, cut"]
     E --> F["One instanced draw call<br/>however many shapes"]
@@ -152,9 +152,11 @@ One kind of shape is not flat at all. A **space stroke** - `DrawPolyline` or `Dr
 handed `Vector3` points - has no plane. The vertex stage projects its points, takes their bounding
 box on screen and hands the pixel stage a screen-aligned quad; the pixel stage measures the run in
 pixels, each segment's radius converted at its own depth. A rope narrows with distance and a trail
-stays the same width, and both face the camera from every angle with no geometry behind them. The
-price is depth: a run is one quad at the depth of its nearest point, so a stroke that has to thread
-behind and in front of geometry is drawn as shorter runs, or on an overlay batch.
+stays the same width, and both face the camera from every angle with no geometry behind them. Each
+fragment writes the depth of the nearest point of the run, so a stroke threads behind and in front
+of geometry the way a mesh does - the cost being that the shape shader writes depth, which gives up
+the early depth rejection every shape used to get for free. Shapes are alpha blended and rarely
+large on screen, so that has not shown in a frame time yet.
 
 ## Where it came from, and where it went
 
