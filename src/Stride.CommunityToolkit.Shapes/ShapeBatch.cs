@@ -35,11 +35,17 @@ public sealed class ShapeBatch : RenderObject
     // normalized space; an instance says where its run starts
     internal readonly List<Vector2> Points = [];
 
+    // Every space run.s points, a world position with the stroke radius beside it in w, in
+    // submission order; the record says where its piece starts
+    internal readonly List<Vector4> SpacePoints = [];
+
     // Where this batch's records and points start in the frame's shared buffers; the render
     // feature sets both when it gathers every batch for upload
     internal int InstanceBase { get; set; }
 
     internal int PointBase { get; set; }
+
+    internal int SpacePointBase { get; set; }
 
     // A polyline longer than this is split into runs that share an end point. The pixel stage
     // tests every segment of a run for every fragment of its quad, so the cap bounds the cost of a
@@ -49,6 +55,7 @@ public sealed class ShapeBatch : RenderObject
 
     // Scratch for closing a polyline, so a long run costs no allocation per frame
     private readonly List<Vector2> _run = [];
+    private readonly List<Vector3> _spaceRun = [];
 
     /// <summary>
     /// How many shapes have been submitted so far this frame. Resets to zero once the batch is
@@ -421,6 +428,42 @@ public sealed class ShapeBatch : RenderObject
         => DrawPixelPolyline(points, Vector3.Zero, Vector3.UnitX, Vector3.UnitY, pixelWidth, color, closed);
 
     /// <summary>
+    /// Submits a run of points anywhere in 3D as one stroke of a real world-space width, with round
+    /// joins and caps - a rope, an orbit, a trail that leaves the plane it started on.
+    /// </summary>
+    /// <param name="points">The run, in world space, of any length.</param>
+    /// <param name="width">Stroke width in world units.</param>
+    /// <param name="color">The stroke colour. Drawn solid, ignoring <see cref="ShapeFill.Alpha"/>.</param>
+    /// <param name="closed">Whether the last point joins back to the first.</param>
+    /// <remarks>
+    /// The stroke is measured on screen: every point is projected and the run is stroked in pixels,
+    /// so it narrows with distance the way a rope does while <see cref="BorderWidth"/> stays a
+    /// constant pixel width, and it faces the camera from every angle with no geometry behind it.
+    /// A run of more than 64 points is split into pieces that share a point; each piece depth-tests
+    /// as its nearest point, and <see cref="Dash"/> restarts its pattern at each piece. A run that
+    /// crosses the camera's near plane is not supported.
+    /// </remarks>
+    public void DrawPolyline(ReadOnlySpan<Vector3> points, float width, Color color, bool closed = false)
+        => AddSpacePolyline(points, SolidStyle(color), MathF.Max(width, 0.0001f) * 0.5f, closed);
+
+    /// <summary>
+    /// Submits a run of points anywhere in 3D as one stroke a constant number of pixels wide at any
+    /// distance, with round joins and caps - the <see cref="DrawPixelLine"/> of space curves, and
+    /// what a trail through a 3D scene is drawn with.
+    /// </summary>
+    /// <param name="points">The run, in world space, of any length.</param>
+    /// <param name="pixelWidth">Stroke width in pixels on a 100% display.</param>
+    /// <param name="color">The stroke colour.</param>
+    /// <param name="closed">Whether the last point joins back to the first.</param>
+    /// <remarks>
+    /// Same limits as <see cref="DrawPolyline(ReadOnlySpan{Vector3}, float, Color, bool)"/>: pieces
+    /// of 64 points, one depth per piece, the dash pattern restarting at each, no crossing of the
+    /// near plane.
+    /// </remarks>
+    public void DrawPixelPolyline(ReadOnlySpan<Vector3> points, float pixelWidth, Color color, bool closed = false)
+        => AddSpacePolyline(points, OutlineStyle(color, pixelWidth), 0f, closed);
+
+    /// <summary>
     /// Submits a thick line between two points in 3D: a capsule swung about its own axis to face
     /// the camera, so it reads as a round-capped line of the width you ask for from any angle.
     /// </summary>
@@ -527,6 +570,7 @@ public sealed class ShapeBatch : RenderObject
     {
         Instances.Clear();
         Points.Clear();
+        SpacePoints.Clear();
     }
 
     /// <summary>A stroke with no area: a hollow band of zero depth, which is what a ring or an arc is.</summary>
@@ -662,6 +706,41 @@ public sealed class ShapeBatch : RenderObject
             for (var i = 0; i + 1 < piece.Length; i++) offset += Vector2.Distance(piece[i], piece[i + 1]);
         }
     }
+
+    /// <summary>
+    /// Records a space run: its points go to the space point buffer with the stroke radius beside
+    /// each, in pieces of at most <see cref="PolylineRunLength"/> points that share an end point,
+    /// and one record per piece flagged for the screen-space path. No plane and no normalization:
+    /// the pixel stage projects the points as they are.
+    /// </summary>
+    private void AddSpacePolyline(ReadOnlySpan<Vector3> points, in ShapeStyle style, float radius, bool closed)
+    {
+        if (points.Length < 2) return;
+
+        _spaceRun.Clear();
+
+        foreach (var point in points) _spaceRun.Add(point);
+
+        if (closed) _spaceRun.Add(points[0]);
+
+        var run = CollectionsMarshal.AsSpan(_spaceRun);
+
+        for (var start = 0; start + 1 < run.Length; start += PolylineRunLength - 1)
+        {
+            var piece = run.Slice(start, Math.Min(PolylineRunLength, run.Length - start));
+            var offset = SpacePoints.Count;
+
+            foreach (var point in piece) SpacePoints.Add(new Vector4(point, radius));
+
+            Instances.Add(new ShapeInstance(SpacePlane, style, SpaceStroke, new ShapePointRun(offset, piece.Length, Vector2.Zero, 1f), radius, 1f));
+        }
+    }
+
+    /// <summary>A stand-in plane for a space run, which has none; the shader never reads it.</summary>
+    private static readonly ShapePlane SpacePlane = new(Vector3.Zero, Vector3.UnitX, Vector3.UnitY, PlaneMode.Fixed);
+
+    /// <summary>The slice of every space run: a polyline, stroked on screen.</summary>
+    private static readonly ShapeSlice SpaceStroke = ShapeSlice.Whole with { Polyline = true, Space = true };
 
     /// <summary>
     /// Records one shape: its points shifted and scaled into the 2x2 quad the shader draws, so

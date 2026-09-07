@@ -59,4 +59,4 @@ public sealed class ShapeGlow
         Set(0f);
         Additive = false;
     }
-}
+}

@@ -41,6 +41,7 @@ namespace Stride.CommunityToolkit.Shapes
             // 8:  PixelRadius - Radius, Slice.x and LocalScale are pixels on screen, converted at the shape's depth
             // 16: Polyline - the points are a run to stroke, not a convex polygon
             // 32: AdditiveGlow - the glow adds light to what is behind it instead of covering it
+            // 64: SpacePolyline - the points are 3D, in SpacePoints, and the run is stroked on screen
             int Flags;
             // Colours as uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit
             // pattern, and GPUs canonicalize NaNs on float reads, destroying the red channel.
@@ -82,6 +83,11 @@ namespace Stride.CommunityToolkit.Shapes
             // on the way out - so the sRGB palette has to be decoded here; 0 for a gamma pipeline,
             // where the bytes pass straight through
             stage uint LinearOutput;
+
+            // The target's size in pixels, and the display scale a pixel width is multiplied by;
+            // the pixel stage of a space run works in pixels and needs both spelled out
+            stage float2 ViewSize;
+            stage float ScreenScale;
         }
 
         cbuffer PerDraw
@@ -90,6 +96,7 @@ namespace Stride.CommunityToolkit.Shapes
             // records and points start. The instance id counts from 0 for every draw.
             stage uint InstanceBase;
             stage uint PointBase;
+            stage uint SpacePointBase;
         }
 
         rgroup PerDraw.Shapes
@@ -115,6 +122,51 @@ namespace Stride.CommunityToolkit.Shapes
         {
             uint index = InstanceBase + streams.InstanceID;
             ShapeData data = Shapes[index];
+
+            // A space run is not a flat shape. Its quad is the screen bounding box of its projected
+            // points, padded for the widest stroke, the border and the glow, placed at the depth of
+            // the nearest point; the pixel stage then measures the run in pixels, so the perspective
+            // term and the local-to-pixel ratio it is handed are both 1.
+            if ((data.Flags & 64) != 0)
+            {
+                uint spaceOffset = SpacePointBase + data.PointOffset;
+                float pixelsPerUnit = PixelScale * ScreenScale;
+                float2 low = float2(1e9, 1e9);
+                float2 high = float2(-1e9, -1e9);
+                float nearestW = 1e9;
+                float nearestDepth = 1.0;
+                float widest = 0.0;
+
+                for (int k = 0; k < data.Count; ++k)
+                {
+                    float4 spacePoint = SpacePoints[spaceOffset + k];
+                    float4 pointClip = mul(float4(spacePoint.xyz, 1.0), ViewProjection);
+                    float w = max(pointClip.w, 0.0001);
+                    float2 ndc = pointClip.xy / w;
+
+                    low = min(low, ndc);
+                    high = max(high, ndc);
+                    widest = max(widest, spacePoint.w * pixelsPerUnit / w);
+
+                    if (w < nearestW)
+                    {
+                        nearestW = w;
+                        nearestDepth = pointClip.z / w;
+                    }
+                }
+
+                float thicknessPx = data.AxisX.w * ScreenScale;
+                float glowPx = data.Slice.w * ScreenScale;
+                float2 pad = (widest + 0.5 * thicknessPx + glowPx + 1.5) * 2.0 / ViewSize;
+                float2 corner = 0.5 * (low + high) + (0.5 * (high - low) + pad) * streams.LocalPosition;
+
+                streams.ShadingPosition = float4(corner, nearestDepth, 1.0);
+                streams.FragPosition = float4(0.0, 0.0, 1.0, 1.0);
+                streams.FragScale = float4(0.0, 0.0, thicknessPx, glowPx);
+                streams.ShapeIndex = index;
+
+                return;
+            }
 
             bool polyline = (data.Flags & 16) != 0;
 
@@ -225,6 +277,7 @@ namespace Stride.CommunityToolkit.Shapes
             bool gradient = (flags & 4) != 0;
             bool polyline = (flags & 16) != 0;
             bool additiveGlow = (flags & 32) != 0;
+            bool space = (flags & 64) != 0;
             bool cut = sweep > 0.0;
             bool linearTarget = LinearOutput != 0;
 
@@ -237,7 +290,7 @@ namespace Stride.CommunityToolkit.Shapes
             // The fill's gradient: where this fragment sits between the shape's two extremes along
             // the direction, then the near colour blended toward the far one. Straight alpha, so a
             // far colour at alpha 0 is a fade to nothing rather than to black.
-            if (gradient)
+            if (gradient && !space)
             {
                 float2 direction = data.Gradient.xy;
                 float directionLength = length(direction);
@@ -302,7 +355,24 @@ namespace Stride.CommunityToolkit.Shapes
             // border, glow - is a function of this one number.
             float s;
 
-            if (roundCaps && count == 1)
+            if (space)
+            {
+                // Measured on screen: every point projected with the matrix the vertex stage used,
+                // and the run's field in pixels - the same field the planar stroke uses, in
+                // different units. Dashes run along the projected arc length.
+                uint spaceOffset = SpacePointBase + data.PointOffset;
+                float2 pixel = streams.ShadingPosition.xy;
+
+                s = SdSpacePolyline(pixel, spaceOffset, count, ViewProjection, ViewSize, PixelScale * ScreenScale);
+
+                if (data.Dash.x > 0.0)
+                {
+                    float along = SpacePolylineAlong(pixel, spaceOffset, count, ViewProjection, ViewSize);
+
+                    s = max(s, SdDashAlong(along, data.Dash.x, data.Dash.x + data.Dash.y, 1.0, data.Dash.z));
+                }
+            }
+            else if (roundCaps && count == 1)
             {
                 // A round-capped arc is its own distance field: the band's centreline is an arc
                 // and the shape is everything within half the band width of it, which is what
@@ -350,7 +420,9 @@ namespace Stride.CommunityToolkit.Shapes
             // Dashes: the gaps are cuts through the shape along its outline, folded into the same
             // distance field, so fill, border and glow all stop at a dash end and the ends are
             // anti-aliased by the same smoothstep as every other edge
-            if (data.Dash.x > 0.0 && (count <= 2 || polyline))
+            bool dashed = data.Dash.x > 0.0 && (count <= 2 || polyline);
+
+            if (dashed && !space)
             {
                 s = max(s, SdDashes(p, offset, count, hollow, cut, radius, ringWidth, sweep, localPerPixel, data.Dash.xyz, wedge.xy, polyline, ringWidth));
             }
@@ -407,4 +479,4 @@ namespace Stride.CommunityToolkit.Shapes
             streams.ColorTarget = blended;
         }
     };
-}
+}

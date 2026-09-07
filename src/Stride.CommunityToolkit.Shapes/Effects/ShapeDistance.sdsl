@@ -12,6 +12,10 @@ namespace Stride.CommunityToolkit.Shapes
         {
             // Every shape's points, already shifted and scaled into its own normalized space
             stage StructuredBuffer<float2> Points;
+
+            // The points of every space run: xyz a world position, w the stroke radius there in
+            // world units, 0 for a stroke measured in pixels
+            stage StructuredBuffer<float4> SpacePoints;
         }
 
         float Cross2d(float2 v1, float2 v2)
@@ -67,14 +71,89 @@ namespace Stride.CommunityToolkit.Shapes
                 along = segment > 0.0 ? dot(p - Points[offset], direction / segment) : 0.0;
             }
 
-            float u = along / localPerPixel + pattern.z;
+            return SdDashAlong(along, dash, period, localPerPixel, pattern.z);
+        }
+
+        // The dash pattern at a coordinate along the outline: the coordinate in pixels, folded
+        // into one period, and the signed distance to the nearest dash edge - inside a dash the
+        // closer of its two ends, in a gap likewise - returned in local units, negative in a dash.
+        float SdDashAlong(float along, float dash, float period, float localPerPixel, float phase)
+        {
+            float u = along / localPerPixel + phase;
 
             u -= period * floor(u / period);
 
-            // Inside a dash the nearest edge is the closer of its two ends; in a gap likewise
             float d = u < dash ? min(u, dash - u) : -min(u - dash, period - u);
 
             return -d * localPerPixel;
+        }
+
+        // A space point on screen: xy in pixels, y down, from the same projection the vertex stage
+        // uses; z the stroke radius there in pixels. A point behind the camera has its w clamped,
+        // which keeps the arithmetic finite; a run that crosses the near plane is not supported.
+        float3 ProjectSpacePoint(float4 spacePoint, float4x4 viewProjection, float2 viewSize, float pixelsPerUnit)
+        {
+            float4 clip = mul(float4(spacePoint.xyz, 1.0), viewProjection);
+            float w = max(clip.w, 0.0001);
+            float2 ndc = clip.xy / w;
+
+            return float3((ndc.x * 0.5 + 0.5) * viewSize.x, (0.5 - ndc.y * 0.5) * viewSize.y, spacePoint.w * pixelsPerUnit / w);
+        }
+
+        // Signed distance in pixels from a screen position to a space run: the nearest of its
+        // segments, each one's radius interpolated between its ends, so a world-width stroke
+        // narrows with distance the way a rope does. Negative inside the stroke.
+        float SdSpacePolyline(float2 pixel, uint offset, int count, float4x4 viewProjection, float2 viewSize, float pixelsPerUnit)
+        {
+            float3 previous = ProjectSpacePoint(SpacePoints[offset], viewProjection, viewSize, pixelsPerUnit);
+            float d = length(pixel - previous.xy) - previous.z;
+
+            for (int i = 1; i < count; ++i)
+            {
+                float3 current = ProjectSpacePoint(SpacePoints[offset + i], viewProjection, viewSize, pixelsPerUnit);
+                float2 e = current.xy - previous.xy;
+                float2 w = pixel - previous.xy;
+                float t = clamp(dot(w, e) / max(dot(e, e), 0.000001), 0.0, 1.0);
+                float2 b = w - e * t;
+
+                d = min(d, length(b) - lerp(previous.z, current.z, t));
+                previous = current;
+            }
+
+            return d;
+        }
+
+        // Arc length in pixels along a space run's projection to the point of it nearest the
+        // screen position, for a dash pattern: PolylineAlong over the projected points.
+        float SpacePolylineAlong(float2 pixel, uint offset, int count, float4x4 viewProjection, float2 viewSize)
+        {
+            float best = 1e30;
+            float along = 0.0;
+            float travelled = 0.0;
+            float2 previous = ProjectSpacePoint(SpacePoints[offset], viewProjection, viewSize, 0.0).xy;
+
+            for (int i = 1; i < count; ++i)
+            {
+                float2 current = ProjectSpacePoint(SpacePoints[offset + i], viewProjection, viewSize, 0.0).xy;
+                float2 e = current - previous;
+                float2 w = pixel - previous;
+                float ee = max(dot(e, e), 0.000001);
+                float t = clamp(dot(w, e) / ee, 0.0, 1.0);
+                float2 b = w - e * t;
+                float bb = dot(b, b);
+                float segment = sqrt(ee);
+
+                if (bb < best)
+                {
+                    best = bb;
+                    along = travelled + t * segment;
+                }
+
+                travelled += segment;
+                previous = current;
+            }
+
+            return along;
         }
 
         // Distance to a run of points - the nearest of its segments. A stroke of some radius around

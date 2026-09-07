@@ -11,8 +11,8 @@ namespace Stride.CommunityToolkit.Shapes;
 
 /// <summary>
 /// Renders every <see cref="ShapeBatch"/> with <c>ShapeShader</c>: one instanced draw of a shared
-/// quad per batch, the shape records and their points delivered through two structured buffers and
-/// evaluated per fragment as a signed distance function.
+/// quad per batch, the shape records, their points and the points of space runs delivered through
+/// three structured buffers and evaluated per fragment as a signed distance function.
 /// </summary>
 /// <remarks>
 /// The frame's shapes are uploaded once, in <see cref="Prepare"/>, for every batch together, and
@@ -32,12 +32,14 @@ public class ShapeBatchFeature : RootRenderFeature
     private Buffer? _quadBuffer;
     private Buffer? _instanceBuffer;
     private Buffer? _pointBuffer;
+    private Buffer? _spacePointBuffer;
     private VertexDeclaration? _vertexDeclaration;
     private DisplayScale? _displayScale;
 
     // Every batch's records and points for the frame, one after another
     private readonly List<ShapeInstance> _instances = [];
     private readonly List<Vector2> _points = [];
+    private readonly List<Vector4> _spacePoints = [];
 
     // The effect, its parameters and the pipeline state are shared by every draw of this
     // feature. Stride draws a stage on worker threads when it knows the stage's depth access;
@@ -87,6 +89,7 @@ public class ShapeBatchFeature : RootRenderFeature
 
         _instanceBuffer = Buffer.Structured.New<ShapeInstance>(Context.GraphicsDevice, 1);
         _pointBuffer = Buffer.Structured.New<Vector2>(Context.GraphicsDevice, 1);
+        _spacePointBuffer = Buffer.Structured.New<Vector4>(Context.GraphicsDevice, 1);
 
         _pipelineState = new MutablePipelineState(Context.GraphicsDevice);
         _pipelineState.State.SetDefaults();
@@ -110,6 +113,7 @@ public class ShapeBatchFeature : RootRenderFeature
 
         _instances.Clear();
         _points.Clear();
+        _spacePoints.Clear();
 
         foreach (var renderObject in RenderObjects)
         {
@@ -118,13 +122,16 @@ public class ShapeBatchFeature : RootRenderFeature
             // Where this batch's records and points start, for the shader to add to its indices
             batch.InstanceBase = _instances.Count;
             batch.PointBase = _points.Count;
+            batch.SpacePointBase = _spacePoints.Count;
 
             _instances.AddRange(batch.Instances);
             _points.AddRange(batch.Points);
+            _spacePoints.AddRange(batch.SpacePoints);
         }
 
         Upload(context, ref _instanceBuffer!, CollectionsMarshal.AsSpan(_instances));
         Upload(context, ref _pointBuffer!, CollectionsMarshal.AsSpan(_points));
+        Upload(context, ref _spacePointBuffer!, CollectionsMarshal.AsSpan(_spacePoints));
     }
 
     /// <inheritdoc/>
@@ -171,10 +178,14 @@ public class ShapeBatchFeature : RootRenderFeature
                 _effect.Parameters.Set(ShapeShaderKeys.CameraUp, cameraUp);
                 _effect.Parameters.Set(ShapeShaderKeys.EyePosition, eyePosition);
                 _effect.Parameters.Set(ShapeShaderKeys.LinearOutput, linearOutput);
+                _effect.Parameters.Set(ShapeShaderKeys.ViewSize, renderView.ViewSize);
+                _effect.Parameters.Set(ShapeShaderKeys.ScreenScale, displayScale);
                 _effect.Parameters.Set(ShapeShaderKeys.InstanceBase, (uint)batch.InstanceBase);
                 _effect.Parameters.Set(ShapeShaderKeys.PointBase, (uint)batch.PointBase);
+                _effect.Parameters.Set(ShapeShaderKeys.SpacePointBase, (uint)batch.SpacePointBase);
                 _effect.Parameters.Set(ShapeShaderKeys.Shapes, _instanceBuffer);
                 _effect.Parameters.Set(ShapeDistanceKeys.Points, _pointBuffer);
+                _effect.Parameters.Set(ShapeDistanceKeys.SpacePoints, _spacePointBuffer);
 
                 // Tested but never written: shapes are transparent, so writing depth would let one
                 // shape reject another that should blend over it
@@ -232,6 +243,7 @@ public class ShapeBatchFeature : RootRenderFeature
         _quadBuffer?.Dispose();
         _instanceBuffer?.Dispose();
         _pointBuffer?.Dispose();
+        _spacePointBuffer?.Dispose();
 
         base.Unload();
     }

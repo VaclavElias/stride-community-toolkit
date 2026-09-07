@@ -1,6 +1,5 @@
 using Stride.Engine;
 using Stride.Rendering;
-using Stride.Rendering.Compositing;
 
 namespace Stride.CommunityToolkit.Shapes;
 
@@ -24,7 +23,8 @@ public static class ShapeBatchExtensions
     /// before UI and debug text. Call after the graphics compositor exists (from the Start callback).
     /// Calling this more than once adds another independent batch, which is how you get depth-tested
     /// and overlay shapes in the same scene; the first batch registers as the service that
-    /// <see cref="ShapeComponent"/> draws through.
+    /// <see cref="ShapeComponent"/> draws through. A scene that never calls this still draws its
+    /// components: the processor registers a depth-tested batch of its own the first time it needs one.
     /// </remarks>
     /// <exception cref="InvalidOperationException">The compositor has no "Transparent" render stage.</exception>
     public static ShapeBatch AddShapeBatch(this Game game, bool depthTest = false)
@@ -34,9 +34,35 @@ public static class ShapeBatchExtensions
         var compositor = game.SceneSystem.GraphicsCompositor
             ?? throw new InvalidOperationException("The game has no graphics compositor.");
 
+        var sceneInstance = game.SceneSystem.SceneInstance
+            ?? throw new InvalidOperationException("The game has no scene instance yet; add the batch from the Start callback or later.");
+
+        var batch = new ShapeBatch { DepthTest = depthTest };
+
+        // Expose the first batch to ShapeProcessor and anything else that wants to draw
+        if (game.Services.GetService<ShapeBatch>() is null)
+        {
+            game.Services.AddService(batch);
+        }
+
+        Register(sceneInstance, compositor.RenderSystem, batch);
+
+        return batch;
+    }
+
+    /// <summary>
+    /// Puts a batch into rendering for a scene: the render feature into the render system, if it is
+    /// not there yet, and the batch into the visibility group that pairs the scene with that render
+    /// system. What <see cref="AddShapeBatch"/> does for a game, and what <see cref="ShapeProcessor"/>
+    /// does for itself where nothing called <see cref="AddShapeBatch"/> - Game Studio's scene editor
+    /// among them.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The render system has no "Transparent" render stage.</exception>
+    internal static void Register(SceneInstance sceneInstance, RenderSystem renderSystem, ShapeBatch batch)
+    {
         RenderStage? transparentStage = null;
 
-        foreach (var stage in compositor.RenderSystem.RenderStages)
+        foreach (var stage in renderSystem.RenderStages)
         {
             if (stage.Name == "Transparent")
             {
@@ -48,9 +74,9 @@ public static class ShapeBatchExtensions
         if (transparentStage is null)
             throw new InvalidOperationException("The graphics compositor has no Transparent render stage.");
 
-        if (!compositor.RenderFeatures.OfType<ShapeBatchFeature>().Any())
+        if (!renderSystem.RenderFeatures.OfType<ShapeBatchFeature>().Any())
         {
-            compositor.RenderFeatures.Add(new ShapeBatchFeature
+            renderSystem.RenderFeatures.Add(new ShapeBatchFeature
             {
                 RenderStageSelectors =
                 {
@@ -63,17 +89,7 @@ public static class ShapeBatchExtensions
             });
         }
 
-        var batch = new ShapeBatch { DepthTest = depthTest };
-
-        // Expose the first batch to ShapeProcessor and anything else that wants to draw
-        if (game.Services.GetService<ShapeBatch>() is null)
-        {
-            game.Services.AddService(batch);
-        }
-
-        VisibilityGroupFor(game, compositor).RenderObjects.Add(batch);
-
-        return batch;
+        VisibilityGroupFor(sceneInstance, renderSystem).RenderObjects.Add(batch);
     }
 
     /// <summary>
@@ -105,20 +121,17 @@ public static class ShapeBatchExtensions
     // the usual Start callback has run; making it here first, the same way, means the batch is
     // registered before the first frame instead of one frame later, and there is no one-shot
     // system polling for it. The compositor finds it by render system and adopts it.
-    private static VisibilityGroup VisibilityGroupFor(Game game, GraphicsCompositor compositor)
+    private static VisibilityGroup VisibilityGroupFor(SceneInstance sceneInstance, RenderSystem renderSystem)
     {
-        var sceneInstance = game.SceneSystem.SceneInstance
-            ?? throw new InvalidOperationException("The game has no scene instance yet; add the batch from the Start callback or later.");
-
         foreach (var visibilityGroup in sceneInstance.VisibilityGroups)
         {
-            if (visibilityGroup.RenderSystem == compositor.RenderSystem)
+            if (visibilityGroup.RenderSystem == renderSystem)
             {
                 return visibilityGroup;
             }
         }
 
-        var created = new VisibilityGroup(compositor.RenderSystem);
+        var created = new VisibilityGroup(renderSystem);
 
         sceneInstance.VisibilityGroups.Add(created);
 
