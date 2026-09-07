@@ -1,4 +1,5 @@
 using Stride.CommunityToolkit.Scripts.Utilities;
+using Stride.Core;
 using Stride.Engine;
 using Stride.Input;
 
@@ -18,6 +19,8 @@ namespace Stride.CommunityToolkit.Scripts;
 /// - The 'H' key resets the camera to its default position and orthographic size.
 /// - Default settings: FarClipPlane=1000, NearClipPlane=0.1f, OrthographicSize=10.
 /// </remarks>
+[Display("Basic 2D Camera Controller")]
+[ComponentCategory("Camera")]
 public class Basic2DCameraController : SyncScript
 {
     // Movement Properties

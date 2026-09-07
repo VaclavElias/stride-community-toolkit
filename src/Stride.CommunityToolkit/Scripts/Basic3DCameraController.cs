@@ -1,5 +1,6 @@
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
+using Stride.Core;
 using Stride.Engine;
 using Stride.Input;
 
@@ -14,6 +15,8 @@ namespace Stride.CommunityToolkit.Scripts;
 ///
 /// This functionality is inspired by Stride.Assets.Presentation, Assets->Scripts->Camera
 /// </remarks>
+[Display("Basic 3D Camera Controller")]
+[ComponentCategory("Camera")]
 public class Basic3DCameraController : SyncScript
 {
     private const float MaximumPitch = MathUtil.PiOverTwo * 0.99f;

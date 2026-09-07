@@ -1,4 +1,5 @@
 using Stride.CommunityToolkit.Scripts.Utilities;
+using Stride.Core;
 using Stride.Engine;
 using Stride.Input;
 
@@ -28,6 +29,8 @@ namespace Stride.CommunityToolkit.Scripts;
 /// the live target, distance and angles.
 /// </para>
 /// </remarks>
+[Display("Orbit Camera Controller")]
+[ComponentCategory("Camera")]
 public class Basic3DOrbitCameraController : SyncScript
 {
     private CameraComponent? _camera;
