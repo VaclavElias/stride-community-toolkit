@@ -168,7 +168,7 @@ using System.Diagnostics.CodeAnalysis;
 // The transform overload is the one JointFrames2DTests exercises on a bare transform; the analysis does
 // not include the test project, so within it the body overload is the only caller.
 [assembly: SuppressMessage("NDepend", "ND1800:MethodsThatCouldHaveALowerVisibility", Target = "Stride.CommunityToolkit.Box2D:Stride.CommunityToolkit.Box2D.JointFrames2D.LocalFrame(B2Transform&,Vector2,Single)", Justification = "Called by the unit tests, which the analysis does not cover.")]
-[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeComponent.Vertices", Justification = "A runtime-swappable shape outline is the point of the component; the next frame draws whatever array is assigned.")]
+[assembly: SuppressMessage("NDepend", "ND2300:CollectionPropertiesShouldBeReadOnly", Target = "Stride.CommunityToolkit.Shapes:Stride.CommunityToolkit.Shapes.ShapeComponent.Vertices", Justification = "A runtime-swappable shape outline is the point of the component; the next frame draws whatever list is assigned or edited.")]
 // ShapeInstance is a wire format: the shader's ShapeData struct field for field, 160 bytes, uploaded
 // as-is through a structured buffer. Grouping the fields into smaller types would be a layout change,
 // not a design improvement, and the shader would have to change with it.
