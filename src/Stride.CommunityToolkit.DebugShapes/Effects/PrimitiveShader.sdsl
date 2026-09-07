@@ -62,4 +62,4 @@ namespace Stride.CommunityToolkit.DebugShapes
         }
 
     };
-}
+}
