@@ -26,6 +26,9 @@ using Stride.Input;
 // the shape is, because the shader measures it per fragment against the fragment's own clip w
 // rather than building it as geometry. Press 7 and fly down the corridor of rings: they shrink with
 // distance, their outlines do not. The glow (G) is measured the same way, so it holds too.
+//
+// Every demo wears a small label with its key number, near its most visible shape; L widens the
+// label to name the ShapeBatch method the demo is mostly made of.
 
 const int PillarCount = 6;
 const float PillarRing = 12f;
@@ -49,6 +52,37 @@ var demoNames = new[]
     "Dashes, gradients and opacity",
 };
 
+// The ShapeBatch member each demo is mostly made of, for the widened labels
+var demoMethods = new[]
+{
+    nameof(ShapeBatch.DrawDisc),
+    nameof(ShapeBatch.DrawRing),
+    nameof(ShapeBatch.DrawSolidPolygon),
+    nameof(ShapeBatch.DrawRectangle),
+    nameof(ShapeBatch.DrawLine),
+    nameof(ShapeBatch.DrawBillboardCircle),
+    nameof(ShapeBatch.DrawRing),
+    nameof(ShapeBatch.DrawSector),
+    nameof(ShapeBatch.Glow),
+    nameof(ShapeBatch.Dash),
+};
+
+// Where each demo's label floats: beside the shape a viewer would point at first, and left of
+// the centre line where the overlay text would cover it
+var labelAnchors = new[]
+{
+    new Vector3(14.5f, 0.6f, 8.5f),
+    new Vector3(-12.5f, 0.6f, 3.6f),
+    new Vector3(-5.6f, 0.6f, 3.5f),
+    new Vector3(12f, 5.9f, 12f),
+    new Vector3(-12f, 0.6f, 11.3f),
+    new Vector3(-2.4f, 12.6f, 0f),
+    new Vector3(-3.2f, 4.8f, -10f),
+    new Vector3(9f, 0.6f, 14.2f),
+    new Vector3(-2.6f, 8.3f, 14f),
+    new Vector3(0f, 1.2f, 13.2f),
+};
+
 // Two batches, so the depth toggle can show the same shapes as scene geometry or as an overlay
 ShapeBatch? sceneShapes = null;
 ShapeBatch? overlayShapes = null;
@@ -62,6 +96,10 @@ var pillarHeights = new float[PillarCount];
 // One world-text component per panel; text is component-based rather than immediate-mode because
 // measuring a string and filling the glyph cache is too expensive to redo every frame
 var panelLabels = new WorldTextComponent[PanelCount];
+
+// One per demo: a number, or the number and the method, on a small billboard panel
+var demoLabels = new WorldTextComponent[DemoCount];
+var wideLabels = false;
 
 var depthTested = true;
 var borderWidth = 3f;
@@ -98,6 +136,7 @@ void Start(Scene rootScene)
 
     BuildScene(rootScene);
     BuildPanelLabels(rootScene);
+    BuildDemoLabels(rootScene);
 
     DebugOverlay.GetOrCreate(game).AddSection("Shapes", BuildOverlayLines);
 }
@@ -189,6 +228,66 @@ void BuildPanelLabels(Scene scene)
 }
 
 /// <summary>
+/// The demo labels: billboarded world text, one entity each, moved nowhere and re-worded on the L
+/// key. The panel behind each is drawn every frame through the same batch as the demos, so the T key
+/// applies to labels too.
+/// </summary>
+void BuildDemoLabels(Scene scene)
+{
+    for (var i = 0; i < DemoCount; i++)
+    {
+        var label = new WorldTextComponent
+        {
+            Text = DemoKey(i),
+            FontSize = 48,
+            Height = 0.3f,
+            TextColor = Color.White,
+            GlowColor = new Color(0, 0, 0, 200),
+            GlowSize = 3f,
+            Alignment = Stride.Graphics.TextAlignment.Center,
+            Billboard = true,
+            DepthTest = false,
+        };
+
+        var entity = new Entity($"Demo label {i}") { Transform = { Position = labelAnchors[i] } };
+
+        entity.Add(label);
+        entity.Scene = scene;
+
+        demoLabels[i] = label;
+    }
+}
+
+/// <summary>The key that toggles demo i, as the overlay and the labels print it.</summary>
+string DemoKey(int i) => i == 9 ? "0" : (i + 1).ToString();
+
+/// <summary>
+/// The panels under the demo labels, sized to the text: a dark rounded billboard with a light
+/// edge, the HUD look in miniature. The text itself is the component's, updated only on the toggle.
+/// </summary>
+void DrawDemoLabels(ShapeBatch shapes)
+{
+    shapes.Fill.Set(new Color(8, 12, 22), 0.85f);
+    shapes.BorderWidth = 1.5f;
+
+    for (var i = 0; i < DemoCount; i++)
+    {
+        demoLabels[i].IsVisible = enabled[i];
+
+        if (!enabled[i]) continue;
+
+        // Roughly the width of the text at this height; exact would mean measuring the string
+        var width = 0.19f * demoLabels[i].Text.Length + 0.36f;
+        ReadOnlySpan<Vector2> panel = [new(-width / 2f, -0.2f), new(width / 2f, -0.2f), new(width / 2f, 0.2f), new(-width / 2f, 0.2f)];
+
+        shapes.DrawBillboard(panel, labelAnchors[i], new Color(150, 210, 255), radius: 0.12f);
+    }
+
+    shapes.Fill.Set(null, fillAlpha);
+    shapes.BorderWidth = borderWidth;
+}
+
+/// <summary>
 /// Where panel i stands: its centre, its X axis along the ring, and the side it faces. Every panel
 /// faces the camera side of the arena (+Z), so the text reads correctly from the start position.
 /// </summary>
@@ -254,6 +353,8 @@ void Update(Scene scene, GameTime gameTime)
     if (enabled[9]) DrawDashesGradientsOpacity(shapes, seconds);
 
     submitted = shapes.Count - before;
+
+    DrawDemoLabels(shapes);
 }
 
 /// <summary>
@@ -629,6 +730,44 @@ void DrawDashesGradientsOpacity(ShapeBatch shapes, float seconds)
     shapes.DrawPixelLine(new Vector3(20, 0.5f, 5f), new Vector3(20, 0.5f, -150f), 2f, Color.Orange);
     shapes.Dash.Clear();
 
+    // Three dashed rings on the ground in front of the arena, the closest shapes to the camera,
+    // each turning at its own speed with its own dash-to-gap ratio: tight ticks, half and half,
+    // and sparse dots. The middle one wears an additive glow, the right one is thick and breathes
+    // through its opacity - every per-draw state folds into the same dashed outline.
+    ReadOnlySpan<(float Dash, float Gap, float Speed)> dashedRings = [(6f, 4f, 30f), (10f, 10f, -20f), (3f, 12f, 45f)];
+
+    for (var i = 0; i < dashedRings.Length; i++)
+    {
+        var (dash, gap, speed) = dashedRings[i];
+        var centre = new Vector3(-4.2f + i * 4.2f, GroundLift, 13.2f);
+
+        shapes.Dash.Set(dash, gap, seconds * speed);
+
+        switch (i)
+        {
+            case 0:
+                shapes.BorderWidth = 2f;
+                shapes.DrawRing(centre, Vector3.UnitY, 1.6f, Color.Cyan);
+                break;
+            case 1:
+                shapes.BorderWidth = 3f;
+                shapes.Glow.Set(8f, new Color(255, 140, 0, 150));
+                shapes.Glow.Additive = true;
+                shapes.DrawRing(centre, Vector3.UnitY, 1.6f, Color.Orange);
+                shapes.Glow.Clear();
+                break;
+            default:
+                shapes.BorderWidth = 5f;
+                shapes.Opacity = 0.55f + 0.45f * MathF.Sin(seconds * 2f);
+                shapes.DrawRing(centre, Vector3.UnitY, 1.6f, Color.GreenYellow);
+                shapes.Opacity = 1f;
+                break;
+        }
+    }
+
+    shapes.Dash.Clear();
+    shapes.BorderWidth = borderWidth;
+
     // Gradients, standing up so they read at a glance: a bar filling to its bright end, and a
     // glass pane that fades to nothing along its length
     var bar = (MathF.Sin(seconds * 0.9f) + 1f) * 0.5f;
@@ -671,6 +810,16 @@ void HandleInput()
 
     if (game.Input.IsKeyPressed(Keys.T)) depthTested = !depthTested;
 
+    if (game.Input.IsKeyPressed(Keys.L))
+    {
+        wideLabels = !wideLabels;
+
+        for (var i = 0; i < DemoCount; i++)
+        {
+            demoLabels[i].Text = wideLabels ? $"{DemoKey(i)} - {demoMethods[i]}" : DemoKey(i);
+        }
+    }
+
     if (game.Input.IsKeyPressed(Keys.G))
     {
         glowWidth = glowWidth switch
@@ -707,6 +856,7 @@ IReadOnlyList<TextElement> BuildOverlayLines()
         new($"{submitted} shapes, one instanced draw call", Color.LightGreen),
         new($"Border {borderWidth:0} px (+/-)   Fill {fillAlpha:0.00} (F)   Glow {glowWidth:0} px (G)", Color.MediumSeaGreen),
         new(depthTested ? "T - depth tested: the scene occludes shapes" : "T - overlay: shapes draw on top", Color.Gold),
+        new(wideLabels ? "L - labels name the demo's main method" : "L - labels show the key only", Color.Gold),
         new(""),
     ];
 
@@ -757,6 +907,8 @@ concepts:
   - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
   - An outer glow measured in pixels, for halos and neon
   - Dashes in pixels on rings and lines, animated through their phase
+  - Three dashed rings turning at their own dash-to-gap ratios, one glowing, one breathing through its opacity
+  - A numbered label on every demo, widened by L to name the ShapeBatch method it is made of
   - A fill gradient across a shape's own extent, to a colour or to alpha 0
   - One opacity over border, fill and glow together
   - Why a signed distance function keeps an outline a constant pixel width
