@@ -165,6 +165,15 @@ void Start(Scene rootScene)
 }
 ```
 
+### Components in Game Studio
+
+Every `EntityComponent` and script the toolkit ships must work when added in Game Studio, not only
+from code: assembly registered for scanning (`Module.cs`), `[DataContract]`, a `[Display]` name and a
+`[ComponentCategory]`, `List<T>` never arrays, no nullable value types, and a processor that runs in
+the editor and provisions its own renderer on the owning compositor. The recipe, with the editor
+traps, is `docs/contributing/toolkit/game-studio-components.md`; the shape and text components are
+the worked examples. Verify against a package from `build/pack-local.cs`, not a `ProjectReference`.
+
 ## Coding Style & Conventions
 
 - Use latest C# features (file-scoped namespaces, target-typed `new`, pattern matching, spans where beneficial, primary ctors where suitable).
@@ -231,6 +240,10 @@ void Start(Scene rootScene)
 - Update conceptual docs and XML comments when changing public APIs.
 - New libraries: update navigation, TOC, and contributing guides (`docs/contributing/toolkit/library-project.md`).
 - Provide concise, runnable examples that minimize boilerplate.
+- Keep `docs/release-notes/index.md` current: every change goes under the heading of the version in
+  progress, in the categories of `.github/release.yml` (breaking changes first - a renamed or moved
+  public type, a changed property type, a visual change a user would notice). Write the entry with the
+  change, not at release time.
 
 ## Verification & provenance
 
