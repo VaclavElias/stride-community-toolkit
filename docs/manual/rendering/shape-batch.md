@@ -170,6 +170,34 @@ surface, so the fade only softens the approach. On an overlay batch, where nothi
 fragment behind the surface fades to nothing instead, which makes the fade a soft depth test of
 its own. A compositor that turns the resolved depth off leaves every shape at its hard cut.
 
+## A picture in a shape
+
+A fill was a flat colour or a two-colour gradient, and every image in a HUD was somebody else's
+problem: a sprite under a frame, aligned by hand, clipped by nothing. Stride's material system had
+the answer already. Any of its `IComputeColor` nodes - a texture with scale, offset and address
+modes, a blend of two nodes, a custom shader class - can be composed into a shader with one
+`compose` line, and the shape shader takes that plug for its fill. `ShapeBatch.FillSource` holds
+the node; `FillWith(texture)` installs the common one. Every shape drawn while `Textured` is on
+multiplies its fill by the sample, so a white fill shows the picture as it is, a tint darkens it,
+the fill alpha fades it and a gradient still runs over it, while the border and the glow are
+exactly what they were. The picture spans the shape's bounding box with `(0,0)` at the top left,
+the sprite convention: a rounded panel shows it edge to edge, a disc shows the inscribed square,
+and a thick line stretches it along its own box. What lies past the box, under a thick border, is
+the node's address mode to decide - clamp repeats the edge, wrap tiles.
+
+The composition is resolved when the effect is built, which makes it one fill source per batch,
+the way a sprite batch is one texture per `Begin`. That is less of a constraint than it sounds:
+`Textured` is per draw call, so one batch holds the picture panel and the plain outlines around it,
+which matters because two batches do not order deterministically. A batch with a fill source gets
+its own effect, with the batch's own parameters carrying the node's textures and values; the node
+is re-read every frame, so a scrolling stripe is one assignment to the node's `Offset` in update,
+and only a different composition reloads the effect. A plain batch keeps the shader it always had,
+which the gold scenes confirm.
+
+What it opens is what a picture inside an anti-aliased, outlined, glowing shape opens: a portrait
+in a circular frame, a minimap in a rounded rectangle, a second camera's render target in a
+cockpit mirror, hazard stripes that move, a noise texture behind a shield ring.
+
 ## Where it came from, and where it went
 
 The renderer was born as the Box2D package's debug draw on 2026-08-31, because the mesh approach
@@ -230,7 +258,9 @@ Honest limits, so you reach for the right tool:
 - **Flat, except for strokes.** A space stroke is the one shape drawn through 3D points. A
   sphere outline is still a billboard disc; a wireframe of an arbitrary mesh needs a
   different shader (barycentric, `fwidth()`-based) that does not exist yet.
-- **No text, no images.** Pair with World Text; a texture on a shape is a separate project.
+- **No text.** Pair with World Text, or render text to a texture and fill a shape with it.
+- **One fill source per batch.** A composition is resolved when the effect is built, so a batch
+  with two pictures is two batches, or one atlas and a node that selects from it.
 - **No layout, no input.** It draws. If you want a clickable button in the world, you pick it
   yourself - the SignalR example's `Board` class does it with one ray-plane intersection in board
   coordinates, and that is about fifteen lines.

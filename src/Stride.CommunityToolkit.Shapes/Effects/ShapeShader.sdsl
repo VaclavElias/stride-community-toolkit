@@ -44,6 +44,7 @@ namespace Stride.CommunityToolkit.Shapes
             // 16: Polyline - the points are a run to stroke, not a convex polygon
             // 32: AdditiveGlow - the glow adds light to what is behind it instead of covering it
             // 64: SpacePolyline - the points are 3D, in SpacePoints, and the run is stroked on screen
+            // 128: Textured - the fill is multiplied by the batch's fill source, sampled at TexCoord
             int Flags;
             // Colours as uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit
             // pattern, and GPUs canonicalize NaNs on float reads, destroying the red channel.
@@ -170,6 +171,7 @@ namespace Stride.CommunityToolkit.Shapes
                 float2 corner = 0.5 * (low + high) + (0.5 * (high - low) + pad) * streams.LocalPosition;
 
                 streams.ShadingPosition = float4(corner, nearestDepth, 1.0);
+                streams.TexCoord = float2(0.5 + 0.5 * streams.LocalPosition.x, 0.5 - 0.5 * streams.LocalPosition.y);
                 streams.FragPosition = float4(0.0, 0.0, 1.0, 1.0);
                 streams.FragScale = float4(0.0, 0.0, thicknessPx, glowPx);
                 streams.ShapeIndex = index;
@@ -252,6 +254,27 @@ namespace Stride.CommunityToolkit.Shapes
 
             float2 local = margin * streams.LocalPosition;
 
+            // Texture coordinates span the shape's bounding box in its own space, (0,0) at the top
+            // left, so an image fills a rectangle edge to edge and a disc gets its inscribed square.
+            // The quad's margin runs a little past 0..1, where the fill source's address mode decides
+            // what shows. Only a textured fill reads them; the loop is at most 64 points, per vertex.
+            float2 boxLow = float2(1e9, 1e9);
+            float2 boxHigh = float2(-1e9, -1e9);
+
+            for (int k = 0; k < data.Count; ++k)
+            {
+                float2 shapePoint = Points[PointBase + data.PointOffset + k];
+                boxLow = min(boxLow, shapePoint);
+                boxHigh = max(boxHigh, shapePoint);
+            }
+
+            float boxPad = invScale * radius;
+            boxLow -= boxPad;
+            boxHigh += boxPad;
+
+            float2 texCoord = (local - boxLow) / max(boxHigh - boxLow, 0.000001);
+            streams.TexCoord = float2(texCoord.x, 1.0 - texCoord.y);
+
             float2 q = worldScale * local + worldCenter;
             float3 worldPosition = origin + q.x * axisX + q.y * axisY;
 
@@ -262,6 +285,13 @@ namespace Stride.CommunityToolkit.Shapes
             streams.FragPosition = float4(local, clip.w, pixelToLocal);
             streams.ShapeIndex = index;
             streams.ShadingPosition = clip;
+        }
+
+        // What a textured fill multiplies in. The plain shader has none; ShapeShaderTextured
+        // overrides this with the fill source composed in by ShapeEffect.
+        float4 FillSample()
+        {
+            return float4(1.0, 1.0, 1.0, 1.0);
         }
 
         override stage void PSMain()
@@ -287,6 +317,7 @@ namespace Stride.CommunityToolkit.Shapes
             bool polyline = (flags & 16) != 0;
             bool additiveGlow = (flags & 32) != 0;
             bool space = (flags & 64) != 0;
+            bool textured = (flags & 128) != 0;
             bool cut = sweep > 0.0;
             bool linearTarget = LinearOutput != 0;
 
@@ -352,6 +383,15 @@ namespace Stride.CommunityToolkit.Shapes
             // The testbed's fill: the fill alpha scales the colour's brightness as well as its
             // opacity, in the sRGB values the caller gave. Decoded to the target's light after.
             fillColor = ToTarget(fillColor * fillAlpha, linearTarget);
+
+            // A textured fill: the batch's fill source, sampled at this fragment's texture coordinate,
+            // tints the fill - white shows the image as it is, and the fill alpha, the gradient and
+            // the opacity above and below still apply. Sampled after the colour space conversion,
+            // because a texture sample already arrives in the target's space.
+            if (textured)
+            {
+                fillColor *= FillSample();
+            }
             borderColor = ToTarget(borderColor, linearTarget);
 
             // Perspective term: near shapes have a large w, far ones a small one, so the same pixel

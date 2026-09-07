@@ -1,5 +1,7 @@
 using Stride.Engine;
 using Stride.Rendering;
+using Stride.Rendering.Materials;
+using Stride.Rendering.Materials.ComputeColors;
 
 namespace Stride.CommunityToolkit.Shapes;
 
@@ -17,6 +19,10 @@ public static class ShapeBatchExtensions
     /// anything that should stay visible through walls; pass <c>true</c> for decals and ground
     /// markers that belong in the scene.
     /// </param>
+    /// <param name="fill">
+    /// A fill source for a textured batch - see <see cref="ShapeBatch.FillSource"/> - or <c>null</c>
+    /// for plain fills. <see cref="ShapeBatch.FillWith"/> installs one later for the common case.
+    /// </param>
     /// <returns>The batch: submit shapes to it every frame from your update logic.</returns>
     /// <remarks>
     /// Shapes render in the compositor's "Transparent" stage, alpha-blended in submission order,
@@ -27,7 +33,7 @@ public static class ShapeBatchExtensions
     /// components: the processor registers a depth-tested batch of its own the first time it needs one.
     /// </remarks>
     /// <exception cref="InvalidOperationException">The compositor has no "Transparent" render stage.</exception>
-    public static ShapeBatch AddShapeBatch(this Game game, bool depthTest = false)
+    public static ShapeBatch AddShapeBatch(this Game game, bool depthTest = false, IComputeColor? fill = null)
     {
         ArgumentNullException.ThrowIfNull(game);
 
@@ -37,7 +43,7 @@ public static class ShapeBatchExtensions
         var sceneInstance = game.SceneSystem.SceneInstance
             ?? throw new InvalidOperationException("The game has no scene instance yet; add the batch from the Start callback or later.");
 
-        var batch = new ShapeBatch { DepthTest = depthTest };
+        var batch = new ShapeBatch { DepthTest = depthTest, FillSource = fill };
 
         // Expose the first batch to ShapeProcessor and anything else that wants to draw
         if (game.Services.GetService<ShapeBatch>() is null)

@@ -4,6 +4,7 @@ using Stride.Core.Mathematics;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
+using Stride.Rendering.Materials;
 using System.Runtime.InteropServices;
 using Buffer = Stride.Graphics.Buffer;
 
@@ -41,6 +42,11 @@ public class ShapeBatchFeature : RootRenderFeature
     // does not keep a stale texture
     private readonly Dictionary<RenderView, Texture> _depthByView = [];
 
+    // The effect of every batch with a fill source, keyed by the batch: its own parameters carry
+    // the textures, samplers and values the source generates keys for, and its own effect instance
+    // reloads when the composed source changes. Pruned in Flush when a batch drops its source.
+    private readonly Dictionary<ShapeBatch, TexturedEffect> _textured = [];
+
     // Every batch's records and points for the frame, one after another
     private readonly List<ShapeInstance> _instances = [];
     private readonly List<Vector2> _points = [];
@@ -68,7 +74,7 @@ public class ShapeBatchFeature : RootRenderFeature
     /// <inheritdoc/>
     protected override void InitializeCore()
     {
-        _effect = new DynamicEffectInstance("ShapeShader");
+        _effect = new DynamicEffectInstance("ShapeEffect");
         _effect.Initialize(Context.Services);
         _effect.UpdateEffect(Context.GraphicsDevice);
 
@@ -168,6 +174,8 @@ public class ShapeBatchFeature : RootRenderFeature
                 var renderNodeReference = renderViewStage.SortedRenderNodes[index].RenderNode;
                 var batch = (ShapeBatch)GetRenderNode(renderNodeReference).RenderObject;
 
+                var effect = EffectFor(batch, context.GraphicsDevice);
+
                 if (batch.Instances.Count == 0) continue;
 
                 using var _ = context.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
@@ -177,46 +185,46 @@ public class ShapeBatchFeature : RootRenderFeature
                 // sees it, is what makes every pixel-measured width come out that much wider
                 var displayScale = batch.AutoScale && _displayScale is not null ? _displayScale.Value : 1f;
 
-                _effect.UpdateEffect(context.GraphicsDevice);
-                _effect.Parameters.Set(ShapeShaderKeys.ViewProjection, renderView.ViewProjection);
-                _effect.Parameters.Set(ShapeShaderKeys.PixelScale, pixelScale / displayScale);
-                _effect.Parameters.Set(ShapeShaderKeys.CameraRight, cameraRight);
-                _effect.Parameters.Set(ShapeShaderKeys.CameraUp, cameraUp);
-                _effect.Parameters.Set(ShapeShaderKeys.EyePosition, eyePosition);
-                _effect.Parameters.Set(ShapeShaderKeys.LinearOutput, linearOutput);
-                _effect.Parameters.Set(ShapeShaderKeys.ViewSize, renderView.ViewSize);
-                _effect.Parameters.Set(ShapeShaderKeys.ScreenScale, displayScale);
+                effect.UpdateEffect(context.GraphicsDevice);
+                effect.Parameters.Set(ShapeShaderKeys.ViewProjection, renderView.ViewProjection);
+                effect.Parameters.Set(ShapeShaderKeys.PixelScale, pixelScale / displayScale);
+                effect.Parameters.Set(ShapeShaderKeys.CameraRight, cameraRight);
+                effect.Parameters.Set(ShapeShaderKeys.CameraUp, cameraUp);
+                effect.Parameters.Set(ShapeShaderKeys.EyePosition, eyePosition);
+                effect.Parameters.Set(ShapeShaderKeys.LinearOutput, linearOutput);
+                effect.Parameters.Set(ShapeShaderKeys.ViewSize, renderView.ViewSize);
+                effect.Parameters.Set(ShapeShaderKeys.ScreenScale, displayScale);
 
                 // The soft depth fade reads the scene's depth where the renderer bound it for this view
                 if (_depthByView.TryGetValue(renderView, out var depth))
                 {
-                    _effect.Parameters.Set(DepthBaseKeys.DepthStencil, depth);
-                    _effect.Parameters.Set(CameraKeys.ZProjection, CameraKeys.ZProjectionACalculate(renderView.NearClipPlane, renderView.FarClipPlane));
-                    _effect.Parameters.Set(ShapeShaderKeys.DepthAvailable, 1u);
+                    effect.Parameters.Set(DepthBaseKeys.DepthStencil, depth);
+                    effect.Parameters.Set(CameraKeys.ZProjection, CameraKeys.ZProjectionACalculate(renderView.NearClipPlane, renderView.FarClipPlane));
+                    effect.Parameters.Set(ShapeShaderKeys.DepthAvailable, 1u);
                 }
                 else
                 {
-                    _effect.Parameters.Set(ShapeShaderKeys.DepthAvailable, 0u);
+                    effect.Parameters.Set(ShapeShaderKeys.DepthAvailable, 0u);
                 }
-                _effect.Parameters.Set(ShapeShaderKeys.InstanceBase, (uint)batch.InstanceBase);
-                _effect.Parameters.Set(ShapeShaderKeys.PointBase, (uint)batch.PointBase);
-                _effect.Parameters.Set(ShapeShaderKeys.SpacePointBase, (uint)batch.SpacePointBase);
-                _effect.Parameters.Set(ShapeShaderKeys.Shapes, _instanceBuffer);
-                _effect.Parameters.Set(ShapeDistanceKeys.Points, _pointBuffer);
-                _effect.Parameters.Set(ShapeDistanceKeys.SpacePoints, _spacePointBuffer);
+                effect.Parameters.Set(ShapeShaderKeys.InstanceBase, (uint)batch.InstanceBase);
+                effect.Parameters.Set(ShapeShaderKeys.PointBase, (uint)batch.PointBase);
+                effect.Parameters.Set(ShapeShaderKeys.SpacePointBase, (uint)batch.SpacePointBase);
+                effect.Parameters.Set(ShapeShaderKeys.Shapes, _instanceBuffer);
+                effect.Parameters.Set(ShapeDistanceKeys.Points, _pointBuffer);
+                effect.Parameters.Set(ShapeDistanceKeys.SpacePoints, _spacePointBuffer);
 
                 // Tested but never written: shapes are transparent, so writing depth would let one
                 // shape reject another that should blend over it
                 _pipelineState.State.DepthStencilState = batch.DepthTest ? DepthStencilStates.DepthRead : DepthStencilStates.None;
-                _pipelineState.State.RootSignature = _effect.RootSignature;
-                _pipelineState.State.EffectBytecode = _effect.Effect.Bytecode;
+                _pipelineState.State.RootSignature = effect.RootSignature;
+                _pipelineState.State.EffectBytecode = effect.Effect.Bytecode;
                 _pipelineState.State.Output.CaptureState(commandList);
                 _pipelineState.Update();
 
                 commandList.SetPipelineState(_pipelineState.CurrentState);
                 commandList.SetVertexBuffer(0, _quadBuffer, 0, _vertexDeclaration!.VertexStride);
 
-                _effect.Apply(context.GraphicsContext);
+                effect.Apply(context.GraphicsContext);
 
                 commandList.DrawInstanced(6, batch.Instances.Count);
             }
@@ -248,6 +256,66 @@ public class ShapeBatchFeature : RootRenderFeature
         {
             ((ShapeBatch)renderObject).Reset();
         }
+
+        // A batch that dropped its fill source, or left rendering, gives its effect back
+        foreach (var (batch, textured) in _textured)
+        {
+            if (batch.FillSource is null || !RenderObjects.Contains(batch))
+            {
+                textured.Dispose();
+                _textured.Remove(batch);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The effect a batch draws with this frame: the shared plain one, or the batch's own with its
+    /// fill source composed in. The source is regenerated every frame - a handful of parameter
+    /// sets and one equality check - so a node's texture, scale or offset changed from code is
+    /// picked up next frame, and only a different composition reloads the effect.
+    /// </summary>
+    private DynamicEffectInstance EffectFor(ShapeBatch batch, GraphicsDevice graphicsDevice)
+    {
+        if (batch.FillSource is not { } fill) return _effect!;
+
+        if (!_textured.TryGetValue(batch, out var textured))
+        {
+            textured = new TexturedEffect();
+            textured.Effect.Initialize(Context.Services);
+            _textured[batch] = textured;
+        }
+
+        // A fresh context each time hands out the same indexed keys, so the parameters of the
+        // previous frame are overwritten rather than accumulated
+        using var generator = new ShaderGeneratorContext(graphicsDevice)
+        {
+            Parameters = textured.Parameters,
+            ColorSpace = graphicsDevice.ColorSpace,
+        };
+
+        var source = fill.GenerateShaderSource(generator, new MaterialComputeColorKeys(ShapeEffectKeys.FillMap, ShapeEffectKeys.FillValue, Color.White));
+
+        if (!source.Equals(textured.Parameters.Get(ShapeEffectKeys.FillSource)))
+        {
+            textured.Parameters.Set(ShapeEffectKeys.FillSource, source);
+        }
+
+        return textured.Effect;
+    }
+
+    /// <summary>A textured batch's effect and the parameter collection it and its fill source share.</summary>
+    private sealed class TexturedEffect : IDisposable
+    {
+        internal ParameterCollection Parameters { get; } = new();
+
+        internal DynamicEffectInstance Effect { get; }
+
+        public TexturedEffect()
+        {
+            Effect = new DynamicEffectInstance("ShapeEffect", Parameters);
+        }
+
+        public void Dispose() => Effect.Dispose();
     }
 
     // Default usage and a whole-buffer update: the one contiguous upload per frame that every
@@ -271,6 +339,13 @@ public class ShapeBatchFeature : RootRenderFeature
     public override void Unload()
     {
         _effect?.Dispose();
+
+        foreach (var textured in _textured.Values)
+        {
+            textured.Dispose();
+        }
+
+        _textured.Clear();
         _quadBuffer?.Dispose();
         _instanceBuffer?.Dispose();
         _pointBuffer?.Dispose();

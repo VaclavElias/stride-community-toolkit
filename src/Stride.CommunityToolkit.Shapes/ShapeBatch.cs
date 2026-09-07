@@ -1,5 +1,8 @@
 using Stride.Core.Mathematics;
+using Stride.Graphics;
 using Stride.Rendering;
+using Stride.Rendering.Materials;
+using Stride.Rendering.Materials.ComputeColors;
 using System.Runtime.InteropServices;
 
 namespace Stride.CommunityToolkit.Shapes;
@@ -23,7 +26,7 @@ namespace Stride.CommunityToolkit.Shapes;
 /// </para>
 /// <para>
 /// <see cref="BorderWidth"/>, <see cref="Fill"/>, <see cref="Glow"/>, <see cref="Dash"/>,
-/// <see cref="Gradient"/> and <see cref="Opacity"/> are current state, captured by each draw call
+/// <see cref="Gradient"/>, <see cref="Opacity"/>, <see cref="DepthFade"/> and <see cref="Textured"/> are current state, captured by each draw call
 /// as it is made, so you can change them between calls the way you would with a sprite batch.
 /// </para>
 /// </remarks>
@@ -126,6 +129,64 @@ public sealed class ShapeBatch : RenderObject
     /// </para>
     /// </remarks>
     public float DepthFade { get; set; }
+
+    /// <summary>
+    /// The fill source every textured shape in this batch samples: one of Stride's material nodes,
+    /// such as a <see cref="ComputeTextureColor"/> with a texture, a scale, an offset and address
+    /// modes, a blend of two nodes, or a custom shader class. <c>null</c>, the default, is a plain
+    /// batch. See <see cref="FillWith"/> for the common case.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The sample multiplies the fill colour, alpha included: a white fill shows the image as it is,
+    /// a tint darkens it, <see cref="ShapeFill.Alpha"/> fades it and a <see cref="Gradient"/> still
+    /// runs over it. The border and the glow are untouched. The texture spans the shape's bounding
+    /// box, (0,0) at the top left; a thick border reaches a little past the box, where the node's
+    /// address mode decides what shows.
+    /// </para>
+    /// <para>
+    /// It is one source per batch, because a shader composition is resolved when the effect is
+    /// built. Assigning a different node reloads the effect once; changing a node's own properties
+    /// - its texture, scale or offset - is picked up the next frame with no reload, which is how a
+    /// scrolling stripe animates. Shapes drawn with <see cref="Textured"/> off ignore it.
+    /// </para>
+    /// </remarks>
+    public IComputeColor? FillSource { get; set; }
+
+    /// <summary>
+    /// Whether draw calls sample <see cref="FillSource"/>. Defaults to <see langword="true"/>, so
+    /// setting a fill source textures everything; turn it off around the shapes that should keep
+    /// a flat fill, the way any other state is switched between draw calls. Without a fill source
+    /// it does nothing.
+    /// </summary>
+    public bool Textured { get; set; } = true;
+
+    /// <summary>
+    /// Fills the batch's textured shapes with a texture: the common case of <see cref="FillSource"/>.
+    /// </summary>
+    /// <param name="texture">The texture to sample, or a render target another camera draws into.</param>
+    /// <param name="scale">How many times the texture repeats across the shape's bounding box; the default 1 fits it once.</param>
+    /// <param name="offset">Where the texture starts, in texture units; animate it for a scrolling fill.</param>
+    /// <param name="addressMode">
+    /// What shows beyond the texture's edges - beyond the bounding box, or past one repeat. The
+    /// default <see cref="TextureAddressMode.Clamp"/> extends the edge pixels, right for a picture;
+    /// <see cref="TextureAddressMode.Wrap"/> tiles, for stripes and patterns.
+    /// </param>
+    /// <returns>The node it installed, so its properties can be changed later.</returns>
+    public ComputeTextureColor FillWith(Texture texture, Vector2? scale = null, Vector2? offset = null, TextureAddressMode addressMode = TextureAddressMode.Clamp)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+
+        var node = new ComputeTextureColor(texture, TextureCoordinate.Texcoord0, scale ?? Vector2.One, offset ?? Vector2.Zero)
+        {
+            AddressModeU = addressMode,
+            AddressModeV = addressMode,
+        };
+
+        FillSource = node;
+
+        return node;
+    }
 
     /// <summary>
     /// Whether the pixel-measured widths - border, glow, dashes, pixel lines - follow the display's
@@ -647,7 +708,7 @@ public sealed class ShapeBatch : RenderObject
         {
             // The gradient's far end gets the same treatment as the near one: scaled by the fill
             // alpha in the shader, so the two ends dim together
-            return new(color, color, BorderWidth, Fill.Alpha, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), CaptureGradient(color), Opacity, DepthFade);
+            return new(color, color, BorderWidth, Fill.Alpha, Glow.Capture(color), Dash.Capture(), CaptureGradient(color), Opacity, DepthFade, TexturedNow);
         }
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
@@ -655,20 +716,23 @@ public sealed class ShapeBatch : RenderObject
         var near = WithFillAlpha(fill);
         var gradient = Gradient.Color is { } to ? new GradientStyle(true, WithFillAlpha(to), Gradient.Direction) : new GradientStyle(false, near, Gradient.Direction);
 
-        return new(color, near, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), gradient, Opacity, DepthFade);
+        return new(color, near, BorderWidth, 1f, Glow.Capture(color), Dash.Capture(), gradient, Opacity, DepthFade, TexturedNow);
     }
 
     /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
-    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade);
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Capture(color), Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade, TexturedNow);
 
     /// <summary>The current style with the fill turned off and its own outline width.</summary>
-    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade);
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Capture(color), Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade, TexturedNow);
 
     /// <summary>
     /// The current style with the fill turned all the way up, for shapes that are drawn solid. A
     /// gradient still applies: a line that fades out along its length is a leader line.
     /// </summary>
-    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), CaptureGradient(color), Opacity, DepthFade);
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Capture(color), Dash.Capture(), CaptureGradient(color), Opacity, DepthFade, TexturedNow);
+
+    /// <summary>Whether the next draw call is textured: asked for, and with a fill source to sample.</summary>
+    private bool TexturedNow => Textured && FillSource is not null;
 
     /// <summary>The gradient as a draw call captures it, its far colour taken as given - the shader scales it by the fill alpha.</summary>
     private GradientStyle CaptureGradient(Color fallback) => new(Gradient.Color is not null, Gradient.Color ?? fallback, Gradient.Direction);

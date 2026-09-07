@@ -59,4 +59,7 @@ public sealed class ShapeGlow
         Set(0f);
         Additive = false;
     }
+
+    /// <summary>The glow as a draw call captures it, the colour resolved against the outline colour.</summary>
+    internal GlowStyle Capture(Color outline) => new(Width, Color ?? outline, Additive);
 }

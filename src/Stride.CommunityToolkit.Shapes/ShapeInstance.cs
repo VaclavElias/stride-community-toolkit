@@ -31,6 +31,9 @@ internal readonly struct ShapeInstance
     /// <summary>Bit 5 of the GPU flags: the glow adds light rather than covering what is behind it.</summary>
     internal const int AdditiveGlowFlag = 32;
 
+    /// <summary>The fill is multiplied by the batch's fill source.</summary>
+    internal const int TexturedFlag = 128;
+
     /// <summary>xyz: world position of the local origin; w: plane mode.</summary>
     public readonly Vector4 Position;
 
@@ -83,12 +86,12 @@ internal readonly struct ShapeInstance
         PointOffset = run.Offset;
         Count = run.Count;
         Radius = radius;
-        Flags = slice.Flags | (style.Gradient.Enabled ? GradientFlag : 0) | (style.GlowAdditive ? AdditiveGlowFlag : 0);
+        Flags = slice.Flags | (style.Gradient.Enabled ? GradientFlag : 0) | (style.Glow.Additive ? AdditiveGlowFlag : 0) | (style.Textured ? TexturedFlag : 0);
         Color = style.Color;
         FillColor = style.FillColor;
-        GlowColor = style.GlowColor;
+        GlowColor = style.Glow.Color;
         GradientColor = style.Gradient.Color;
-        _slice = new SliceData(slice.RingWidth, slice.StartAngle, slice.SweepAngle, style.GlowWidth);
+        _slice = new SliceData(slice.RingWidth, slice.StartAngle, slice.SweepAngle, style.Glow.Width);
         _dash = new DashData(style.Dash.Length, style.Dash.Gap, style.Dash.Phase, slice.RunOffset);
         _gradient = new GradientData(style.Gradient.Direction, style.Opacity, style.DepthFade);
     }
