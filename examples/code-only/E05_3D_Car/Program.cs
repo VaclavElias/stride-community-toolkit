@@ -381,7 +381,7 @@ sealed record Wheel(BodyComponent Body, AngularAxisMotorConstraintComponent Moto
 /// Sits behind the target and looks at it, easing into place. On the camera entity in place of the
 /// camera controller, so the driving keys are free.
 /// </summary>
-sealed class ChaseCamera : SyncScript
+public sealed class ChaseCamera : SyncScript
 {
     public Entity? Target { get; set; }
     public float Distance { get; set; } = 9f;

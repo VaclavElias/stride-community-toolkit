@@ -160,7 +160,7 @@ IReadOnlyList<TextElement> OverlayLines()
 /// The flock's GPU state: two boid buffers that swap every frame, the two matrix buffers the mesh
 /// renderer reads, and the instancing type that hands them over.
 /// </summary>
-sealed class BoidsSimulation : IDisposable
+public sealed class BoidsSimulation : IDisposable
 {
     // Where the flock lives and how it flies. All of it goes to the shader every dispatch, so
     // any of it could be a slider.
@@ -270,7 +270,7 @@ sealed class BoidsSimulation : IDisposable
 }
 
 /// <summary>One boid as the shader sees it: two float4s, the fourth components unused.</summary>
-readonly record struct Boid(Vector4 Position, Vector4 Velocity)
+public readonly record struct Boid(Vector4 Position, Vector4 Velocity)
 {
     public Boid(Vector3 position, Vector3 velocity) : this(new Vector4(position, 0f), new Vector4(velocity, 0f))
     {
@@ -282,10 +282,10 @@ readonly record struct Boid(Vector4 Position, Vector4 Velocity)
 /// shader once per frame. ComputeEffectShader wraps the effect, the thread counts and the pipeline
 /// state; all this does is bind the buffers, set the numbers and dispatch.
 /// </summary>
-sealed class BoidsComputeRenderer : SceneRendererBase
+public sealed class BoidsComputeRenderer : SceneRendererBase
 {
     // Set by the example; a scene renderer is a data contract and needs a parameterless constructor
-    public Func<BoidsSimulation?> Simulation { get; set; } = () => null;
+    public Func<BoidsSimulation?> Simulation { private get; set; } = () => null;
 
     // One thread per boid, in groups of this many; the shader ignores the threads past the end
     private const int ThreadsPerGroup = 256;

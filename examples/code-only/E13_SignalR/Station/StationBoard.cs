@@ -5,6 +5,7 @@ using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Input;
+using System.Globalization;
 
 namespace E13_SignalR.Station;
 
@@ -51,38 +52,38 @@ public sealed class StationBoard
         _board = new Board(center, facing, new Vector2(Width, Height));
         _labels = labels;
 
-        labels.Add("title", 0.66f, labels.Bold, (t, c) => { t.TextColor = c.Text; t.GlowColor = c.Glow; }, console, TextAnchor.MiddleLeft, glow: 4f);
-        labels.Add("subtitle", 0.36f, labels.Sans, (t, c) => t.TextColor = Hex.WithAlpha(c.Accent, 190), console, TextAnchor.MiddleLeft);
+        labels.Add("title", 0.66f, labels.Bold, (t, c) => { t.TextColor = c.Text; t.GlowColor = c.Glow; }, TextAnchor.MiddleLeft, glow: 4f);
+        labels.Add("subtitle", 0.36f, labels.Sans, (t, c) => t.TextColor = Hex.WithAlpha(c.Accent, 190), TextAnchor.MiddleLeft);
 
         // Coloured per frame by the scheme each button stands for, not by the current one
         for (var i = 0; i < Schemes.All.Length; i++)
         {
-            labels.Add($"scheme-{i}", 0.36f, labels.Bold, (_, _) => { }, console);
+            labels.Add($"scheme-{i}", 0.36f, labels.Bold, (_, _) => { });
         }
 
-        labels.Add("link", 0.42f, labels.Sans, (_, _) => { }, console, TextAnchor.MiddleLeft);
-        labels.Add("uptime", 0.42f, labels.Mono, (t, c) => t.TextColor = Hex.WithAlpha(c.Text, 170), console, TextAnchor.MiddleRight);
+        labels.Add("link", 0.42f, labels.Sans, (_, _) => { }, TextAnchor.MiddleLeft);
+        labels.Add("uptime", 0.42f, labels.Mono, (t, c) => t.TextColor = Hex.WithAlpha(c.Text, 170), TextAnchor.MiddleRight);
 
         foreach (var counter in Counters)
         {
-            labels.Add($"{counter}-value", 1.25f, labels.Mono, (t, c) => { t.TextColor = c.Accent; t.GlowColor = c.Glow; }, console, glow: 3f);
-            labels.Add($"{counter}-caption", 0.36f, labels.Bold, (t, c) => t.TextColor = Hex.WithAlpha(c.Text, 150), console);
+            labels.Add($"{counter}-value", 1.25f, labels.Mono, (t, c) => { t.TextColor = c.Accent; t.GlowColor = c.Glow; }, glow: 3f);
+            labels.Add($"{counter}-caption", 0.36f, labels.Bold, (t, c) => t.TextColor = Hex.WithAlpha(c.Text, 150));
         }
 
-        labels.Add("by-size", 0.36f, labels.Bold, (t, c) => t.TextColor = c.Accent, console, TextAnchor.MiddleLeft);
-        labels.Add("by-paint", 0.36f, labels.Bold, (t, c) => t.TextColor = c.Accent, console, TextAnchor.MiddleLeft);
-        labels.Add("dropping", 0.38f, labels.Sans, (t, c) => t.TextColor = c.Accent, console, TextAnchor.MiddleLeft);
+        labels.Add("by-size", 0.36f, labels.Bold, (t, c) => t.TextColor = c.Accent, TextAnchor.MiddleLeft);
+        labels.Add("by-paint", 0.36f, labels.Bold, (t, c) => t.TextColor = c.Accent, TextAnchor.MiddleLeft);
+        labels.Add("dropping", 0.38f, labels.Sans, (t, c) => t.TextColor = c.Accent, TextAnchor.MiddleLeft);
 
         for (var i = 0; i < SizeNames.Length; i++)
         {
-            labels.Add($"size-{i}", 0.42f, labels.Sans, (t, c) => t.TextColor = c.Text, console, TextAnchor.MiddleLeft);
-            labels.Add($"size-{i}-count", 0.42f, labels.Mono, (t, c) => t.TextColor = c.Text, console, TextAnchor.MiddleRight);
+            labels.Add($"size-{i}", 0.42f, labels.Sans, (t, c) => t.TextColor = c.Text, TextAnchor.MiddleLeft);
+            labels.Add($"size-{i}-count", 0.42f, labels.Mono, (t, c) => t.TextColor = c.Text, TextAnchor.MiddleRight);
         }
 
         for (var i = 0; i < Paints.All.Length; i++)
         {
-            labels.Add($"paint-{i}", 0.4f, labels.Sans, (t, c) => t.TextColor = c.Text, console, TextAnchor.MiddleLeft);
-            labels.Add($"paint-{i}-count", 0.4f, labels.Mono, (t, c) => t.TextColor = c.Text, console, TextAnchor.MiddleRight);
+            labels.Add($"paint-{i}", 0.4f, labels.Sans, (t, c) => t.TextColor = c.Text, TextAnchor.MiddleLeft);
+            labels.Add($"paint-{i}-count", 0.4f, labels.Mono, (t, c) => t.TextColor = c.Text, TextAnchor.MiddleRight);
         }
     }
 
@@ -195,7 +196,7 @@ public sealed class StationBoard
 
     private void DrawCounters(DeckSnapshot snapshot)
     {
-        string[] values = [snapshot.OnDeck.ToString(), snapshot.Released.ToString(), snapshot.Lost.ToString(), snapshot.TotalMass.ToString("0.0")];
+        string[] values = [snapshot.OnDeck.ToString(CultureInfo.InvariantCulture), snapshot.Released.ToString(CultureInfo.InvariantCulture), snapshot.Lost.ToString(CultureInfo.InvariantCulture), snapshot.TotalMass.ToString("0.0", CultureInfo.InvariantCulture)];
 
         for (var i = 0; i < Counters.Length; i++)
         {

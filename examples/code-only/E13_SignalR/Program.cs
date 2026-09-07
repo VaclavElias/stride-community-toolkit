@@ -70,7 +70,7 @@ void Start(Scene scene)
     game.Window.Title = $"{Constants.StationName} - Stride + SignalR";
     game.Window.AllowUserResizing = true;
 
-    var labels = new Labels(scene, game);
+    var labels = new Labels(scene, game, console);
 
     station.Build(scene, labels, console);
 
@@ -117,7 +117,7 @@ void Start(Scene scene)
     // keeps every open browser tab in the same scheme as the game
     console.SchemeChanged += scheme =>
     {
-        labels.Restyle(console);
+        labels.Restyle();
         console.Note($"Scheme {scheme.Name}");
         link.ReportScheme(scheme.Name);
     };

@@ -68,7 +68,7 @@ Theme[] themes =
 
 // One entry per station: how the panel is painted, and how the text on the copy below it is styled.
 // Panel settings are ShapeBatch state; text settings are WorldTextComponent properties.
-Station[] stations =
+GalleryStation[] stations =
 [
     new(1, "Fill only\nBorderWidth 0", "Default text",
         (text, theme) => text.TextColor = theme.Text,
@@ -279,7 +279,7 @@ void Update(Scene scene, GameTime gameTime)
 }
 
 /// <summary>Paints one panel: the stripe behind it, the panel itself, and any ornaments.</summary>
-void DrawPanel(Station station, Vector3 center, Theme theme)
+void DrawPanel(GalleryStation station, Vector3 center, Theme theme)
 {
     // The stripe is what makes transparency visible. Drawn first: shapes blend in submission order
     // and never write depth, so within a batch "behind" simply means "earlier".
@@ -594,7 +594,7 @@ enum GradientTarget { None, Text, Transparent }
 /// One station of the gallery: a panel recipe, the caption naming it, and the text drawn on the
 /// second copy of the panel with the styling that names itself.
 /// </summary>
-sealed record Station(
+sealed record GalleryStation(
     int Number,
     string Caption,
     string Label,
