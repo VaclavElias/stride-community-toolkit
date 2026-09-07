@@ -81,7 +81,7 @@ void Start(Scene scene)
 
     var cameraEntity = game.GetCameraEntity();
     cameraEntity.Add(new ChaseCamera { Target = car.Chassis.Entity });
-    cameraEntity.Add(new GrabberScript());
+    game.AddGrabber();
 
     AddInstructions();
 }

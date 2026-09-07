@@ -104,7 +104,7 @@ void Start(Scene scene)
     game.SetupBase3DScene();
 
     // Pick up and throw any body with the left mouse button (GrabberScript, see E05_3D_Grabber).
-    game.GetCameraEntity().Add(new GrabberScript());
+    game.AddGrabber();
     game.AddSkybox();
     game.AddProfiler();
     game.AddGroundGizmo(new Vector3(-9, 0, -9), showAxisName: true);

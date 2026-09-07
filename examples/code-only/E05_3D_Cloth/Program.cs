@@ -80,7 +80,7 @@ void Start(Scene scene)
     game.SetCameraPosition(new Vector3(-1, 8, -26));
     game.SetCameraRotation(new Vector3(180, -12, 0));
 
-    game.GetCameraEntity().Add(new GrabberScript());
+    game.AddGrabber();
 
     rootScene = scene;
     SetupInstancing(scene);

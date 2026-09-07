@@ -78,7 +78,7 @@ void Start(Scene scene)
 
     // Pick up, carry and throw any body with the left mouse button - two servo constraints, so the
     // held body still collides and the connected constraints still pull on it.
-    game.GetCameraEntity().Add(new GrabberScript());
+    game.AddGrabber();
 }
 
 void Update(Scene scene, GameTime time)
