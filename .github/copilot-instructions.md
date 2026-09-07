@@ -389,9 +389,9 @@ readout and pins auto-exposure, so the same frame is the same image on every run
 
 ```powershell
 dotnet run --file build/capture-screenshots.cs -- --review --only shape-batch --keep-png   # look at one example
-dotnet run --file build/gold-images.cs -- --only shape-batch                              # compare with tests/gold
-dotnet run --file build/gold-images.cs -- --only shape-batch --noise                      # what drift looks like with no change
-dotnet run --file build/gold-images.cs -- --only shape-batch --update                     # accept a reviewed change
+dotnet run --file build/gold-images.cs                                                    # compare the gold scenes with tests/gold, on WARP
+dotnet run --file build/gold-images.cs -- --only shapes-2d --noise                        # what drift looks like with no change
+dotnet run --file build/gold-images.cs -- --only shapes-2d --update                       # accept a reviewed change
 ```
 
 - `--review` writes to `screenshots-review/`, the gold script to `screenshots-review/gold/`, each

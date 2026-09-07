@@ -113,6 +113,7 @@
     <File Path="tools/Stride.CommunityToolkit.Examples.Launcher/examples-manifest.json" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Stride.CommunityToolkit.GoldScenes/Stride.CommunityToolkit.GoldScenes.csproj" />
     <Project Path="tests/Stride.CommunityToolkit.Tests/Stride.CommunityToolkit.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
