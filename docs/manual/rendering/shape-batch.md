@@ -148,6 +148,14 @@ interpolates to exactly the fragment's `w`, so a pixel-measured border is scaled
 perspective camera; under an orthographic 2D camera `w` is 1 and the 2D path is bit-identical to
 the testbed's, which is how the Box2D examples were verified against it.
 
+One kind of shape is not flat at all. A **space stroke** - `DrawPolyline` or `DrawPixelPolyline`
+handed `Vector3` points - has no plane. The vertex stage projects its points, takes their bounding
+box on screen and hands the pixel stage a screen-aligned quad; the pixel stage measures the run in
+pixels, each segment's radius converted at its own depth. A rope narrows with distance and a trail
+stays the same width, and both face the camera from every angle with no geometry behind them. The
+price is depth: a run is one quad at the depth of its nearest point, so a stroke that has to thread
+behind and in front of geometry is drawn as shorter runs, or on an overlay batch.
+
 ## Where it came from, and where it went
 
 The renderer was born as the Box2D package's debug draw on 2026-08-31, because the mesh approach
@@ -166,6 +174,9 @@ would have cost that property for every consumer. It now lives in its own packag
 
 `ShapeComponent` is the small bridge into the entity system: a shape drawn from an entity's
 transform, so a thing can be a shape without a model, and it appears in Game Studio's property grid.
+It needs no `AddShapeBatch` call: where a game made one, the component draws through it and inherits
+its state; otherwise the processor registers a depth-tested batch of its own, which is also what
+draws the shape in the scene editor, where the processor runs and nothing else does.
 
 ## Two scars worth knowing about
 
@@ -200,8 +211,10 @@ Honest limits, so you reach for the right tool:
   pieces that share a point, because every fragment of a stroke tests every segment of its run;
   where two pieces meet the round cap is drawn twice, and under `Opacity` below one that is a
   faintly brighter dot. The playground's line demo draws a 48-point run at half opacity, which is
-  one piece, so nothing shows there.
-- **Flat.** A sphere outline is a billboard disc; a wireframe of an arbitrary mesh needs a
+  one piece, so nothing shows there. A space stroke also restarts its dash pattern at each piece,
+  since a piece cannot know the on-screen length of the pieces before it.
+- **Flat, except for strokes.** A space stroke is the one shape drawn through 3D points. A
+  sphere outline is still a billboard disc; a wireframe of an arbitrary mesh needs a
   different shader (barycentric, `fwidth()`-based) that does not exist yet.
 - **No text, no images.** Pair with World Text; a texture on a shape is a separate project.
 - **No layout, no input.** It draws. If you want a clickable button in the world, you pick it
