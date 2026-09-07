@@ -13,6 +13,7 @@ namespace Stride.CommunityToolkit.Shapes;
 /// <param name="Dash">The dash pattern, gap resolved; a length of 0 draws solid.</param>
 /// <param name="Gradient">The fill gradient, if any.</param>
 /// <param name="Opacity">A multiplier on every alpha the shape produces, 0 to 1.</param>
+/// <param name="DepthFade">Distance in world units over which the shape fades out as it approaches scene geometry; 0 for none.</param>
 internal readonly record struct ShapeStyle(
     Color Color,
     Color FillColor,
@@ -23,4 +24,5 @@ internal readonly record struct ShapeStyle(
     bool GlowAdditive,
     DashStyle Dash,
     GradientStyle Gradient,
-    float Opacity);
+    float Opacity,
+    float DepthFade);

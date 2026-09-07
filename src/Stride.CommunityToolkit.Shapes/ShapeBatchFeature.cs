@@ -36,6 +36,11 @@ public class ShapeBatchFeature : RootRenderFeature
     private VertexDeclaration? _vertexDeclaration;
     private DisplayScale? _displayScale;
 
+    // The depth the forward renderer resolved for each view before its transparent stage, handed
+    // over through BindPerViewShaderResource; cleared each frame so a view that stops rendering
+    // does not keep a stale texture
+    private readonly Dictionary<RenderView, Texture> _depthByView = [];
+
     // Every batch's records and points for the frame, one after another
     private readonly List<ShapeInstance> _instances = [];
     private readonly List<Vector2> _points = [];
@@ -114,6 +119,7 @@ public class ShapeBatchFeature : RootRenderFeature
         _instances.Clear();
         _points.Clear();
         _spacePoints.Clear();
+        _depthByView.Clear();
 
         foreach (var renderObject in RenderObjects)
         {
@@ -180,6 +186,18 @@ public class ShapeBatchFeature : RootRenderFeature
                 _effect.Parameters.Set(ShapeShaderKeys.LinearOutput, linearOutput);
                 _effect.Parameters.Set(ShapeShaderKeys.ViewSize, renderView.ViewSize);
                 _effect.Parameters.Set(ShapeShaderKeys.ScreenScale, displayScale);
+
+                // The soft depth fade reads the scene's depth where the renderer bound it for this view
+                if (_depthByView.TryGetValue(renderView, out var depth))
+                {
+                    _effect.Parameters.Set(DepthBaseKeys.DepthStencil, depth);
+                    _effect.Parameters.Set(CameraKeys.ZProjection, CameraKeys.ZProjectionACalculate(renderView.NearClipPlane, renderView.FarClipPlane));
+                    _effect.Parameters.Set(ShapeShaderKeys.DepthAvailable, 1u);
+                }
+                else
+                {
+                    _effect.Parameters.Set(ShapeShaderKeys.DepthAvailable, 0u);
+                }
                 _effect.Parameters.Set(ShapeShaderKeys.InstanceBase, (uint)batch.InstanceBase);
                 _effect.Parameters.Set(ShapeShaderKeys.PointBase, (uint)batch.PointBase);
                 _effect.Parameters.Set(ShapeShaderKeys.SpacePointBase, (uint)batch.SpacePointBase);
@@ -202,6 +220,19 @@ public class ShapeBatchFeature : RootRenderFeature
 
                 commandList.DrawInstanced(6, batch.Instances.Count);
             }
+        }
+    }
+
+    /// <summary>
+    /// Takes the depth buffer the forward renderer resolves for a view before its transparent stage,
+    /// for the soft depth fade. The renderer offers it to every root render feature under the
+    /// "Depth" logical group; anything else offered is ignored.
+    /// </summary>
+    public override void BindPerViewShaderResource(string logicalGroupName, RenderView renderView, GraphicsResource resource)
+    {
+        if (logicalGroupName == "Depth" && resource is Texture texture)
+        {
+            _depthByView[renderView] = texture;
         }
     }
 

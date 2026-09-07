@@ -108,6 +108,26 @@ public sealed class ShapeBatch : RenderObject
     public float Opacity { get; set; } = 1f;
 
     /// <summary>
+    /// Distance in world units over which a shape fades out as it approaches scene geometry, instead
+    /// of cutting off at the depth test. The default 0 keeps the hard cut. Captured by each draw call
+    /// as it is made.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A disc on an uneven floor fades where the floor rises through it; a ring crossing a wall
+    /// dissolves into the wall rather than being sliced by it. The same idea as soft particles: the
+    /// shader compares its own distance from the camera with the scene's at the same pixel.
+    /// </para>
+    /// <para>
+    /// It needs the depth the forward renderer resolves before the transparent stage, which is on by
+    /// default; where a compositor turns that off the fade has nothing to read and the shape keeps
+    /// its hard cut. On an overlay batch a fragment behind the surface fades to nothing too, which
+    /// makes the fade a soft depth test of its own.
+    /// </para>
+    /// </remarks>
+    public float DepthFade { get; set; }
+
+    /// <summary>
     /// Whether the pixel-measured widths - border, glow, dashes, pixel lines - follow the display's
     /// scale, so a 2-pixel border is the same width to the eye on a 150% laptop as on a 100%
     /// monitor. Defaults to <see langword="true"/>.
@@ -627,7 +647,7 @@ public sealed class ShapeBatch : RenderObject
         {
             // The gradient's far end gets the same treatment as the near one: scaled by the fill
             // alpha in the shader, so the two ends dim together
-            return new(color, color, BorderWidth, Fill.Alpha, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), CaptureGradient(color), Opacity);
+            return new(color, color, BorderWidth, Fill.Alpha, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), CaptureGradient(color), Opacity, DepthFade);
         }
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
@@ -635,20 +655,20 @@ public sealed class ShapeBatch : RenderObject
         var near = WithFillAlpha(fill);
         var gradient = Gradient.Color is { } to ? new GradientStyle(true, WithFillAlpha(to), Gradient.Direction) : new GradientStyle(false, near, Gradient.Direction);
 
-        return new(color, near, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), gradient, Opacity);
+        return new(color, near, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), gradient, Opacity, DepthFade);
     }
 
     /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
-    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade);
 
     /// <summary>The current style with the fill turned off and its own outline width.</summary>
-    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity);
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade);
 
     /// <summary>
     /// The current style with the fill turned all the way up, for shapes that are drawn solid. A
     /// gradient still applies: a line that fades out along its length is a leader line.
     /// </summary>
-    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), CaptureGradient(color), Opacity);
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Width, Glow.Color ?? color, Glow.Additive, Dash.Capture(), CaptureGradient(color), Opacity, DepthFade);
 
     /// <summary>The gradient as a draw call captures it, its far colour taken as given - the shader scales it by the fill alpha.</summary>
     private GradientStyle CaptureGradient(Color fallback) => new(Gradient.Color is not null, Gradient.Color ?? fallback, Gradient.Direction);

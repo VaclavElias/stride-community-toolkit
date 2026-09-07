@@ -90,7 +90,7 @@ internal readonly struct ShapeInstance
         GradientColor = style.Gradient.Color;
         _slice = new SliceData(slice.RingWidth, slice.StartAngle, slice.SweepAngle, style.GlowWidth);
         _dash = new DashData(style.Dash.Length, style.Dash.Gap, style.Dash.Phase, slice.RunOffset);
-        _gradient = new GradientData(style.Gradient.Direction, style.Opacity);
+        _gradient = new GradientData(style.Gradient.Direction, style.Opacity, style.DepthFade);
     }
 
     /// <summary>Which part of the shape is kept, plus the glow width in the spare slot.</summary>
@@ -143,7 +143,7 @@ internal readonly struct ShapeInstance
         }
     }
 
-    /// <summary>The fill gradient's direction, plus the opacity in the spare slot.</summary>
+    /// <summary>The fill gradient's direction, plus the opacity and the soft depth fade in the spare slots.</summary>
     [StructLayout(LayoutKind.Sequential)]
     private readonly struct GradientData
     {
@@ -153,13 +153,14 @@ internal readonly struct ShapeInstance
         /// <summary>A multiplier on every alpha the shape produces.</summary>
         public readonly float Opacity;
 
-        private readonly float _pad;
+        /// <summary>Distance in world units over which the shape fades out as it nears scene geometry; 0 for a hard cut.</summary>
+        public readonly float DepthFade;
 
-        internal GradientData(Vector2 direction, float opacity)
+        internal GradientData(Vector2 direction, float opacity, float depthFade)
         {
             Direction = direction;
             Opacity = opacity;
-            _pad = 0f;
+            DepthFade = depthFade;
         }
     }
 }

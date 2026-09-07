@@ -13,7 +13,9 @@ namespace Stride.CommunityToolkit.Shapes
     // record in the pixel stage: the record is one buffer read per fragment, coherent across the
     // quad, where fifteen interpolated registers used to carry the same values and left no room
     // for another. The points sit in a second buffer, so a shape has as many as it needs.
-    internal shader ShapeShader : ShaderBase, ShapeDistance, ShapeColor
+    // DepthBase brings the depth buffer the forward renderer resolves before the transparent stage,
+    // and the camera factors that turn a depth value back into a distance, for the soft depth fade.
+    internal shader ShapeShader : ShaderBase, ShapeDistance, ShapeColor, DepthBase
     {
         struct ShapeData
         {
@@ -63,6 +65,8 @@ namespace Stride.CommunityToolkit.Shapes
             float4 Dash;
             // xy: the direction the fill's gradient runs in, in the plane's local axes
             // z: opacity, a multiplier on every alpha the shape produces
+            // w: soft depth fade - the distance in world units over which the shape fades out as it
+            //    approaches scene geometry, 0 for a hard cut at the depth test
             float4 Gradient;
         };
 
@@ -88,6 +92,10 @@ namespace Stride.CommunityToolkit.Shapes
             // the pixel stage of a space run works in pixels and needs both spelled out
             stage float2 ViewSize;
             stage float ScreenScale;
+
+            // 1 when the renderer bound the scene's depth for this view, so a soft depth fade can
+            // read it; 0 leaves every shape at its hard depth test
+            stage uint DepthAvailable;
         }
 
         cbuffer PerDraw
@@ -480,6 +488,22 @@ namespace Stride.CommunityToolkit.Shapes
             // Opacity last, over everything the shape produced, so a fill under a border under a
             // glow dims as one thing rather than as three overlapping ones
             blended *= saturate(opacity);
+
+            // Soft depth fade: how far in front of the scene's surface this fragment sits, in world
+            // units, against the distance the shape asked for. A disc on an uneven floor fades where
+            // the floor rises through it instead of cutting off; a marker crossing a wall dissolves
+            // into it. Both depths go through the same reconstruction, so their difference is a
+            // distance whatever the projection. A fragment behind the surface fades to nothing, which
+            // on an overlay batch is a soft depth test of its own.
+            float depthFade = data.Gradient.w;
+
+            if (depthFade > 0.0 && DepthAvailable != 0)
+            {
+                float sceneDistance = abs(ComputeDepthFromScreenPosition(int2(streams.ShadingPosition.xy)));
+                float ownDistance = abs(ComputeDepthFromZProj(depth));
+
+                blended *= smoothstep(0.0, 1.0, (sceneDistance - ownDistance) / depthFade);
+            }
 
             blended.rgb = Dither(blended.rgb, Bayer(streams.ShadingPosition.xy), linearTarget);
 
