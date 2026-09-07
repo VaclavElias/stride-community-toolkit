@@ -37,8 +37,9 @@ public sealed class ShapeBatch : RenderObject
 
     // Where this batch's records and points start in the frame's shared buffers; the render
     // feature sets both when it gathers every batch for upload
-    internal int InstanceBase;
-    internal int PointBase;
+    internal int InstanceBase { get; set; }
+
+    internal int PointBase { get; set; }
 
     // A polyline longer than this is split into runs that share an end point. The pixel stage
     // tests every segment of a run for every fragment of its quad, so the cap bounds the cost of a
@@ -701,6 +702,6 @@ public sealed class ShapeBatch : RenderObject
             Points.Add(invScale * (vertices[i] - center));
         }
 
-        Instances.Add(new ShapeInstance(plane, style, slice, center, localScale, offset, vertices.Length, radius, scale));
+        Instances.Add(new ShapeInstance(plane, style, slice, new ShapePointRun(offset, vertices.Length, center, localScale), radius, scale));
     }
 }

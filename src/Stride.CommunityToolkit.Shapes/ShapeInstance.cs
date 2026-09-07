@@ -72,16 +72,16 @@ internal readonly struct ShapeInstance
     private readonly DashData _dash;
     private readonly GradientData _gradient;
 
-    internal ShapeInstance(in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, Vector2 center, float localScale, int pointOffset, int count, float radius, float scale)
+    internal ShapeInstance(in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, in ShapePointRun run, float radius, float scale)
     {
         Position = new Vector4(plane.Origin, (float)plane.Mode);
         AxisX = new Vector4(plane.AxisX, style.BorderWidth);
         AxisY = new Vector4(plane.AxisY, style.FillAlpha);
-        Center = center;
-        LocalScale = localScale;
+        Center = run.Center;
+        LocalScale = run.LocalScale;
         Scale = scale;
-        PointOffset = pointOffset;
-        Count = count;
+        PointOffset = run.Offset;
+        Count = run.Count;
         Radius = radius;
         Flags = slice.Flags | (style.Gradient.Enabled ? GradientFlag : 0) | (style.GlowAdditive ? AdditiveGlowFlag : 0);
         Color = style.Color;
