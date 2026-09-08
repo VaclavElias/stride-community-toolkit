@@ -32,6 +32,7 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 
 ### 🐞 Bug Fixes
 
+- Dashes on a ring seen in perspective fell apart: the whole-ring fit that rounds the pattern to a whole number of periods was computed per fragment from that fragment's own depth, so the near and far sides disagreed on how many dashes the ring held, and the animated phase amplified the mismatch over time. The fit is now made once per ring from its centre's depth and the dashes are held in the ring's own units, so they foreshorten with it like painted marks and stay in step; along lines and polylines a dash's pixel length now follows the outline's own foreshortening. Orthographic 2D scenes were never affected.
 - `UseGameSettings` can now raise the graphics profile of a code-only game: the engine's `PrepareContext` wrote its level-10 default over the device manager after the toolkit had applied the caller's settings; they are applied again from `WindowCreated`, before the device is created.
 - ImGui, ImGui.NET and DebugShapes decoded their colours for a gamma target on Stride's sRGB backbuffer; they now decode to linear like ShapeBatch. DebugShapes' primitive shader read its colour as float bits, which turned some colours into NaN.
 - Text and debug renderers no longer throw when the compositor has no camera slot, and text renderers fall back to a system font when the built-in font is not in the content database - both the case in Game Studio's scene editor.
