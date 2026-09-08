@@ -127,6 +127,10 @@ namespace Stride.CommunityToolkit.Shapes
         // Which record the fragment belongs to. Integer streams are flat, so it arrives exact.
         stream uint ShapeIndex;
 
+        // The clip w of the shape's centre: one depth for the whole shape, for the figures that must
+        // agree between its fragments - how many dashes a ring holds
+        stream float CentreW;
+
         override stage void VSMain()
         {
             uint index = InstanceBase + streams.InstanceID;
@@ -173,6 +177,7 @@ namespace Stride.CommunityToolkit.Shapes
                 streams.ShadingPosition = float4(corner, nearestDepth, 1.0);
                 streams.TexCoord = float2(0.5 + 0.5 * streams.LocalPosition.x, 0.5 - 0.5 * streams.LocalPosition.y);
                 streams.FragPosition = float4(0.0, 0.0, 1.0, 1.0);
+                streams.CentreW = 1.0;
                 streams.FragScale = float4(0.0, 0.0, thicknessPx, glowPx);
                 streams.ShapeIndex = index;
 
@@ -283,6 +288,7 @@ namespace Stride.CommunityToolkit.Shapes
             // A varying carrying w interpolates perspective-correctly to exactly the fragment's w,
             // which is what makes the border a constant pixel width at any depth
             streams.FragPosition = float4(local, clip.w, pixelToLocal);
+            streams.CentreW = max(centerW, 0.0001);
             streams.ShapeIndex = index;
             streams.ShadingPosition = clip;
         }
@@ -397,6 +403,7 @@ namespace Stride.CommunityToolkit.Shapes
             // Perspective term: near shapes have a large w, far ones a small one, so the same pixel
             // width maps to more or fewer world units with distance
             float localPerPixel = streams.FragPosition.w * clipW;
+            float localPerPixelCentre = streams.FragPosition.w * streams.CentreW;
             float thickness = streams.FragScale.z * clipW;
             float glowWidth = streams.FragScale.w * clipW;
 
@@ -479,7 +486,7 @@ namespace Stride.CommunityToolkit.Shapes
 
             if (dashed && !space)
             {
-                s = max(s, SdDashes(p, offset, count, hollow, cut, radius, ringWidth, sweep, localPerPixel, data.Dash.xyz, wedge.xy, polyline, ringWidth));
+                s = max(s, SdDashes(p, offset, count, hollow, cut, radius, ringWidth, sweep, localPerPixel, localPerPixelCentre, data.Dash.xyz, wedge.xy, polyline, ringWidth));
             }
 
             // The anti-aliasing ramp: half a pixel either side of an edge. Half a pixel of local

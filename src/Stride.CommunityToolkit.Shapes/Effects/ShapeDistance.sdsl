@@ -29,39 +29,47 @@ namespace Stride.CommunityToolkit.Shapes
         // it is the projection onto the segment. The pattern is fitted so a whole number of periods
         // fills a circle or arc, so a tick ring never ends in a stub.
         //
-        // localPerPixel: local units per screen pixel at this fragment; pattern: dash and gap
-        // lengths and the phase, all in pixels; startDirection: the cut's first edge direction, or
-        // +X when there is no cut. Along a polyline the coordinate is the arc length to the nearest
-        // point of the run, plus runOffset - where this run starts along a longer one - so the
-        // pattern continues across the pieces of a very long run.
-        float SdDashes(float2 p, uint offset, int count, bool hollow, bool cut, float radius, float ringWidth, float sweep, float localPerPixel, float3 pattern, float2 startDirection, bool polyline, float runOffset)
+        // localPerPixelCentre: local units per screen pixel at the shape's centre - one figure for
+        // the whole shape, so every fragment of a ring agrees on how many dashes it holds; measured
+        // per fragment, the near and far sides of a ring seen in perspective disagreed and the
+        // pattern fell apart. A ring's dashes are therefore sized in its own units and foreshorten
+        // with it, like marks painted on the ground. Along a line the coordinate's own screen
+        // derivative gives the local units per pixel in the outline's direction, which holds under
+        // any foreshortening where a figure from depth alone holds only facing the camera.
+        // pattern: dash and gap lengths and the phase, all in pixels; startDirection: the cut's
+        // first edge direction, or +X when there is no cut. Along a polyline the coordinate is the
+        // arc length to the nearest point of the run, plus runOffset - where this run starts along
+        // a longer one - so the pattern continues across the pieces of a very long run.
+        float SdDashes(float2 p, uint offset, int count, bool hollow, bool cut, float radius, float ringWidth, float sweep, float localPerPixel, float localPerPixelCentre, float3 pattern, float2 startDirection, bool polyline, float runOffset)
         {
             float dash = pattern.x;
             float gap = pattern.y;
             float period = dash + gap;
+            float phase = pattern.z;
 
-            float along;
-
-            if (polyline)
-            {
-                along = PolylineAlong(p, offset, count) + runOffset;
-            }
-            else if (count == 1)
+            if (count == 1 && !polyline)
             {
                 float centreline = hollow ? radius - 0.5 * ringWidth : radius;
                 float startAngle = atan2(startDirection.y, startDirection.x);
                 float angle = atan2(p.y, p.x) - startAngle;
 
                 angle -= 2.0 * PI * floor(angle / (2.0 * PI));
-                along = angle * centreline;
 
-                // Fit: stretch or squeeze the period so the turn holds a whole number of them
-                float turnPixels = (cut ? sweep : 2.0 * PI) * centreline / localPerPixel;
-                float periods = max(1.0, round(turnPixels / period));
-                float fitted = turnPixels / periods;
+                // Fit: stretch or squeeze the period so the turn holds a whole number of them,
+                // the pattern then held in local units for the whole ring
+                float turn = (cut ? sweep : 2.0 * PI) * centreline;
+                float periods = max(1.0, round(turn / (period * localPerPixelCentre)));
+                float periodLocal = turn / periods;
+                float dashLocal = periodLocal * dash / period;
 
-                dash *= fitted / period;
-                period = fitted;
+                return SdDashAlong(angle * centreline + phase * localPerPixelCentre, dashLocal, periodLocal, 1.0, 0.0);
+            }
+
+            float along;
+
+            if (polyline)
+            {
+                along = PolylineAlong(p, offset, count) + runOffset;
             }
             else
             {
@@ -71,7 +79,11 @@ namespace Stride.CommunityToolkit.Shapes
                 along = segment > 0.0 ? dot(p - Points[offset], direction / segment) : 0.0;
             }
 
-            return SdDashAlong(along, dash, period, localPerPixel, pattern.z);
+            // Capped either side of the depth figure: at a crease between two segments the
+            // derivative has nothing to say
+            float alongPerPixel = clamp(length(float2(ddx(along), ddy(along))), 0.25 * localPerPixel, 4.0 * localPerPixel);
+
+            return SdDashAlong(along, dash, period, alongPerPixel, phase);
         }
 
         // The dash pattern at a coordinate along the outline: the coordinate in pixels, folded
