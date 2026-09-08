@@ -3,37 +3,36 @@ generated: true
 slug: shape-batch
 ---
 
-# ShapeBatch Shapes
+# ShapeBatch Gallery
 
-The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, glowing HUD panels
-with world text on them, genuinely thick 3D lines and wire boxes, camera-facing billboards, pie wedges, donut
-charts and radial progress arcs, a glow that halos any of them, dashed rings and lines that turn
-and march, fills that run to a colour or fade to nothing, and one opacity over a whole shape.
-Every shape is flat and evaluated per fragment as a signed distance function, so its outline
-stays a constant number of pixels wide however far away it is - press 7 and fly down the
-corridor of rings to see it.
+A ring of numbered stations, one ShapeBatch idea each, from a single disc to a scrolling
+textured panel: discs, rings, polygons and rectangles on any plane, sectors and arcs for pie and
+progress indicators, thick 3D lines, wire boxes, polyline strokes and space strokes, billboards,
+a corridor of rings that proves the constant-pixel outline, HUD panels with world text, fill
+colours, glow, dashes, gradients, opacity, the soft depth fade, overlay versus depth-tested
+batches, and textured fills. Every station is one method that draws in its own coordinates, so
+it can be lifted into a game as it is; the ring, labels and index board come from the registry.
 
 The `Program.cs` file shows how to:
 
-- Registering a shape renderer with AddShapeBatch
-- Depth-tested shapes versus overlay shapes from two batches
-- Discs, rings and polygons lying on an arbitrary plane in 3D
-- HUD panels with glowing edges and glowing world text, including a live counter
-- Thick 3D lines and wire boxes from camera-facing capsules
-- Polyline strokes with round joins - curves, dashed frames, concave outlines - in pixels or world units
-- Space strokes through 3D points - a helix and a knot - stroked on screen with no geometry
-- Billboards that keep their shape from any viewpoint, and pixel-radius markers that keep their size at any distance
+- Registering shape batches with AddShapeBatch, depth-tested, overlay and textured
+- One static method per exhibit, drawing in a station's local frame, portable into any game
+- A registry that lays out the ring, the labels and the index board on its own
+- Numbered labels in screen-space entity text, joined to their exhibit by a dotted pixel line
+- Discs, rings, polygons and rectangles on an arbitrary plane in 3D
 - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
-- An outer glow measured in pixels, for halos and neon
-- Dashes in pixels on rings and lines, animated through their phase
-- Three dashed rings turning at their own dash-to-gap ratios, one glowing, one breathing through its opacity
-- A numbered label on every demo, widened by L to name the ShapeBatch method it is made of
-- A fill gradient across a shape's own extent, to a colour or to alpha 0
-- One opacity over border, fill and glow together
+- Thick 3D lines and wire boxes from camera-facing capsules
+- Polyline strokes with round joins, in pixels or world units, and space strokes through 3D points
+- Billboards that keep their shape from any viewpoint, and pixel-radius markers that keep their size
 - Why a signed distance function keeps an outline a constant pixel width
+- HUD panels with glowing edges and glowing world text, including a live counter
+- Fill colours, an outer glow in pixels, dashes animated through their phase, gradients and opacity
+- The soft depth fade, where a shape melts into geometry instead of cutting off
+- Two batches in one scene, and what the overlay one shows through
+- Textured fills from a fill source, clamped for a picture and wrapped for a scrolling stripe
 
-![ShapeBatch Shapes](media/shape-batch.webp)
+![ShapeBatch Gallery](media/shape-batch.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_ShapeBatch).
 
-[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=871)]
+[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=153)]

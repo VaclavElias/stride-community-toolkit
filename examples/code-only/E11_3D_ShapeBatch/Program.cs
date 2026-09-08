@@ -1,5 +1,5 @@
+using E11_3D_ShapeBatch;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
@@ -7,105 +7,31 @@ using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
+using Stride.Graphics;
 using Stride.Input;
 
-// A tour of ShapeBatch in 3D. Every shape here is flat - a polygon evaluated per fragment as a
-// signed distance function - but flat shapes turn out to cover a lot of ground once they can sit on
-// any plane, face the camera, or swing about an axis:
+// A gallery of ShapeBatch. Every exhibit is one static method in Stations.*.cs that draws in its
+// station's own coordinates and knows nothing about where it stands, so any of them can be copied
+// into a game as it is. The ring, the ground, the pillars, the numbered labels with their dotted
+// lines and the index board at the centre all come from the registry in Stations.cs: add a demo
+// there and the gallery grows to fit, every number after it shifting along.
 //
-//   discs and rings on the floor      area-of-effect and selection markers
-//   decals                            flat art laid onto the ground
-//   panels                            rectangles standing in the world, with glowing HUD text on them
-//   lines and wire boxes              a capsule swung to face the camera is a thick 3D line
-//   billboards                        markers that stay the same shape from any angle
-//   arcs, sectors and annuli          pie wedges, donut charts, radial progress, cooldown sweeps
-//   glow                              a soft halo outside the outline, in pixels like the border
-//   dashes, gradients, opacity        tick rings that turn, fills that fade, whole shapes dimmed
-//
-// The point of all of it is the outline. It is a fixed number of PIXELS wide no matter how far away
+// Every shape is flat - a polygon evaluated per fragment as a signed distance function - but flat
+// shapes cover a lot of ground once they can sit on any plane, face the camera, or swing about an
+// axis. The point of all of it is the outline: a fixed number of PIXELS wide no matter how far away
 // the shape is, because the shader measures it per fragment against the fragment's own clip w
-// rather than building it as geometry. Press 7 and fly down the corridor of rings: they shrink with
-// distance, their outlines do not. The glow (G) is measured the same way, so it holds too.
+// rather than building it as geometry. Fly down station 12's corridor of rings to see it.
 //
-// Every demo wears a small label with its key number, near its most visible shape; L widens the
-// label to name the ShapeBatch method the demo is mostly made of.
+// Keys: N and P fly to the next and previous station, H flies home to the index board, Tab shows
+// one station at a time, L widens the labels, T switches the shapes between the depth-tested batch
+// and the overlay, G, F and + / - change the glow, the fill and the border for every station.
 
-const int PillarCount = 6;
-const float PillarRing = 12f;
-const float GroundLift = 0.02f;
-const int DemoCount = 10;
-const int PanelCount = 4;
-const float PanelRing = 17f;
-const float PanelHeight = 3.4f;
+// "--station 7" starts the visitor at a station instead of the index board - handy for screenshots
+var startStation = args.Length >= 2 && args[0] == "--station" && int.TryParse(args[1], out var number) ? number : 0;
 
-var demoNames = new[]
-{
-    "Ground discs (area of effect)",
-    "Selection rings",
-    "Decals",
-    "HUD panels on a plane, with world text",
-    "Thick 3D lines, wire boxes and polyline strokes",
-    "Camera-facing billboards",
-    "Distance proof (a corridor of rings)",
-    "Arcs, sectors and annuli",
-    "Glow and halos",
-    "Dashes, gradients and opacity",
-};
+Gallery? gallery = null;
 
-// The ShapeBatch member each demo is mostly made of, for the widened labels
-var demoMethods = new[]
-{
-    nameof(ShapeBatch.DrawDisc),
-    nameof(ShapeBatch.DrawRing),
-    nameof(ShapeBatch.DrawSolidPolygon),
-    nameof(ShapeBatch.DrawRectangle),
-    nameof(ShapeBatch.DrawLine),
-    nameof(ShapeBatch.DrawBillboardCircle),
-    nameof(ShapeBatch.DrawRing),
-    nameof(ShapeBatch.DrawSector),
-    nameof(ShapeBatch.Glow),
-    nameof(ShapeBatch.Dash),
-};
-
-// Where each demo's label floats: beside the shape a viewer would point at first, and left of
-// the centre line where the overlay text would cover it
-var labelAnchors = new[]
-{
-    new Vector3(14.5f, 0.6f, 8.5f),
-    new Vector3(-12.5f, 0.6f, 3.6f),
-    new Vector3(-5.6f, 0.6f, 3.5f),
-    new Vector3(12f, 5.9f, 12f),
-    new Vector3(-12f, 0.6f, 11.3f),
-    new Vector3(-2.4f, 12.6f, 0f),
-    new Vector3(-3.2f, 4.8f, -10f),
-    new Vector3(9f, 0.6f, 14.2f),
-    new Vector3(-2.6f, 8.3f, 14f),
-    new Vector3(0f, 1.2f, 13.2f),
-};
-
-// Two batches, so the depth toggle can show the same shapes as scene geometry or as an overlay
-ShapeBatch? sceneShapes = null;
-ShapeBatch? overlayShapes = null;
-
-var enabled = new bool[DemoCount];
-Array.Fill(enabled, true);
-
-var pillars = new Entity[PillarCount];
-var pillarHeights = new float[PillarCount];
-
-// One world-text component per panel; text is component-based rather than immediate-mode because
-// measuring a string and filling the glyph cache is too expensive to redo every frame
-var panelLabels = new WorldTextComponent[PanelCount];
-
-// One per demo: a number, or the number and the method, on a small billboard panel
-var demoLabels = new WorldTextComponent[DemoCount];
-var wideLabels = false;
-
-var depthTested = true;
-var borderWidth = 3f;
-var fillAlpha = 0.45f;
-var glowWidth = 0f;
-var submitted = 0;
+var style = new GalleryStyle();
 
 using var game = new Game();
 
@@ -114,715 +40,69 @@ game.Run(start: Start, update: Update);
 void Start(Scene rootScene)
 {
     game.Window.AllowUserResizing = true;
-    game.Window.Title = "Shapes Playground - Stride Community Toolkit";
+    game.Window.Title = "Shape Gallery - Stride Community Toolkit";
 
     game.SetupBase3D();
     game.Add3DCameraController();
     game.AddSkybox();
     game.AddProfiler();
 
-    // Yaw, pitch, roll in degrees: looking down at the arena from behind it
-    game.SetCameraPosition(new Vector3(0, 20, 34));
-    game.SetCameraRotation(new Vector3(0, -26, 0));
-
     // Depth-tested: scene geometry occludes these, so a disc on the floor goes behind a pillar.
     // Overlay: drawn on top of everything, which is what you want for gizmos and debug marks.
-    sceneShapes = game.AddShapeBatch(depthTest: true);
-    overlayShapes = game.AddShapeBatch(depthTest: false);
+    // Two more carry a fill source - a picture, clamped at its edges, and the same picture tiled -
+    // because a shader composition is one fill per batch.
+    var picture = Gallery.CreatePicture(game.GraphicsDevice);
+    var pictures = game.AddShapeBatch(depthTest: true);
+    var stripes = game.AddShapeBatch(depthTest: true);
 
-    // World text is a separate renderer, appended after the camera renderer that draws the shapes,
-    // so it always lands on top of a panel's fill. Neither writes depth, so coplanar is fine.
+    pictures.FillWith(picture);
+
+    var batches = new GalleryBatches(
+        Scene: game.AddShapeBatch(depthTest: true),
+        Overlay: game.AddShapeBatch(depthTest: false),
+        Pictures: pictures,
+        Stripes: stripes,
+        Stripe: stripes.FillWith(picture, scale: new Vector2(4f, 1f), addressMode: TextureAddressMode.Wrap));
+
+    // The text renderers, appended after the camera renderer that draws the shapes, so text lands
+    // on top of a panel's fill; neither writes depth, so coplanar is fine
     game.AddWorldTextRenderer();
+    game.AddEntityTextRenderer();
 
-    BuildScene(rootScene);
-    BuildPanelLabels(rootScene);
-    BuildDemoLabels(rootScene);
+    gallery = new Gallery(game, rootScene, Stations.All, batches, style);
+    gallery.UpdateLabels();
 
-    DebugOverlay.GetOrCreate(game).AddSection("Shapes", BuildOverlayLines);
-}
+    if (startStation > 0) gallery.GoTo(startStation - 1);
+    else gallery.GoHome();
 
-void BuildScene(Scene scene)
-{
-    // Dark and matte, so the shapes read against it instead of fighting a specular hotspot
-    var groundMaterial = game.CreateMaterial(new Color(38, 41, 47), specular: 0.04f, microSurface: 0.25f);
-
-    var ground = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions
-    {
-        EntityName = "Ground",
-        Material = groundMaterial,
-        Size = new Vector3(70, 0.5f, 200),
-        Position = new Vector3(0, -0.25f, -60),
-    });
-
-    ground.Scene = scene;
-
-    var pillarMaterial = game.CreateMaterial(new Color(96, 103, 116), specular: 0.1f, microSurface: 0.35f);
-
-    // A ring of pillars: something for the markers to sit under and the lines to reach for, and
-    // something solid for the depth toggle to hide shapes behind
-    for (var i = 0; i < PillarCount; i++)
-    {
-        var angle = i * MathF.Tau / PillarCount;
-        var height = 3f + i * 0.9f;
-
-        pillarHeights[i] = height;
-
-        var pillar = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions
-        {
-            EntityName = $"Pillar {i}",
-            Material = pillarMaterial,
-            Size = new Vector3(1.8f, height, 1.8f),
-            Position = new Vector3(MathF.Cos(angle) * PillarRing, height * 0.5f, MathF.Sin(angle) * PillarRing),
-        });
-
-        pillar.Scene = scene;
-        pillars[i] = pillar;
-    }
-}
-
-/// <summary>
-/// Text on the panels. A WorldTextComponent with Billboard off draws in its entity's own XY plane,
-/// so an entity rotated to the panel's plane puts the text flat onto it; Height sizes it in world
-/// units. The entity carries the pose, the shape is still drawn immediate-mode each frame. The glow
-/// is the component's own: offset copies of the string in the glow colour under the crisp text.
-/// </summary>
-void BuildPanelLabels(Scene scene)
-{
-    for (var i = 0; i < PanelCount; i++)
-    {
-        var (position, right, normal) = PanelPose(i);
-
-        // The entity's X and Y become the text's plane; Z is the side it reads from
-        var basis = Matrix.Identity;
-        basis.Right = right;
-        basis.Up = Vector3.UnitY;
-        basis.Backward = normal;
-
-        var label = new WorldTextComponent
-        {
-            Text = "",
-            FontSize = 48,
-            Height = 1.5f,
-            TextColor = new Color(130, 205, 255),
-            GlowColor = new Color(0, 140, 255, 170),
-            GlowSize = 4f,
-            Alignment = Stride.Graphics.TextAlignment.Center,
-            Billboard = false,
-        };
-
-        var entity = new Entity($"Panel label {i}")
-        {
-            Transform =
-            {
-                // A hair in front of the panel, so the text is unambiguously the nearer surface
-                Position = position + normal * 0.01f,
-                Rotation = Quaternion.RotationMatrix(basis),
-            },
-        };
-
-        entity.Add(label);
-        entity.Scene = scene;
-
-        panelLabels[i] = label;
-    }
-}
-
-/// <summary>
-/// The demo labels: billboarded world text, one entity each, moved nowhere and re-worded on the L
-/// key. The panel behind each is drawn every frame through the same batch as the demos, so the T key
-/// applies to labels too.
-/// </summary>
-void BuildDemoLabels(Scene scene)
-{
-    for (var i = 0; i < DemoCount; i++)
-    {
-        var label = new WorldTextComponent
-        {
-            Text = DemoKey(i),
-            FontSize = 48,
-            Height = 0.3f,
-            TextColor = Color.White,
-            GlowColor = new Color(0, 0, 0, 200),
-            GlowSize = 3f,
-            Alignment = Stride.Graphics.TextAlignment.Center,
-            Billboard = true,
-            DepthTest = false,
-        };
-
-        var entity = new Entity($"Demo label {i}") { Transform = { Position = labelAnchors[i] } };
-
-        entity.Add(label);
-        entity.Scene = scene;
-
-        demoLabels[i] = label;
-    }
-}
-
-/// <summary>The key that toggles demo i, as the overlay and the labels print it.</summary>
-string DemoKey(int i) => i == 9 ? "0" : (i + 1).ToString();
-
-/// <summary>
-/// The panels under the demo labels, sized to the text: a dark rounded billboard with a light
-/// edge, the HUD look in miniature. The text itself is the component's, updated only on the toggle.
-/// </summary>
-void DrawDemoLabels(ShapeBatch shapes)
-{
-    shapes.Fill.Set(new Color(8, 12, 22), 0.85f);
-    shapes.BorderWidth = 1.5f;
-
-    for (var i = 0; i < DemoCount; i++)
-    {
-        demoLabels[i].IsVisible = enabled[i];
-
-        if (!enabled[i]) continue;
-
-        // Roughly the width of the text at this height; exact would mean measuring the string
-        var width = 0.19f * demoLabels[i].Text.Length + 0.36f;
-        ReadOnlySpan<Vector2> panel = [new(-width / 2f, -0.2f), new(width / 2f, -0.2f), new(width / 2f, 0.2f), new(-width / 2f, 0.2f)];
-
-        shapes.DrawBillboard(panel, labelAnchors[i], new Color(150, 210, 255), radius: 0.12f);
-    }
-
-    shapes.Fill.Set(null, fillAlpha);
-    shapes.BorderWidth = borderWidth;
-}
-
-/// <summary>
-/// Where panel i stands: its centre, its X axis along the ring, and the side it faces. Every panel
-/// faces the camera side of the arena (+Z), so the text reads correctly from the start position.
-/// </summary>
-(Vector3 Position, Vector3 Right, Vector3 Normal) PanelPose(int i)
-{
-    var angle = i * MathF.PI * 0.5f + MathF.PI * 0.25f;
-    var (sin, cos) = MathF.SinCos(angle);
-    var position = new Vector3(cos * PanelRing, PanelHeight, sin * PanelRing);
-
-    // Radially outward, flipped for the far panels so they face inward towards the camera
-    var normal = new Vector3(cos, 0, sin);
-
-    if (normal.Z < 0) normal = -normal;
-
-    // Right-handed with the world up, so the text reads left to right from the normal's side
-    var right = Vector3.Cross(Vector3.UnitY, normal);
-
-    return (position, right, normal);
-}
-
-void UpdatePanelLabels(float seconds)
-{
-    // A counter that ticks up, formatted with thousands separators so the digits keep moving
-    var count = (long)(seconds * 137.5f);
-
-    panelLabels[0].Text = "STRIDE\nCOMMUNITY TOOLKIT";
-    panelLabels[1].Text = $"COUNTING\n{count:N0}";
-    panelLabels[2].Text = $"{submitted} SHAPES\n1 DRAW CALL";
-    panelLabels[3].Text = depthTested ? "DEPTH TESTED\npress T" : "OVERLAY\npress T";
-
-    foreach (var label in panelLabels)
-    {
-        label.IsVisible = enabled[3];
-    }
+    DebugOverlay.GetOrCreate(game).AddSection("Gallery", BuildOverlayLines);
 }
 
 void Update(Scene scene, GameTime gameTime)
 {
-    HandleInput();
-    UpdatePanelLabels((float)gameTime.Total.TotalSeconds);
+    if (gallery is null) return;
 
-    var shapes = depthTested ? sceneShapes : overlayShapes;
-
-    if (shapes is null) return;
-
-    // Current state, captured by each draw call as it is made
-    shapes.BorderWidth = borderWidth;
-    shapes.Fill.Alpha = fillAlpha;
-    shapes.Glow.Width = glowWidth;
-
-    var before = shapes.Count;
-    var seconds = (float)gameTime.Total.TotalSeconds;
-
-    if (enabled[0]) DrawGroundDiscs(shapes, seconds);
-    if (enabled[1]) DrawSelectionRings(shapes);
-    if (enabled[2]) DrawDecals(shapes, seconds);
-    if (enabled[3]) DrawPanels(shapes);
-    if (enabled[4]) DrawLines(shapes, seconds);
-    if (enabled[5]) DrawBillboards(shapes, seconds);
-    if (enabled[6]) DrawDistanceProof(shapes);
-    if (enabled[7]) DrawArcsAndSectors(shapes, seconds);
-    if (enabled[8]) DrawGlow(shapes, seconds);
-    if (enabled[9]) DrawDashesGradientsOpacity(shapes, seconds);
-
-    submitted = shapes.Count - before;
-
-    DrawDemoLabels(shapes);
+    HandleInput(gallery);
+    gallery.Draw((float)gameTime.Total.TotalSeconds);
 }
 
-/// <summary>
-/// Pulsing filled discs lying on the floor: the shape every game needs for an area of effect, a
-/// spawn point or a capture zone. A disc is one vertex plus a radius, so it is analytically round -
-/// no tessellation to give it away up close.
-/// </summary>
-void DrawGroundDiscs(ShapeBatch shapes, float seconds)
+void HandleInput(Gallery gallery)
 {
-    for (var i = 0; i < PillarCount; i++)
-    {
-        var pillar = pillars[i].Transform.Position;
-        var pulse = 2.6f + MathF.Sin(seconds * 1.6f + i * 0.9f) * 0.7f;
-
-        shapes.DrawDisc(new Vector3(pillar.X, GroundLift, pillar.Z), Vector3.UnitY, pulse, Color.OrangeRed);
-    }
-}
-
-/// <summary>
-/// Unfilled rings, which is the same shape with the fill turned off - a selection marker that does
-/// not tint what it encircles. The arena boundary shows the width holding at a large radius.
-/// </summary>
-void DrawSelectionRings(ShapeBatch shapes)
-{
-    foreach (var pillar in pillars)
-    {
-        var position = pillar.Transform.Position;
-
-        shapes.DrawRing(new Vector3(position.X, GroundLift, position.Z), Vector3.UnitY, 1.9f, Color.Cyan);
-    }
-
-    shapes.DrawRing(new Vector3(0, GroundLift, 0), Vector3.UnitY, PillarRing + 6f, Color.DeepSkyBlue);
-}
-
-/// <summary>
-/// Flat art laid onto the ground. A hexagon landing pad with four tiles turning slowly around it -
-/// arbitrary polygons on an arbitrary plane, which is all a decal really is.
-/// </summary>
-void DrawDecals(ShapeBatch shapes, float seconds)
-{
-    ReadOnlySpan<Vector2> hexagon =
-    [
-        new(5f, 0f), new(2.5f, 4.33f), new(-2.5f, 4.33f),
-        new(-5f, 0f), new(-2.5f, -4.33f), new(2.5f, -4.33f),
-    ];
-
-    // Lying flat means the polygon's own X and Y axes map to the world's X and Z
-    shapes.DrawSolidPolygon(hexagon, new Vector3(0, GroundLift, 0), Vector3.UnitX, Vector3.UnitZ, Color.MediumPurple);
-
-    for (var i = 0; i < 4; i++)
-    {
-        var angle = seconds * 0.4f + i * MathF.PI * 0.5f;
-        var (sin, cos) = MathF.SinCos(angle);
-        var position = new Vector3(cos * 7.5f, GroundLift, sin * 7.5f);
-
-        // The tile's axes turn with it, so the square rolls around the pad rather than sliding
-        shapes.DrawRectangle(position, new Vector3(cos, 0, sin), new Vector3(-sin, 0, cos), new Vector2(2.2f, 2.2f), Color.Violet, cornerRadius: 0.35f);
-    }
-}
-
-/// <summary>
-/// Rectangles standing upright in the world, facing the camera side - a sign, a screen, a portal.
-/// Rounded corners come free: the rounding radius is the same term that makes a capsule. Styled as
-/// a ship's HUD: a near-opaque dark fill, a cyan edge and a cyan glow outside it, with the text on
-/// them the toolkit's WorldTextComponent, placed once in BuildPanelLabels and updated by text.
-/// </summary>
-void DrawPanels(ShapeBatch shapes)
-{
-    // Fill and outline are independent colours: a faint dark panel with a thin light edge, which
-    // deriving the fill from the outline colour cannot produce. The glow is the same one every
-    // shape can have; kept narrow, so the edge reads as lit rather than smeared.
-    var hudBlue = new Color(110, 200, 255);
-
-    shapes.Fill.Color = new Color(4, 14, 30);
-    shapes.Fill.Alpha = 0.45f;
-    shapes.BorderWidth = 1.5f;
-    shapes.Glow.Width = 7f;
-    shapes.Glow.Color = new Color(0, 150, 255, 160);
-
-    for (var i = 0; i < PanelCount; i++)
-    {
-        var (position, right, _) = PanelPose(i);
-
-        // Upright: the panel's Y is the world's up, its X the tangent around the circle
-        shapes.DrawRectangle(position, right, Vector3.UnitY, new Vector2(6f, 3.6f), hudBlue, cornerRadius: 0.35f);
-
-        // Corner brackets, the HUD cliche: pixel-wide lines just inside two opposite corners
-        var up = Vector3.UnitY;
-        var topLeft = position - right * 2.7f + up * 1.5f;
-        var bottomRight = position + right * 2.7f - up * 1.5f;
-
-        shapes.DrawPixelLine(topLeft, topLeft + right * 0.8f, 1.5f, hudBlue);
-        shapes.DrawPixelLine(topLeft, topLeft - up * 0.5f, 1.5f, hudBlue);
-        shapes.DrawPixelLine(bottomRight, bottomRight - right * 0.8f, 1.5f, hudBlue);
-        shapes.DrawPixelLine(bottomRight, bottomRight + up * 0.5f, 1.5f, hudBlue);
-    }
-
-    shapes.Fill.Color = null;
-    shapes.Fill.Alpha = fillAlpha;
-    shapes.BorderWidth = borderWidth;
-    shapes.Glow.Width = glowWidth;
-    shapes.Glow.Color = null;
-}
-
-/// <summary>
-/// Thick 3D lines, a wire box and two space strokes. Hardware line rendering clamps to one pixel on
-/// most drivers; these are capsules swung about their own axis to face the camera, so the width is
-/// real and holds up close. The box is the twelve edges drawn as twelve lines; the strokes are runs
-/// of 3D points measured on screen.
-/// </summary>
-void DrawLines(ShapeBatch shapes, float seconds)
-{
-    var hub = new Vector3(0, 9.5f, 0);
-    var width = 0.14f + MathF.Sin(seconds * 2f) * 0.05f;
-
-    for (var i = 0; i < PillarCount; i++)
-    {
-        var pillar = pillars[i].Transform.Position;
-        var top = new Vector3(pillar.X, pillarHeights[i], pillar.Z);
-
-        shapes.DrawLine(hub, top, width, Color.Gold);
-    }
-
-    // Pixel-width rails running to the horizon: the same thickness near and far, where the thick
-    // world-space lines above visibly taper with distance
-    shapes.DrawPixelLine(new Vector3(-22, 0.5f, 5f), new Vector3(-22, 0.5f, -150f), 2f, Color.White);
-    shapes.DrawPixelLine(new Vector3(22, 0.5f, 5f), new Vector3(22, 0.5f, -150f), 2f, Color.White);
-
-    // Strokes: a run of points as one line with round joins. A sine at two pixels across the back
-    // of the ground; the same run at half opacity, one shape, so its joins do not double up; and a
-    // closed HUD bracket - concave, which no polygon fill could be - with dashes marching around it
-    Span<Vector2> wave = stackalloc Vector2[48];
-
-    for (var i = 0; i < wave.Length; i++)
-    {
-        var x = -18f + 36f * i / (wave.Length - 1);
-
-        wave[i] = new Vector2(x, 1.5f + MathF.Sin(x * 0.5f + seconds) * 1.2f);
-    }
-
-    var back = new Vector3(0, 0, -26f);
-
-    shapes.DrawPixelPolyline(wave, back, Vector3.UnitX, Vector3.UnitY, 2f, new Color(24, 28, 40));
-
-    shapes.Opacity = 0.5f;
-    shapes.DrawPixelPolyline(wave, back + new Vector3(0, 3.5f, 0), Vector3.UnitX, Vector3.UnitY, 6f, Color.Orange);
-    shapes.Opacity = 1f;
-
-    ReadOnlySpan<Vector2> bracket = [new(-4f, 0f), new(-4f, 3f), new(-2.5f, 4.5f), new(2.5f, 4.5f), new(4f, 3f), new(4f, 0f), new(2f, 0f), new(2f, 1.5f), new(-2f, 1.5f), new(-2f, 0f)];
-
-    shapes.Dash.Set(8f, 5f, seconds * 25f);
-    shapes.DrawPixelPolyline(bracket, back + new Vector3(0, 7f, 0), Vector3.UnitX, Vector3.UnitY, 2f, Color.Cyan, closed: true);
-    shapes.Dash.Clear();
-
-    // The same bracket flat on the ground at a world width, where the joins show their roundness
-    shapes.DrawPolyline(bracket, new Vector3(-12f, 0.02f, 9f), Vector3.UnitX, -Vector3.UnitZ, 0.25f, Color.Gold, closed: true);
-
-    // A selection volume around the tallest pillar
-    var tallest = pillars[PillarCount - 1].Transform.Position;
-    var tallestHeight = pillarHeights[PillarCount - 1];
-
-    shapes.DrawWireBox(new Vector3(tallest.X, tallestHeight * 0.5f, tallest.Z), new Vector3(2.6f, tallestHeight + 0.8f, 2.6f), 0.08f, Color.Yellow);
-
-    // Space strokes: a run of 3D points stroked on screen, with no plane and no geometry. A helix
-    // of pixel width with a glow climbing the back-left pillar, and a closed trefoil of world width
-    // hanging in the sky beside it, thin where it is far and thick where it is near, in two pieces
-    // that share a point
-    var coil = pillars[PillarCount - 2].Transform.Position;
-    var coilHeight = pillarHeights[PillarCount - 2];
-    Span<Vector3> helix = stackalloc Vector3[64];
-
-    for (var i = 0; i < helix.Length; i++)
-    {
-        var t = (float)i / (helix.Length - 1);
-        var angle = t * MathF.Tau * 3f + seconds;
-
-        helix[i] = new Vector3(coil.X + MathF.Cos(angle) * 2.2f, 0.6f + t * (coilHeight + 0.4f), coil.Z + MathF.Sin(angle) * 2.2f);
-    }
-
-    shapes.Glow.Set(8f, new Color(255, 120, 40, 140));
-    shapes.DrawPixelPolyline(helix, 3f, Color.Orange);
-    shapes.Glow.Clear();
-
-    Span<Vector3> trefoil = stackalloc Vector3[96];
-
-    for (var i = 0; i < trefoil.Length; i++)
-    {
-        var angle = i * MathF.Tau / trefoil.Length;
-
-        trefoil[i] = new Vector3(
-            -11f + (MathF.Sin(angle) + 2f * MathF.Sin(2f * angle)) * 1.6f,
-            10f + MathF.Sin(3f * angle) * 1.2f,
-            -9f + (MathF.Cos(angle) - 2f * MathF.Cos(2f * angle)) * 1.6f);
-    }
-
-    shapes.DrawPolyline(trefoil, 0.12f, Color.DeepSkyBlue, closed: true);
-}
-
-/// <summary>
-/// Camera-facing markers. A billboard keeps its shape and its screen orientation from every angle,
-/// which is what you want for a waypoint or a unit marker - fly around and they never foreshorten.
-/// </summary>
-void DrawBillboards(ShapeBatch shapes, float seconds)
-{
-    var bob = MathF.Sin(seconds * 2f) * 0.25f;
-
-    // A coloured fill inside a neutral outline: the chart-marker case, readable against any
-    // background because the ring never takes the series colour
-    shapes.Fill.Color = Color.LimeGreen;
-
-    for (var i = 0; i < PillarCount; i++)
-    {
-        var pillar = pillars[i].Transform.Position;
-        var above = new Vector3(pillar.X, pillarHeights[i] + 1.6f + bob, pillar.Z);
-
-        shapes.DrawBillboardCircle(above, 0.45f, Color.White);
-    }
-
-    shapes.Fill.Color = null;
-
-    // Pixel-measured markers beside them: a disc and a ring that are the same size on screen at
-    // any distance, where the world-radius billboards above shrink with it - scatter points and
-    // cursor markers want exactly this. The ring wears a glow, and a glowing pixel line joins the pair.
-    shapes.BorderWidth = 2f;
-    shapes.Glow.Set(8f, new Color(255, 140, 0, 160));
-
-    for (var i = 0; i < PillarCount; i++)
-    {
-        var pillar = pillars[i].Transform.Position;
-        var beside = new Vector3(pillar.X, pillarHeights[i] + 1.6f + bob, pillar.Z);
-        var left = beside - new Vector3(1.4f, 0, 0);
-        var right = beside + new Vector3(1.4f, 0, 0);
-
-        shapes.DrawPixelDisc(left, 6f, Color.Orange);
-        shapes.DrawPixelRing(right, 10f, Color.Orange);
-        shapes.DrawPixelLine(left, right, 1.5f, new Color(255, 140, 0, 120));
-    }
-
-    shapes.Glow.Clear();
-    shapes.BorderWidth = borderWidth;
-
-    // A diamond over the hub: any polygon can be billboarded, not just circles
-    ReadOnlySpan<Vector2> diamond = [new(0.9f, 0f), new(0f, 0.9f), new(-0.9f, 0f), new(0f, -0.9f)];
-
-    shapes.DrawBillboard(diamond, new Vector3(0, 11.5f + bob, 0), Color.GreenYellow);
-}
-
-/// <summary>
-/// The headline: identical rings marching away from the camera. They shrink, their outlines do not.
-/// Geometry-based outlines cannot do this - a ring of triangles thins to nothing with distance.
-/// </summary>
-void DrawDistanceProof(ShapeBatch shapes)
-{
-    for (var i = 0; i < 12; i++)
-    {
-        shapes.DrawRing(new Vector3(0, 2.4f, -10f - i * 13f), Vector3.UnitZ, 2f, Color.HotPink);
-    }
-}
-
-/// <summary>
-/// Circles with parts cut away. A sector keeps an angular range between two radial edges - a pie
-/// wedge, or with an inner radius a donut segment; an arc keeps a range of the ring with round ends
-/// - a progress bar bent into a circle; an annulus is a ring with real width and an outline on both
-/// edges. Angles are radians, counter-clockwise from the plane's X axis, negative for clockwise.
-/// </summary>
-void DrawArcsAndSectors(ShapeBatch shapes, float seconds)
-{
-    // A donut chart on the ground: four sectors sharing a centre, each filled in its own colour
-    // inside a neutral outline, with a small gap between them
-    ReadOnlySpan<(float Share, Color Fill)> segments =
-    [
-        (0.38f, Color.DodgerBlue), (0.27f, Color.Orange), (0.2f, Color.MediumSeaGreen), (0.15f, Color.Crimson),
-    ];
-
-    var chartCenter = new Vector3(-9f, GroundLift, 10f);
-    var angle = MathF.PI * 0.5f;
-
-    foreach (var (share, fill) in segments)
-    {
-        var sweep = share * MathF.Tau;
-
-        shapes.Fill.Color = fill;
-        shapes.DrawSector(chartCenter, Vector3.UnitY, 3.2f, angle + 0.03f, sweep - 0.06f, Color.White, innerRadius: 1.6f);
-
-        angle += sweep;
-    }
-
-    shapes.Fill.Color = null;
-
-    // An annulus beside it: the same ring with no cuts, and a pie wedge with none of the hole
-    shapes.DrawAnnulus(new Vector3(9f, GroundLift, 10f), Vector3.UnitY, 3.2f, 2.2f, Color.Turquoise);
-    shapes.DrawSector(new Vector3(9f, GroundLift, 10f), Vector3.UnitY, 2f, seconds * 0.8f, MathF.PI * 0.6f, Color.Gold);
-
-    // A field-of-view cone sweeping from a pillar's base: a sector that starts at the centre
-    var watcher = pillars[0].Transform.Position;
-    var facing = MathF.Sin(seconds * 0.5f) * 1.2f + MathF.PI;
-
-    shapes.DrawSector(new Vector3(watcher.X, GroundLift, watcher.Z), Vector3.UnitY, 7f, facing - 0.45f, 0.9f, Color.Yellow);
-
-    // Radial progress above every pillar, standing upright and facing +Z: a faint full-turn track
-    // behind a bright arc that fills clockwise from twelve o'clock, so the ends are round
-    for (var i = 0; i < PillarCount; i++)
-    {
-        var pillar = pillars[i].Transform.Position;
-        var centre = new Vector3(pillar.X, pillarHeights[i] + 3.2f, pillar.Z);
-        var progress = (MathF.Sin(seconds * 0.7f + i * 1.1f) + 1f) * 0.5f;
-
-        shapes.Fill.Alpha = 0.25f;
-        shapes.DrawArc(centre, Vector3.UnitZ, 1.1f, 0f, MathF.Tau, Color.Gray, width: 0.32f);
-
-        shapes.Fill.Alpha = 0.9f;
-        shapes.DrawArc(centre, Vector3.UnitZ, 1.1f, MathF.PI * 0.5f, -progress * MathF.Tau, Color.LimeGreen, width: 0.32f);
-    }
-
-    shapes.Fill.Alpha = fillAlpha;
-
-    // A stroke arc: a ring with a gap that travels around it, the width still the border's pixels
-    shapes.DrawArc(new Vector3(0, GroundLift, 0), Vector3.UnitY, 9.5f, seconds, MathF.Tau * 0.8f, Color.HotPink);
-}
-
-/// <summary>
-/// The glow lives outside the outline and fades out over a pixel width, so it neither tints the
-/// fill nor changes with distance. Its best use is contrast: a light ring with a dark glow stays
-/// readable over anything, which is what a cursor or a chart crosshair needs. Press G to put a glow
-/// under every demo at once.
-/// </summary>
-void DrawGlow(ShapeBatch shapes, float seconds)
-{
-    // A cursor ring wandering over the ground, white on a dark halo; the halo sits on both sides
-    // of the ring because the ring is the shape, not the disc it encloses
-    var (sin, cos) = MathF.SinCos(seconds * 0.6f);
-    var cursor = new Vector3(cos * 6f, GroundLift, 14f + sin * 3f);
-
-    shapes.Glow.Width = 8f;
-    shapes.Glow.Color = new Color(0, 0, 0, 200);
-    shapes.DrawRing(cursor, Vector3.UnitY, 0.9f, Color.White);
-    shapes.DrawPixelLine(cursor - new Vector3(1.6f, 0, 0), cursor + new Vector3(1.6f, 0, 0), 1.5f, Color.White);
-    shapes.DrawPixelLine(cursor - new Vector3(0, 0, 1.6f), cursor + new Vector3(0, 0, 1.6f), 1.5f, Color.White);
-
-    // Neon: the same colour glowing wide around a stroke, and a filled disc whose glow stops at
-    // its edge rather than washing into the fill. Not additive: over this bright sky an additive
-    // glow only saturates towards white; Glow.Additive is for a neon over a dark scene
-    shapes.Glow.Color = null;
-    shapes.Glow.Width = 28f;
-    shapes.DrawRing(new Vector3(0, 6f, 14f), Vector3.UnitZ, 1.6f, Color.Cyan);
-    shapes.DrawDisc(new Vector3(-5f, 6f, 14f), Vector3.UnitZ, 1.2f, Color.Magenta);
-    shapes.DrawArc(new Vector3(5f, 6f, 14f), Vector3.UnitZ, 1.6f, seconds * 1.5f, MathF.PI * 1.2f, Color.OrangeRed);
-
-    shapes.Glow.Width = glowWidth;
-}
-
-/// <summary>
-/// The three per-draw states that arrived with the HUD example. Dashes are measured in pixels like
-/// the border and belong to rings, arcs and lines; advancing the phase turns a ring or marches a
-/// line. A gradient runs the fill from its colour to another across the shape's own extent - to a
-/// second colour, or to alpha 0 for a fade. Opacity dims everything a shape draws with one number.
-/// Press 0 to toggle; the rest of the scene is untouched by any of it.
-/// </summary>
-void DrawDashesGradientsOpacity(ShapeBatch shapes, float seconds)
-{
-    var hub = new Vector3(0, GroundLift, 0);
-
-    // Two tick rings on the ground turning in opposite directions - each one shape - and dashed
-    // rails marching alongside the solid ones
-    shapes.Dash.Set(8f, 6f, seconds * 25f);
-    shapes.DrawRing(hub, Vector3.UnitY, PillarRing + 3f, Color.Orange);
-
-    shapes.Dash.Set(4f, 10f, -seconds * 40f);
-    shapes.DrawRing(hub, Vector3.UnitY, PillarRing + 4f, Color.Orange);
-
-    shapes.Dash.Set(12f, 8f, seconds * 60f);
-    shapes.DrawPixelLine(new Vector3(-20, 0.5f, 5f), new Vector3(-20, 0.5f, -150f), 2f, Color.Orange);
-    shapes.DrawPixelLine(new Vector3(20, 0.5f, 5f), new Vector3(20, 0.5f, -150f), 2f, Color.Orange);
-    shapes.Dash.Clear();
-
-    // Three dashed rings on the ground in front of the arena, the closest shapes to the camera,
-    // each turning at its own speed with its own dash-to-gap ratio: tight ticks, half and half,
-    // and sparse dots. The middle one wears an additive glow, the right one is thick and breathes
-    // through its opacity - every per-draw state folds into the same dashed outline.
-    ReadOnlySpan<(float Dash, float Gap, float Speed)> dashedRings = [(6f, 4f, 30f), (10f, 10f, -20f), (3f, 12f, 45f)];
-
-    for (var i = 0; i < dashedRings.Length; i++)
-    {
-        var (dash, gap, speed) = dashedRings[i];
-        var centre = new Vector3(-4.2f + i * 4.2f, GroundLift, 13.2f);
-
-        shapes.Dash.Set(dash, gap, seconds * speed);
-
-        switch (i)
-        {
-            case 0:
-                shapes.BorderWidth = 2f;
-                shapes.DrawRing(centre, Vector3.UnitY, 1.6f, Color.Cyan);
-                break;
-            case 1:
-                shapes.BorderWidth = 3f;
-                shapes.Glow.Set(8f, new Color(255, 140, 0, 150));
-                shapes.Glow.Additive = true;
-                shapes.DrawRing(centre, Vector3.UnitY, 1.6f, Color.Orange);
-                shapes.Glow.Clear();
-                break;
-            default:
-                shapes.BorderWidth = 5f;
-                shapes.Opacity = 0.55f + 0.45f * MathF.Sin(seconds * 2f);
-                shapes.DrawRing(centre, Vector3.UnitY, 1.6f, Color.GreenYellow);
-                shapes.Opacity = 1f;
-                break;
-        }
-    }
-
-    shapes.Dash.Clear();
-    shapes.BorderWidth = borderWidth;
-
-    // Gradients, standing up so they read at a glance: a bar filling to its bright end, and a
-    // glass pane that fades to nothing along its length
-    var bar = (MathF.Sin(seconds * 0.9f) + 1f) * 0.5f;
-
-    shapes.BorderWidth = 1.5f;
-    shapes.Fill.Set(new Color(255, 120, 40, 110), 1f);
-    shapes.Gradient.Set(new Color(255, 230, 120), Vector2.UnitX);
-    shapes.DrawRectangle(new Vector3(-3f + 3f * bar, 1.0f, 6f), Vector3.UnitX, Vector3.UnitY, new Vector2(6f * bar, 0.7f), Color.Orange);
-    shapes.Gradient.Clear();
-
-    shapes.Fill.Set(new Color(120, 200, 255, 140), 1f);
-    shapes.Gradient.Set(new Color(120, 200, 255, 0), Vector2.UnitX);
-    shapes.DrawRectangle(new Vector3(0, 3.2f, 6f), Vector3.UnitX, Vector3.UnitY, new Vector2(8f, 2.4f), new Color(120, 200, 255), cornerRadius: 0.3f);
-    shapes.Gradient.Clear();
-    shapes.Fill.Set(null, fillAlpha);
-    shapes.BorderWidth = borderWidth;
-
-    // Opacity: the same billboard at 1, 0.65 and 0.3 - border, fill and glow dimmed together
-    shapes.Glow.Set(10f);
-
-    for (var i = 0; i < 3; i++)
-    {
-        shapes.Opacity = 1f - i * 0.35f;
-        shapes.DrawBillboardCircle(new Vector3(-4f + i * 4f, 5.8f, 6f), 0.8f, Color.Gold);
-    }
-
-    shapes.Opacity = 1f;
-    shapes.Glow.Set(glowWidth);
-}
-
-void HandleInput()
-{
-    for (var i = 0; i < DemoCount; i++)
-    {
-        // The tenth demo lives on the 0 key, to the right of 9 on the row
-        var key = i == 9 ? Keys.D0 : Keys.D1 + i;
-
-        if (game.Input.IsKeyPressed(key)) enabled[i] = !enabled[i];
-    }
-
-    if (game.Input.IsKeyPressed(Keys.T)) depthTested = !depthTested;
+    if (game.Input.IsKeyPressed(Keys.N)) gallery.GoTo(gallery.Current + 1);
+    if (game.Input.IsKeyPressed(Keys.P)) gallery.GoTo(gallery.Current - 1);
+    if (game.Input.IsKeyPressed(Keys.H)) gallery.GoHome();
+    if (game.Input.IsKeyPressed(Keys.Tab)) gallery.Solo = !gallery.Solo;
+    if (game.Input.IsKeyPressed(Keys.T)) gallery.DepthTested = !gallery.DepthTested;
 
     if (game.Input.IsKeyPressed(Keys.L))
     {
-        wideLabels = !wideLabels;
-
-        for (var i = 0; i < DemoCount; i++)
-        {
-            demoLabels[i].Text = wideLabels ? $"{DemoKey(i)} - {demoMethods[i]}" : DemoKey(i);
-        }
+        gallery.LabelDetail = (gallery.LabelDetail + 1) % 3;
+        gallery.UpdateLabels();
     }
 
     if (game.Input.IsKeyPressed(Keys.G))
     {
-        glowWidth = glowWidth switch
+        style.GlowWidth = style.GlowWidth switch
         {
             < 1f => 4f,
             < 6f => 10f,
@@ -833,7 +113,7 @@ void HandleInput()
 
     if (game.Input.IsKeyPressed(Keys.F))
     {
-        fillAlpha = fillAlpha switch
+        style.FillAlpha = style.FillAlpha switch
         {
             < 0.1f => 0.25f,
             < 0.3f => 0.45f,
@@ -843,29 +123,31 @@ void HandleInput()
     }
 
     if (game.Input.IsKeyPressed(Keys.OemPlus) || game.Input.IsKeyPressed(Keys.Add))
-        borderWidth = MathF.Min(borderWidth + 1f, 16f);
+        style.BorderWidth = MathF.Min(style.BorderWidth + 1f, 16f);
 
     if (game.Input.IsKeyPressed(Keys.OemMinus) || game.Input.IsKeyPressed(Keys.Subtract))
-        borderWidth = MathF.Max(borderWidth - 1f, 0f);
+        style.BorderWidth = MathF.Max(style.BorderWidth - 1f, 0f);
 }
 
 IReadOnlyList<TextElement> BuildOverlayLines()
 {
+    if (gallery is null) return [];
+
     List<TextElement> lines =
     [
-        new($"{submitted} shapes, one instanced draw call", Color.LightGreen),
-        new($"Border {borderWidth:0} px (+/-)   Fill {fillAlpha:0.00} (F)   Glow {glowWidth:0} px (G)", Color.MediumSeaGreen),
-        new(depthTested ? "T - depth tested: the scene occludes shapes" : "T - overlay: shapes draw on top", Color.Gold),
-        new(wideLabels ? "L - labels name the demo's main method" : "L - labels show the key only", Color.Gold),
+        new($"{gallery.Submitted} shapes this frame, {gallery.Stations.Count} stations on a ring of radius {gallery.Radius:0}", Color.LightGreen),
+        new($"Border {style.BorderWidth:0} px (+/-)   Fill {style.FillAlpha:0.00} (F)   Glow {style.GlowWidth:0} px (G)", Color.MediumSeaGreen),
+        new(gallery.DepthTested ? "T - depth tested: the scene occludes shapes" : "T - overlay: shapes draw on top", Color.Gold),
+        new("N / P - next and previous station   H - home   Tab - " + (gallery.Solo ? "one station at a time" : "every station"), Color.Gold),
+        new(gallery.LabelDetail switch { 0 => "L - labels: the number", 1 => "L - labels: the number and the method", _ => "L - labels: everything" }, Color.Gold),
         new(""),
     ];
 
-    for (var i = 0; i < DemoCount; i++)
-    {
-        var key = i == 9 ? "0" : (i + 1).ToString();
+    // The index board at the centre is the full list; here, only where the visitor stands
+    var station = gallery.Stations[gallery.Current];
 
-        lines.Add(new($"{key} {(enabled[i] ? "[x]" : "[ ]")} {demoNames[i]}", enabled[i] ? Color.White : Color.Gray));
-    }
+    lines.Add(new($"Station {station.Number} of {gallery.Stations.Count} - {station.Demo.Title}", Color.White));
+    lines.Add(new($"{station.Demo.Method}: {station.Demo.Summary}", Color.LightGray));
 
     return lines;
 }
@@ -874,44 +156,45 @@ IReadOnlyList<TextElement> BuildOverlayLines()
 ---example-metadata
 slug: shape-batch
 title:
-  en: ShapeBatch Shapes
-  cs: Tvary s ShapeBatch
+  en: ShapeBatch Gallery
+  cs: Galerie ShapeBatch
 level: Intermediate
 category: Rendering
 complexity: 3
 order: 165
 description:
   en: |-
-    The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, glowing HUD panels
-    with world text on them, genuinely thick 3D lines and wire boxes, camera-facing billboards, pie wedges, donut
-    charts and radial progress arcs, a glow that halos any of them, dashed rings and lines that turn
-    and march, fills that run to a colour or fade to nothing, and one opacity over a whole shape.
-    Every shape is flat and evaluated per fragment as a signed distance function, so its outline
-    stays a constant number of pixels wide however far away it is - press 7 and fly down the
-    corridor of rings to see it.
+    A ring of numbered stations, one ShapeBatch idea each, from a single disc to a scrolling
+    textured panel: discs, rings, polygons and rectangles on any plane, sectors and arcs for pie and
+    progress indicators, thick 3D lines, wire boxes, polyline strokes and space strokes, billboards,
+    a corridor of rings that proves the constant-pixel outline, HUD panels with world text, fill
+    colours, glow, dashes, gradients, opacity, the soft depth fade, overlay versus depth-tested
+    batches, and textured fills. Every station is one method that draws in its own coordinates, so
+    it can be lifted into a game as it is; the ring, labels and index board come from the registry.
   cs: |-
-    Kompletní ukázka ShapeBatch ve 3D: kotouče a výběrové kroužky na zemi, dekaly, panely stojící v
-    rovině, opravdu silné 3D čáry a drátěné kvádry, billboardy natočené ke kameře, koláčové výseče,
-    prstencové grafy a kruhové ukazatele průběhu a záře, která kterýkoli z nich zvýrazní. Každý tvar
-    je plochý a počítaný per fragment jako signed distance function, takže jeho obrys má stále
-    stejnou šířku v pixelech bez ohledu na vzdálenost.
+    Kruh očíslovaných stanovišť, každé s jednou myšlenkou ShapeBatch, od jediného kotouče po
+    posouvající se texturovaný panel: kotouče, kroužky, mnohoúhelníky a obdélníky na libovolné
+    rovině, výseče a oblouky, silné 3D čáry, drátěné kvádry, tahy z bodů, billboardy, chodba kroužků
+    dokazující stálou šířku obrysu v pixelech, HUD panely s textem, barvy výplně, záře, čárkování,
+    přechody, průhlednost, měkké mizení do geometrie, překryvná dávka a texturované výplně. Každé
+    stanoviště je jedna metoda kreslící ve vlastních souřadnicích, takže ji lze přenést do hry beze
+    změny.
 concepts:
-  - Registering a shape renderer with AddShapeBatch
-  - Depth-tested shapes versus overlay shapes from two batches
-  - Discs, rings and polygons lying on an arbitrary plane in 3D
-  - HUD panels with glowing edges and glowing world text, including a live counter
-  - Thick 3D lines and wire boxes from camera-facing capsules
-  - Polyline strokes with round joins - curves, dashed frames, concave outlines - in pixels or world units
-  - Space strokes through 3D points - a helix and a knot - stroked on screen with no geometry
-  - Billboards that keep their shape from any viewpoint, and pixel-radius markers that keep their size at any distance
+  - Registering shape batches with AddShapeBatch, depth-tested, overlay and textured
+  - One static method per exhibit, drawing in a station's local frame, portable into any game
+  - A registry that lays out the ring, the labels and the index board on its own
+  - Numbered labels in screen-space entity text, joined to their exhibit by a dotted pixel line
+  - Discs, rings, polygons and rectangles on an arbitrary plane in 3D
   - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
-  - An outer glow measured in pixels, for halos and neon
-  - Dashes in pixels on rings and lines, animated through their phase
-  - Three dashed rings turning at their own dash-to-gap ratios, one glowing, one breathing through its opacity
-  - A numbered label on every demo, widened by L to name the ShapeBatch method it is made of
-  - A fill gradient across a shape's own extent, to a colour or to alpha 0
-  - One opacity over border, fill and glow together
+  - Thick 3D lines and wire boxes from camera-facing capsules
+  - Polyline strokes with round joins, in pixels or world units, and space strokes through 3D points
+  - Billboards that keep their shape from any viewpoint, and pixel-radius markers that keep their size
   - Why a signed distance function keeps an outline a constant pixel width
+  - HUD panels with glowing edges and glowing world text, including a live counter
+  - Fill colours, an outer glow in pixels, dashes animated through their phase, gradients and opacity
+  - The soft depth fade, where a shape melts into geometry instead of cutting off
+  - Two batches in one scene, and what the overlay one shows through
+  - Textured fills from a fill source, clamped for a picture and wrapped for a scrolling stripe
 tags:
   - 3D
   - Rendering
@@ -926,7 +209,7 @@ related:
   - E08_3D_DebugShapes
   - E06_Box2D_JunkyardInteractive
   - E06_Box2D
-tocName: Shapes playground
+tocName: Shape gallery
 enabled: true
 created: 2026-08-31
 ---

@@ -57,6 +57,7 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 
 ### 🎓 Examples
 
+- **ShapeBatch gallery**: `E11_3D_ShapeBatch` is a ring of numbered stations, one ShapeBatch idea each from a single disc to a scrolling textured panel, each a static method drawing in its station's own coordinates so it can be lifted into a game as it is. The registry in `Stations.cs` lays out the ring, the labels with their dotted lines and the index board; N and P fly between stations, H flies home, Tab shows one at a time, L widens the labels, and `--station N` starts at a station. New stations for fill colours, the depth fade, the overlay batch and textured fills.
 - **2D Panels** grew to twenty-four stations; the **HUD** and the **SignalR** deck use strokes and additive glows; **ShapeBatch** shows a glowing helix and a trefoil knot as space strokes, three dashed rings turning at their own gap ratios, and a numbered label on every demo that L widens to name the method it is made of.
 - Five Bepu examples use `game.AddGrabber()`.
 
