@@ -57,8 +57,10 @@ public static class EffectStations
     /// Dashes are measured in pixels like the border and belong to rings, arcs and lines; advancing
     /// the phase turns a ring or marches a line. Three dashed rings turning at their own speeds and
     /// dash-to-gap ratios - tight ticks, half and half, sparse dots - the middle one with an
-    /// additive glow, the right one breathing through its opacity; behind them two tick rings
-    /// turning against each other.
+    /// additive glow, the right one breathing through its opacity; behind them a tick ring that
+    /// never moves, so the turning ones can be judged against it, and one turning inside it. A
+    /// ring's dashes are fitted once, in its own units, so they foreshorten with it like marks
+    /// painted on the ground and stay in step however the camera moves.
     /// </summary>
     public static void Dash(GalleryStation s)
     {
@@ -97,10 +99,10 @@ public static class EffectStations
 
         shapes.BorderWidth = s.Style.BorderWidth;
 
+        shapes.Dash.Set(8f, 6f);
+        shapes.DrawRing(s.At(0f, Lift, -2f), s.Up, 3.2f, Color.Orange);
         shapes.Dash.Set(8f, 6f, s.Seconds * 25f);
         shapes.DrawRing(s.At(0f, Lift, -2f), s.Up, 2.6f, Color.Orange);
-        shapes.Dash.Set(4f, 10f, -s.Seconds * 40f);
-        shapes.DrawRing(s.At(0f, Lift, -2f), s.Up, 3.2f, Color.Orange);
         shapes.Dash.Clear();
     }
 

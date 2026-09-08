@@ -28,7 +28,7 @@ public static class Stations
         new("HUD panel with text", "a glowing panel with world text on it", nameof(ShapeBatch.DrawRectangle), ShapeStations.HudPanel, ShapeStations.HudPanelSetup, Anchor: new Vector3(0f, 1.2f, -1f)),
         new("Fill colour", "the outline's colour, its own colour, or no border", nameof(ShapeBatch.Fill), EffectStations.FillColour),
         new("Glow", "a halo outside the outline, in pixels, for contrast or neon", nameof(ShapeBatch.Glow), EffectStations.Glow, Anchor: new Vector3(0f, 2.4f, -1f)),
-        new("Dash", "dashes in pixels, animated through their phase", nameof(ShapeBatch.Dash), EffectStations.Dash, Anchor: new Vector3(0f, 0.3f, 1.5f)),
+        new("Dash", "dashes in pixels, one ring still and the rest turning", nameof(ShapeBatch.Dash), EffectStations.Dash, Anchor: new Vector3(0f, 0.3f, 1.5f)),
         new("Gradient", "a fill that runs to a colour, or fades to nothing", nameof(ShapeBatch.Gradient), EffectStations.Gradient, Anchor: new Vector3(0f, 3.4f, 0f)),
         new("Opacity", "border, fill and glow dimmed together", nameof(ShapeBatch.Opacity), EffectStations.Opacity, Anchor: new Vector3(-3.6f, 3f, 0f)),
         new("Depth fade", "a shape that melts into geometry instead of cutting off", nameof(ShapeBatch.DepthFade), EffectStations.DepthFade, Pillars: 1, Anchor: new Vector3(-3.5f, 0.6f, -0.4f)),
