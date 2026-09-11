@@ -1,6 +1,5 @@
 using E11_3D_ShapeBatch;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
 using Stride.CommunityToolkit.Skyboxes;
@@ -22,7 +21,7 @@ using Stride.Input;
 // the shape is, because the shader measures it per fragment against the fragment's own clip w
 // rather than building it as geometry. Fly down station 12's corridor of rings to see it.
 //
-// Keys: N and P fly to the next and previous station, H flies home to the index board, Tab shows
+// Keys: N and P fly to the next and previous station, Home flies home to the index board, Tab shows
 // one station at a time, L widens the labels, T switches the shapes between the depth-tested batch
 // and the overlay, G, F and + / - change the glow, the fill and the border for every station.
 
@@ -72,8 +71,8 @@ void Start(Scene rootScene)
     gallery = new Gallery(game, rootScene, Stations.All, batches, style);
     gallery.UpdateLabels();
 
-    if (startStation > 0) gallery.GoTo(startStation - 1);
-    else gallery.GoHome();
+    if (startStation > 0) gallery.GoTo(startStation - 1, instant: true);
+    else gallery.GoHome(instant: true);
 
     DebugOverlay.GetOrCreate(game).AddSection("Gallery", BuildOverlayLines);
 }
@@ -83,14 +82,14 @@ void Update(Scene scene, GameTime gameTime)
     if (gallery is null) return;
 
     HandleInput(gallery);
-    gallery.Draw((float)gameTime.Total.TotalSeconds);
+    gallery.Update(gameTime);
 }
 
 void HandleInput(Gallery gallery)
 {
-    if (game.Input.IsKeyPressed(Keys.N)) gallery.GoTo(gallery.Current + 1);
-    if (game.Input.IsKeyPressed(Keys.P)) gallery.GoTo(gallery.Current - 1);
-    if (game.Input.IsKeyPressed(Keys.H)) gallery.GoHome();
+    if (game.Input.IsKeyPressed(Keys.N)) gallery.GoTo(gallery.Focus + 1);
+    if (game.Input.IsKeyPressed(Keys.P)) gallery.GoTo(gallery.Focus - 1);
+    if (game.Input.IsKeyPressed(Keys.Home)) gallery.GoHome();
     if (game.Input.IsKeyPressed(Keys.Tab)) gallery.Solo = !gallery.Solo;
     if (game.Input.IsKeyPressed(Keys.T)) gallery.DepthTested = !gallery.DepthTested;
 
@@ -138,7 +137,7 @@ IReadOnlyList<TextElement> BuildOverlayLines()
         new($"{gallery.Submitted} shapes this frame, {gallery.Stations.Count} stations on a ring of radius {gallery.Radius:0}", Color.LightGreen),
         new($"Border {style.BorderWidth:0} px (+/-)   Fill {style.FillAlpha:0.00} (F)   Glow {style.GlowWidth:0} px (G)", Color.MediumSeaGreen),
         new(gallery.DepthTested ? "T - depth tested: the scene occludes shapes" : "T - overlay: shapes draw on top", Color.Gold),
-        new("N / P - next and previous station   H - home   Tab - " + (gallery.Solo ? "one station at a time" : "every station"), Color.Gold),
+        new("N / P - next and previous station   Home - home   Tab - " + (gallery.Solo ? "one station at a time" : "every station"), Color.Gold),
         new(gallery.LabelDetail switch { 0 => "L - labels: the number", 1 => "L - labels: the number and the method", _ => "L - labels: everything" }, Color.Gold),
         new(""),
     ];
@@ -184,6 +183,8 @@ concepts:
   - One static method per exhibit, drawing in a station's local frame, portable into any game
   - A registry that lays out the ring, the labels and the index board on its own
   - Numbered labels in screen-space entity text, joined to their exhibit by a dotted pixel line
+  - An eased camera flight between stations that gives way the moment the visitor takes the controls
+  - Why a shape never clips the text on it, and why wrapping is the caller's job
   - Discs, rings, polygons and rectangles on an arbitrary plane in 3D
   - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
   - Thick 3D lines and wire boxes from camera-facing capsules

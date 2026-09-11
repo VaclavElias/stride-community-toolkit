@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 
@@ -26,6 +27,7 @@ public static class Stations
         new("Billboard", "markers that keep their shape from any angle", nameof(ShapeBatch.DrawBillboardCircle), ShapeStations.Billboard, Pillars: 2, Anchor: new Vector3(0f, 6f, 0f)),
         new("Distance proof", "a corridor of rings: they shrink, their outlines do not", nameof(ShapeBatch.DrawRing), ShapeStations.DistanceProof, Anchor: new Vector3(0f, 0.4f, -6f)),
         new("HUD panel with text", "a glowing panel with world text on it", nameof(ShapeBatch.DrawRectangle), ShapeStations.HudPanel, ShapeStations.HudPanelSetup, Anchor: new Vector3(0f, 1.2f, -1f)),
+        new("Text overflow", "a shape never clips the text on it; wrap it yourself", nameof(WorldTextComponent.Text), ShapeStations.TextOverflow, ShapeStations.TextOverflowSetup, Anchor: new Vector3(-2.4f, 1.5f, -1f)),
         new("Fill colour", "the outline's colour, its own colour, or no border", nameof(ShapeBatch.Fill), EffectStations.FillColour),
         new("Glow", "a halo outside the outline, in pixels, for contrast or neon", nameof(ShapeBatch.Glow), EffectStations.Glow, Anchor: new Vector3(0f, 2.4f, -1f)),
         new("Dash", "dashes in pixels, one ring still and the rest turning", nameof(ShapeBatch.Dash), EffectStations.Dash, Anchor: new Vector3(0f, 0.3f, 1.5f)),

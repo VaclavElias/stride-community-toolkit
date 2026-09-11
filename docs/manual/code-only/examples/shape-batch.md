@@ -19,6 +19,8 @@ The `Program.cs` file shows how to:
 - One static method per exhibit, drawing in a station's local frame, portable into any game
 - A registry that lays out the ring, the labels and the index board on its own
 - Numbered labels in screen-space entity text, joined to their exhibit by a dotted pixel line
+- An eased camera flight between stations that gives way the moment the visitor takes the controls
+- Why a shape never clips the text on it, and why wrapping is the caller's job
 - Discs, rings, polygons and rectangles on an arbitrary plane in 3D
 - Sectors, annuli and round-capped arcs for pie, donut and progress indicators
 - Thick 3D lines and wire boxes from camera-facing capsules

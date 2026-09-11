@@ -1,5 +1,5 @@
-using static E11_3D_ShapeBatch.Palette;
 using Stride.Core.Mathematics;
+using static E11_3D_ShapeBatch.Palette;
 
 namespace E11_3D_ShapeBatch;
 

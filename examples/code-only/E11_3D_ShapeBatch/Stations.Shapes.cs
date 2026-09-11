@@ -1,8 +1,7 @@
-using static E11_3D_ShapeBatch.Palette;
 using Stride.CommunityToolkit.Rendering.Text;
-using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using static E11_3D_ShapeBatch.Palette;
 
 namespace E11_3D_ShapeBatch;
 
@@ -274,4 +273,72 @@ public static class ShapeStations
             text.Text = $"SHAPE GALLERY\n{(long)(s.Seconds * 137.5f):N0}";
         }
     }
+    /// <summary>
+    /// Builds the two labels the overflow station compares. Both carry the same words; only the
+    /// string differs, because wrapping is the caller's job.
+    /// </summary>
+    public static void TextOverflowSetup(GalleryStation s)
+    {
+        var spilling = Label(s, Overflowing, 0.5f, new Vector3(-2.4f, 2.6f, -1f));
+        var wrapped = Label(s, Wrapped, 1.25f, new Vector3(2.4f, 2.6f, -1f));
+
+        s.State = new[] { spilling, wrapped };
+
+        static WorldTextComponent Label(GalleryStation s, string text, float height, Vector3 local)
+        {
+            var label = new WorldTextComponent
+            {
+                Text = text,
+                FontSize = 48,
+                Height = height,
+                TextColor = HudBlue,
+                GlowColor = new Color(0, 140, 255, 170),
+                GlowSize = 4f,
+                Alignment = Stride.Graphics.TextAlignment.Center,
+                Billboard = false,
+            };
+
+            var entity = new Entity($"Station {s.Number} {(text == Overflowing ? "spilling" : "wrapped")}")
+            {
+                Transform = { Position = s.At(local) + s.Forward * 0.01f, Rotation = s.FacingRotation() },
+            };
+
+            entity.Add(label);
+            entity.Scene = s.Scene;
+
+            return label;
+        }
+    }
+
+    /// <summary>
+    /// A panel is a shape and the text on it is a separate renderer, so a shape never clips text:
+    /// the left label runs straight out past its border, and no property on either will stop it.
+    /// The right one carries the same words wrapped into three lines, with the block's height set
+    /// to match, which is the whole of the fix - the caller decides where the lines break, because
+    /// only the caller knows what the words mean. Both panels are the same size.
+    /// </summary>
+    public static void TextOverflow(GalleryStation s)
+    {
+        var shapes = s.Shapes;
+
+        foreach (var spills in (bool[])[true, false])
+        {
+            var centre = s.At(spills ? -2.4f : 2.4f, 2.6f, -1f);
+
+            shapes.Fill.Set(HudFill, 0.55f);
+            shapes.BorderWidth = 1.5f;
+            shapes.Glow.Set(6f, spills ? new Color(255, 90, 60, 150) : HudGlow);
+            shapes.DrawRectangle(centre, s.Right, s.Up, new Vector2(4f, 2.2f), spills ? new Color(255, 140, 110) : HudBlue, cornerRadius: 0.3f);
+            shapes.Glow.Clear();
+        }
+
+        s.ResetStyle(shapes);
+    }
+
+    /// <summary>The words the overflow station spills, on one line.</summary>
+    private const string Overflowing = "Nothing clips a long line";
+
+    /// <summary>The same words, broken where they read best - which no renderer can guess.</summary>
+    private const string Wrapped = "Nothing\nclips a\nlong line";
+
 }

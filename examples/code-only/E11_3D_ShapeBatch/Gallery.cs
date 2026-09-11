@@ -4,6 +4,7 @@ using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Games;
 using Stride.Graphics;
 using Stride.Rendering;
 
@@ -168,6 +169,9 @@ public sealed class Gallery
     private readonly Material _pillarMaterial;
     private WorldTextComponent? _board;
 
+    private readonly GalleryCamera _camera;
+    private int _destination;
+
     public Gallery(Game game, Scene scene, IReadOnlyList<Demo> demos, GalleryBatches batches, GalleryStyle style)
     {
         _game = game;
@@ -175,6 +179,7 @@ public sealed class Gallery
         Batches = batches;
         Style = style;
         Radius = MathF.Max(MinimumRadius, demos.Count * Spacing / MathF.Tau);
+        _camera = new GalleryCamera(game);
 
         BuildGround();
         _pillarMaterial = game.CreateMaterial(new Color(96, 103, 116), specular: 0.1f, microSurface: 0.35f);
@@ -210,17 +215,33 @@ public sealed class Gallery
     /// <summary>How many shapes the last frame submitted, over every batch.</summary>
     public int Submitted { get; private set; }
 
-    /// <summary>Where the visitor starts: in front of the index board, the ring all around.</summary>
-    public void GoHome()
+    /// <summary>Whether the camera is flying itself somewhere rather than being steered.</summary>
+    public bool Flying => _camera.Flying;
+
+    /// <summary>
+    /// Where the next and previous keys count from: the station being flown to while a flight is
+    /// running, so pressing next twice quickly skips two stations rather than re-aiming at the one
+    /// the camera happens to be passing.
+    /// </summary>
+    public int Focus => Flying ? _destination : Current;
+
+    /// <summary>Sends the visitor home: in front of the index board, the ring all around.</summary>
+    /// <param name="instant">Put the camera there at once, rather than flying it.</param>
+    public void GoHome(bool instant = false)
     {
-        _game.SetCameraPosition(new Vector3(0f, 6.2f, 22f));
-        _game.SetCameraRotation(new Vector3(0f, -4f, 0f));
+        _destination = Current;
+
+        _camera.FlyTo(new Vector3(0f, 6.2f, 22f), Quaternion.RotationYawPitchRoll(0f, MathUtil.DegreesToRadians(-4f), 0f), instant);
     }
 
-    /// <summary>Flies the camera to a station: a little way towards the centre from its pad, looking at it.</summary>
-    public void GoTo(int index)
+    /// <summary>Sends the visitor to a station: a little way towards the centre from its pad, looking at it.</summary>
+    /// <param name="index">The station, counted from 0 and wrapped, so one past the last is the first.</param>
+    /// <param name="instant">Put the camera there at once, rather than flying it.</param>
+    public void GoTo(int index, bool instant = false)
     {
-        var station = _stations[(index % _stations.Count + _stations.Count) % _stations.Count];
+        _destination = (index % _stations.Count + _stations.Count) % _stations.Count;
+
+        var station = _stations[_destination];
         var eye = station.At(0f, 4.5f, 13f);
         var target = station.At(0f, 1.6f, -1f);
         var direction = Vector3.Normalize(target - eye);
@@ -229,11 +250,20 @@ public sealed class Gallery
         var yaw = MathF.Atan2(-direction.X, -direction.Z);
         var pitch = MathF.Asin(direction.Y);
 
-        _game.SetCameraPosition(eye);
-        _game.SetCameraRotation(new Vector3(MathUtil.RadiansToDegrees(yaw), MathUtil.RadiansToDegrees(pitch), 0f));
+        _camera.FlyTo(eye, Quaternion.RotationYawPitchRoll(yaw, pitch, 0f), instant);
     }
 
-    public void Draw(float seconds)
+    /// <summary>
+    /// Advances whatever is in flight and submits every station's shapes. Immediate mode: this is
+    /// the frame, called from the game's update.
+    /// </summary>
+    public void Update(GameTime time)
+    {
+        _camera.Update((float)time.Elapsed.TotalSeconds);
+        Draw((float)time.Total.TotalSeconds);
+    }
+
+    private void Draw(float seconds)
     {
         var camera = _game.GetCameraEntity().Transform.Position;
 
