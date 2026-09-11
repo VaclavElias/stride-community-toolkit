@@ -142,6 +142,10 @@ public sealed class GalleryStation
         batch.Gradient.Clear();
         batch.Opacity = 1f;
         batch.DepthFade = 0f;
+
+        // Per-draw like the rest: a station that turned it off for a bracket would otherwise leave
+        // every later panel in the batch untextured
+        batch.Textured = true;
     }
 }
 

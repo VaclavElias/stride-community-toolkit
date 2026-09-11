@@ -1,4 +1,8 @@
+using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
+using Stride.Engine;
+using Stride.Graphics;
+using Stride.Rendering.Compositing;
 using static E11_3D_ShapeBatch.Palette;
 
 namespace E11_3D_ShapeBatch;
@@ -223,4 +227,122 @@ public static class EffectStations
 
         s.ResetStyle(shapes);
     }
+
+    /// <summary>
+    /// Builds the second camera and the texture it draws into. Four pieces, and the engine has all
+    /// of them: a texture that is both a render target and a shader resource, a camera in a slot of
+    /// its own, a camera renderer whose child is a <see cref="RenderTextureSceneRenderer"/> wrapping
+    /// a forward renderer over the compositor's existing stages, and a shape batch filled from the
+    /// texture. It is the structure of the engine's own <c>TestSharedStageMultipleOutputs</c>, built
+    /// here at runtime instead of at load.
+    /// </summary>
+    /// <remarks>
+    /// Two things that cost an evening. The texture is HDR: the scene is lit in HDR and the mirror's
+    /// renderer has no tone map, so an 8-bit texture saturates to white - the main view tone-maps
+    /// the panel along with everything else, which is what makes the picture come out right. And
+    /// the forward renderer is a second instance sharing the stages, not the compositor's own
+    /// <c>SingleView</c>: that one is reference-counted by the compositor and putting it in two
+    /// places throws at shutdown.
+    /// </remarks>
+    public static void MirrorSetup(GalleryStation s)
+    {
+        var compositor = s.Game.SceneSystem.GraphicsCompositor;
+
+        var texture = Texture.New2D(s.Game.GraphicsDevice, 512, 512, PixelFormat.R16G16B16A16_Float,
+            TextureFlags.ShaderResource | TextureFlags.RenderTarget);
+
+        // A slot of its own: slot zero is the game's camera, and a camera that shares a slot with
+        // another is the "two entities on one slot" mistake
+        var slot = new SceneCameraSlot { Name = "Mirror" };
+
+        compositor.Cameras.Add(slot);
+
+        // Beside the pad, looking at the station's own pillar from a few units away, so the panel
+        // is unmistakably another camera's view. Square, to match the texture, whatever the window is.
+        var eye = s.At(-3.5f, 2.6f, 4f);
+        var direction = Vector3.Normalize(s.Pillars[0].Centre - eye);
+
+        var camera = new Entity("Mirror camera")
+        {
+            new CameraComponent { Slot = slot.ToSlotId(), UseCustomAspectRatio = true, AspectRatio = 1f },
+        };
+
+        camera.Transform.Position = eye;
+
+        // A camera looks down its -Z; yaw turns that towards -X, pitch lifts it
+        camera.Transform.Rotation = Quaternion.RotationYawPitchRoll(MathF.Atan2(-direction.X, -direction.Z), MathF.Asin(direction.Y), 0f);
+        camera.Scene = s.Scene;
+
+        var main = (ForwardRenderer)compositor.SingleView;
+
+        var mirror = new SceneCameraRenderer
+        {
+            Camera = slot,
+            Child = new RenderTextureSceneRenderer
+            {
+                RenderTexture = texture,
+                Child = new ForwardRenderer
+                {
+                    Clear = { Color = Color.Black },
+                    OpaqueRenderStage = main.OpaqueRenderStage,
+                    TransparentRenderStage = main.TransparentRenderStage,
+                },
+            },
+        };
+
+        // Appended, so the panel shows the previous frame - one frame of lag nobody can see
+        if (compositor.Game is SceneRendererCollection renderers)
+        {
+            renderers.Children.Add(mirror);
+        }
+
+        var batch = s.Game.AddShapeBatch(depthTest: true);
+
+        batch.FillWith(texture);
+
+        s.State = batch;
+    }
+
+    /// <summary>
+    /// A second camera's view, live, inside a shape. The panel is filled from a texture the renderer
+    /// draws that camera into every frame, so it is a rear-view mirror, a security monitor or a map;
+    /// here it watches the station's own pillar from the side. Everything the shape batch does still
+    /// applies to it: the outline holds its pixel width, the glow sits outside the border, and the
+    /// corner brackets are pixel lines over the picture.
+    /// </summary>
+    /// <remarks>
+    /// The shapes of every station appear in the mirror because a batch is drawn once per view and
+    /// emptied only after the last one, which is what lets a second camera see the same frame as the
+    /// first.
+    /// </remarks>
+    public static void Mirror(GalleryStation s)
+    {
+        if (s.State is not ShapeBatch shapes) return;
+
+        var centre = s.At(0f, 3f, -1f);
+
+        shapes.Fill.Set(Color.White, 1f);
+        shapes.BorderWidth = 2f;
+        shapes.Glow.Set(8f, HudGlow);
+        shapes.DrawRectangle(centre, s.Right, s.Up, new Vector2(5f, 5f), HudBlue, cornerRadius: 0.3f);
+        shapes.Glow.Clear();
+
+        // Brackets over the picture, and a sweep turning like a radar
+        shapes.Textured = false;
+
+        var topLeft = centre - s.Right * 2.25f + s.Up * 2.25f;
+        var bottomRight = centre + s.Right * 2.25f - s.Up * 2.25f;
+
+        shapes.DrawPixelLine(topLeft, topLeft + s.Right * 0.7f, 2f, HudBlue);
+        shapes.DrawPixelLine(topLeft, topLeft - s.Up * 0.7f, 2f, HudBlue);
+        shapes.DrawPixelLine(bottomRight, bottomRight - s.Right * 0.7f, 2f, HudBlue);
+        shapes.DrawPixelLine(bottomRight, bottomRight + s.Up * 0.7f, 2f, HudBlue);
+
+        var angle = s.Seconds * 0.6f;
+
+        shapes.DrawPixelLine(centre, centre + (s.Right * MathF.Cos(angle) + s.Up * MathF.Sin(angle)) * 2.3f, 2f, new Color(120, 255, 180, 160));
+
+        s.ResetStyle(shapes);
+    }
+
 }
