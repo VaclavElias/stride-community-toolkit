@@ -23,12 +23,13 @@ IGoldScene? scene = name switch
     "debug-shapes" => new DebugShapesScene(),
     "imgui" => new ImGuiScene(),
     "shapes-textured" => new TexturedShapesScene(),
+    "render-texture" => new RenderTextureScene(),
     _ => null,
 };
 
 if (scene is null)
 {
-    Console.Error.WriteLine("Usage: --scene shapes-2d | shapes-3d | text | debug-shapes | imgui | shapes-textured");
+    Console.Error.WriteLine("Usage: --scene shapes-2d | shapes-3d | text | debug-shapes | imgui | shapes-textured | render-texture");
     return 2;
 }
 

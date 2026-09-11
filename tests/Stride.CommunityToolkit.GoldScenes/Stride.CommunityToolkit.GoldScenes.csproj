@@ -23,6 +23,7 @@
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit.DebugShapes\Stride.CommunityToolkit.DebugShapes.csproj" />
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit.ImGui\Stride.CommunityToolkit.ImGui.csproj" />
+        <ProjectReference Include="..\..\src\Stride.CommunityToolkit.PostEffects\Stride.CommunityToolkit.PostEffects.csproj" />
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Shapes\Stride.CommunityToolkit.Shapes.csproj" />
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Windows\Stride.CommunityToolkit.Windows.csproj" />
     </ItemGroup>

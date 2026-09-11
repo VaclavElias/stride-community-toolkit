@@ -8,5 +8,6 @@
   { "name": "text", "frame": 60 },
   { "name": "debug-shapes", "frame": 60 },
   { "name": "imgui", "frame": 60 },
-  { "name": "shapes-textured", "frame": 60 }
+  { "name": "shapes-textured", "frame": 60 },
+  { "name": "render-texture", "frame": 60 }
 ]
