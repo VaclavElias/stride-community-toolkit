@@ -198,6 +198,37 @@ What it opens is what a picture inside an anti-aliased, outlined, glowing shape 
 in a circular frame, a minimap in a rounded rectangle, a second camera's render target in a
 cockpit mirror, hazard stripes that move, a noise texture behind a shield ring.
 
+## A second camera in a panel
+
+The textured fill's best customer is a picture that changes every frame: another camera's view.
+A rear-view mirror, a security monitor, a picture-in-picture map. The engine has every piece and
+the shape gallery's last station shows them together, in code, with no compositor asset:
+
+1. A texture that is both a render target and a shader resource, in **HDR** -
+   `PixelFormat.R16G16B16A16_Float`. The scene is lit in HDR and the mirror's renderer has no tone
+   map, so an 8-bit texture saturates to white; the main view tone-maps the panel along with the
+   rest of the frame, which is what makes the picture come out right.
+2. A camera in a slot of its own: `compositor.Cameras.Add(new SceneCameraSlot())`, and a
+   `CameraComponent` whose `Slot` is that slot's id, with `UseCustomAspectRatio` set to match the
+   texture. Slot zero is the game's camera, and two cameras on one slot is a known trap.
+3. A `SceneCameraRenderer` for that slot whose child is a `RenderTextureSceneRenderer` for the
+   texture, whose child is a `ForwardRenderer` over the compositor's existing `Opaque` and
+   `Transparent` stages. A **second** forward renderer, not the compositor's own `SingleView`:
+   that one is reference-counted by the compositor and putting it in two places throws at
+   shutdown. Sharing the stages is what makes the mirror show the same meshes and shapes. Append
+   it to the compositor's `Game` collection; the panel then shows the previous frame, one frame
+   of lag nobody can see.
+4. A batch with `FillWith(texture)` and a rectangle drawn through it.
+
+Every station's shapes appear in the mirror, because a batch is drawn once per view and emptied
+only after the last one - the design decision from the render-feature hygiene pass, now doing the
+job it was made for. The panel appears in its own mirror when the two cameras face each other.
+
+One trap that is nothing to do with rendering, kept here because it cost an evening: `Textured`
+is per-draw state like every other, so a method that turns it off to draw plain brackets over
+the picture has turned it off for every draw that follows, in every later frame, until something
+turns it back on. A blank panel with a perfectly good texture behind it is that.
+
 ## Where it came from, and where it went
 
 The renderer was born as the Box2D package's debug draw on 2026-08-31, because the mesh approach

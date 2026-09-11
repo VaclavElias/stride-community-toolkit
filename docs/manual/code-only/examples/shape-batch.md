@@ -32,9 +32,10 @@ The `Program.cs` file shows how to:
 - The soft depth fade, where a shape melts into geometry instead of cutting off
 - Two batches in one scene, and what the overlay one shows through
 - Textured fills from a fill source, clamped for a picture and wrapped for a scrolling stripe
+- A second camera rendered into an HDR texture and filled into a shape, built from the engine's own renderers
 
 ![ShapeBatch Gallery](media/shape-batch.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_ShapeBatch).
 
-[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=153)]
+[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=152)]
