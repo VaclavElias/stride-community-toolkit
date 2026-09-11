@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Title>Stride Community Toolkit - Post Effects</Title>
+        <Description>Colour transforms for Stride's post-processing chain, usable on the main camera or on a camera drawing into a texture.
+
+What's inside:
+- NightVision: luminance amplified into a green image with a soft white bloom, film grain, scanlines and a vignette
+- Thermal: luminance mapped onto a false-colour ramp from cold blue through red to white-hot
+
+Each is a ColorTransform with one small shader; add it to a PostProcessingEffects' ColorTransforms the way the engine's own Vignetting or FilmGrain are added.$(StrideVersionNote)</Description>
+    </PropertyGroup>
+
+    <Import Project="..\CommonSettings.props" />
+
+    <ItemGroup>
+        <!-- This library ships shaders. Shaders are assets compiled by the asset compiler according
+             to the Graphics API target, so the package that owns the shader owns the dependency.
+             Its targets also stage Effects/ into the package as stride/Assets/Effects and generate
+             the matching .sdpkg manifest - do not hand-write either. -->
+        <PackageReference Include="Stride.AssetCompiler" Version="$(StrideVersion)" IncludeAssets="build;buildTransitive" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
+    </ItemGroup>
+
+</Project>
