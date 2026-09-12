@@ -36,6 +36,7 @@ public static class Stations
         new("Opacity", "border, fill and glow dimmed together", nameof(ShapeBatch.Opacity), EffectStations.Opacity, Anchor: new Vector3(-3.6f, 3f, 0f)),
         new("Depth fade", "a shape that melts into geometry instead of cutting off", nameof(ShapeBatch.DepthFade), EffectStations.DepthFade, Pillars: 1, Anchor: new Vector3(-3.5f, 0.6f, -0.4f)),
         new("Overlay batch", "two batches: the overlay ring shows through the pillar", nameof(ShapeBatchExtensions.AddShapeBatch), EffectStations.OverlayBatch, Pillars: 1, Anchor: new Vector3(-3.5f, 4.8f, -1.5f)),
+        new("Screen shapes", "a HUD in pixels from the same batch, shown while you stand here", nameof(ShapeBatch.Screen), EffectStations.ScreenHud),
         new("Textured fill", "a picture inside an outlined shape", nameof(ShapeBatch.FillSource), EffectStations.TexturedFill, Anchor: new Vector3(-2.5f, 0.6f, 0f)),
         new("Scrolling texture", "the picture tiled and moving, one offset a frame", nameof(ShapeBatch.FillWith), EffectStations.ScrollingTexture, Anchor: new Vector3(0f, 0.6f, 0f)),
         new("Second camera in a panel", "a live view from another camera, inside a shape", nameof(RenderTextureSceneRenderer), EffectStations.Mirror, EffectStations.MirrorSetup, Pillars: 1, Anchor: new Vector3(-2.5f, 1f, -1f)),

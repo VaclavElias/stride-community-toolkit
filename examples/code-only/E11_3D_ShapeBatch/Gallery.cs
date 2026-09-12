@@ -105,6 +105,9 @@ public sealed class GalleryStation
     /// <summary>Whatever <see cref="Demo.Setup"/> made for <see cref="Demo.Draw"/> to use.</summary>
     public object? State { get; set; }
 
+    /// <summary>Whether the visitor is nearest this station this frame - what a station with screen-space content draws only for.</summary>
+    public bool IsCurrent { get; set; }
+
     /// <summary>A point in station coordinates, in the world.</summary>
     public Vector3 At(float x, float y, float z) => Origin + Right * x + Vector3.UnitY * y + Forward * z;
 
@@ -146,6 +149,8 @@ public sealed class GalleryStation
         // Per-draw like the rest: a station that turned it off for a bracket would otherwise leave
         // every later panel in the batch untextured
         batch.Textured = true;
+        batch.Screen = false;
+        batch.Viewport = null;
     }
 }
 
@@ -282,6 +287,7 @@ public sealed class Gallery
 
             station.Shapes = shapes;
             station.Seconds = seconds;
+            station.IsCurrent = station.Number - 1 == Current;
             station.ResetStyle(Batches.Scene);
             station.ResetStyle(Batches.Overlay);
             station.ResetStyle(Batches.Pictures);
