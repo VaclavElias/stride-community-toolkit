@@ -16,6 +16,7 @@ env:
     src/Stride.CommunityToolkit.DebugShapes/Stride.CommunityToolkit.DebugShapes.csproj
     src/Stride.CommunityToolkit.Shapes/Stride.CommunityToolkit.Shapes.csproj
     src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj
+    src/Stride.CommunityToolkit.PostEffects/Stride.CommunityToolkit.PostEffects.csproj
   TEST_PROJECT: tests/Stride.CommunityToolkit.Tests/Stride.CommunityToolkit.Tests.csproj
   COMMON_SETTINGS_PATH: src/CommonSettings.props
   VERSION: "1.0.0.0-preview.${{ github.run_number }}"

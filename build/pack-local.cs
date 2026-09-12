@@ -70,6 +70,7 @@ var projects = new (string RelativePath, string? RestoreArguments)[]
     ("src/Stride.CommunityToolkit.Bullet/Stride.CommunityToolkit.Bullet.csproj", null),
     ("src/Stride.CommunityToolkit.DebugShapes/Stride.CommunityToolkit.DebugShapes.csproj", null),
     ("src/Stride.CommunityToolkit.Shapes/Stride.CommunityToolkit.Shapes.csproj", null),
+    ("src/Stride.CommunityToolkit.PostEffects/Stride.CommunityToolkit.PostEffects.csproj", null),
     ("src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj", null),
 };
 
