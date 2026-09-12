@@ -32,4 +32,8 @@ One new idea at a time, on top of the base scene. Toolkit helpers only, with no 
 > every listing name them, and the linked project file on GitHub is authoritative. A few examples
 > also need a third-party package - Box2D.NET, Jitter2, Myra or ImGui - which their page calls out.
 
+
+> [!NOTE]
+> Most examples run from a copy of their project with the toolkit packages from NuGet. `Stride.CommunityToolkit.Box2D` is not on NuGet yet,
+> so the examples built on it run from a clone of the repository: [Box2D Explosion](box2d-explosion.md).
 [!INCLUDE [basic-examples-outro](../../../includes/manual/examples/basic-examples-outro.md)]

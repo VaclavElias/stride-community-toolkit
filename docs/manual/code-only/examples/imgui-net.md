@@ -21,6 +21,10 @@ The `Program.cs` file shows how to:
 - Using helpers: SetupBase3DScene
 - Using helpers: AddProfiler
 
+> [!NOTE]
+> This example references `Stride.CommunityToolkit.ImGuiNet`, which is not on NuGet yet. Run it from a clone of the
+> repository, where the package is a project reference; a copy of the project on its own will not build.
+
 ![ImGui.NET Text Rendering](media/imgui-net.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_ImGuiNet).

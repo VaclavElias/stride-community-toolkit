@@ -23,6 +23,10 @@ The `Program.cs` file shows how to:
 - Framing a bounding box in a perspective camera with FrameCamera
 - An additive glow halo on every stroke, wider for the showcase look
 
+> [!NOTE]
+> This example references `Stride.CommunityToolkit.Charts`, which is not on NuGet yet. Run it from a clone of the
+> repository, where the package is a project reference; a copy of the project on its own will not build.
+
 ![Charts 3D](media/charts-3d.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_Charts).

@@ -53,7 +53,7 @@
     href: debug-render-2d.md
   - name: DPI-Aware Window
     href: dpi-aware.md
-- name: C# Intermediate (32)
+- name: C# Intermediate (33)
   href: intermediate-examples.md
   items:
   - name: Procedural Geometry
@@ -102,6 +102,8 @@
     href: particles.md
   - name: Debug Shapes
     href: debug-shapes.md
+  - name: Render to texture
+    href: render-to-texture.md
   - name: Debug Shapes Usage
     href: debug-shapes-usage.md
   - name: Shape gallery

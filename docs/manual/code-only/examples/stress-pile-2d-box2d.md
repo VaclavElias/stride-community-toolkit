@@ -26,6 +26,10 @@ The `Program.cs` file shows how to:
 - Switching shape, batch size and layout at runtime with DebugTextDropdown
 - Picking bodies out of the pile with Grabber2DScript, on a perspective camera
 
+> [!NOTE]
+> This example references `Stride.CommunityToolkit.Box2D`, which is not on NuGet yet. Run it from a clone of the
+> repository, where the package is a project reference; a copy of the project on its own will not build.
+
 ![Basic 2D Scene (Stress Pile, Box2D)](media/stress-pile-2d-box2d.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E10_2D_StressPile_Box2D).

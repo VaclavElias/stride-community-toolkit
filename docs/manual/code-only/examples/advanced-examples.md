@@ -34,4 +34,8 @@ Custom engine extension points, third-party integration and multi-project archit
 > every listing name them, and the linked project file on GitHub is authoritative. A few examples
 > also need a third-party package - Box2D.NET, Jitter2, Myra or ImGui - which their page calls out.
 
+
+> [!NOTE]
+> Most examples run from a copy of their project with the toolkit packages from NuGet. `Stride.CommunityToolkit.Box2D` and `Stride.CommunityToolkit.ImGuiNet` are not on NuGet yet,
+> so the examples built on them run from a clone of the repository: [Basic 2D Scene (Stress Pile, Box2D)](stress-pile-2d-box2d.md), [Junkyard (Box2D)](junkyard-box2d.md), [Junkyard Playground (Box2D)](junkyard-playground-box2d.md), [Box2D.NET Physics](box2d-physics.md), [ImGui.NET Text Rendering](imgui-net.md).
 [!INCLUDE [basic-examples-outro](../../../includes/manual/examples/basic-examples-outro.md)]

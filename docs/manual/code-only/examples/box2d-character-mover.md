@@ -24,6 +24,10 @@ The `Program.cs` file shows how to:
 - A kinematic elevator driven by target transforms inside the fixed step
 - Using helpers: CharacterMover2D, SvgPath2D, Joints2D.CreateRevolute, Grabber2DScript, Box2DDebugDraw, DebugTextDropdown
 
+> [!NOTE]
+> This example references `Stride.CommunityToolkit.Box2D`, which is not on NuGet yet. Run it from a clone of the
+> repository, where the package is a project reference; a copy of the project on its own will not build.
+
 ![Box2D Character Mover](media/box2d-character-mover.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E06_Box2D_CharacterMover).

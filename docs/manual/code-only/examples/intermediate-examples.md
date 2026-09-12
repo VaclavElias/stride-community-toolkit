@@ -31,6 +31,7 @@ A Stride subsystem used directly, or several concepts combined. These assume you
 - [GPU Instancing](instancing.md): Render two identical walls of cubes built two different ways, side by side.
 - [Particles](particles.md): A blue fountain: fifty particles a second launched upward from a small area, pulled back down by gravity, each rendered as a camera-facing billboard.
 - [Debug Shapes](debug-shapes.md): The full tour of the DebugShapes package: every immediate-mode primitive it can draw, exercised from a ShapeUpdater component so the shapes animate and the batching can be seen under load.
+- [Render to Texture](render-to-texture.md): Five cameras watch one scene and each draws into a texture shown on a monitor: an overhead map, a chase camera following an orbiting ball, a fixed CCTV corner, and two cameras with a look of their own - night vision and a thermal camera, colour transforms from the toolkit's PostEffects package.
 - [Debug Shapes Usage](debug-shapes-usage.md): The short version of the debug shapes example: turn the system on, draw a sphere and a circle, done.
 - [ShapeBatch Gallery](shape-batch.md): A ring of numbered stations, one ShapeBatch idea each, from a single disc to a scrolling textured panel: discs, rings, polygons and rectangles on any plane, sectors and arcs for pie and progress indicators, thick 3D lines, wire boxes, polyline strokes and space strokes, billboards, a corridor of rings that proves the constant-pixel outline, HUD panels with world text, fill colours, glow, dashes, gradients, opacity, the soft depth fade, overlay versus depth-tested batches, and textured fills.
 - [Stride UI - Capsule and Window](stride-ui-capsule-with-rigid-body.md): A capsule in a 3D scene with a "Hello, World" panel drawn over it using Stride's built-in UI.
@@ -46,4 +47,8 @@ A Stride subsystem used directly, or several concepts combined. These assume you
 > every listing name them, and the linked project file on GitHub is authoritative. A few examples
 > also need a third-party package - Box2D.NET, Jitter2, Myra or ImGui - which their page calls out.
 
+
+> [!NOTE]
+> Most examples run from a copy of their project with the toolkit packages from NuGet. `Stride.CommunityToolkit.Box2D` and `Stride.CommunityToolkit.Charts` are not on NuGet yet,
+> so the examples built on them run from a clone of the repository: [Box2D Joints](box2d-joints.md), [Box2D Car](box2d-car.md), [Box2D Character Mover](box2d-character-mover.md), [Charts 2D](charts-2d.md), [Charts 3D](charts-3d.md).
 [!INCLUDE [basic-examples-outro](../../../includes/manual/examples/basic-examples-outro.md)]

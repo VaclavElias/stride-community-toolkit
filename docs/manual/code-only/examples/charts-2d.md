@@ -24,6 +24,10 @@ The `Program.cs` file shows how to:
 - A view-driven chart that follows an orthographic camera
 - Grouped ChartOptions and per-series colour
 
+> [!NOTE]
+> This example references `Stride.CommunityToolkit.Charts`, which is not on NuGet yet. Run it from a clone of the
+> repository, where the package is a project reference; a copy of the project on its own will not build.
+
 ![Charts 2D](media/charts-2d.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_2D_Charts).
