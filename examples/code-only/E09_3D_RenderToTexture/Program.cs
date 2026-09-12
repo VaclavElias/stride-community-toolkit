@@ -1,5 +1,5 @@
+using Stride.CommunityToolkit.Effects.PostProcessing;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.PostEffects;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Text;
@@ -19,7 +19,7 @@ using Stride.Rendering.Materials.ComputeColors;
 // Five cameras watching one small scene, each drawing into a texture, each texture on a monitor:
 // an overhead map, a chase camera following the orbiting ball, a fixed CCTV corner, and two
 // cameras with a look of their own - night vision and a thermal camera - which are colour
-// transforms in the toolkit's PostEffects package, added to a feed the way the engine's own
+// transforms in the toolkit's Effects package, added to a feed the way the engine's own
 // vignette or film grain would be. A big screen shows whichever feed is selected.
 //
 // A feed is one call: game.AddRenderTextureCamera(entity, width, height, postEffects). It gives
@@ -59,7 +59,7 @@ void Start(Scene scene)
 
     // Looking at the monitors from the scene's side, with the scene in the foreground
     game.SetCameraPosition(new Vector3(0f, 7f, 20f));
-    game.SetCameraRotation(new Vector3(0f, -14f, 0f));
+    game.SetCameraRotation(new Vector3(0f, -9f, 0f));
 
     BuildScene(scene);
 
@@ -363,13 +363,13 @@ description:
     Five cameras watch one scene and each draws into a texture shown on a monitor: an overhead
     map, a chase camera following an orbiting ball, a fixed CCTV corner, and two cameras with a
     look of their own - night vision and a thermal camera, colour transforms from the toolkit's
-    PostEffects package. A big screen shows the selected feed. Each feed is one call,
+    Effects package. A big screen shows the selected feed. Each feed is one call,
     AddRenderTextureCamera, which returns a texture that is just a texture: here the emissive map
     of a monitor's material.
   cs: |-
     Pět kamer sleduje jednu scénu a každá kreslí do textury zobrazené na monitoru: mapa shora,
     kamera pronásledující obíhající kouli, pevná bezpečnostní kamera v rohu a dvě kamery s
-    vlastním vzhledem - noční vidění a termokamera, barevné transformace z balíčku PostEffects.
+    vlastním vzhledem - noční vidění a termokamera, barevné transformace z balíčku Effects.
     Velká obrazovka ukazuje vybraný záběr. Každý záběr je jedno volání AddRenderTextureCamera,
     které vrací texturu, a textura je prostě textura: zde emisní mapa materiálu monitoru.
 concepts:
