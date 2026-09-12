@@ -1,7 +1,8 @@
+using Stride.CommunityToolkit.Rendering;
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Rendering;
 using Stride.Rendering.Materials;
-using Stride.Rendering.Materials.ComputeColors;
 
 namespace Stride.CommunityToolkit.Shapes;
 
@@ -44,6 +45,16 @@ public static class ShapeBatchExtensions
             ?? throw new InvalidOperationException("The game has no scene instance yet; add the batch from the Start callback or later.");
 
         var batch = new ShapeBatch { DepthTest = depthTest, FillSource = fill };
+        var displayScale = DisplayScale.GetOrCreate(game);
+
+        // Screen shapes and Corner() work in the display's scaled pixels, so the window is asked each
+        // time rather than remembered: it resizes, and the scale follows the monitor it is on
+        batch.ScreenSizeSource = () =>
+        {
+            var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
+
+            return new Vector2(backBuffer.Width, backBuffer.Height) / (batch.AutoScale ? displayScale.Value : 1f);
+        };
 
         // Expose the first batch to ShapeProcessor and anything else that wants to draw
         if (game.Services.GetService<ShapeBatch>() is null)

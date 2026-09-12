@@ -122,7 +122,7 @@ public sealed partial class ShapeBatch
     /// <param name="radius">Radius in world units.</param>
     /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     public void DrawDisc(Vector3 center, Vector3 normal, float radius, Color color)
-        => Add([Vector2.Zero], PlaneFromNormal(center, normal), CurrentStyle(color), ShapeSlice.Whole, radius, 1f);
+        => Add([Vector2.Zero], ShapePlane.FromNormal(center, normal), CurrentStyle(color), ShapeSlice.Whole, radius, 1f);
 
     /// <summary>
     /// Submits an unfilled circle lying flat in the plane a normal defines - a selection ring or a
@@ -137,7 +137,7 @@ public sealed partial class ShapeBatch
     /// sides of it. <see cref="ShapeFill.Alpha"/> does not apply.
     /// </remarks>
     public void DrawRing(Vector3 center, Vector3 normal, float radius, Color color)
-        => Add([Vector2.Zero], PlaneFromNormal(center, normal), OutlineStyle(color), Stroke, radius, 1f);
+        => Add([Vector2.Zero], ShapePlane.FromNormal(center, normal), OutlineStyle(color), Stroke, radius, 1f);
 
     /// <summary>
     /// Submits a filled ring - a disc with a hole - lying flat in the plane a normal defines, with
@@ -149,7 +149,7 @@ public sealed partial class ShapeBatch
     /// <param name="innerRadius">Radius of the hole in world units, smaller than the outer one.</param>
     /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     public void DrawAnnulus(Vector3 center, Vector3 normal, float outerRadius, float innerRadius, Color color)
-        => AddSector(PlaneFromNormal(center, normal), outerRadius, innerRadius, 0f, MathF.Tau, color);
+        => AddSector(ShapePlane.FromNormal(center, normal), outerRadius, innerRadius, 0f, MathF.Tau, color);
 
     /// <summary>
     /// Submits a filled ring in the XY plane, the 2D case of <see cref="DrawAnnulus(Vector3, Vector3, float, float, Color)"/>.
@@ -159,7 +159,7 @@ public sealed partial class ShapeBatch
     /// <param name="innerRadius">Radius of the hole in world units, smaller than the outer one.</param>
     /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     public void DrawAnnulus(Vector2 center, float outerRadius, float innerRadius, Color color)
-        => AddSector(PlaneXY(center), outerRadius, innerRadius, 0f, MathF.Tau, color);
+        => AddSector(ShapePlane.XY(center), outerRadius, innerRadius, 0f, MathF.Tau, color);
 
     /// <summary>
     /// Submits a filled slice of a disc, cut by two radial edges, lying flat in the plane a normal
@@ -179,7 +179,7 @@ public sealed partial class ShapeBatch
     /// for one standing in the XY plane (normal +Z); add an offset to the start angle to turn it.
     /// </remarks>
     public void DrawSector(Vector3 center, Vector3 normal, float radius, float startAngle, float sweepAngle, Color color, float innerRadius = 0f)
-        => AddSector(PlaneFromNormal(center, normal), radius, innerRadius, startAngle, sweepAngle, color);
+        => AddSector(ShapePlane.FromNormal(center, normal), radius, innerRadius, startAngle, sweepAngle, color);
 
     /// <summary>
     /// Submits a filled slice of a disc or ring in the XY plane, the 2D case of
@@ -193,7 +193,7 @@ public sealed partial class ShapeBatch
     /// <param name="color">The outline colour; the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="innerRadius">Radius of the hole, in world units; 0 (the default) cuts from the centre.</param>
     public void DrawSector(Vector2 center, float radius, float startAngle, float sweepAngle, Color color, float innerRadius = 0f)
-        => AddSector(PlaneXY(center), radius, innerRadius, startAngle, sweepAngle, color);
+        => AddSector(ShapePlane.XY(center), radius, innerRadius, startAngle, sweepAngle, color);
 
     /// <summary>
     /// Submits an arc of a circle with round ends, lying flat in the plane a normal defines. With no
@@ -212,7 +212,7 @@ public sealed partial class ShapeBatch
     /// <see cref="DrawSector(Vector3, Vector3, float, float, float, Color, float)"/> with an inner radius.
     /// </remarks>
     public void DrawArc(Vector3 center, Vector3 normal, float radius, float startAngle, float sweepAngle, Color color, float width = 0f)
-        => AddArc(PlaneFromNormal(center, normal), radius, startAngle, sweepAngle, color, width);
+        => AddArc(ShapePlane.FromNormal(center, normal), radius, startAngle, sweepAngle, color, width);
 
     /// <summary>
     /// Submits an arc of a circle with round ends in the XY plane, the 2D case of
@@ -226,7 +226,7 @@ public sealed partial class ShapeBatch
     /// <param name="color">The outline colour; with a width the fill derives from it and <see cref="ShapeFill.Alpha"/>.</param>
     /// <param name="width">Width of the band in world units, or 0 (the default) for a stroke.</param>
     public void DrawArc(Vector2 center, float radius, float startAngle, float sweepAngle, Color color, float width = 0f)
-        => AddArc(PlaneXY(center), radius, startAngle, sweepAngle, color, width);
+        => AddArc(ShapePlane.XY(center), radius, startAngle, sweepAngle, color, width);
 
     /// <summary>
     /// Submits a rectangle lying in an arbitrary plane - a panel on a wall, a floor tile, a decal.

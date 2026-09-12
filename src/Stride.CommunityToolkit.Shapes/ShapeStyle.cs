@@ -13,6 +13,7 @@ namespace Stride.CommunityToolkit.Shapes;
 /// <param name="Opacity">A multiplier on every alpha the shape produces, 0 to 1.</param>
 /// <param name="DepthFade">Distance in world units over which the shape fades out as it approaches scene geometry; 0 for none.</param>
 /// <param name="Textured">Whether the fill is multiplied by the batch's fill source.</param>
+/// <param name="Screen">Whether the shape is placed in pixels on the screen rather than in the world.</param>
 internal readonly record struct ShapeStyle(
     Color Color,
     Color FillColor,
@@ -23,4 +24,5 @@ internal readonly record struct ShapeStyle(
     GradientStyle Gradient,
     float Opacity,
     float DepthFade,
-    bool Textured);
+    bool Textured,
+    bool Screen);

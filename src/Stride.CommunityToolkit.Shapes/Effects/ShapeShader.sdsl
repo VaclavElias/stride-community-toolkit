@@ -45,6 +45,7 @@ namespace Stride.CommunityToolkit.Shapes
             // 32: AdditiveGlow - the glow adds light to what is behind it instead of covering it
             // 64: SpacePolyline - the points are 3D, in SpacePoints, and the run is stroked on screen
             // 128: Textured - the fill is multiplied by the batch's fill source, sampled at TexCoord
+            // 256: Screen - Position.xy and the points are pixels from the top left of the viewport; no plane, no projection
             int Flags;
             // Colours as uint, not float: colour bytes with alpha 255 and blue >= 128 form a NaN bit
             // pattern, and GPUs canonicalize NaNs on float reads, destroying the red channel.
@@ -185,6 +186,7 @@ namespace Stride.CommunityToolkit.Shapes
             }
 
             bool polyline = (data.Flags & 16) != 0;
+            bool screen = (data.Flags & 256) != 0;
 
             float radius = data.Radius;
             float localScale = data.LocalScale;
@@ -197,8 +199,9 @@ namespace Stride.CommunityToolkit.Shapes
             // border uses. Such a shape is a single point, so its scale is the radius alone.
             if ((data.Flags & 8) != 0)
             {
-                float originW = mul(float4(data.Position.xyz, 1.0), ViewProjection).w;
-                float pixelToWorld = max(originW, 0.0001) / PixelScale;
+                // On the screen a pixel already is the unit
+                float originW = screen ? 1.0 : mul(float4(data.Position.xyz, 1.0), ViewProjection).w;
+                float pixelToWorld = screen ? 1.0 : max(originW, 0.0001) / PixelScale;
 
                 radius *= pixelToWorld;
                 band *= pixelToWorld;
@@ -214,7 +217,8 @@ namespace Stride.CommunityToolkit.Shapes
 
             // Border and glow widths in the normalized local space, before the perspective term.
             // Under an orthographic projection the pixel shader's w is 1 and these are already final.
-            float pixelToLocal = 1.0 / (PixelScale * worldScale);
+            // On the screen one local unit is one of the display's scaled pixels, so the pixel scale is 1
+            float pixelToLocal = 1.0 / ((screen ? 1.0 : PixelScale) * worldScale);
             float thickness = data.AxisX.w * pixelToLocal;
             float glow = data.Slice.w * pixelToLocal;
 
@@ -226,7 +230,21 @@ namespace Stride.CommunityToolkit.Shapes
             float3 axisX = data.AxisX.xyz;
             float3 axisY = data.AxisY.xyz;
 
-            if (mode > 1.5)
+            if (screen)
+            {
+                // The plane's own axes, in pixels with Y down like a sprite. A thick line lies flat on
+                // the screen, its width the in-plane perpendicular; a billboard is just axis-aligned.
+                if (mode > 1.5)
+                {
+                    axisY = normalize(cross(float3(0.0, 0.0, 1.0), axisX));
+                }
+                else if (mode > 0.5)
+                {
+                    axisX = float3(1.0, 0.0, 0.0);
+                    axisY = float3(0.0, 1.0, 0.0);
+                }
+            }
+            else if (mode > 1.5)
             {
                 // Axial billboard: AxisX stays put and the plane swings about it to face the eye.
                 // This is what turns a two-point capsule into a thick, round-capped 3D line.
@@ -254,7 +272,7 @@ namespace Stride.CommunityToolkit.Shapes
             // The border straddles the outline, so half its thickness has to fit outside, and the
             // glow sits entirely outside it.
             float3 centerWorld = origin + worldCenter.x * axisX + worldCenter.y * axisY;
-            float centerW = mul(float4(centerWorld, 1.0), ViewProjection).w;
+            float centerW = screen ? 1.0 : mul(float4(centerWorld, 1.0), ViewProjection).w;
             float margin = 1.0 + max(0.1, (thickness + glow) * max(centerW, 0.0001));
 
             float2 local = margin * streams.LocalPosition;
@@ -278,12 +296,26 @@ namespace Stride.CommunityToolkit.Shapes
             boxHigh += boxPad;
 
             float2 texCoord = (local - boxLow) / max(boxHigh - boxLow, 0.000001);
-            streams.TexCoord = float2(texCoord.x, 1.0 - texCoord.y);
+            // On the screen local Y already runs down, so the picture is upright as it is
+            streams.TexCoord = float2(texCoord.x, screen ? texCoord.y : 1.0 - texCoord.y);
 
             float2 q = worldScale * local + worldCenter;
             float3 worldPosition = origin + q.x * axisX + q.y * axisY;
 
-            float4 clip = mul(float4(worldPosition, 1.0), ViewProjection);
+            float4 clip;
+
+            if (screen)
+            {
+                // Scaled pixels to physical ones, then straight to clip space at the near plane, so a
+                // screen shape sits over everything in its batch whatever the depth test says
+                float2 pixel = worldPosition.xy * ScreenScale;
+
+                clip = float4(pixel.x / ViewSize.x * 2.0 - 1.0, 1.0 - pixel.y / ViewSize.y * 2.0, 0.0, 1.0);
+            }
+            else
+            {
+                clip = mul(float4(worldPosition, 1.0), ViewProjection);
+            }
 
             // A varying carrying w interpolates perspective-correctly to exactly the fragment's w,
             // which is what makes the border a constant pixel width at any depth

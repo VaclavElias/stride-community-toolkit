@@ -37,4 +37,24 @@ internal readonly record struct ShapeSlice(bool Hollow, float RingWidth, float S
 
     /// <summary>The slice as the shader reads it.</summary>
     internal int Flags => (Hollow ? HollowFlag : 0) | (RoundCaps ? RoundCapsFlag : 0) | (PixelRadius ? PixelRadiusFlag : 0) | (Polyline ? PolylineFlag : 0) | (Space ? SpaceFlag : 0);
+
+    /// <summary>
+    /// Puts a sweep into the form the shader reads: counter-clockwise, and 0 for a full turn.
+    /// Returns <c>false</c> for a sweep of nothing, which draws nothing.
+    /// </summary>
+    internal static bool TryNormalizeSweep(ref float startAngle, ref float sweepAngle)
+    {
+        if (sweepAngle == 0f) return false;
+
+        // Clockwise is the same range walked from its other end
+        if (sweepAngle < 0f)
+        {
+            startAngle += sweepAngle;
+            sweepAngle = -sweepAngle;
+        }
+
+        if (sweepAngle >= MathF.Tau) sweepAngle = 0f;
+
+        return true;
+    }
 }

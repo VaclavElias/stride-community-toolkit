@@ -34,6 +34,9 @@ internal readonly struct ShapeInstance
     /// <summary>The fill is multiplied by the batch's fill source.</summary>
     internal const int TexturedFlag = 128;
 
+    /// <summary>Position and points are pixels from the top left of the viewport, not a plane in the world.</summary>
+    internal const int ScreenFlag = 256;
+
     /// <summary>xyz: world position of the local origin; w: plane mode.</summary>
     public readonly Vector4 Position;
 
@@ -86,7 +89,7 @@ internal readonly struct ShapeInstance
         PointOffset = run.Offset;
         Count = run.Count;
         Radius = radius;
-        Flags = slice.Flags | (style.Gradient.Enabled ? GradientFlag : 0) | (style.Glow.Additive ? AdditiveGlowFlag : 0) | (style.Textured ? TexturedFlag : 0);
+        Flags = slice.Flags | (style.Gradient.Enabled ? GradientFlag : 0) | (style.Glow.Additive ? AdditiveGlowFlag : 0) | (style.Textured ? TexturedFlag : 0) | (style.Screen ? ScreenFlag : 0);
         Color = style.Color;
         FillColor = style.FillColor;
         GlowColor = style.Glow.Color;

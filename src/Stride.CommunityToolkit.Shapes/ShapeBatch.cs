@@ -26,7 +26,7 @@ namespace Stride.CommunityToolkit.Shapes;
 /// </para>
 /// <para>
 /// <see cref="BorderWidth"/>, <see cref="Fill"/>, <see cref="Glow"/>, <see cref="Dash"/>,
-/// <see cref="Gradient"/>, <see cref="Opacity"/>, <see cref="DepthFade"/> and <see cref="Textured"/> are current state, captured by each draw call
+/// <see cref="Gradient"/>, <see cref="Opacity"/>, <see cref="DepthFade"/>, <see cref="Textured"/> and <see cref="Screen"/> are current state, captured by each draw call
 /// as it is made, so you can change them between calls the way you would with a sprite batch.
 /// </para>
 /// </remarks>
@@ -189,6 +189,57 @@ public sealed partial class ShapeBatch : RenderObject
     }
 
     /// <summary>
+    /// Whether draw calls place their shapes in pixels on the screen rather than in the world:
+    /// coordinates from the top left of the viewport, Y down, like a sprite, and drawn over
+    /// everything else in the batch whatever its depth test says. Defaults to
+    /// <see langword="false"/>. Captured by each draw call as it is made, so a HUD and the world it
+    /// sits over come from one batch, in submission order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <c>Vector2</c> overloads are the natural ones here; a <c>Vector3</c> position's Z is
+    /// ignored, and a plane's axes are read as pixel axes. A thick line lies flat on the screen and a
+    /// billboard is axis-aligned. Because Y runs down, a positive angle turns clockwise on screen,
+    /// as it does for a sprite. Space strokes are not screen shapes.
+    /// </para>
+    /// <para>
+    /// The coordinates are the display's scaled pixels when <see cref="AutoScale"/> is on, so a
+    /// layout is the same size to the eye on every display, and <see cref="Corner"/> and
+    /// <see cref="ScreenSize"/> speak the same units. A pixel-measured width, a dash or a glow
+    /// means exactly what it means in the world.
+    /// </para>
+    /// </remarks>
+    public bool Screen { get; set; }
+
+    /// <summary>
+    /// A rectangle of the screen, in pixels from the top left, that screen shapes are placed
+    /// relative to: a chart draws in its own coordinates and lands where the rectangle is. The
+    /// default <c>null</c> is the whole viewport. The rectangle offsets and sizes
+    /// <see cref="Corner"/>; nothing is clipped to it.
+    /// </summary>
+    public RectangleF? Viewport { get; set; }
+
+    /// <summary>
+    /// The viewport's size in the pixels screen shapes use - the display's scaled pixels when
+    /// <see cref="AutoScale"/> is on. Zero for a batch that was not registered through
+    /// <c>game.AddShapeBatch()</c> and so has no window to ask.
+    /// </summary>
+    public Vector2 ScreenSize => ScreenSizeSource?.Invoke() ?? Vector2.Zero;
+
+    /// <summary>
+    /// The pixel position of a corner of what screen shapes draw into - the <see cref="Viewport"/>
+    /// rectangle when one is set, otherwise the screen - so a widget is placed as a corner plus an
+    /// offset rather than by a hardcoded resolution.
+    /// </summary>
+    /// <param name="corner">Which corner.</param>
+    /// <returns>The corner, in the same coordinates the draw calls take.</returns>
+    public Vector2 Corner(ScreenCorner corner)
+        => corner.At(Viewport is { } viewport ? new Vector2(viewport.Width, viewport.Height) : ScreenSize);
+
+    // Where the window's size comes from, in scaled pixels; set by AddShapeBatch
+    internal Func<Vector2>? ScreenSizeSource { private get; set; }
+
+    /// <summary>
     /// Whether the pixel-measured widths - border, glow, dashes, pixel lines - follow the display's
     /// scale, so a 2-pixel border is the same width to the eye on a 150% laptop as on a 100%
     /// monitor. Defaults to <see langword="true"/>.
@@ -226,7 +277,7 @@ public sealed partial class ShapeBatch : RenderObject
 
     private void AddSector(in ShapePlane plane, float radius, float innerRadius, float startAngle, float sweepAngle, Color color)
     {
-        if (radius <= 0f || innerRadius >= radius || !TryNormalizeSweep(ref startAngle, ref sweepAngle)) return;
+        if (radius <= 0f || innerRadius >= radius || !ShapeSlice.TryNormalizeSweep(ref startAngle, ref sweepAngle)) return;
 
         var slice = new ShapeSlice(Hollow: innerRadius > 0f, RingWidth: radius - innerRadius, startAngle, sweepAngle, RoundCaps: false);
 
@@ -235,7 +286,7 @@ public sealed partial class ShapeBatch : RenderObject
 
     private void AddArc(in ShapePlane plane, float radius, float startAngle, float sweepAngle, Color color, float width)
     {
-        if (radius <= 0f || !TryNormalizeSweep(ref startAngle, ref sweepAngle)) return;
+        if (radius <= 0f || !ShapeSlice.TryNormalizeSweep(ref startAngle, ref sweepAngle)) return;
 
         // The band straddles the radius, so its outer edge is half a width beyond it
         var halfWidth = MathF.Max(width, 0f) * 0.5f;
@@ -243,26 +294,6 @@ public sealed partial class ShapeBatch : RenderObject
 
         // A stroke has no area to fill; a band takes the current fill like any other shape
         Add([Vector2.Zero], plane, halfWidth > 0f ? CurrentStyle(color) : OutlineStyle(color), slice, radius + halfWidth, 1f);
-    }
-
-    /// <summary>
-    /// Puts a sweep into the form the shader reads: counter-clockwise, and 0 for a full turn.
-    /// Returns <c>false</c> for a sweep of nothing, which draws nothing.
-    /// </summary>
-    private static bool TryNormalizeSweep(ref float startAngle, ref float sweepAngle)
-    {
-        if (sweepAngle == 0f) return false;
-
-        // Clockwise is the same range walked from its other end
-        if (sweepAngle < 0f)
-        {
-            startAngle += sweepAngle;
-            sweepAngle = -sweepAngle;
-        }
-
-        if (sweepAngle >= MathF.Tau) sweepAngle = 0f;
-
-        return true;
     }
 
     /// <summary>The colours, border, fill and glow as they stand right now, which is what a draw call captures.</summary>
@@ -275,7 +306,7 @@ public sealed partial class ShapeBatch : RenderObject
         {
             // The gradient's far end gets the same treatment as the near one: scaled by the fill
             // alpha in the shader, so the two ends dim together
-            return new(color, color, BorderWidth, Fill.Alpha, Glow.Capture(color), Dash.Capture(), CaptureGradient(color), Opacity, DepthFade, TexturedNow);
+            return new(color, color, BorderWidth, Fill.Alpha, Glow.Capture(color), Dash.Capture(), CaptureGradient(color), Opacity, DepthFade, TexturedNow, Screen);
         }
 
         // An explicit fill colour is used as given. Dimming its brightness the testbed way would
@@ -283,20 +314,24 @@ public sealed partial class ShapeBatch : RenderObject
         var near = WithFillAlpha(fill);
         var gradient = Gradient.Color is { } to ? new GradientStyle(true, WithFillAlpha(to), Gradient.Direction) : new GradientStyle(false, near, Gradient.Direction);
 
-        return new(color, near, BorderWidth, 1f, Glow.Capture(color), Dash.Capture(), gradient, Opacity, DepthFade, TexturedNow);
+        return new(color, near, BorderWidth, 1f, Glow.Capture(color), Dash.Capture(), gradient, Opacity, DepthFade, TexturedNow, Screen);
     }
 
+    /// <summary>A screen shape drawn into a <see cref="Viewport"/> rectangle is moved to it here; every other shape is placed as given.</summary>
+    private ShapePlane Placed(in ShapePlane plane, in ShapeStyle style)
+        => style.Screen && Viewport is { } viewport ? plane with { Origin = plane.Origin + new Vector3(viewport.X, viewport.Y, 0f) } : plane;
+
     /// <summary>The current style with the fill turned off, for shapes that are all outline.</summary>
-    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Capture(color), Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade, TexturedNow);
+    private ShapeStyle OutlineStyle(Color color) => new(color, color, BorderWidth, 0f, Glow.Capture(color), Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade, TexturedNow, Screen);
 
     /// <summary>The current style with the fill turned off and its own outline width.</summary>
-    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Capture(color), Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade, TexturedNow);
+    private ShapeStyle OutlineStyle(Color color, float borderWidth) => new(color, color, borderWidth, 0f, Glow.Capture(color), Dash.Capture(), new GradientStyle(false, color, Gradient.Direction), Opacity, DepthFade, TexturedNow, Screen);
 
     /// <summary>
     /// The current style with the fill turned all the way up, for shapes that are drawn solid. A
     /// gradient still applies: a line that fades out along its length is a leader line.
     /// </summary>
-    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Capture(color), Dash.Capture(), CaptureGradient(color), Opacity, DepthFade, TexturedNow);
+    private ShapeStyle SolidStyle(Color color) => new(color, color, BorderWidth, 1f, Glow.Capture(color), Dash.Capture(), CaptureGradient(color), Opacity, DepthFade, TexturedNow, Screen);
 
     /// <summary>Whether the next draw call is textured: asked for, and with a fill source to sample.</summary>
     private bool TexturedNow => Textured && FillSource is not null;
@@ -306,30 +341,6 @@ public sealed partial class ShapeBatch : RenderObject
 
     /// <summary>An explicit colour with the fill alpha applied to its opacity only.</summary>
     private Color WithFillAlpha(Color colour) => new(colour.R, colour.G, colour.B, (byte)Math.Clamp(colour.A * Fill.Alpha, 0f, 255f));
-
-    /// <summary>The XY plane at a 2D position, the plane every 2D call draws in.</summary>
-    private static ShapePlane PlaneXY(Vector2 center)
-        => new(new Vector3(center.X, center.Y, 0f), Vector3.UnitX, Vector3.UnitY, PlaneMode.Fixed);
-
-    /// <summary>
-    /// The plane a normal defines, with any two perpendicular unit axes spanning it. Which two
-    /// only shows for shapes with an angular cut, so they are chosen so that angle 0 is world X
-    /// both for a shape lying on the ground and for one standing in the XY plane, and the pair is
-    /// right-handed about the normal so angles run counter-clockwise seen from its side.
-    /// </summary>
-    private static ShapePlane PlaneFromNormal(Vector3 center, Vector3 normal)
-    {
-        var n = Vector3.Normalize(normal);
-
-        // Cross with whichever world axis is least aligned, so the result is never degenerate
-        var axisX = MathF.Abs(n.Y) < 0.9f
-            ? Vector3.Normalize(Vector3.Cross(Vector3.UnitY, n))
-            : Vector3.Normalize(Vector3.Cross(n, Vector3.UnitZ));
-
-        var axisY = Vector3.Cross(n, axisX);
-
-        return new ShapePlane(center, axisX, axisY, PlaneMode.Fixed);
-    }
 
     /// <summary>
     /// Submits a run as one stroke, or as a few runs sharing their end points when it is very
@@ -399,6 +410,7 @@ public sealed partial class ShapeBatch : RenderObject
     /// </summary>
     private void Add(ReadOnlySpan<Vector2> vertices, in ShapePlane plane, in ShapeStyle style, in ShapeSlice slice, float radius, float scale)
     {
+        var placed = Placed(plane, style);
         if (vertices.Length < 1)
             throw new ArgumentException("A shape needs at least one vertex.", nameof(vertices));
 
@@ -432,6 +444,6 @@ public sealed partial class ShapeBatch : RenderObject
             Points.Add(invScale * (vertices[i] - center));
         }
 
-        Instances.Add(new ShapeInstance(plane, style, slice, new ShapePointRun(offset, vertices.Length, center, localScale), radius, scale));
+        Instances.Add(new ShapeInstance(placed, style, slice, new ShapePointRun(offset, vertices.Length, center, localScale), radius, scale));
     }
 }
