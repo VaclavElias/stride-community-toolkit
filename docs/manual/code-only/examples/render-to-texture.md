@@ -8,7 +8,7 @@ slug: render-to-texture
 Five cameras watch one scene and each draws into a texture shown on a monitor: an overhead
 map, a chase camera following an orbiting ball, a fixed CCTV corner, and two cameras with a
 look of their own - night vision and a thermal camera, colour transforms from the toolkit's
-PostEffects package. A big screen shows the selected feed. Each feed is one call,
+Effects package. A big screen shows the selected feed. Each feed is one call,
 AddRenderTextureCamera, which returns a texture that is just a texture: here the emissive map
 of a monitor's material.
 
