@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Stride.CommunityToolkit.Examples.MetadataGenerator.Core;
+using System.Text.RegularExpressions;
 
 namespace Stride.CommunityToolkit.Examples.MetadataGenerator.Services;
 
@@ -93,6 +94,47 @@ public class ExampleScanner(ILogger<ExampleScanner> logger)
 
         return Path.GetFileName(projectDirectory) ?? string.Empty;
     }
+
+    /// <summary>
+    /// Finds the toolkit packages an example references that are not on NuGet: the
+    /// <c>ProjectReference</c>s of the project file beside the entry file, or the <c>#:project</c>
+    /// directives of a file-based app, filtered by <see cref="DocPaths.PackagesNotOnNuGet"/>.
+    /// </summary>
+    /// <param name="exampleFilePath">The full path to the entry source file.</param>
+    /// <returns>The package names, in a stable order; empty when the example needs none.</returns>
+    public static IReadOnlyList<string> FindRepositoryOnlyPackages(string exampleFilePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(exampleFilePath);
+
+        var directory = Path.GetDirectoryName(exampleFilePath);
+        var references = new List<string>();
+
+        if (directory is not null)
+        {
+            foreach (var projectFile in Directory.EnumerateFiles(directory, "*.csproj").Concat(Directory.EnumerateFiles(directory, "*.fsproj")).Concat(Directory.EnumerateFiles(directory, "*.vbproj")))
+            {
+                references.AddRange(ProjectReferenceNames(File.ReadAllText(projectFile)));
+            }
+        }
+
+        // A file-based app carries its references as directives in the entry file itself
+        references.AddRange(File.ReadLines(exampleFilePath)
+            .TakeWhile(line => line.StartsWith("#:", StringComparison.Ordinal) || line.Length == 0 || line.StartsWith("//", StringComparison.Ordinal))
+            .Where(line => line.StartsWith("#:project", StringComparison.Ordinal))
+            .Select(line => Path.GetFileNameWithoutExtension(line["#:project".Length..].Trim())));
+
+        return references
+            .Where(DocPaths.PackagesNotOnNuGet.Contains)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static IEnumerable<string> ProjectReferenceNames(string projectXml)
+        => ProjectReferencePattern.Matches(projectXml)
+            .Select(match => Path.GetFileNameWithoutExtension(match.Groups["path"].Value.Replace('\\', '/')));
+
+    private static readonly Regex ProjectReferencePattern = new(@"<ProjectReference\s+Include\s*=\s*""(?<path>[^""]+)""", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static bool IsExcluded(string filePath, string rootPath)
     {

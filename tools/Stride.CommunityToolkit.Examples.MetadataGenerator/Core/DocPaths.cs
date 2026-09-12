@@ -22,6 +22,19 @@ public static class DocPaths
     /// <summary>The repository, for "View on GitHub" links.</summary>
     public static readonly Uri GitHubExamplesUrl = new("https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only");
 
+    /// <summary>
+    /// Toolkit packages that are not on NuGet, so an example built on one runs only from a clone of
+    /// the repository. The source of truth is the publish list in <c>.github/workflows/dotnet-nuget.yml</c>:
+    /// a package missing from that list belongs here, and one added there comes off this list at
+    /// the release that ships it.
+    /// </summary>
+    public static readonly IReadOnlySet<string> PackagesNotOnNuGet = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "Stride.CommunityToolkit.Box2D",
+        "Stride.CommunityToolkit.Charts",
+        "Stride.CommunityToolkit.ImGuiNet",
+    };
+
     /// <summary>The landing pages that existed before levels replaced the Basic/Advance split.</summary>
     /// <remarks>
     /// They stay in the repository as <c>redirect_url</c> stubs. The redirect is a generated HTML page,

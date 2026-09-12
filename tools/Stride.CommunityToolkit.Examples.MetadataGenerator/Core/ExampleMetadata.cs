@@ -133,6 +133,14 @@ public class ExampleMetadata
     public List<string>? RelatedSlugs { get; set; }
 
     /// <summary>
+    /// Gets or sets the toolkit packages this example references that are not on NuGet - see
+    /// <see cref="Core.DocPaths.PackagesNotOnNuGet"/> - read from its project file or its
+    /// <c>#:project</c> directives. Empty for an example that runs from a copy of its project alone.
+    /// </summary>
+    [YamlIgnore]
+    public List<string>? RepositoryOnlyPackages { get; set; }
+
+    /// <summary>
     /// Gets or sets where the metadata block sits in the source file, so the documentation can include
     /// the code without it.
     /// </summary>
