@@ -132,7 +132,7 @@ public sealed class DebugOverlay : GameSystemBase
     public DisplayPosition Position { get; set; } = DisplayPosition.TopRight;
 
     /// <summary>
-    /// Gets or sets the pixel position used when <see cref="Position"/> is <see cref="DisplayPosition.Custom"/>.
+    /// Gets or sets the pixel position used when <see cref="Position"/> is <see cref="DisplayPosition.Custom"/>, in unscaled pixels from the top left. Setting this alone changes nothing while <see cref="Position"/> is a corner; <see cref="SetPosition(Int2)"/> sets both.
     /// </summary>
     public Int2 CustomPosition { get; set; }
 
@@ -270,6 +270,32 @@ public sealed class DebugOverlay : GameSystemBase
         DisplayPosition.BottomRight => DisplayPosition.BottomLeft,
         _ => DisplayPosition.TopLeft,
     };
+
+    /// <summary>
+    /// Places the overlay at a pixel position instead of a corner: sets <see cref="CustomPosition"/> and switches <see cref="Position"/> to <see cref="DisplayPosition.Custom"/> in one call, so the block moves at once rather than after a second assignment.
+    /// </summary>
+    /// <param name="position">The top-left corner of the block, in unscaled pixels from the top left of the window; multiplied by <see cref="Scale"/> and the display's scale when drawn.</param>
+    /// <remarks>
+    /// The <see cref="RepositionKey"/> is ignored from then on, because a position chosen by the caller is not something a keypress should silently override. Set <see cref="Position"/> back to a corner to hand it back.
+    /// </remarks>
+    public void SetPosition(Int2 position)
+    {
+        CustomPosition = position;
+        Position = DisplayPosition.Custom;
+    }
+
+    /// <summary>
+    /// Places the overlay at a pixel position instead of a corner. See <see cref="SetPosition(Int2)"/>.
+    /// </summary>
+    /// <param name="x">Pixels from the left edge of the window, unscaled.</param>
+    /// <param name="y">Pixels from the top edge of the window, unscaled.</param>
+    public void SetPosition(int x, int y) => SetPosition(new Int2(x, y));
+
+    /// <summary>
+    /// Places the overlay in a corner, or hides it with <see cref="DisplayPosition.None"/>. The same as setting <see cref="Position"/>; here so a corner and a pixel position are chosen through one method.
+    /// </summary>
+    /// <param name="position">The corner, <see cref="DisplayPosition.None"/> to draw nothing, or <see cref="DisplayPosition.Custom"/> to draw at <see cref="CustomPosition"/> as last set.</param>
+    public void SetPosition(DisplayPosition position) => Position = position;
 
     /// <inheritdoc />
     public override void Update(GameTime gameTime)
