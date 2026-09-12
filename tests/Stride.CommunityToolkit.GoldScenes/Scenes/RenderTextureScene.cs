@@ -1,5 +1,5 @@
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.PostEffects;
+using Stride.CommunityToolkit.Effects.PostProcessing;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
@@ -17,7 +17,7 @@ namespace Stride.CommunityToolkit.GoldScenes.Scenes;
 /// Four cameras drawing into textures shown on monitors: an overhead orthographic map, a fixed
 /// corner camera, and the same corner through the night-vision and thermal colour transforms.
 /// Pins AddRenderTextureCamera - the slot, the second forward renderer over the shared stages,
-/// the HDR texture tone-mapped by the main view - and both shaders of the PostEffects package.
+/// the HDR texture tone-mapped by the main view - and both shaders of the Effects package.
 /// The ball's orbit and the night-vision grain follow the fixed timestep, so the frame is exact.
 /// </summary>
 internal sealed class RenderTextureScene : IGoldScene
