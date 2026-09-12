@@ -1,8 +1,7 @@
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Graphics;
-using Stride.Rendering.Compositing;
 using static E11_3D_ShapeBatch.Palette;
 
 namespace E11_3D_ShapeBatch;
@@ -229,43 +228,19 @@ public static class EffectStations
     }
 
     /// <summary>
-    /// Builds the second camera and the texture it draws into. Four pieces, and the engine has all
-    /// of them: a texture that is both a render target and a shader resource, a camera in a slot of
-    /// its own, a camera renderer whose child is a <see cref="RenderTextureSceneRenderer"/> wrapping
-    /// a forward renderer over the compositor's existing stages, and a shape batch filled from the
-    /// texture. It is the structure of the engine's own <c>TestSharedStageMultipleOutputs</c>, built
-    /// here at runtime instead of at load.
+    /// Builds the second camera and the texture it draws into, with one toolkit call. Behind it: a
+    /// texture that is both a render target and a shader resource, in HDR; a camera slot of its
+    /// own; a camera renderer wrapping a render-texture renderer wrapping a second forward renderer
+    /// over the compositor's existing stages. The E09_3D_RenderToTexture example takes the call
+    /// further, with five feeds and two of them wearing a look of their own.
     /// </summary>
-    /// <remarks>
-    /// Two things that cost an evening. The texture is HDR: the scene is lit in HDR and the mirror's
-    /// renderer has no tone map, so an 8-bit texture saturates to white - the main view tone-maps
-    /// the panel along with everything else, which is what makes the picture come out right. And
-    /// the forward renderer is a second instance sharing the stages, not the compositor's own
-    /// <c>SingleView</c>: that one is reference-counted by the compositor and putting it in two
-    /// places throws at shutdown.
-    /// </remarks>
     public static void MirrorSetup(GalleryStation s)
     {
-        var compositor = s.Game.SceneSystem.GraphicsCompositor;
-
-        var texture = Texture.New2D(s.Game.GraphicsDevice, 512, 512, PixelFormat.R16G16B16A16_Float,
-            TextureFlags.ShaderResource | TextureFlags.RenderTarget);
-
-        // A slot of its own: slot zero is the game's camera, and a camera that shares a slot with
-        // another is the "two entities on one slot" mistake
-        var slot = new SceneCameraSlot { Name = "Mirror" };
-
-        compositor.Cameras.Add(slot);
-
         // Beside the pad, looking at the station's own pillar from a few units away, so the panel
-        // is unmistakably another camera's view. Square, to match the texture, whatever the window is.
+        // is unmistakably another camera's view
         var eye = s.At(-3.5f, 2.6f, 4f);
         var direction = Vector3.Normalize(s.Pillars[0].Centre - eye);
-
-        var camera = new Entity("Mirror camera")
-        {
-            new CameraComponent { Slot = slot.ToSlotId(), UseCustomAspectRatio = true, AspectRatio = 1f },
-        };
+        var camera = new Entity("Mirror camera");
 
         camera.Transform.Position = eye;
 
@@ -273,32 +248,10 @@ public static class EffectStations
         camera.Transform.Rotation = Quaternion.RotationYawPitchRoll(MathF.Atan2(-direction.X, -direction.Z), MathF.Asin(direction.Y), 0f);
         camera.Scene = s.Scene;
 
-        var main = (ForwardRenderer)compositor.SingleView;
-
-        var mirror = new SceneCameraRenderer
-        {
-            Camera = slot,
-            Child = new RenderTextureSceneRenderer
-            {
-                RenderTexture = texture,
-                Child = new ForwardRenderer
-                {
-                    Clear = { Color = Color.Black },
-                    OpaqueRenderStage = main.OpaqueRenderStage,
-                    TransparentRenderStage = main.TransparentRenderStage,
-                },
-            },
-        };
-
-        // Appended, so the panel shows the previous frame - one frame of lag nobody can see
-        if (compositor.Game is SceneRendererCollection renderers)
-        {
-            renderers.Children.Add(mirror);
-        }
-
+        var feed = s.Game.AddRenderTextureCamera(camera, 512, 512);
         var batch = s.Game.AddShapeBatch(depthTest: true);
 
-        batch.FillWith(texture);
+        batch.FillWith(feed.Texture);
 
         s.State = batch;
     }
