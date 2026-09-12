@@ -1,6 +1,7 @@
-using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering;
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.Text;
+using Stride.Core.Diagnostics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
@@ -66,9 +67,16 @@ public class EntityDebugSceneRenderer : SceneRendererBase
         }
     }
 
+    /// <summary>The block the profiler shows this renderer's GPU time under.</summary>
+    public static readonly ProfilingKey ProfilingKey = new("EntityDebug");
+
+    private static readonly Color4 ProfileColor = new(0.6f, 0.6f, 0.9f, 1f);
+
     /// <inheritdoc />
     protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
     {
+        using var _ = drawContext.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
+
         if (!_options.ShowEntityName && !_options.ShowEntityPosition) return;
 
         if (_spriteBatch is null || _font is null) return;

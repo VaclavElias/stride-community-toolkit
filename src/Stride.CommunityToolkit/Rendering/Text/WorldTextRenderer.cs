@@ -1,4 +1,5 @@
 using Stride.CommunityToolkit.Rendering.Compositing;
+using Stride.Core.Diagnostics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
@@ -50,9 +51,16 @@ public class WorldTextRenderer : SceneRendererBase
         }
     }
 
+    /// <summary>The block the profiler shows this renderer's GPU time under.</summary>
+    public static readonly ProfilingKey ProfilingKey = new("WorldText");
+
+    private static readonly Color4 ProfileColor = new(0.9f, 0.9f, 0.3f, 1f);
+
     /// <inheritdoc />
     protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
     {
+        using var _ = drawContext.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
+
         if (_spriteBatch is null || _defaultFont is null) return;
 
         var processor = SceneInstance.GetCurrent(context)?.GetProcessor<WorldTextProcessor>();

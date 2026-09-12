@@ -1,5 +1,5 @@
 using Stride.CommunityToolkit.Rendering.Compositing;
-using Stride.CommunityToolkit.Rendering;
+using Stride.Core.Diagnostics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
@@ -49,9 +49,16 @@ public class EntityTextRenderer : SceneRendererBase
         }
     }
 
+    /// <summary>The block the profiler shows this renderer's GPU time under.</summary>
+    public static readonly ProfilingKey ProfilingKey = new("EntityText");
+
+    private static readonly Color4 ProfileColor = new(0.9f, 0.7f, 0.3f, 1f);
+
     /// <inheritdoc />
     protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
     {
+        using var _ = drawContext.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
+
         if (_spriteBatch is null || _defaultFont is null) return;
 
         // Resolved per frame rather than cached, so a change of scene or camera is picked up

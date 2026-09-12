@@ -1,3 +1,4 @@
+using Stride.Core.Diagnostics;
 using Stride.Rendering;
 using Stride.Rendering.Compositing;
 
@@ -42,9 +43,16 @@ public class InstancingBufferUploadRenderer : SceneRendererBase
         }
     }
 
+    /// <summary>The block the profiler shows this renderer's GPU time under.</summary>
+    public static readonly ProfilingKey ProfilingKey = new("InstancingUpload");
+
+    private static readonly Color4 ProfileColor = new(0.5f, 0.8f, 0.9f, 1f);
+
     /// <inheritdoc />
     protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
     {
+        using var _ = drawContext.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
+
         foreach (var target in Targets)
         {
             target.Upload(drawContext.CommandList);
