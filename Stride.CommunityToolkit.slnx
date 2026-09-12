@@ -87,6 +87,7 @@
     <Project Path="examples/code-only/E12_Audio_Spatial/E12_Audio_Spatial.csproj" />
     <Project Path="examples/code-only/E12_Audio_WavFile/E12_Audio_WavFile.csproj" />
     <Project Path="examples/code-only/E09_3D_PostEffects/E09_3D_PostEffects.csproj" />
+    <Project Path="examples/code-only/E09_3D_GpuPicking/E09_3D_GpuPicking.csproj" />
     <Project Path="examples/code-only/E09_3D_RenderToTexture/E09_3D_RenderToTexture.csproj" />
     <Project Path="examples/code-only/Example_2D_Playground/Example_2D_Playground.csproj" />
     <Project Path="examples/code-only/Example_Bepu_Playground/Example_Bepu_Playground.csproj" />
@@ -133,7 +134,7 @@
   <Project Path="src/Stride.CommunityToolkit.ImGui/Stride.CommunityToolkit.ImGui.csproj" />
   <Project Path="src/Stride.CommunityToolkit.ImGuiNet/Stride.CommunityToolkit.ImGuiNet.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Linux/Stride.CommunityToolkit.Linux.csproj" />
-  <Project Path="src/Stride.CommunityToolkit.PostEffects/Stride.CommunityToolkit.PostEffects.csproj" />
+  <Project Path="src/Stride.CommunityToolkit.Effects/Stride.CommunityToolkit.Effects.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Shapes/Stride.CommunityToolkit.Shapes.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Skyboxes/Stride.CommunityToolkit.Skyboxes.csproj" />
   <Project Path="src/Stride.CommunityToolkit.Windows/Stride.CommunityToolkit.Windows.csproj" />
