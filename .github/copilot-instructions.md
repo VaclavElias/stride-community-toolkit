@@ -202,6 +202,7 @@ the worked examples. Verify against a package from `build/pack-local.cs`, not a 
 
 ### Shaders (SDSL)
 
+- The recipe for a package that ships a shader - folder, build reference, the engine's function libraries, dither, timing scope, effects - is [docs/contributing/toolkit/shaders.md](../docs/contributing/toolkit/shaders.md); this section is the compiler facts.
 - Stride 4.4 compiles SDSL through its **SPIR-V** toolchain (`sources/shaders/` in the engine clone):
   SDSL to SPIR-V, then SPIRV-Cross to HLSL for Direct3D 11. The old HLSL-based compiler is gone.
 - **Key classes are generated at build time** by a Roslyn source generator that the
