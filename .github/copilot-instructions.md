@@ -334,6 +334,10 @@ Guidance for the Bepu demos specifically:
   - **Quote any value containing `#` or `:`.** `#` starts a YAML comment, so
     `- Uses #:package` is silently truncated to `- Uses` with no error. This is why entries such as
     `"Using helpers: SetupBase3DScene"` are quoted.
+  - An example built on a toolkit package that is not on NuGet yet gets a "run it from a clone"
+    note on its page and on the index automatically. When a package joins the publish list in
+    `.github/workflows/dotnet-nuget.yml`, take it off `DocPaths.PackagesNotOnNuGet` in the
+    generator and regenerate the docs.
 - Examples reference toolkit libraries by `ProjectReference`, not `PackageReference`.
 - **Do not bind example keys that the camera controller already owns.** `Add3DCameraController`
   (included in `SetupBase3DScene`) claims `W A S D`, `Q E`, the arrow keys, `NumPad 2/4/6/8`,

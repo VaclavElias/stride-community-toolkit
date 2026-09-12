@@ -105,6 +105,12 @@ One metadata block, in the example's own entry file. There is nothing else to up
 
 4. Run the console app or the launcher. Your example appears in its level group, with no further registration.
 
+   An example built on a toolkit package that is not on NuGet yet gets a note on its page, on its
+   level page and on the index, saying it runs from a clone of the repository. The generator reads
+   the packages from the project file; the list of unpublished packages is
+   `DocPaths.PackagesNotOnNuGet` in the generator, kept in step with the publish list in
+   `.github/workflows/dotnet-nuget.yml`.
+
 5. Generate its documentation page:
 
     ```bash
