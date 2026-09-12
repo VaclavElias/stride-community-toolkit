@@ -674,6 +674,7 @@ public static partial class GameExtensions
         return entity;
     }
 
+
     /// <summary>
     /// Creates a basic material with optional color, specular reflection, and microsurface smoothness values.
     /// </summary>
