@@ -4,7 +4,7 @@ using Stride.Core.Mathematics;
 using Stride.Rendering.Images;
 using System.ComponentModel;
 
-namespace Stride.CommunityToolkit.PostEffects;
+namespace Stride.CommunityToolkit.Effects.PostProcessing;
 
 /// <summary>
 /// A night-vision look: the image's luminance amplified and drawn in one colour, with bright sources

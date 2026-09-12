@@ -1,4 +1,4 @@
-namespace Stride.CommunityToolkit.PostEffects
+namespace Stride.CommunityToolkit.Effects.PostProcessing
 {
     // Night vision: the image's luminance, amplified, drawn in one colour. Bright sources bloom
     // towards white the way an image intensifier saturates, grain crawls over it, faint scanlines

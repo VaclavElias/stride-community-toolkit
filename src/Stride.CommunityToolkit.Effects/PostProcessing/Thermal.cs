@@ -3,7 +3,7 @@ using Stride.Core.Annotations;
 using Stride.Rendering.Images;
 using System.ComponentModel;
 
-namespace Stride.CommunityToolkit.PostEffects;
+namespace Stride.CommunityToolkit.Effects.PostProcessing;
 
 /// <summary>
 /// A thermal-camera look: luminance stands in for temperature and is painted onto a false-colour

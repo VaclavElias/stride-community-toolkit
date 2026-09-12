@@ -1,4 +1,4 @@
-namespace Stride.CommunityToolkit.PostEffects
+namespace Stride.CommunityToolkit.Effects.PostProcessing
 {
     // Thermal camera: luminance stands in for temperature and is painted onto a false-colour
     // ramp - the dark blue of cold, through violet and red, to the orange, yellow and white of
