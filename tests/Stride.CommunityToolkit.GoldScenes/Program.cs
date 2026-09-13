@@ -26,12 +26,13 @@ IGoldScene? scene = name switch
     "render-texture" => new RenderTextureScene(),
     "shapes-screen" => new ScreenShapesScene(),
     "picking" => new PickingScene(),
+    "particles" => new ParticlesScene(),
     _ => null,
 };
 
 if (scene is null)
 {
-    Console.Error.WriteLine("Usage: --scene shapes-2d | shapes-3d | text | debug-shapes | imgui | shapes-textured | render-texture | shapes-screen | picking");
+    Console.Error.WriteLine("Usage: --scene shapes-2d | shapes-3d | text | debug-shapes | imgui | shapes-textured | render-texture | shapes-screen | picking | particles");
     return 2;
 }
 
