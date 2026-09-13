@@ -1,20 +1,29 @@
-# Particles
+---
+generated: true
+slug: particles
+---
 
-This example demonstrates how to create and configure a particle system. The sample shows:
+# Particle Gallery
 
-- Setting up a basic 3D scene with camera, lighting, and ground
-- Creating a particle emitter with blue colored particles
-- Configuring particle properties including lifetime, size, and spawn rate
-- Setting up particle initializers for random starting positions and velocities
-- Adding gravity to affect particle movement over time
-- Using billboard shapes for rendering particles
+Thirty-one particle systems on a ring of stations, all built from code: the building blocks one at a
+time - spawners, shapes, initializers, updaters, materials, flipbooks, soft particles - and then
+the showpieces that put them together: a campfire, fireworks with child emitters, a tornado, a
+swarm driven by an updater of our own, lasers, rain that splashes, a portal, a rocket engine. Most
+stations have variations on a key, so what a setting does is a keypress away.
 
-The particles are spawned at a rate of 50 per second from a small area and shoot upward before gravity pulls them back down, creating a fountain-like effect. The particles have varying sizes between 0.1 and 0.5 units, with a blue color.
+The `Program.cs` file shows how to:
 
-This example demonstrates fundamental concepts of particle systems in Stride, showing how to create dynamic visual effects through code.
+- Building a ParticleSystemComponent from code - emitters, spawners, initializers, updaters, shapes, materials
+- Textures, flipbooks and scrolling texture coordinates on particles
+- Curves over a particle's life for size, colour and rotation
+- Force fields, colliders and spawning by distance
+- Child emitters spawned on a parent's death, distance or collision
+- Soft particles against geometry
+- Writing an updater and an initializer of your own
+- A ring of stations from the shared gallery frame in Example.Common, with variations per station
 
-![Stride UI Example](media/stride-game-engine-example-12-particles.webp)
+![Particle Gallery](media/particles.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_Particles).
 
-[!code-csharp[](../../../../examples/code-only/E09_3D_Particles/Program.cs?start=1&end=112)]
+[!code-csharp[](../../../../examples/code-only/E09_3D_Particles/Program.cs?start=1&end=144)]
