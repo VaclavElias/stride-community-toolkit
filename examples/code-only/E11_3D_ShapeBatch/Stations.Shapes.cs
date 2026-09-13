@@ -13,7 +13,7 @@ public static class ShapeStations
     /// spawn point or a capture zone. A disc is one vertex plus a radius, so it is analytically
     /// round - no tessellation to give it away up close.
     /// </summary>
-    public static void Disc(GalleryStation s)
+    public static void Disc(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -30,7 +30,7 @@ public static class ShapeStations
     /// does not tint what it encircles. One around the pillar's base, one standing up, and one the
     /// size of the pad to show the width holding at a large radius.
     /// </summary>
-    public static void Ring(GalleryStation s)
+    public static void Ring(ShapeStation s)
     {
         var shapes = s.Shapes;
         var pillar = s.Pillars[0];
@@ -45,7 +45,7 @@ public static class ShapeStations
     /// convex polygons on an arbitrary plane, which is all a decal really is. Lying flat means the
     /// polygon's own X and Y axes map to the station's right and away.
     /// </summary>
-    public static void Polygon(GalleryStation s)
+    public static void Polygon(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -66,7 +66,7 @@ public static class ShapeStations
     /// they roll rather than slide, and one standing upright facing the visitor. Rounded corners
     /// come free - the rounding radius is the same term that makes a capsule.
     /// </summary>
-    public static void Rectangle(GalleryStation s)
+    public static void Rectangle(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -90,7 +90,7 @@ public static class ShapeStations
     /// field-of-view cone sweeping from the pillar's base. Angles are radians, counter-clockwise
     /// from the plane's X axis, negative for clockwise.
     /// </summary>
-    public static void Sector(GalleryStation s)
+    public static void Sector(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -131,7 +131,7 @@ public static class ShapeStations
     /// facing the visitor, a faint full track behind a bright arc filling clockwise from twelve;
     /// on the ground, a stroke arc with a gap travelling around it.
     /// </summary>
-    public static void AnnulusAndArc(GalleryStation s)
+    public static void AnnulusAndArc(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -160,7 +160,7 @@ public static class ShapeStations
     /// foreshorten. Beside each, pixel-measured markers that are the same size on screen at any
     /// distance, where the world-radius billboards shrink with it, joined by a glowing pixel line.
     /// </summary>
-    public static void Billboard(GalleryStation s)
+    public static void Billboard(ShapeStation s)
     {
         var shapes = s.Shapes;
         var bob = MathF.Sin(s.Seconds * 2f) * 0.25f;
@@ -202,7 +202,7 @@ public static class ShapeStations
     /// not. Geometry-based outlines cannot do this - a ring of triangles thins to nothing with
     /// distance. Fly down the corridor.
     /// </summary>
-    public static void DistanceProof(GalleryStation s)
+    public static void DistanceProof(ShapeStation s)
     {
         for (var i = 0; i < 10; i++)
         {
@@ -215,7 +215,7 @@ public static class ShapeStations
     /// its entity's own XY plane, so an entity rotated to face the visitor lays the text flat onto
     /// the panel. The shape is still drawn every frame; the text is updated by its property.
     /// </summary>
-    public static void HudPanelSetup(GalleryStation s)
+    public static void HudPanelSetup(ShapeStation s)
     {
         var text = new WorldTextComponent
         {
@@ -246,7 +246,7 @@ public static class ShapeStations
     /// counting up. Fill and outline are independent colours - a faint dark panel with a light edge
     /// is something deriving the fill from the outline could never produce.
     /// </summary>
-    public static void HudPanel(GalleryStation s)
+    public static void HudPanel(ShapeStation s)
     {
         var shapes = s.Shapes;
         var centre = s.At(0f, 3f, -1f);
@@ -277,14 +277,14 @@ public static class ShapeStations
     /// Builds the two labels the overflow station compares. Both carry the same words; only the
     /// string differs, because wrapping is the caller's job.
     /// </summary>
-    public static void TextOverflowSetup(GalleryStation s)
+    public static void TextOverflowSetup(ShapeStation s)
     {
         var spilling = Label(s, Overflowing, 0.5f, new Vector3(-2.4f, 2.6f, -1f));
         var wrapped = Label(s, Wrapped, 1.25f, new Vector3(2.4f, 2.6f, -1f));
 
         s.State = new[] { spilling, wrapped };
 
-        static WorldTextComponent Label(GalleryStation s, string text, float height, Vector3 local)
+        static WorldTextComponent Label(ShapeStation s, string text, float height, Vector3 local)
         {
             var label = new WorldTextComponent
             {
@@ -317,7 +317,7 @@ public static class ShapeStations
     /// to match, which is the whole of the fix - the caller decides where the lines break, because
     /// only the caller knows what the words mean. Both panels are the same size.
     /// </summary>
-    public static void TextOverflow(GalleryStation s)
+    public static void TextOverflow(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -340,5 +340,4 @@ public static class ShapeStations
 
     /// <summary>The same words, broken where they read best - which no renderer can guess.</summary>
     private const string Wrapped = "Nothing\nclips a\nlong line";
-
 }

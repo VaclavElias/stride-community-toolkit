@@ -1,3 +1,4 @@
+using Example.Common.Galleries;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Shapes;
 using Stride.Rendering.Compositing;
@@ -13,7 +14,7 @@ namespace E11_3D_ShapeBatch;
 /// </summary>
 public static class Stations
 {
-    public static IReadOnlyList<Demo> All { get; } =
+    public static IReadOnlyList<Exhibit<ShapeStation>> All { get; } =
     [
         new("Disc", "filled discs on the ground, pulsing", nameof(ShapeBatch.DrawDisc), ShapeStations.Disc),
         new("Ring", "the disc with no fill, a marker that tints nothing", nameof(ShapeBatch.DrawRing), ShapeStations.Ring, Pillars: 1, Anchor: new Vector3(-3.5f, 0.3f, 0.4f)),

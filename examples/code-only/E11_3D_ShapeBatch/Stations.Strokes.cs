@@ -1,5 +1,5 @@
-using static E11_3D_ShapeBatch.Palette;
 using Stride.Core.Mathematics;
+using static E11_3D_ShapeBatch.Palette;
 
 namespace E11_3D_ShapeBatch;
 
@@ -12,7 +12,7 @@ public static class StrokeStations
     /// close. Golden lines from a hub to the pillar tops taper with distance; the pixel-width rails
     /// running away beside them are the same thickness near and far.
     /// </summary>
-    public static void Line(GalleryStation s)
+    public static void Line(ShapeStation s)
     {
         var shapes = s.Shapes;
         var hub = s.At(0f, 7f, 0f);
@@ -33,7 +33,7 @@ public static class StrokeStations
     /// A wire box is its twelve edges drawn as twelve thick lines: a selection volume around the
     /// pillar, and a flat one on the ground beside it. The box is axis-aligned to the world.
     /// </summary>
-    public static void WireBox(GalleryStation s)
+    public static void WireBox(ShapeStation s)
     {
         var shapes = s.Shapes;
         var pillar = s.Pillars[0];
@@ -48,7 +48,7 @@ public static class StrokeStations
     /// concave, which no polygon fill could be - with dashes marching around it; and the same
     /// bracket flat on the ground at a world width, where the joins show their roundness.
     /// </summary>
-    public static void Polyline(GalleryStation s)
+    public static void Polyline(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -84,7 +84,7 @@ public static class StrokeStations
     /// behind it - and a closed trefoil of world width hanging beside it, thin where it is far and
     /// thick where it is near.
     /// </summary>
-    public static void SpaceStroke(GalleryStation s)
+    public static void SpaceStroke(ShapeStation s)
     {
         var shapes = s.Shapes;
         var pillar = s.Pillars[0];

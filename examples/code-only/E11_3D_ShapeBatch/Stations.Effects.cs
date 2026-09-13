@@ -14,7 +14,7 @@ public static class EffectStations
     /// fill alpha, the Box2D testbed way; the second has a fill colour of its own inside a white
     /// outline; the third has no border at all, a fill and nothing else.
     /// </summary>
-    public static void FillColour(GalleryStation s)
+    public static void FillColour(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -37,7 +37,7 @@ public static class EffectStations
     /// stays readable over anything. Wide and in the shape's own colour it is neon - standing here
     /// as a ring, a disc whose glow stops at its edge, and an arc. Press G to glow every station.
     /// </summary>
-    public static void Glow(GalleryStation s)
+    public static void Glow(ShapeStation s)
     {
         var shapes = s.Shapes;
         var (sin, cos) = MathF.SinCos(s.Seconds * 0.6f);
@@ -65,7 +65,7 @@ public static class EffectStations
     /// ring's dashes are fitted once, in its own units, so they foreshorten with it like marks
     /// painted on the ground and stay in step however the camera moves.
     /// </summary>
-    public static void Dash(GalleryStation s)
+    public static void Dash(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -114,7 +114,7 @@ public static class EffectStations
     /// filling to its bright end, and a glass pane that fades to nothing along its length. The
     /// direction is in the plane's own axes, so X runs along the station's right.
     /// </summary>
-    public static void Gradient(GalleryStation s)
+    public static void Gradient(ShapeStation s)
     {
         var shapes = s.Shapes;
         var bar = (MathF.Sin(s.Seconds * 0.9f) + 1f) * 0.5f;
@@ -136,7 +136,7 @@ public static class EffectStations
     /// Opacity dims everything a shape draws with one number: the same glowing billboard at 1, 0.65
     /// and 0.3, border, fill and glow together. It is how a widget goes disabled or fades in.
     /// </summary>
-    public static void Opacity(GalleryStation s)
+    public static void Opacity(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -157,7 +157,7 @@ public static class EffectStations
     /// over the pillar and stays bright beside it; a marker sunk in the floor melts into it, next
     /// to the same marker without the fade, sliced flat. Only shows on the depth-tested batch.
     /// </summary>
-    public static void DepthFade(GalleryStation s)
+    public static void DepthFade(ShapeStation s)
     {
         var shapes = s.Shapes;
         var pillar = s.Pillars[0];
@@ -178,7 +178,7 @@ public static class EffectStations
     /// ring in the same place shows through the pillar, which is what gizmos and debug marks want.
     /// T switches every other station between the two; this one draws through both at once.
     /// </summary>
-    public static void OverlayBatch(GalleryStation s)
+    public static void OverlayBatch(ShapeStation s)
     {
         var pillar = s.Pillars[0];
         var behind = pillar.Base + Vector3.UnitY * 2f - s.Forward * 2f;
@@ -193,7 +193,7 @@ public static class EffectStations
     /// so the mapping is unmistakable, fills a glowing HUD panel edge to edge, a disc with its
     /// inscribed square, and a disc tinted orange - the sample multiplies the fill colour.
     /// </summary>
-    public static void TexturedFill(GalleryStation s)
+    public static void TexturedFill(ShapeStation s)
     {
         var shapes = s.Batches.Pictures;
 
@@ -214,7 +214,7 @@ public static class EffectStations
     /// The same picture through a batch whose fill source tiles it four times across with wrap
     /// addressing. The node is re-read every frame, so scrolling is one assignment to its offset.
     /// </summary>
-    public static void ScrollingTexture(GalleryStation s)
+    public static void ScrollingTexture(ShapeStation s)
     {
         var shapes = s.Batches.Stripes;
 
@@ -234,7 +234,7 @@ public static class EffectStations
     /// over the compositor's existing stages. The E09_3D_RenderToTexture example takes the call
     /// further, with five feeds and two of them wearing a look of their own.
     /// </summary>
-    public static void MirrorSetup(GalleryStation s)
+    public static void MirrorSetup(ShapeStation s)
     {
         // Beside the pad, looking at the station's own pillar from a few units away, so the panel
         // is unmistakably another camera's view
@@ -268,7 +268,7 @@ public static class EffectStations
     /// emptied only after the last one, which is what lets a second camera see the same frame as the
     /// first.
     /// </remarks>
-    public static void Mirror(GalleryStation s)
+    public static void Mirror(ShapeStation s)
     {
         if (s.State is not ShapeBatch shapes) return;
 
@@ -305,7 +305,7 @@ public static class EffectStations
     /// A crosshair in the middle, a gauge and a panel placed with Corner() so they follow the window,
     /// and a bar drawn into a viewport rectangle in that rectangle's own coordinates.
     /// </summary>
-    public static void ScreenHud(GalleryStation s)
+    public static void ScreenHud(ShapeStation s)
     {
         var shapes = s.Shapes;
 
@@ -358,5 +358,4 @@ public static class EffectStations
         s.ResetStyle(shapes);
         shapes.Screen = false;
     }
-
 }

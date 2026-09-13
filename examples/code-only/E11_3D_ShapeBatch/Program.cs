@@ -1,4 +1,5 @@
 using E11_3D_ShapeBatch;
+using Example.Common.Galleries;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
@@ -28,7 +29,10 @@ using Stride.Input;
 // "--station 7" starts the visitor at a station instead of the index board - handy for screenshots
 var startStation = args.Length >= 2 && args[0] == "--station" && int.TryParse(args[1], out var number) ? number : 0;
 
-Gallery? gallery = null;
+Gallery<ShapeStation>? gallery = null;
+GalleryBatches? batches = null;
+var depthTested = true;
+var submitted = 0;
 
 var style = new GalleryStyle();
 
@@ -50,13 +54,13 @@ void Start(Scene rootScene)
     // Overlay: drawn on top of everything, which is what you want for gizmos and debug marks.
     // Two more carry a fill source - a picture, clamped at its edges, and the same picture tiled -
     // because a shader composition is one fill per batch.
-    var picture = Gallery.CreatePicture(game.GraphicsDevice);
+    var picture = GalleryPicture.Create(game.GraphicsDevice);
     var pictures = game.AddShapeBatch(depthTest: true);
     var stripes = game.AddShapeBatch(depthTest: true);
 
     pictures.FillWith(picture);
 
-    var batches = new GalleryBatches(
+    batches = new GalleryBatches(
         Scene: game.AddShapeBatch(depthTest: true),
         Overlay: game.AddShapeBatch(depthTest: false),
         Pictures: pictures,
@@ -68,7 +72,21 @@ void Start(Scene rootScene)
     game.AddWorldTextRenderer();
     game.AddEntityTextRenderer();
 
-    gallery = new Gallery(game, rootScene, Stations.All, batches, style);
+    // The frame comes from Example.Common; what a ShapeBatch station needs on top of it - the
+    // batches, the visitor's style, which batch to draw through this frame - is put there by these
+    var galleryBatches = batches;
+
+    gallery = new Gallery<ShapeStation>(game, rootScene, Stations.All, configure: station =>
+    {
+        station.Batches = galleryBatches;
+        station.Style = style;
+    });
+
+    gallery.Prepare = station =>
+    {
+        station.Shapes = depthTested ? galleryBatches.Scene : galleryBatches.Overlay;
+        station.ResetAll();
+    };
     gallery.UpdateLabels();
 
     if (startStation > 0) gallery.GoTo(startStation - 1, instant: true);
@@ -82,16 +100,21 @@ void Update(Scene scene, GameTime gameTime)
     if (gallery is null) return;
 
     HandleInput(gallery);
+
+    // How many shapes the stations submitted: the gallery's own furniture goes through batches of its own
+    var before = Submitted();
+
     gallery.Update(gameTime);
+    submitted = Submitted() - before;
 }
 
-void HandleInput(Gallery gallery)
+void HandleInput(Gallery<ShapeStation> gallery)
 {
     if (game.Input.IsKeyPressed(Keys.N)) gallery.GoTo(gallery.Focus + 1);
     if (game.Input.IsKeyPressed(Keys.P)) gallery.GoTo(gallery.Focus - 1);
     if (game.Input.IsKeyPressed(Keys.Home)) gallery.GoHome();
     if (game.Input.IsKeyPressed(Keys.Tab)) gallery.Solo = !gallery.Solo;
-    if (game.Input.IsKeyPressed(Keys.T)) gallery.DepthTested = !gallery.DepthTested;
+    if (game.Input.IsKeyPressed(Keys.T)) depthTested = !depthTested;
 
     if (game.Input.IsKeyPressed(Keys.L))
     {
@@ -128,15 +151,17 @@ void HandleInput(Gallery gallery)
         style.BorderWidth = MathF.Max(style.BorderWidth - 1f, 0f);
 }
 
+int Submitted() => batches is null ? 0 : batches.Scene.Count + batches.Overlay.Count + batches.Pictures.Count + batches.Stripes.Count;
+
 IReadOnlyList<TextElement> BuildOverlayLines()
 {
     if (gallery is null) return [];
 
     List<TextElement> lines =
     [
-        new($"{gallery.Submitted} shapes this frame, {gallery.Stations.Count} stations on a ring of radius {gallery.Radius:0}", Color.LightGreen),
+        new($"{submitted} shapes this frame, {gallery.Stations.Count} stations on a ring of radius {gallery.Radius:0}", Color.LightGreen),
         new($"Border {style.BorderWidth:0} px (+/-)   Fill {style.FillAlpha:0.00} (F)   Glow {style.GlowWidth:0} px (G)", Color.MediumSeaGreen),
-        new(gallery.DepthTested ? "T - depth tested: the scene occludes shapes" : "T - overlay: shapes draw on top", Color.Gold),
+        new(depthTested ? "T - depth tested: the scene occludes shapes" : "T - overlay: shapes draw on top", Color.Gold),
         new("N / P - next and previous station   Home - home   Tab - " + (gallery.Solo ? "one station at a time" : "every station"), Color.Gold),
         new(gallery.LabelDetail switch { 0 => "L - labels: the number", 1 => "L - labels: the number and the method", _ => "L - labels: everything" }, Color.Gold),
         new(""),
@@ -145,8 +170,8 @@ IReadOnlyList<TextElement> BuildOverlayLines()
     // The index board at the centre is the full list; here, only where the visitor stands
     var station = gallery.Stations[gallery.Current];
 
-    lines.Add(new($"Station {station.Number} of {gallery.Stations.Count} - {station.Demo.Title}", Color.White));
-    lines.Add(new($"{station.Demo.Method}: {station.Demo.Summary}", Color.LightGray));
+    lines.Add(new($"Station {station.Number} of {gallery.Stations.Count} - {station.Exhibit.Title}", Color.White));
+    lines.Add(new($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray));
 
     return lines;
 }
