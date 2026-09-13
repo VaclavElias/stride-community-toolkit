@@ -19,7 +19,7 @@ namespace Stride.CommunityToolkit.Examples.MetadataGenerator.Services;
 /// explicitly: <c>obj</c> holds generated <c>.cs</c> files, and <c>bin</c> holds copies of anything.
 /// </para>
 /// </remarks>
-public class ExampleScanner(ILogger<ExampleScanner> logger)
+public partial class ExampleScanner(ILogger<ExampleScanner> logger)
 {
     /// <summary>Directory names that are skipped wherever they appear in the tree.</summary>
     private static readonly string[] ExcludedDirectories = ["bin", "obj", ".vs", ".git", "node_modules"];
@@ -131,10 +131,11 @@ public class ExampleScanner(ILogger<ExampleScanner> logger)
     }
 
     private static IEnumerable<string> ProjectReferenceNames(string projectXml)
-        => ProjectReferencePattern.Matches(projectXml)
+        => ProjectReferencePattern().Matches(projectXml)
             .Select(match => Path.GetFileNameWithoutExtension(match.Groups["path"].Value.Replace('\\', '/')));
 
-    private static readonly Regex ProjectReferencePattern = new(@"<ProjectReference\s+Include\s*=\s*""(?<path>[^""]+)""", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"<ProjectReference\s+Include\s*=\s*""(?<path>[^""]+)""", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ProjectReferencePattern();
 
     private static bool IsExcluded(string filePath, string rootPath)
     {
