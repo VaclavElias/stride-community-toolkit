@@ -28,22 +28,21 @@ public sealed class GpuPickingSceneRenderer : SceneCameraRenderer
     /// <summary>Staging textures in flight. Three slots give two frames between the copy and the read.</summary>
     private const int Ring = 3;
 
-    private readonly RenderStage _stage;
-    private readonly GpuPickingRenderFeature _feature;
     private readonly Texture?[] _staging = new Texture?[Ring];
     private readonly Request?[] _inFlight = new Request?[Ring];
     private readonly Vector4[] _pixel = new Vector4[1];
     private int _frame;
     private int _sequence;
 
-    /// <summary>The picking stage and the mesh feature's half, both already registered with the compositor.</summary>
-    /// <param name="stage">The stage meshes are routed to for picking.</param>
-    /// <param name="feature">The sub-feature that writes the ids and remembers the components.</param>
-    public GpuPickingSceneRenderer(RenderStage stage, GpuPickingRenderFeature feature)
-    {
-        _stage = stage;
-        _feature = feature;
-    }
+    // A parameterless constructor and settable properties, the shape every compositor renderer has:
+    // the asset system builds one empty and fills its members, and Stride's analyzer holds a renderer
+    // to that even when only code ever builds it
+
+    /// <summary>The stage meshes are routed to for picking, already registered with the compositor.</summary>
+    public required RenderStage Stage { get; init; }
+
+    /// <summary>The mesh feature's half: the sub-feature that writes the ids and remembers the components.</summary>
+    public required GpuPickingRenderFeature Feature { get; init; }
 
     /// <summary>The point to pick on the next frame, normalised over the viewport with (0, 0) at the top left; <see langword="null"/> asks for nothing.</summary>
     public Vector2? Pending { get; set; }
@@ -65,14 +64,14 @@ public sealed class GpuPickingSceneRenderer : SceneCameraRenderer
             Pending = source();
         }
 
-        _feature.Active = Pending is not null;
+        Feature.Active = Pending is not null;
 
         // Idle: no view for the render system to cull, no stage for it to sort
         if (Pending is null) return;
 
         base.CollectCore(context);
 
-        RenderView.RenderStages.Add(_stage);
+        RenderView.RenderStages.Add(Stage);
     }
 
     /// <inheritdoc/>
@@ -105,8 +104,8 @@ public sealed class GpuPickingSceneRenderer : SceneCameraRenderer
         var y = Math.Clamp((int)(position.Y * height), 0, height - 1);
 
         // The view's own size, so the pixel asked about is the pixel on screen, not a cell of a smaller grid
-        var target = PushScopedResource(context.Allocator.GetTemporaryTexture2D(width, height, _stage.Output.RenderTargetFormat0));
-        var depth = PushScopedResource(context.Allocator.GetTemporaryTexture2D(width, height, _stage.Output.DepthStencilFormat, TextureFlags.DepthStencil));
+        var target = PushScopedResource(context.Allocator.GetTemporaryTexture2D(width, height, Stage.Output.RenderTargetFormat0));
+        var depth = PushScopedResource(context.Allocator.GetTemporaryTexture2D(width, height, Stage.Output.DepthStencilFormat, TextureFlags.DepthStencil));
         var commandList = drawContext.CommandList;
 
         using (drawContext.PushRenderTargetsAndRestore())
@@ -118,11 +117,11 @@ public sealed class GpuPickingSceneRenderer : SceneCameraRenderer
             commandList.ResourceBarrierTransition(depth, BarrierLayout.DepthStencilWrite);
             commandList.SetRenderTargetAndViewport(depth, target);
             commandList.SetScissorRectangle(new Rectangle(x, y, 1, 1));
-            context.RenderSystem.Draw(drawContext, RenderView, _stage);
+            context.RenderSystem.Draw(drawContext, RenderView, Stage);
             commandList.SetScissorRectangle(new Rectangle());
         }
 
-        var staging = _staging[slot] ??= Texture.New2D(drawContext.GraphicsDevice, 1, 1, _stage.Output.RenderTargetFormat0, TextureFlags.None, 1, GraphicsResourceUsage.Staging);
+        var staging = _staging[slot] ??= Texture.New2D(drawContext.GraphicsDevice, 1, 1, Stage.Output.RenderTargetFormat0, TextureFlags.None, 1, GraphicsResourceUsage.Staging);
 
         commandList.CopyRegion(target, 0, new ResourceRegion(x, y, 0, x + 1, y + 1, 1), staging, 0);
 
@@ -145,7 +144,7 @@ public sealed class GpuPickingSceneRenderer : SceneCameraRenderer
         var sequence = ++_sequence;
         var id = (int)MathF.Round(pixel.X);
 
-        if (id == 0 || _feature.Find(id) is not { } component)
+        if (id == 0 || Feature.Find(id) is not { } component)
         {
             return new PickResult(sequence, request.Position, null, null, 0, 0, 0, pixel.W, null);
         }

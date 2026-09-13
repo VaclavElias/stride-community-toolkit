@@ -53,8 +53,10 @@ public static class GpuPickerExtensions
 
         meshFeature.RenderStageSelectors.Add(selector);
 
-        var renderer = new GpuPickingSceneRenderer(stage, feature)
+        var renderer = new GpuPickingSceneRenderer
         {
+            Stage = stage,
+            Feature = feature,
             Camera = slot,
             FollowSource = () => game.Input.MousePosition,
         };
