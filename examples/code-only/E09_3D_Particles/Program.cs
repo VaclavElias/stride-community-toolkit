@@ -1,136 +1,181 @@
-using Stride.CommunityToolkit.Bepu;
+using E09_3D_Particles;
+using Example.Common.Galleries;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
+using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Particles;
-using Stride.Particles.Components;
-using Stride.Particles.Initializers;
-using Stride.Particles.Materials;
-using Stride.Particles.Modules;
-using Stride.Particles.ShapeBuilders;
-using Stride.Particles.Spawners;
-using Stride.Rendering.Materials.ComputeColors;
+using Stride.Games;
+using Stride.Input;
+
+// A gallery of the particle system, built entirely from code. Every station is one static method
+// in Stations.*.cs that builds a particle system in its station's own coordinates and knows nothing
+// about where it stands; the ring, the ground, the labels, the index board and the camera flights
+// come from the shared gallery frame in Example.Common. Most stations have a few variations of
+// their own parameter - press V - so "what does this setting do" is a keypress, not a rebuild.
+//
+// The first twenty-three stations are the building blocks one at a time: spawners, shapes,
+// initializers, updaters, materials. The last eight put several together - a campfire, fireworks
+// with child emitters, a tornado, a swarm driven by an updater of our own, lasers, rain that
+// splashes, a portal from an initializer of our own, a rocket engine - because that is what the
+// system is for.
+//
+// Keys: N and P fly to the next and previous station, Home flies home to the index board, Tab
+// shows one station at a time, L widens the labels, V cycles the current station's variation,
+// Space restarts the current station's simulation. "--station 25" starts at a station.
+
+var startStation = args.Length >= 2 && args[0] == "--station" && int.TryParse(args[1], out var number) ? number : 0;
+
+Gallery<ParticleStation>? gallery = null;
+ParticleTextures? textures = null;
+
+WindowsDpiManager.EnablePerMonitorV2();
 
 using var game = new Game();
 
-game.Run(start: Start);
+game.Run(start: Start, update: Update);
 
-void Start(Scene scene)
+void Start(Scene rootScene)
 {
-    SetupBaseScene();
+    game.Window.AllowUserResizing = true;
+    game.Window.Title = "Particle Gallery - Stride Community Toolkit";
 
+    game.SetupBase3D();
+    game.Add3DCameraController();
     game.AddSkybox();
     game.AddProfiler();
-
-    game.SetMaxFPS(60);
-
-    CreateParticleEffect();
-}
-
-void SetupBaseScene()
-{
-    game.AddGraphicsCompositor();
-    game.Add3DCamera().Add3DCameraController();
-    game.AddDirectionalLight();
-    game.AddSkybox();
-    game.Add3DGround();
     game.AddParticleRenderer();
+
+    // The text renderers, appended after the camera renderer, so labels land on top of everything
+    game.AddWorldTextRenderer();
+    game.AddEntityTextRenderer();
+
+    textures = ParticleTextures.Load(game.GraphicsDevice);
+
+    // The frame comes from Example.Common; what a particle station needs on top of it is the textures
+    var loaded = textures;
+
+    gallery = new Gallery<ParticleStation>(game, rootScene, Stations.All, configure: station => station.Textures = loaded);
+    gallery.UpdateLabels();
+
+    if (startStation > 0) gallery.GoTo(startStation - 1, instant: true);
+    else gallery.GoHome(instant: true);
+
+    DebugOverlay.GetOrCreate(game).AddSection("Gallery", BuildOverlayLines);
 }
 
-void CreateParticleEffect()
+void Update(Scene scene, GameTime gameTime)
 {
-    var emitter = new ParticleEmitter
-    {
-        ParticleLifetime = new Vector2(0.5f, 0.5f),
-        SimulationSpace = EmitterSimulationSpace.World,
-        RandomSeedMethod = EmitterRandomSeedMethod.Time,
-        ShapeBuilder = new ShapeBuilderBillboard(),
+    if (gallery is null) return;
 
-        Material = new ParticleMaterialComputeColor()
+    HandleInput(gallery);
+    gallery.Update(gameTime);
+
+    // One station at a time means one simulation at a time: the others pause where they are
+    foreach (var station in gallery.Stations)
+    {
+        if (station.Particles is { } particles)
         {
-            ComputeColor = new ComputeColor()
-            {
-                Value = new Color4(0, 0, 1, 1)
-            }
-        },
-    };
-
-    emitter.Spawners.Add(new SpawnerPerSecond()
-    {
-        LoopCondition = SpawnerLoopCondition.Looping,
-        Delay = new Vector2(),
-        Duration = new Vector2(1, 1),
-        SpawnCount = 50,
-    });
-
-    var sizeInitializer = new InitialSizeSeed()
-    {
-        ScaleUniform = 0.3f,
-        RandomSize = new Vector2(0.1f, 0.5f),
-    };
-
-    var positionInitializer = new InitialPositionSeed()
-    {
-        PositionMin = new Vector3(-0.03f, -0.03f, -0.03f),
-        PositionMax = new Vector3(0.03f, 0.03f, 0.03f),
-    };
-
-    var velocityInitializer = new InitialVelocitySeed()
-    {
-        VelocityMin = new Vector3(0, 3, 0),
-        VelocityMax = new Vector3(3, 4, 3),
-    };
-
-    emitter.Initializers.Add(sizeInitializer);
-    emitter.Initializers.Add(positionInitializer);
-    emitter.Initializers.Add(velocityInitializer);
-
-    emitter.Updaters.Add(new UpdaterGravity() { GravitationalAcceleration = new Vector3(0, -9.8f, 0) });
-
-    var particleSettings = new ParticleSystemSettings
-    {
-        WarmupTime = 0,
-    };
-
-    ParticleSystemComponent particles = new()
-    {
-        Color = Color.White,
-        RenderGroup = Stride.Rendering.RenderGroup.Group0,
-        Speed = 1,
-    };
-    particles.ParticleSystem.Emitters.Add(emitter);
-    particles.ParticleSystem.Settings = particleSettings;
-
-    var entity = new Entity
-    {
-        particles
-    };
-    entity.Name = "Particles";
-    entity.Scene = game.SceneSystem.SceneInstance.RootScene;
+            particles.Enabled = !gallery.Solo || station.IsCurrent;
+        }
+    }
 }
+
+void HandleInput(Gallery<ParticleStation> gallery)
+{
+    if (game.Input.IsKeyPressed(Keys.N)) gallery.GoTo(gallery.Focus + 1);
+    if (game.Input.IsKeyPressed(Keys.P)) gallery.GoTo(gallery.Focus - 1);
+    if (game.Input.IsKeyPressed(Keys.Home)) gallery.GoHome();
+    if (game.Input.IsKeyPressed(Keys.Tab)) gallery.Solo = !gallery.Solo;
+
+    if (game.Input.IsKeyPressed(Keys.L))
+    {
+        gallery.LabelDetail = (gallery.LabelDetail + 1) % 3;
+        gallery.UpdateLabels();
+    }
+
+    var station = gallery.Stations[gallery.Current];
+
+    // A variation is the same setup method with a different branch taken: bump and rebuild
+    if (game.Input.IsKeyPressed(Keys.V) && station.VariationNames.Count > 1)
+    {
+        station.Variation++;
+        Stations.All[gallery.Current].Setup?.Invoke(station);
+    }
+
+    if (game.Input.IsKeyPressed(Keys.Space)) station.Restart();
+}
+
+IReadOnlyList<TextElement> BuildOverlayLines()
+{
+    if (gallery is null) return [];
+
+    var station = gallery.Stations[gallery.Current];
+    var living = gallery.Stations.Sum(s => s.LivingParticles);
+
+    List<TextElement> lines =
+    [
+        new($"{living:N0} particles alive over {gallery.Stations.Count} stations on a ring of radius {gallery.Radius:0}", Color.LightGreen),
+        new("N / P - next and previous station", Color.Gold),
+        new("Home - home", Color.Gold),
+        new("Tab - " + (gallery.Solo ? "one station at a time" : "every station"), Color.Gold),
+        new(gallery.LabelDetail switch { 0 => "L - labels: the number", 1 => "L - labels: the number and the method", _ => "L - labels: everything" }, Color.Gold),
+        new("Space - restart the station", Color.Gold),
+        new(""),
+        new($"Station {station.Number} of {gallery.Stations.Count} - {station.Exhibit.Title}", Color.White),
+        new($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray),
+    ];
+
+    if (station.VariationNames.Count > 1)
+    {
+        lines.Add(new($"V - variation {station.Variation + 1} of {station.VariationNames.Count}: {station.VariationNames[station.Variation]}", Color.Cyan));
+    }
+
+    // What each emitter holds, so a child emitter that never spawns shows as a zero
+    if (station.Particles is { } particles)
+    {
+        var emitters = particles.ParticleSystem.Emitters;
+
+        lines.Add(new(string.Join("   ", emitters.Select((e, i) => $"{(string.IsNullOrEmpty(e.EmitterName) ? $"emitter {i + 1}" : e.EmitterName)}: {e.LivingParticles}")), Color.LightGray));
+
+    }
+
+    return lines;
+}
+
 /*
 ---example-metadata
 slug: particles
 title:
-  en: Particles
+  en: Particle Gallery
+  cs: Galerie částic
 level: Intermediate
 category: Rendering
 complexity: 3
 order: 140
 description:
   en: |-
-    A blue fountain: fifty particles a second launched upward from a small area, pulled back down by
-    gravity, each rendered as a camera-facing billboard. Built entirely from code, so every part of the
-    system is visible - the emitter and its spawn rate, the initializers that randomise starting
-    position and velocity, and the gravity updater that acts on them afterwards.
+    Thirty-one particle systems on a ring of stations, all built from code: the building blocks one at a
+    time - spawners, shapes, initializers, updaters, materials, flipbooks, soft particles - and then
+    the showpieces that put them together: a campfire, fireworks with child emitters, a tornado, a
+    swarm driven by an updater of our own, lasers, rain that splashes, a portal, a rocket engine. Most
+    stations have variations on a key, so what a setting does is a keypress away.
+  cs: |-
+    Třicet částicových systémů na kruhu stanic, vše postavené z kódu: stavební kameny jeden po
+    druhém - spawnery, tvary, inicializátory, updatery, materiály, flipbooky, měkké částice - a pak
+    ukázky, které je skládají dohromady: táborák, ohňostroj s dětskými emitory, tornádo, hejno řízené
+    vlastním updaterem, lasery, déšť, který stříká, portál, raketový motor. Většina stanic má varianty
+    na klávese, takže co které nastavení dělá, je na jedno stisknutí.
 concepts:
-  - Creating a ParticleSystemComponent from code
-  - Setting lifetime, size range and spawn rate on an emitter
-  - Randomising start position and velocity with initializers
-  - Applying gravity with an updater
-  - Rendering particles as billboards
-  - "Using helpers: SetupBase3DScene, Add3DGround"
+  - Building a ParticleSystemComponent from code - emitters, spawners, initializers, updaters, shapes, materials
+  - Textures, flipbooks and scrolling texture coordinates on particles
+  - Curves over a particle's life for size, colour and rotation
+  - Force fields, colliders and spawning by distance
+  - Child emitters spawned on a parent's death, distance or collision
+  - Soft particles against geometry
+  - Writing an updater and an initializer of your own
+  - A ring of stations from the shared gallery frame in Example.Common, with variations per station
 tags:
   - 3D
   - Rendering
@@ -139,9 +184,9 @@ tags:
   - Billboard
   - Effects
 related:
+  - E11_3D_ShapeBatch
+  - E10_3D_ComputeBoids
   - E02_3D_Material
-  - E09_3D_SceneRenderer
-media: stride-game-engine-example-12-particles.webp
 enabled: true
 created: 2024-11-08
 ---
