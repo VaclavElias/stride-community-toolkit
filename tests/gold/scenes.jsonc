@@ -12,5 +12,6 @@
   { "name": "render-texture", "frame": 60 },
   { "name": "shapes-screen", "frame": 60 },
   { "name": "picking", "frame": 60 },
-  { "name": "particles", "frame": 60 }
+  { "name": "particles", "frame": 60 },
+  { "name": "easing", "frame": 60 }
 ]
