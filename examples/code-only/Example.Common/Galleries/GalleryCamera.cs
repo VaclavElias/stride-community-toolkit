@@ -1,4 +1,5 @@
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Mathematics;
 using Stride.Engine;
 using Stride.Input;
 
@@ -76,7 +77,7 @@ public sealed class GalleryCamera(Game game)
         // Smoothstep: the flight starts and ends at a standstill, which is what reads as a camera
         // moving rather than a cut. Slerp takes the short way round, so a flight from the last
         // station to the first turns the near way across the ring.
-        var eased = t * t * (3f - 2f * t);
+        var eased = Easing.SmoothStep(t);
         var camera = game.GetCameraEntity().Transform;
 
         camera.Position = Vector3.Lerp(_from, _to, eased);
