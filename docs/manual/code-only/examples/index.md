@@ -183,6 +183,36 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/easing.webp" class="card-img-top" alt="Screenshot of the Easing Cheat Sheet example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="easing.md">Easing Cheat Sheet</a></h3>
+                <p><span class="badge text-bg-secondary">Mathematics</span></p>
+                <p class="card-text">Every easing curve in the toolkit on one screen: a tile per curve with its graph, a dot riding the graph on a shared clock, and a slider that moves...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/easing-3d-game.webp" class="card-img-top" alt="Screenshot of the Easing in a 3D Game example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="easing-3d-game.md">Easing in a 3D Game</a></h3>
+                <p><span class="badge text-bg-secondary">Mathematics</span></p>
+                <p class="card-text">Easing doing real work in a 3D scene, four ways, each one a Tween: a kinematic platform lifts a stack of physics bodies on a sine curve and comes back...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/easing-2d-game.webp" class="card-img-top" alt="Screenshot of the Easing in a 2D Game example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="easing-2d-game.md">Easing in a 2D Game</a></h3>
+                <p><span class="badge text-bg-secondary">Mathematics</span></p>
+                <p class="card-text">Easing doing real work in a 2D physics scene, each piece a Tween: a kinematic lift carries a stack of boxes up and down on a sine curve, coins pop in...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/world-text.webp" class="card-img-top" alt="Screenshot of the World Text (In-Scene) example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="world-text.md">World Text (In-Scene)</a></h3>
