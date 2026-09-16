@@ -6,6 +6,7 @@ using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
+using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -70,6 +71,10 @@ var catalogue = new ShapeDefinition[]
     new("Box", RectangleVertices(0.35f, 0.35f), 0f),
 };
 var currentShape = 0;
+
+// Per-monitor DPI awareness, so a 150% display gets a sharp window rather than a stretched one;
+// it has to happen before the window exists
+WindowsDpiManager.EnablePerMonitorV2();
 
 using var game = new Game();
 

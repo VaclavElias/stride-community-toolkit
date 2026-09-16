@@ -4,6 +4,7 @@ using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
 using Stride.CommunityToolkit.Skyboxes;
+using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -35,6 +36,10 @@ var depthTested = true;
 var submitted = 0;
 
 var style = new GalleryStyle();
+
+// Per-monitor DPI awareness, so a 150% display gets a sharp window rather than a stretched one;
+// it has to happen before the window exists
+WindowsDpiManager.EnablePerMonitorV2();
 
 using var game = new Game();
 

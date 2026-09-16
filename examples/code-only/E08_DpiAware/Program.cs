@@ -7,11 +7,18 @@ using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
-// This example is using app.manifest to declare the process per-monitor DPI aware, registered in the csproj.
-// Below is the alternative, through code-only approach.
-// Per-monitor DPI awareness has to be enabled before the window exists, otherwise Windows
-// hands us a stretched, blurry window on high-DPI displays.
-//WindowsDpiManager.EnablePerMonitorV2();
+// This example declares the process per-monitor DPI aware in app.manifest, wired in with
+// <ApplicationManifest> in the csproj. Without that declaration Windows stretches the window on a
+// high-DPI display and the image is blurred. The declaration has to happen before the window
+// exists, and a manifest is read before any code runs, so it always does.
+//
+// The other examples make the same declaration from code instead, one line before new Game():
+//
+//     WindowsDpiManager.EnablePerMonitorV2();
+//
+// from Stride.CommunityToolkit.Windows - see E02_2D_EasingBasics or E09_3D_Particles.
+// The call also works in a file-based app, which has no project file to hold a manifest. Use one
+// route, not both: when a manifest exists Windows refuses the call, and the manifest's setting wins.
 
 using var game = new Game();
 
@@ -41,7 +48,8 @@ game.Run(start: (Scene rootScene) =>
     [
         new($"Display scale: {displayScale.Value:0.##}  (detected {displayScale.Detected:0.##})", Color.Yellow),
         new("This text is drawn that much larger than its 16px design", Color.LightGray),
-        new("Without the manifest it would read 1: Windows would be stretching", Color.LightGray),
+        new("Without the manifest it would read 1:", Color.LightGray),
+        new("Windows would be stretching the window", Color.LightGray),
     ]);
 });
 
@@ -68,6 +76,7 @@ concepts:
   - Why a high-DPI display renders a blurred window without a manifest
   - "Declaring per-monitor DPI awareness in app.manifest"
   - "Wiring the manifest in with <ApplicationManifest>"
+  - "The code alternative, WindowsDpiManager.EnablePerMonitorV2(), and why a project uses one route, not both"
   - "Reading the display's scale factor with DisplayScale, and why the overlay follows it by default"
   - Referencing Stride.CommunityToolkit.Windows for Windows-only concerns
   - "Using helpers: SetupBase3DScene, AddSkybox, Create3DPrimitive"

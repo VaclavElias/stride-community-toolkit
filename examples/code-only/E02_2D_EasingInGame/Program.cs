@@ -24,6 +24,8 @@ using Stride.Input;
 // Keys: C pops the next coin in, Space collects every coin on screen, X shakes the camera,
 // L pauses and resumes the lift, R drops the boxes back onto it. Not S: the camera controller
 // owns W A S D.
+//
+// New to Tween? E02_2D_EasingBasics builds the same motion by hand first, then with a tween.
 
 WindowsDpiManager.EnablePerMonitorV2();
 
@@ -335,6 +337,7 @@ tags:
   - Physics
 related:
   - E02_2D_Easing
+  - E02_2D_EasingBasics
   - E02_3D_EasingInGame
   - E20_3D_CubeCollapse
 enabled: true

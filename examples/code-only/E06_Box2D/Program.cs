@@ -2,6 +2,7 @@ using E06_Box2D.Helpers;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Shapes;
+using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
@@ -10,7 +11,9 @@ using Stride.Games;
 // This example demonstrates how to integrate Box2D.NET with Stride game engine
 // for 2D physics simulations with shapes, collisions, and interactive controls
 
-//WindowsDpiManager.EnablePerMonitorV2();
+// Per-monitor DPI awareness, so a 150% display gets a sharp window rather than a stretched one;
+// it has to happen before the window exists
+WindowsDpiManager.EnablePerMonitorV2();
 
 // Global variables for the demo
 Box2DSimulation? simulation = null;

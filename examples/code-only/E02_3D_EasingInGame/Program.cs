@@ -26,6 +26,8 @@ using Stride.Input;
 // Keys: L pauses and resumes the lift, O opens and closes the door, P pops the crystals in again,
 // V flies the camera to the other viewpoint, R drops the bodies back onto the platform. D is not
 // the door: the camera controller owns W A S D.
+//
+// New to Tween? E02_2D_EasingBasics builds the same motion by hand first, then with a tween.
 
 WindowsDpiManager.EnablePerMonitorV2();
 
@@ -320,6 +322,7 @@ tags:
   - Physics
 related:
   - E02_2D_Easing
+  - E02_2D_EasingBasics
   - E02_2D_EasingInGame
   - E02_3D_GiveMeACube
 enabled: true

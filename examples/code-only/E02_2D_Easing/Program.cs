@@ -375,6 +375,7 @@ tags:
   - Animation
   - ShapeBatch
 related:
+  - E02_2D_EasingBasics
   - E11_3D_ShapeBatch
   - E20_3D_CubeCollapse
 enabled: true
