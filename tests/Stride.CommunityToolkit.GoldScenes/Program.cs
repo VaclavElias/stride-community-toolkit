@@ -28,12 +28,13 @@ IGoldScene? scene = name switch
     "picking" => new PickingScene(),
     "particles" => new ParticlesScene(),
     "easing" => new EasingScene(),
+    "easing-basics" => new EasingBasicsScene(),
     _ => null,
 };
 
 if (scene is null)
 {
-    Console.Error.WriteLine("Usage: --scene shapes-2d | shapes-3d | text | debug-shapes | imgui | shapes-textured | render-texture | shapes-screen | picking | particles | easing");
+    Console.Error.WriteLine("Usage: --scene shapes-2d | shapes-3d | text | debug-shapes | imgui | shapes-textured | render-texture | shapes-screen | picking | particles | easing | easing-basics");
     return 2;
 }
 
