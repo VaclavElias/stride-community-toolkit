@@ -340,6 +340,10 @@ Guidance for the Bepu demos specifically:
     `.github/workflows/dotnet-nuget.yml`, take it off `DocPaths.PackagesNotOnNuGet` in the
     generator and regenerate the docs.
 - Examples reference toolkit libraries by `ProjectReference`, not `PackageReference`.
+- **DPI awareness comes from code, not a manifest.** An example calls
+  `WindowsDpiManager.EnablePerMonitorV2();` before `new Game()` and has no `app.manifest`.
+  `E08_DpiAware` is the one example that shows the manifest route instead. Never both: with a
+  manifest present Windows refuses the call and keeps the manifest's setting.
 - **Do not bind example keys that the camera controller already owns.** `Add3DCameraController`
   (included in `SetupBase3DScene`) claims `W A S D`, `Q E`, the arrow keys, `NumPad 2/4/6/8`,
   `LeftShift`/`RightShift`, `H`, `F2` and `F3`; `Add2DCameraController` (in `SetupBase2DScene`)
