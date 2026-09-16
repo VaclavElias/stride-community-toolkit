@@ -342,12 +342,18 @@ Guidance for the Bepu demos specifically:
 - Examples reference toolkit libraries by `ProjectReference`, not `PackageReference`.
 - **Do not bind example keys that the camera controller already owns.** `Add3DCameraController`
   (included in `SetupBase3DScene`) claims `W A S D`, `Q E`, the arrow keys, `NumPad 2/4/6/8`,
-  `LeftShift`/`RightShift`, `H`, `F2` and `F3`. Binding one of those gives a key that appears to work
+  `LeftShift`/`RightShift`, `H`, `F2` and `F3`; `Add2DCameraController` (in `SetupBase2DScene`)
+  claims `W A S D`, the arrow keys, the shifts, `H` and `F2`. Binding one of those gives a key that appears to work
   intermittently while also flying the camera — `S` for "stabilise" is a real example of this. Safe
   single letters include `G J K L M N P R T Z`.
 - **A key binding lives in three places**: the `IsKeyPressed` call, the on-screen label, and any
   header comment describing the controls. Rename one and the others silently drift, leaving
   documentation that names a key doing nothing. Grep for the old letter after changing a binding.
+- **The on-screen help reads top down.** In an example's `DebugOverlay` section the key lines come
+  first, one key per line (`"N - next station"`, never three keys joined on one line), then a blank
+  line, then the status and explanation lines. Keep every line to about fifty characters and split
+  a longer sentence over two lines. A reader scans the block vertically for the key they want; a
+  long horizontal line hides it.
 
 ## Running & debugging examples (AI assistants)
 
