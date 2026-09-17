@@ -201,24 +201,10 @@ cockpit mirror, hazard stripes that move, a noise texture behind a shield ring.
 ## A second camera in a panel
 
 The textured fill's best customer is a picture that changes every frame: another camera's view.
-A rear-view mirror, a security monitor, a picture-in-picture map. The engine has every piece and
-the shape gallery's last station shows them together, in code, with no compositor asset:
-
-1. A texture that is both a render target and a shader resource, in **HDR** -
-   `PixelFormat.R16G16B16A16_Float`. The scene is lit in HDR and the mirror's renderer has no tone
-   map, so an 8-bit texture saturates to white; the main view tone-maps the panel along with the
-   rest of the frame, which is what makes the picture come out right.
-2. A camera in a slot of its own: `compositor.Cameras.Add(new SceneCameraSlot())`, and a
-   `CameraComponent` whose `Slot` is that slot's id, with `UseCustomAspectRatio` set to match the
-   texture. Slot zero is the game's camera, and two cameras on one slot is a known trap.
-3. A `SceneCameraRenderer` for that slot whose child is a `RenderTextureSceneRenderer` for the
-   texture, whose child is a `ForwardRenderer` over the compositor's existing `Opaque` and
-   `Transparent` stages. A **second** forward renderer, not the compositor's own `SingleView`:
-   that one is reference-counted by the compositor and putting it in two places throws at
-   shutdown. Sharing the stages is what makes the mirror show the same meshes and shapes. Append
-   it to the compositor's `Game` collection; the panel then shows the previous frame, one frame
-   of lag nobody can see.
-4. A batch with `FillWith(texture)` and a rectangle drawn through it.
+A rear-view mirror, a security monitor, a picture-in-picture map. `game.AddRenderTextureCamera`
+gives back the texture, and the shape gallery's last station is that call plus a batch with
+`FillWith(feed.Texture)` and a rectangle drawn through it. What the call builds, and the two
+things about it that are not obvious, are on the [render to texture](render-to-texture.md) page.
 
 Every station's shapes appear in the mirror, because a batch is drawn once per view and emptied
 only after the last one - the design decision from the render-feature hygiene pass, now doing the
@@ -228,6 +214,46 @@ One trap that is nothing to do with rendering, kept here because it cost an even
 is per-draw state like every other, so a method that turns it off to draw plain brackets over
 the picture has turned it off for every draw that follows, in every later frame, until something
 turns it back on. A blank panel with a perfectly good texture behind it is that.
+
+## On the screen, from the same batch
+
+A 3D game wants a crosshair, a health arc in a corner, a compass strip, a target box - shapes
+that live on the screen, not in the world. Until now the answer was a second, orthographic camera
+and world units that happened to look like pixels, which works when the whole game is 2D and falls
+apart the moment the game is 3D. Now the batch has a switch:
+
+```csharp
+shapes.DrawDisc(new Vector3(0f, 0.02f, 1.5f), Vector3.UnitY, 3f, Color.OrangeRed); // in the world
+
+shapes.Screen = true;                                                    // and now in pixels
+var centre = shapes.ScreenSize * 0.5f;
+shapes.DrawRing(new Vector3(centre, 0f), Vector3.UnitZ, 22f, Color.White);
+shapes.DrawArc(shapes.Corner(ScreenCorner.BottomLeft) + new Vector2(100f, -90f), 50f, -MathF.PI * 0.5f, MathF.Tau * health, Color.LimeGreen, width: 14f);
+shapes.Screen = false;
+```
+
+`Screen` is per-draw state like every other, captured as each call is made, so a HUD and the
+world it sits over come from one batch in submission order - no second camera, no second batch,
+no sort question. Coordinates are pixels from the top left with Y down, like a sprite, so a
+positive angle turns clockwise on screen and the gauge above starts at twelve o'clock. `Corner()`
+places a widget as a corner plus an offset rather than by a hardcoded resolution, and
+`ScreenSize` is the window in the same units.
+
+Those units are the display's *scaled* pixels when `AutoScale` is on, which is the default: a
+layout is the same size to the eye on a 4K laptop and a 1080p monitor, and a pixel-measured width,
+dash or glow means exactly what it means in the world. The shader treats a screen shape as one
+whose world-to-pixel scale is 1, so every feature - the outline band, the anti-aliasing ramp, the
+dash fit, the glow, the textured fill - runs unchanged.
+
+A `Viewport` rectangle offsets everything drawn while it is set, and sizes `Corner()` to it, so a
+chart or a panel draws in its own coordinates and lands where the rectangle is; nothing is clipped
+to it. A screen shape is written at the near plane, so the depth test keeps it over any geometry
+even in a depth-tested batch. The `Screen` switch on the batch and the `Screen` plane mode are
+different things: the mode is a billboard in the world, the switch is a sprite on the glass.
+
+The screen HUD station in the shape gallery draws only while you stand at it, because a HUD is
+on the screen, not on the ring. Gold scene `shapes-screen` pins the pixel mapping, the Y-down
+convention, the viewport offset and the near-plane depth over a depth-tested world disc.
 
 ## Where it came from, and where it went
 
@@ -250,6 +276,8 @@ transform, so a thing can be a shape without a model, and it appears in Game Stu
 It needs no `AddShapeBatch` call: where a game made one, the component draws through it and inherits
 its state; otherwise the processor registers a depth-tested batch of its own, which is also what
 draws the shape in the scene editor, where the processor runs and nothing else does.
+
+Writing a shader of your own for a package - where it goes, what the engine already gives you, the dither and the timing scope - is on the contributing page [Shaders in a toolkit package](../../contributing/toolkit/shaders.md).
 
 ## Two scars worth knowing about
 
@@ -289,6 +317,8 @@ Honest limits, so you reach for the right tool:
 - **Flat, except for strokes.** A space stroke is the one shape drawn through 3D points. A
   sphere outline is still a billboard disc; a wireframe of an arbitrary mesh needs a
   different shader (barycentric, `fwidth()`-based) that does not exist yet.
+- **Screen shapes are not clipped.** A `Viewport` rectangle places and sizes; a shape that
+  overhangs it is drawn whole. Space strokes are never screen shapes.
 - **No text.** Pair with World Text, or render text to a texture and fill a shape with it.
 - **One fill source per batch.** A composition is resolved when the effect is built, so a batch
   with two pictures is two batches, or one atlas and a node that selects from it.
@@ -329,6 +359,7 @@ The SignalR example's in-scene console (`E13_SignalR/Station/`) uses every idea 
 | `Labels` | World text entities placed with the board's rotation | Text pairs with shapes, it is not one of them |
 | `DeckEffects` rings | `DrawRing` with `Opacity` fading and radius growing | Opacity multiplies the final alpha |
 | Starfield | 400 `DrawBillboardCircle`s at 380 m in the same batch | `Screen` plane; thousands of shapes, one draw |
+| Screen HUD (shape gallery) | Crosshair, gauge, panel, viewport bar - `Screen = true` in the same batch | Pixels from the top left; `Corner()`; `Viewport` |
 
 Everything above is a few hundred lines of ordinary C# calling a handful of draw methods, which is
 the actual answer to "why wasn't it always done this way": it could have been. The technique is
