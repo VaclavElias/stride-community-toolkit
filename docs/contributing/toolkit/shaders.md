@@ -4,7 +4,7 @@ What to know before writing an `.sdsl` or `.sdfx` file for the toolkit: where it
 build does with it, what the engine already gives you, and the three habits that keep a shader
 honest on every display and in every golden image. The compiler facts - the SPIR-V toolchain,
 reserved words, where the generated HLSL lands - are in the
-[repository instructions](../../../.github/copilot-instructions.md#shaders-sdsl); this page is
+[repository instructions](https://github.com/stride3d/stride-community-toolkit/blob/main/.github/copilot-instructions.md#shaders-sdsl); this page is
 the recipe.
 
 ## Where a shader lives
