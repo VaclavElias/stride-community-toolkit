@@ -42,7 +42,9 @@ A section can collapse to a single title line and expand again on a key:
 overlay.AddCollapsibleSection("Physics", "Physics", Keys.F5, () => [ ... ], collapsed: true);
 ```
 
-That is how `F2 - Camera controls [+]` works. `AddSection` returns the `DebugOverlaySection`, so a
+That is how `[+] [F2] Camera controls` works: the marker first so every dropdown lines up, the key in brackets, and the body indented one marker so its own `[Key]` lines sit under the title's key. `AddSection` returns the `DebugOverlaySection`, so a
+
+`BlockBounds` is the rectangle the block was last drawn in, in screen pixels. A scene laid out in world units can read it to keep something clear of the help - the easing sheet places its big panel under the block each frame, as tall as the space left, instead of guessing how many pixels twelve lines are on a scaled display.
 section can be disabled, collapsed or removed later.
 
 > [!TIP]
@@ -180,4 +182,4 @@ unscaled pixels overrides the calculation entirely.
 | `WindowsDpiManager.EnablePerMonitorV2()` | `Program.cs`, before `new Game()` | a sharp window; the overlay's size then follows `DisplayScale` on its own |
 | `overlay.BackgroundColor = new Color(0, 0, 0, 200)` | `Program.cs`, 2D branch | readable on a white scene |
 | `overlay.AddSection("Chart", () => [...])` | `Program.cs` | a live line: `Press G to toggle the grid (on)` |
-| `Add3DCameraController()` | via `SetupBase3DScene` | the collapsible `F2 - Camera controls` section, order `-100` |
+| `Add3DCameraController()` | via `SetupBase3DScene` | the collapsible `[+] [F2] Camera controls` section, order `-100` |
