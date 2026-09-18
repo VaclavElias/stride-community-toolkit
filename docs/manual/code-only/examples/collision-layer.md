@@ -8,7 +8,7 @@ This example demonstrates how to implement and control collision detection betwe
 
 The example creates a scene with two player cubes (green and purple) that can interact with each other and the ground, plus a red enemy cube that passes through players while still colliding with the ground. This pattern is useful for implementing gameplay mechanics like ghost modes, team-based collision, or phasing through specific obstacles.
 
-![Stride UI Example](media/stride-game-engine-example16-collision-layer.webp)
+![Stride UI Example](media/collision-layer.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_CollisionLayer).
 

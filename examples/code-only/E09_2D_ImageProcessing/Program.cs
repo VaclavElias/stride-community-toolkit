@@ -136,7 +136,6 @@ tags:
 related:
   - E02_3D_Material
   - E09_3D_SceneRenderer
-media: stride-game-engine-example-06-image-processing.webp
 enabled: true
 created: 2023-12-21
 ---

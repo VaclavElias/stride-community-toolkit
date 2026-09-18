@@ -65,7 +65,6 @@ tags:
 related:
   - E04_ImGuiNet
   - E04_StrideUI_BasicWindow
-media: stride-game-engine-example-11-imgui-ui.webp
 enabled: true
 created: 2024-10-26
 ---

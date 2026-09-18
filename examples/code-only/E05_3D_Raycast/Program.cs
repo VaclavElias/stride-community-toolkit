@@ -227,7 +227,6 @@ tags:
 related:
   - E05_3D_CollisionGroup
   - E02_3D_GiveMeACube_SimulationUpdate
-media: stride-game-engine-example-14-raycast.webp
 enabled: true
 created: 2025-01-26
 ---

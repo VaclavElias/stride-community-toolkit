@@ -157,7 +157,6 @@ related:
   - E01_3D_BasicScene
   - E02_3D_SyncScript
   - E04_ImGuiNet
-media: stride-game-engine-example02-give-me-cube.webp
 tocName: Give me a cube
 enabled: true
 created: 2023-09-11

@@ -110,7 +110,6 @@ related:
   - E09_3D_RootRendererShader
   - E09_3D_SceneRenderer
   - E01_3D_BasicScene
-media: stride-game-engine-example-13-mesh-outline.webp
 tocName: Mesh Outline
 enabled: true
 created: 2025-08-07

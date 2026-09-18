@@ -8,7 +8,7 @@ This example demonstrates how to create and configure various materials. The sam
 
 The example also includes an interactive environment where users can adjust the skybox light intensity using keyboard controls (Z to decrease, X to increase), allowing real-time observation of how lighting affects the appearance of different materials.
 
-![Stride UI Example](media/stride-game-engine-example-01-material.webp)
+![Stride UI Example](media/material.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_3D_Material).
 

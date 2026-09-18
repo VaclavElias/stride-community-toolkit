@@ -21,7 +21,7 @@ The example also includes physics interactions, applying an impulse to make the 
 
 Both techniques utilize SpriteBatch for efficient 2D rendering within a 3D scene context, showing how to properly initialize resources, convert between coordinate systems, and integrate with Stride's render stages.
 
-![Stride UI Example](media/stride-game-engine-example09-renderer.webp)
+![Stride UI Example](media/renderer.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_SceneRenderer).
 

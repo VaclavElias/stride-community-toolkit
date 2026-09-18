@@ -88,7 +88,6 @@ tags:
 related:
   - E09_3D_MeshOutline
   - E09_3D_SceneRenderer
-media: stride-game-engine-example-13-root-renderer-shader.webp
 enabled: true
 created: 2024-12-08
 ---

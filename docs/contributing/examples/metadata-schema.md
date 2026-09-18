@@ -37,7 +37,7 @@ related:                           # Project names; the generator resolves them 
 
 # --- docs generation ------------------------------------------------------
 docs: true
-media: stride-game-engine-example-13-mesh-outline.webp   # Optional. Defaults to <slug>.webp
+media: mesh-outline-annotated.webp   # Optional. Defaults to <slug>.webp; override only when the file cannot use the slug
 tocName: Mesh Outline              # Optional. Falls back to title.en
 screenshot: true
 screenshotFrame: 240

@@ -64,6 +64,8 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 
 ### 📄 Docs
 
+- `Stride.CommunityToolkit.Effects` is in the DocFX metadata list, so the picking and post-processing API pages exist and the `AddGpuPicker` cross reference in the extensions overview resolves.
+- Example screenshots are named after the example slug: the `media:` override left every metadata block but the Myra example, whose file still carries the old name, twenty `stride-game-engine-*` files went, and the hand-owned example pages point at the slug-named files.
 - **Glossary** (`manual/glossary.md`): about 140 terms the manual, examples and release notes use - engine building blocks, content, rendering, shaders, particles, physics, maths, input and tooling - each a sentence or two with a link to the toolkit page or the Stride manual page that says more, grouped by topic the way the Stride glossary is.
 - New contributing page [Shaders in a toolkit package](../contributing/toolkit/shaders.md): where a shader lives and why core has none, the `Effects/` folder and the build reference, internal shaders and generated keys, the engine's function libraries, the colour-space rule, the ordered dither and the timing scope as snippets, effect files and the generated mixins class, the render-feature phase model, and how a shader change is proven.
 - The examples index, the level pages and each affected example page say which examples run only from a clone of the repository, because a package they reference is not on NuGet yet. The metadata generator reads the packages from each example's project file; the list of unpublished packages lives in one place beside the publish workflow.

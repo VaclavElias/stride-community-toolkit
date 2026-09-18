@@ -498,7 +498,6 @@ related:
   - E05_3D_Constraints_Simple
   - E05_3D_Constraints_Motors
   - E05_3D_Constraints_Rope
-media: stride-game-engine-example-15-constraints.webp
 tocName: Various Constraints
 enabled: true
 created: 2025-02-02

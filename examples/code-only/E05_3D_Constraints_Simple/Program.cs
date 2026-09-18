@@ -90,7 +90,6 @@ related:
   - E05_3D_Constraints
   - E05_3D_Constraints_Motors
   - E05_3D_Constraints_Rope
-media: stride-game-engine-example-15-simple-constraint.webp
 enabled: true
 created: 2025-03-09
 ---

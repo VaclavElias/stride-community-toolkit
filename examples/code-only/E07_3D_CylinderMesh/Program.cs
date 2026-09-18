@@ -210,7 +210,6 @@ tags:
 related:
   - E07_3D_PartialTorus
   - E07_3D_ProceduralGeometry
-media: stride-game-engine-example-05-cylinder-mesh.webp
 enabled: true
 created: 2025-03-15
 ---

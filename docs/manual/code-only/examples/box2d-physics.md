@@ -15,7 +15,7 @@ This example shows how to:
 > This example references `Stride.CommunityToolkit.Box2D`, which is not on NuGet yet. Run it from a clone of the
 > repository, where the package is a project reference; a copy of the project on its own will not build.
 
-![Box2D Physics Example](media/stride-game-engine-example-18-box2d.webp)
+![Box2D Physics Example](media/box2d-physics.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E06_Box2D).
 

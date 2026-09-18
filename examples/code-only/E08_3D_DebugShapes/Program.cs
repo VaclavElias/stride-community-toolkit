@@ -69,7 +69,6 @@ tags:
 related:
   - E08_3D_DebugShapes_QuickStart
   - E08_3D_CollidableGizmo
-media: stride-game-engine-example08-debug-shapes.webp
 enabled: true
 created: 2024-01-08
 ---

@@ -12,7 +12,7 @@ This example demonstrates how to create a simple 3D scene with a custom mesh lin
   
 The line is attached as a child to one of the spheres, creating a visual connection between the two objects. This approach illustrates how to create basic geometric primitives and custom line visualizations in a Stride 3D environment using low-level graphics APIs.
 
-![Stride UI Example](media/stride-game-engine-example-01-mesh-line.webp)
+![Stride UI Example](media/mesh-line.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E07_3D_MeshLine).
 

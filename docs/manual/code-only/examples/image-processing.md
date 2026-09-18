@@ -1,6 +1,6 @@
 # Image processing
 
-![Stride UI Example](media/stride-game-engine-example-06-image-processing.webp)
+![Stride UI Example](media/image-processing.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_2D_ImageProcessing).
 

@@ -134,7 +134,6 @@ related:
   - E03_3D_EntityText
   - E09_3D_RootRendererShader
   - E07_3D_MeshLine
-media: stride-game-engine-example09-renderer.webp
 enabled: true
 created: 2024-09-24
 ---

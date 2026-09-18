@@ -202,7 +202,6 @@ tags:
 related:
   - E01_3D_BasicScene
   - E07_3D_ProceduralGeometry
-media: stride-game-engine-example-01-material.webp
 enabled: true
 created: 2025-03-09
 ---

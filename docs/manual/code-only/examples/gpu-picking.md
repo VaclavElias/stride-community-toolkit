@@ -20,6 +20,8 @@ The `Program.cs` file shows how to:
 - Picking an instanced model and highlighting the one instance under the pointer
 - Where physics raycasts still win, and where they cannot see at all
 
+![GPU Picking](media/gpu-picking.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_GpuPicking).
 
 [!code-csharp[](../../../../examples/code-only/E09_3D_GpuPicking/Program.cs?start=1&end=253)]
