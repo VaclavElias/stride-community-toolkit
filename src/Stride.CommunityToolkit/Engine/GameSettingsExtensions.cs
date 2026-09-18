@@ -217,16 +217,15 @@ public static class GameSettingsExtensions
         if (game.GraphicsDeviceManager is not GraphicsDeviceManager deviceManager)
             return;
 
+        // The engine applies an asset's rendering settings only with AutoLoadDefaultSettings on; these
+        // were written by the caller, so they go on regardless. SetWindowSize turns the flag off to
+        // keep PrepareContext from resetting the sizes, and relies on this for the profile and colour
+        // space the flag would otherwise have supplied.
         if (rendering.DefaultGraphicsProfile > 0)
         {
             deviceManager.ShaderProfile ??= rendering.DefaultGraphicsProfile;
-
-            if (game.AutoLoadDefaultSettings)
-                deviceManager.PreferredGraphicsProfile = [rendering.DefaultGraphicsProfile];
+            deviceManager.PreferredGraphicsProfile = [rendering.DefaultGraphicsProfile];
         }
-
-        if (!game.AutoLoadDefaultSettings)
-            return;
 
         if (rendering.DefaultBackBufferWidth > 0) deviceManager.PreferredBackBufferWidth = rendering.DefaultBackBufferWidth;
         if (rendering.DefaultBackBufferHeight > 0) deviceManager.PreferredBackBufferHeight = rendering.DefaultBackBufferHeight;

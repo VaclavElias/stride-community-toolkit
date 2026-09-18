@@ -310,19 +310,20 @@ public static partial class GameExtensions
     /// window still opens at this many physical pixels: the size is the back buffer's, not the desktop's.
     /// </para>
     /// <para>
-    /// Two things have to agree for a window to open larger than the default, and this sets both.
     /// The engine creates the window at the device manager's preferred back-buffer size, which its
-    /// <c>PrepareContext</c> has just reset to the default - so neither a <see cref="GameContext"/>
-    /// with a requested size nor <c>PreferredBackBufferWidth</c> set before <c>Run</c> survives. The
-    /// window is resized at <see cref="GameBase.WindowCreated"/> instead: it exists, it is not shown
-    /// yet, and the device is created after it, clamped to the window's client size. The back buffer
-    /// itself comes from <c>RenderingSettings.DefaultBackBufferWidth</c> and <c>Height</c>, applied
-    /// through <see cref="GameSettingsExtensions.UseGameSettings"/> so they are put back after that
-    /// reset; on their own they can shrink a window but never grow it, which is what the settings
-    /// route gives a Game Studio project. An example that already mirrors a project's settings can
-    /// keep doing that for everything else; this is the one line for the window. Calling
-    /// <c>game.Window.SetSize</c> from a startup script, as the Stride manual shows, also works, one
-    /// frame at the default size first.
+    /// <c>PrepareContext</c> resets to the default just before - with <see cref="Game.AutoLoadDefaultSettings"/>
+    /// on, which it is by default. So neither a <see cref="GameContext"/> with a requested size nor
+    /// <c>PreferredBackBufferWidth</c> set before <c>Run</c> survives, and <c>RenderingSettings</c> put
+    /// back afterwards are clamped to the window already made: that route can shrink a window but never
+    /// grow it. Resizing the window later - at <see cref="GameBase.WindowCreated"/>, or from a startup
+    /// script with <c>game.Window.SetSize</c> as the Stride manual shows - works, but the window has
+    /// been resized after its handle was made and shows the old outline for its first few milliseconds.
+    /// This turns <see cref="Game.AutoLoadDefaultSettings"/> off instead, so the size set through
+    /// <see cref="GameSettingsExtensions.UseGameSettings"/> stands and the window is created at it.
+    /// What the flag would otherwise have supplied from the same defaults - the graphics profile and
+    /// the colour space - <c>UseGameSettings</c> applies too, so nothing else changes. An example that
+    /// already mirrors a Game Studio project's settings can keep doing that for everything else; this
+    /// is the one line for the window.
     /// </para>
     /// </remarks>
     /// <param name="game">The game whose window to size.</param>
@@ -335,7 +336,11 @@ public static partial class GameExtensions
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
 
-        // The back buffer, put back after PrepareContext resets the device manager to the default
+        // Off, PrepareContext leaves the device manager alone, the window is created at this size and
+        // the engine's clamp to the window (which could only shrink) is skipped. UseGameSettings applies
+        // the profile and colour space the flag would have set, from the same defaults.
+        game.AutoLoadDefaultSettings = false;
+
         game.UseGameSettings(settings =>
         {
             var rendering = settings.GetOrCreateConfiguration<RenderingSettings>();
@@ -343,15 +348,6 @@ public static partial class GameExtensions
             rendering.DefaultBackBufferWidth = width;
             rendering.DefaultBackBufferHeight = height;
         });
-
-        // The window, once it exists and before it is shown or the device is created against it
-        game.WindowCreated += Resize;
-
-        void Resize(object? sender, EventArgs e)
-        {
-            game.WindowCreated -= Resize;
-            game.Window.SetSize(new Int2(width, height));
-        }
     }
 
     /// <summary>
