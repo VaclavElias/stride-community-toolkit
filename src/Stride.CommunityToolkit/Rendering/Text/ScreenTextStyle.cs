@@ -50,6 +50,9 @@ internal readonly record struct ScreenTextStyle
     /// <summary>How far the shadow sits from the text, in pixels.</summary>
     internal Vector2 ShadowOffset { get; init; }
 
+    /// <summary>How far the text is drawn from its position, in pixels, leaving the background where it is. Lets a caller centre glyphs in a strip sized from the line height, where a font's line gap otherwise sits above them.</summary>
+    internal Vector2 TextOffset { get; init; }
+
     /// <summary>Whether to fill a rectangle behind the text.</summary>
     internal bool EnableBackground { get; init; }
 

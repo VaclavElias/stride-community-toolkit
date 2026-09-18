@@ -29,7 +29,7 @@ namespace Stride.CommunityToolkit.Scripts.Utilities;
 /// overlay.AddSection("Stress pile", () =>
 /// [
 ///     new($"{bodies.Count:N0} bodies", Color.LightGreen),
-///     new("SPACE - spawn more", Color.Yellow),
+///     new("[Space] Spawn more", Color.Yellow),
 /// ]);
 /// </code>
 /// </example>
@@ -43,6 +43,10 @@ public sealed class DebugOverlay : GameSystemBase
     private InputManager? _input;
     private IGraphicsDeviceService? _graphicsDeviceService;
     private DisplayScale? _displayScale;
+
+    // The widest the block has been since its line count last changed, in unscaled pixels
+    private float _stickyWidth;
+    private int _stickyLineCount;
 
     /// <summary>
     /// Gets or sets a font to draw with, overriding <see cref="FontName"/>. <see langword="null"/>, the default, uses the system font named by <see cref="FontName"/>.
@@ -163,6 +167,11 @@ public sealed class DebugOverlay : GameSystemBase
     public float LineSpacing { get; set; } = 2f;
 
     /// <summary>
+    /// Gets or sets how far the text is shifted inside its background strip, in screen pixels, positive downwards. Defaults to <c>-1</c>: a font's line gap sits above its ascender, so glyphs land about a pixel low in a strip sized from the line height, and one pixel up centres them. Not multiplied by the scale: the imbalance stays close to one pixel at the sizes the overlay is drawn at.
+    /// </summary>
+    public float TextNudge { get; set; } = -1f;
+
+    /// <summary>
     /// Gets or sets the assumed width of one character, in pixels, used to right-align the overlay.
     /// </summary>
     [Obsolete("Text is measured with the font since the overlay draws with a SpriteFont; this value is no longer used.")]
@@ -180,6 +189,14 @@ public sealed class DebugOverlay : GameSystemBase
 
     /// <summary>Gets or sets the colour used for section title lines.</summary>
     public Color? TitleColor { get; set; }
+
+    /// <summary>
+    /// Gets the rectangle the block was last drawn in, in screen pixels, background strips included. Empty until the first draw, and one frame behind whatever the sections say now.
+    /// </summary>
+    /// <remarks>
+    /// For laying a scene out around the overlay: the overlay is pixels and a scene is world units, so a panel that must sit under the help block asks for this rather than guessing how tall twelve lines are on this display.
+    /// </remarks>
+    public RectangleF BlockBounds { get; private set; }
 
     /// <summary>Gets the sections currently registered, in insertion order.</summary>
     public IReadOnlyList<DebugOverlaySection> Sections => _sections;
@@ -330,7 +347,7 @@ public sealed class DebugOverlay : GameSystemBase
 
         if (graphicsContext is null || backBuffer is null || content is null) return;
 
-        var lines = CollectLines();
+        var lines = CollectLines(out var indented);
 
         if (lines.Count == 0) return;
 
@@ -351,15 +368,34 @@ public sealed class DebugOverlay : GameSystemBase
         var sizes = new Vector2[lines.Count];
         var blockWidth = 0f;
 
+        // Lines under a collapsible title start one marker in, so their keys sit under the title's key
+        var indentWidth = MathF.Ceiling(font.MeasureString(CollapsedMarker + " ", fontSize).X);
+
         for (var i = 0; i < lines.Count; i++)
         {
             if (lines[i].Text.Length == 0) continue;
 
-            sizes[i] = font.MeasureString(lines[i].Text, fontSize);
-            blockWidth = Math.Max(blockWidth, sizes[i].X);
+            // Whole pixels: a strip 18.7 pixels tall would end on a half pixel, and which row that half
+            // pixel fills depends on where the block is anchored, so the gap under the text would
+            // differ by a pixel between a top and a bottom corner
+            var measured = font.MeasureString(lines[i].Text, fontSize);
+
+            sizes[i] = new Vector2(MathF.Ceiling(measured.X), MathF.Ceiling(measured.Y));
+            blockWidth = Math.Max(blockWidth, sizes[i].X + (indented[i] ? indentWidth : 0f));
         }
 
-        var padding = BackgroundPadding * scale;
+        // A live value gaining or losing a digit would otherwise move a right-anchored block every frame
+        // the camera flies. The block only grows, and forgets its width when a section opens or closes.
+        if (lines.Count != _stickyLineCount)
+        {
+            _stickyLineCount = lines.Count;
+            _stickyWidth = 0f;
+        }
+
+        _stickyWidth = Math.Max(_stickyWidth, blockWidth / scale);
+        blockWidth = _stickyWidth * scale;
+
+        var padding = new Vector2(MathF.Round(BackgroundPadding.X * scale), MathF.Round(BackgroundPadding.Y * scale));
 
         // Line pitch in screen pixels: fixed if asked for, otherwise what the font and strips need
         var textHeight = 0f;
@@ -367,11 +403,13 @@ public sealed class DebugOverlay : GameSystemBase
         for (var i = 0; i < lines.Count; i++)
             textHeight = Math.Max(textHeight, sizes[i].Y);
 
-        var linePitch = LineHeight is { } fixedHeight
+        var linePitch = MathF.Ceiling(LineHeight is { } fixedHeight
             ? fixedHeight * scale
-            : textHeight + padding.Y * 2f + LineSpacing * scale;
+            : textHeight + padding.Y * 2f + LineSpacing * scale);
 
         var origin = GetOrigin(lines.Count * linePitch / scale, blockWidth / scale);
+
+        BlockBounds = new RectangleF(origin.X * scale - padding.X, origin.Y * scale - padding.Y, blockWidth + padding.X * 2f, lines.Count * linePitch);
         var backgroundColor = BackgroundColor.ToColor4();
         var drawBackground = BackgroundColor.A > 0;
 
@@ -383,7 +421,9 @@ public sealed class DebugOverlay : GameSystemBase
             samplerState: null,
             depthStencilState: DepthStencilStates.None);
 
-        var y = origin.Y * scale;
+        // The origin is in unscaled pixels; at a 150% display scale it would land between two rows
+        var y = MathF.Round(origin.Y * scale);
+        var left = MathF.Round(origin.X * scale);
 
         for (var i = 0; i < lines.Count; i++)
         {
@@ -403,9 +443,12 @@ public sealed class DebugOverlay : GameSystemBase
                     EnableBackground = drawBackground,
                     BackgroundColor = backgroundColor,
                     Padding = padding,
+                    TextOffset = new Vector2(0f, MathF.Round(TextNudge)),
                 };
 
-                ScreenTextDrawer.Draw(_spriteBatch, _background, line.Text, new Vector2(origin.X * scale, y), sizes[i], style);
+                var x = left + (indented[i] ? indentWidth : 0f);
+
+                ScreenTextDrawer.Draw(_spriteBatch, _background, line.Text, new Vector2(x, y), sizes[i], style);
             }
 
             y += linePitch;
@@ -437,9 +480,11 @@ public sealed class DebugOverlay : GameSystemBase
         }
     }
 
-    private List<TextElement> CollectLines()
+    /// <summary>The lines to draw, top down, with a flag per line saying whether it sits under a collapsible title and is indented past its marker.</summary>
+    private List<TextElement> CollectLines(out List<bool> indented)
     {
         var lines = new List<TextElement>();
+        indented = [];
 
         foreach (var section in _sections.OrderBy(section => section.Order))
         {
@@ -453,20 +498,30 @@ public sealed class DebugOverlay : GameSystemBase
 
             if (sectionLines.Count == 0 && !collapsible) continue;
 
-            if (lines.Count > 0) lines.Add(new(string.Empty));
+            if (lines.Count > 0)
+            {
+                lines.Add(new(string.Empty));
+                indented.Add(false);
+            }
 
             if (collapsible)
             {
                 var marker = section.Collapsed ? CollapsedMarker : ExpandedMarker;
 
-                lines.Add(new($"{KeyNames.Describe(section.ToggleKey!.Value)} - {section.Title} {marker}", TitleColor));
+                // "[+] [F2] Camera controls": the marker first, so every dropdown lines up, then the key in
+                // the same brackets the section's own key lines use
+                lines.Add(new($"{marker} [{KeyNames.Describe(section.ToggleKey!.Value)}] {section.Title}", TitleColor));
+                indented.Add(false);
             }
             else if (!string.IsNullOrEmpty(section.Title))
             {
                 lines.Add(new(section.Title, TitleColor));
+                indented.Add(false);
             }
 
+            // Under a "[+] [F2]" title the body starts where the key does, one marker in
             lines.AddRange(sectionLines);
+            indented.AddRange(Enumerable.Repeat(collapsible, sectionLines.Count));
         }
 
         return lines;

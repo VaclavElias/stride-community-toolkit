@@ -221,12 +221,12 @@ public class DebugTextDropdown
         {
             var selection = Selected is null ? string.Empty : $": {Selected.Text}";
 
-            return [new($"{key} - {Title}{selection} {CollapsedMarker}", TitleColor)];
+            return [new($"{CollapsedMarker} [{key}] {Title}{selection}", TitleColor)];
         }
 
         var lines = new List<TextElement>(Items.Count + 1)
         {
-            new($"{key} - {Title} {ExpandedMarker}", TitleColor)
+            new($"{ExpandedMarker} [{key}] {Title}", TitleColor)
         };
 
         for (var i = 0; i < Items.Count; i++)
@@ -234,7 +234,8 @@ public class DebugTextDropdown
             var item = Items[i];
             var colour = i == SelectedIndex ? SelectedColor ?? item.Color : item.Color;
 
-            lines.Add(new($"  {KeyNames.Describe(item.Key)} - {item.Text}", colour));
+            // Four spaces: the width of "[+] " in the monospace font the overlay draws with by default
+            lines.Add(new($"    [{KeyNames.Describe(item.Key)}] {item.Text}", colour));
         }
 
         return lines;
