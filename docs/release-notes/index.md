@@ -85,6 +85,7 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 
 ### 🔧 Engineering
 
+- Known issue on Stride 4.4.0-beta7: `DebugRenderComponentScript` (the Bepu debug wireframe) throws on its first frame because the engine's `SinglePassWireframeShader` fails to compile under the new SPIR-V shader pipeline. `E02_3D_Primitives`, `E08_2D_DebugRender` and `E08_3D_DebugRenderComponent` are affected; the fix is in the engine shader and has been reported upstream.
 - DPI awareness has one route per example: nine examples dropped their `app.manifest` and call `WindowsDpiManager.EnablePerMonitorV2()` instead. Six had both, which was worse than redundant: a manifest present makes Windows refuse the call, and theirs asked only for plain per-monitor awareness, so those examples ran without Per-Monitor V2. `E08_DpiAware` stays the one manifest example, now declaring `PerMonitorV2` with a fallback, and its comment shows the code alternative.
 - `EasingTests`: every curve is held to the same contract - ends at 0 and 1, in-out through the middle, ease-out the mirror of ease-in, the enum dispatch equal to the direct call, float and double in agreement, the dispatcher clamping - as theory data over the enum, so a curve added later is checked without a new test.
 - `TweenTests`: the tween advances only while running, folds its clock the way each loop mode promises, completes once, and interpolates with the eased value.
