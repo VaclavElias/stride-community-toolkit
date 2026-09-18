@@ -38,7 +38,9 @@ carries an `---example-metadata` block, since the launcher and the metadata gene
 
 ## Coverage snapshot
 
-Taken 2026-08-11, from the `category:` fields of the examples that carry metadata.
+Taken 2026-08-11, from the `category:` fields of the examples that carry metadata. **Stale (2026-09-13):**
+every example carries metadata now and Audio, Rendering and Input have gained examples since; run
+the generator's `scan` for a current count rather than reading this table.
 
 | Category | Examples with metadata |
 |---|---|
@@ -184,8 +186,8 @@ Work on the examples themselves rather than new examples.
 
 | Task | Status | Source | Notes |
 |---|---|---|---|
-| Document the `---example-metadata` block in the contributing guide | Idea | in-repo | [The guide](../docs/contributing/examples/index.md) only describes the `*.csproj` properties the console launcher reads - `ExampleTitle`, `ExampleOrder`, `ExampleEnabled`, `ExampleCategory` - and never mentions the YAML block. Someone following it end to end produces an example with no metadata block at all, which is the likely reason so few have one. |
-| Audit which example folders are missing an `---example-metadata` block, and add it | Idea | in-repo | 14 of 63 `code-only/` folders currently have one; see the snapshot above. Worth doing after the guide is fixed, so the gap stops growing. |
-| Decide whether the two metadata systems should converge | Agreed | in-repo | **Direction already settled** - Decision 6 of the [Bepu plan](plans/bepu-examples.md): new examples drop `ExampleTitle`/`ExampleOrder`/`ExampleEnabled`/`ExampleCategory` from the `.csproj` and treat the `---example-metadata` block as the single source of truth, which `Example19` and `Example21/22` already do. What is left is applying it to existing examples and pointing the launchers at the manifest (Phase 2 of the MetadataGenerator plan). |
+| Document the `---example-metadata` block in the contributing guide | Done | in-repo | [`metadata-schema.md`](../docs/contributing/examples/metadata-schema.md) documents every key, and the contributing guide links it. |
+| Audit which example folders are missing an `---example-metadata` block, and add it | Done | in-repo | The generator's `scan` finds 84 examples with a block and validates all of them (2026-09-13); the snapshot above is history. |
+| Decide whether the two metadata systems should converge | Done | in-repo | The `---example-metadata` block is the single source: `tools/ExamplesManifest.targets` generates `examples-manifest.json` at build for both launchers, and the docs generator reads the same manifest. |
 | Reconcile the category list | Idea | in-repo | `Scripts` is used by an example but is not one of the categories listed in `examples/code-only/README.md`. Either document it or re-categorise the example. |
 | Extract the reusable Box2D wrapper into a library | Done (2026-08-31) | in-repo | Extracted to [src/Stride.CommunityToolkit.Box2D](../src/Stride.CommunityToolkit.Box2D) following the Bepu library layout; `IsPackable=false` until the API settles. The README_PENDING_LIBRARY.md scaffolding notes were retired with the move, as they instructed. |

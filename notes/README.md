@@ -11,13 +11,16 @@ not here. That is the reason this folder exists at the repository root rather th
 
 | Path | Holds | Lifetime |
 |---|---|---|
-| [`TODO.md`](TODO.md) | Agreed work, ordered by what to do first | Ongoing |
+| [`now.md`](now.md) | **Open this first.** The queue in priority order, one line per item with a link; how the session detoured; how these notes connect; what is done | Ongoing |
+| [`TODO.md`](TODO.md) | The Bepu 2D dossier: agreed toolkit fixes, upstream reports and hygiene decisions from the `Body2DComponent` investigation, ordered | Ongoing; shrinks as `now.md` items land |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | API-design observations that are *not* yet agreed | Ongoing |
 | [`example-backlog.md`](example-backlog.md) | Every example idea across the repository, with status and provenance | Ongoing |
 | [`plans/`](plans) | One document per piece of committed work, settled before building | Retire into the docs when the work lands |
 | [`upstream/`](upstream) | Drafts of issues and PRs aimed at Stride, Bepu or elsewhere | Delete once filed |
 | [`engine-example-opportunities.md`](engine-example-opportunities.md), [`samples-example-opportunities.md`](samples-example-opportunities.md), [`starbreach-example-opportunities.md`](starbreach-example-opportunities.md) | Research: example and toolkit opportunities mined from the Stride sources, the bundled samples, and the Starbreach demo (all cross-checked 2026-09-02) | Graduate items into `example-backlog.md` / `TODO.md`; keep the docs as the rejected-and-why record |
 | [`box2d-example-opportunities.md`](box2d-example-opportunities.md), [`bepu-demos-opportunities.md`](bepu-demos-opportunities.md) | Research: the same harvest over the Box2D.NET samples and the bepuphysics2 demos, docs and harness (2026-09-05, agent-produced, line numbers unverified) | Verify the Box2D items against the pinned NuGet before porting; graduate into `plans/box2d-library.md` and `plans/bepu-examples.md` |
+| [`shader-survey.md`](shader-survey.md), [`shader-opportunities.md`](shader-opportunities.md) | Research: what Stride's 639 shaders taught ShapeBatch (2026-09-06), and the reusable gems the survey left - with a "done from this list" ledger at the top | Graduate gems into `now.md`; keep as the rejected-and-why record |
+| [`ttf2mesh-assessment.md`](ttf2mesh-assessment.md), [`old-repos-assessment.md`](old-repos-assessment.md) | Assessments (2026-09-12): what is worth taking from a library or an old repository before it is deleted | Delete once the items they recommend are built or declined |
 
 ## Reading order for the research docs
 
@@ -80,8 +83,9 @@ what to build afterwards, against `example-backlog.md`.
 14. `box2d-example-opportunities.md` — **Top 10** table, then gem 12 (the joint façade) since it
     blocks most of the rest, then gems 3, 15 and 21, which are pure API with no example needed.
 
-The distinction between `TODO.md` and `ARCHITECTURE.md` is agreement, not size: an item moves from
-`ARCHITECTURE.md` to `TODO.md` once it has been decided that it should be done.
+The distinction between `now.md` and `ARCHITECTURE.md` is agreement, not size: an item moves from
+`ARCHITECTURE.md` into the `now.md` queue once it has been decided that it should be done. `TODO.md`
+keeps the detail behind the physics items the queue only names.
 
 ## Naming
 

@@ -41,12 +41,20 @@ Done, uncommitted, builds clean, all 6 engine and 13 toolkit `Body2D` tests pass
 
 Still open:
 
-- **Reply to Eideren** — lead with the rank table (full tensor fine, all-zeroed fine, partly-zeroed
-  fails 3/3 at 20k), then answer the constraint question. Position agreed: current approach as the
-  interim, his processor fallback (collect the components and apply the corrections right after
-  `ISimulationUpdate.SimulationUpdate`, in parallel) as the concrete next step, custom constraint as
-  a follow-up PR. Include the `MaximumRecoveryVelocity` measurement — it made no difference to the
-  runaway, 3/3 — since that is what justifies deleting the hull tuning block rather than retuning it.
+- **Reply to Eideren** — **drafted and ready to post**: see
+  [`upstream/stride-pr-3349-reply.md`](upstream/stride-pr-3349-reply.md), which carries the full
+  constraint analysis and a copy-ready comment. Leads with the rank table (full tensor fine,
+  all-zeroed fine, partly-zeroed fails 3/3 at 20k), then answers the constraint question. Position
+  agreed: current approach as the interim, his processor fallback (collect the components and apply
+  the corrections right after `ISimulationUpdate.SimulationUpdate`, in parallel) as the concrete next
+  step, custom constraint as a follow-up PR. Includes the `MaximumRecoveryVelocity` measurement — it
+  made no difference to the runaway, 3/3 — since that is what justifies deleting the hull tuning
+  block rather than retuning it. Three points the draft adds that were not written down before:
+  neither constraint Eideren named is a drop-in (`OneBodyLinearServo` is whole-position,
+  `LinearAxisLimit` is two-body); `CharacterMotionConstraint.cs` is a worked in-tree template, so no
+  engine change is needed; and the cheap prototype using `LinearAxisServoConstraintComponent` off one
+  shared anchor is a trap, because ~20k constraints on one body land in the solver's fallback batch
+  and would argue against constraints for the wrong reason.
 - **Eyeball the hull-collider examples without the tuning** — the two copies are now identical apart
   from four unavoidable differences (licence header, namespace and the extra `using`, the paragraph
   explaining why the copy exists, and the velocity block, since `BodyComponent.BodyReference` is
