@@ -30,13 +30,18 @@ const float PitchX = 3.8f;
 const float PitchY = 3f;
 const float Hold = 0.5f;
 
-// Six columns on the left, under a band the overlay text needs; the big panel on the right
+// Six columns on the left; the big panel on the right, under the overlay block. The overlay is
+// pixels and the sheet is world units, so the panel asks the overlay how tall its block is each
+// frame and takes whatever height is left, which is why the window opens a step larger than usual
 var tiles = Enum.GetValues<EasingFunction>()
     .Select((function, index) => new Tile(function, new Vector2(-21f + TileSize / 2f + index % Columns * PitchX, 6.2f - index / Columns * PitchY)))
     .ToArray();
 
-var panelCentre = new Vector2(8f, 0.2f);
-const float PanelSize = 10f;
+var panelCentre = new Vector2(8f, -7f);
+var panelSize = 6f;
+const float MaxPanelSize = 9f;
+const float TitleBand = 2.8f;   // the title and the race lanes, above the panel
+const float NoteBand = 1.4f;    // the two-line note under it
 
 var selected = 0;
 var family = Family.All;
@@ -48,8 +53,14 @@ var t = 0f;
 ShapeBatch? shapes = null;
 EntityTextComponent? title = null;
 EntityTextComponent? note = null;
+Entity? titleEntity = null;
+Entity? noteEntity = null;
 
 using var game = new Game();
+
+// Full HD rather than the 1280 by 720 default: the help block is fixed pixels, so a taller window
+// leaves more of the view to the panel
+game.SetWindowSize(1920, 1080);
 
 game.Run(start: Start, update: Update);
 
@@ -73,8 +84,9 @@ void Start(Scene rootScene)
         rootScene.Entities.Add(Label(ShortName(tile.Function), tile.Centre + new Vector2(0f, -TileSize / 2f - 0.4f), 10, Color.LightGray));
     }
 
-    var titleEntity = Label("", panelCentre + new Vector2(0f, PanelSize / 2f + 3.2f), 24, Color.White);
-    var noteEntity = Label("", panelCentre + new Vector2(0f, -PanelSize / 2f - 0.4f), 13, Color.LightGray);
+    // Placed every frame by PlacePanel, once the overlay has drawn and knows its height
+    titleEntity = Label("", Vector2.Zero, 24, Color.White);
+    noteEntity = Label("", Vector2.Zero, 13, Color.LightGray);
 
     title = titleEntity.Get<EntityTextComponent>();
     note = noteEntity.Get<EntityTextComponent>();
@@ -104,7 +116,25 @@ void Update(Scene scene, GameTime time)
         DrawTile(shapes, tile, index == selected);
     }
 
+    PlacePanel();
     DrawPanel(shapes, tiles[selected]);
+}
+
+// The panel sits under the overlay block, as large as the space between it and the bottom of the
+// view allows, with room for the title and race lanes above it and the note below
+void PlacePanel()
+{
+    var overlay = DebugOverlay.GetOrCreate(game);
+    var pixelsPerUnit = game.GraphicsDevice.Presenter.BackBuffer.Height / ViewHeight;
+    var overlayBottom = ViewHeight / 2f - overlay.BlockBounds.Bottom / pixelsPerUnit;
+
+    var top = overlayBottom - TitleBand;
+
+    panelSize = Math.Clamp(top - (-ViewHeight / 2f + NoteBand), 4f, MaxPanelSize);
+    panelCentre = new Vector2(panelCentre.X, top - panelSize / 2f);
+
+    if (titleEntity is not null) titleEntity.Transform.Position = new Vector3(panelCentre + new Vector2(0f, panelSize / 2f + TitleBand), 0f);
+    if (noteEntity is not null) noteEntity.Transform.Position = new Vector3(panelCentre + new Vector2(0f, -panelSize / 2f - 0.2f), 0f);
 }
 
 void DrawTile(ShapeBatch shapes, Tile tile, bool isSelected)
@@ -148,17 +178,17 @@ void DrawTile(ShapeBatch shapes, Tile tile, bool isSelected)
 void DrawPanel(ShapeBatch shapes, Tile tile)
 {
     var colour = ColourOf(tile.Function);
-    var left = panelCentre.X - PanelSize / 2f;
-    var bottom = panelCentre.Y - PanelSize / 2f;
+    var left = panelCentre.X - panelSize / 2f;
+    var bottom = panelCentre.Y - panelSize / 2f;
 
     shapes.BorderWidth = 2f;
     shapes.Fill.Set(new Color(32, 36, 46), 0.9f);
-    shapes.DrawRectangle(new Vector3(panelCentre, 0f), Vector3.UnitX, Vector3.UnitY, new Vector2(PanelSize), new Color(90, 98, 115), cornerRadius: 0.2f);
+    shapes.DrawRectangle(new Vector3(panelCentre, 0f), Vector3.UnitX, Vector3.UnitY, new Vector2(panelSize), new Color(90, 98, 115), cornerRadius: 0.2f);
     shapes.Fill.Set(null, 1f);
 
     // A dashed diagonal is the linear curve, the reference every other one is judged against
     shapes.Dash.Set(6f, 6f);
-    shapes.DrawPixelLine(new Vector3(left, bottom, 0f), new Vector3(left + PanelSize, bottom + PanelSize, 0f), 1.5f, new Color(90, 98, 115));
+    shapes.DrawPixelLine(new Vector3(left, bottom, 0f), new Vector3(left + panelSize, bottom + panelSize, 0f), 1.5f, new Color(90, 98, 115));
     shapes.Dash.Clear();
 
     Span<Vector2> points = stackalloc Vector2[129];
@@ -167,7 +197,7 @@ void DrawPanel(ShapeBatch shapes, Tile tile)
     {
         var s = i / (float)(points.Length - 1);
 
-        points[i] = new Vector2(left + s * PanelSize, bottom + tile.Function.Ease(s) * PanelSize);
+        points[i] = new Vector2(left + s * panelSize, bottom + tile.Function.Ease(s) * panelSize);
     }
 
     shapes.Glow.Set(8f, new Color(colour.R, colour.G, colour.B, (byte)110));
@@ -176,18 +206,18 @@ void DrawPanel(ShapeBatch shapes, Tile tile)
 
     var eased = tile.Function.Ease(t);
 
-    shapes.DrawPixelDisc(new Vector3(left + t * PanelSize, bottom + eased * PanelSize, 0f), 7f, Color.White);
+    shapes.DrawPixelDisc(new Vector3(left + t * panelSize, bottom + eased * panelSize, 0f), 7f, Color.White);
 
     // The race above the panel: the eased mover against a linear one on the same clock
-    var laneY = panelCentre.Y + PanelSize / 2f + 1.5f;
+    var laneY = panelCentre.Y + panelSize / 2f + 1.5f;
 
     shapes.BorderWidth = 1f;
-    shapes.DrawPixelLine(new Vector3(left, laneY, 0f), new Vector3(left + PanelSize, laneY, 0f), 1f, new Color(70, 76, 90));
-    shapes.DrawPixelLine(new Vector3(left, laneY - 0.7f, 0f), new Vector3(left + PanelSize, laneY - 0.7f, 0f), 1f, new Color(70, 76, 90));
+    shapes.DrawPixelLine(new Vector3(left, laneY, 0f), new Vector3(left + panelSize, laneY, 0f), 1f, new Color(70, 76, 90));
+    shapes.DrawPixelLine(new Vector3(left, laneY - 0.7f, 0f), new Vector3(left + panelSize, laneY - 0.7f, 0f), 1f, new Color(70, 76, 90));
     shapes.Fill.Set(colour, 1f);
-    shapes.DrawDisc(new Vector3(left + eased * PanelSize, laneY, 0f), Vector3.UnitZ, 0.28f, colour);
+    shapes.DrawDisc(new Vector3(left + eased * panelSize, laneY, 0f), Vector3.UnitZ, 0.28f, colour);
     shapes.Fill.Set(new Color(110, 116, 130), 1f);
-    shapes.DrawDisc(new Vector3(left + t * PanelSize, laneY - 0.7f, 0f), Vector3.UnitZ, 0.2f, new Color(150, 156, 170));
+    shapes.DrawDisc(new Vector3(left + t * panelSize, laneY - 0.7f, 0f), Vector3.UnitZ, 0.2f, new Color(150, 156, 170));
     shapes.Fill.Set(null, 1f);
 
     if (title is not null) title.Text = tile.Function.ToString();
@@ -228,18 +258,20 @@ void HandleInput()
 
 IReadOnlyList<TextElement> BuildOverlayLines() =>
 [
-    new("N / P - select the next and previous curve", Color.Gold),
-    new("Click a tile - select it", Color.Gold),
-    new("1 / 2 / 3 - show one family, 0 - show all", Color.Gold),
-    new("Space - pause the clock", Color.Gold),
-    new("R - restart the clock", Color.Gold),
-    new("Left / Right - shorter and longer runs", Color.Gold),
+    new("[N] Next curve", Color.Gold),
+    new("[P] Previous curve", Color.Gold),
+    new("[Click] Select a tile", Color.Gold),
+    new("[1] [2] [3] One family: in, out, in-out", Color.Gold),
+    new("[0] Show every curve", Color.Gold),
+    new("[Space] Pause the clock", Color.Gold),
+    new("[R] Restart the clock", Color.Gold),
+    new("[Left] [Right] Shorter or longer run", Color.Gold),
     new(""),
-    new($"{tiles.Length} curves on one clock: {duration:0.0} s per run, t = {t:0.00}" + (paused ? "   paused" : ""), Color.LightGreen),
+    // Lines stay under about 45 characters: the block is as wide as its widest line, and past that
+    // it reaches the sixth tile column on a 150% display
+    new($"{tiles.Length} curves, {duration:0.0} s per run, t = {t:0.00}" + (paused ? " paused" : ""), Color.LightGreen),
     new(family switch { Family.In => "Showing the ease-in family", Family.Out => "Showing the ease-out family", Family.InOut => "Showing the in-out family", _ => "Showing every family" }, Color.LightGreen),
-    new("White dot: the graph at t.", Color.LightGray),
-    new("Coloured disc: what a thing eased by it does.", Color.LightGray),
-    new("Grey disc: linear, for comparison.", Color.LightGray),
+    new("Dot: the graph at t. Discs: eased vs grey linear.", Color.LightGray),
 ];
 
 static Entity Label(string text, Vector2 position, float fontSize, Color colour)

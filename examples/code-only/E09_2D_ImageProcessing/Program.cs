@@ -13,15 +13,13 @@ using System.Reflection;
 
 using var game = new Game();
 
-// The window size a Game Studio project would take from its GameSettings asset, written in code
-// instead. This runs before the device exists; game.Window.SetSize(...) inside Start would resize
-// an already-created window, which also works but shows a flash at the default size first.
-game.UseGameSettings(settings =>
-{
-    var rendering = settings.GetOrCreateConfiguration<RenderingSettings>();
-    rendering.DefaultBackBufferWidth = 1000;
-    rendering.DefaultBackBufferHeight = 1080;
-});
+// A tall window for the 9 by 9 grid of 1000-pixel tiles. This runs before the device exists;
+// game.Window.SetSize(...) inside Start would resize an already-created window, which also works
+// but shows a flash at the default size first. The rendering settings a Game Studio project
+// carries (DefaultBackBufferWidth and Height through game.UseGameSettings) are not enough on their
+// own: the engine clamps them to the window it has already created, so they can shrink a window
+// but never grow it past 1280 by 720. SetWindowSize sizes the window and the back buffer together.
+game.SetWindowSize(1000, 1080);
 
 game.Run(start: Start);
 

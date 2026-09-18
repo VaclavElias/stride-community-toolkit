@@ -299,6 +299,62 @@ public static partial class GameExtensions
     }
 
     /// <summary>
+    /// Sets the size the window opens at, in pixels. Call it before <c>Run</c>; once the device exists
+    /// the window is the user's to resize.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The engine's default is 1280 by 720. An example whose scene is drawn in world units under a
+    /// pixel-sized overlay - the easing sheet, with its twelve-line help block - gets more room from a
+    /// taller window than from a smaller scene, so it opens a step larger. On a scaled display the
+    /// window still opens at this many physical pixels: the size is the back buffer's, not the desktop's.
+    /// </para>
+    /// <para>
+    /// Two things have to agree for a window to open larger than the default, and this sets both.
+    /// The engine creates the window at the device manager's preferred back-buffer size, which its
+    /// <c>PrepareContext</c> has just reset to the default - so neither a <see cref="GameContext"/>
+    /// with a requested size nor <c>PreferredBackBufferWidth</c> set before <c>Run</c> survives. The
+    /// window is resized at <see cref="GameBase.WindowCreated"/> instead: it exists, it is not shown
+    /// yet, and the device is created after it, clamped to the window's client size. The back buffer
+    /// itself comes from <c>RenderingSettings.DefaultBackBufferWidth</c> and <c>Height</c>, applied
+    /// through <see cref="GameSettingsExtensions.UseGameSettings"/> so they are put back after that
+    /// reset; on their own they can shrink a window but never grow it, which is what the settings
+    /// route gives a Game Studio project. An example that already mirrors a project's settings can
+    /// keep doing that for everything else; this is the one line for the window. Calling
+    /// <c>game.Window.SetSize</c> from a startup script, as the Stride manual shows, also works, one
+    /// frame at the default size first.
+    /// </para>
+    /// </remarks>
+    /// <param name="game">The game whose window to size.</param>
+    /// <param name="width">The width in pixels.</param>
+    /// <param name="height">The height in pixels.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the game is already running.</exception>
+    public static void SetWindowSize(this Game game, int width, int height)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+
+        // The back buffer, put back after PrepareContext resets the device manager to the default
+        game.UseGameSettings(settings =>
+        {
+            var rendering = settings.GetOrCreateConfiguration<RenderingSettings>();
+
+            rendering.DefaultBackBufferWidth = width;
+            rendering.DefaultBackBufferHeight = height;
+        });
+
+        // The window, once it exists and before it is shown or the device is created against it
+        game.WindowCreated += Resize;
+
+        void Resize(object? sender, EventArgs e)
+        {
+            game.WindowCreated -= Resize;
+            game.Window.SetSize(new Int2(width, height));
+        }
+    }
+
+    /// <summary>
     /// Adds a 2D camera controller to the specified camera entity in the game's current scene.
     /// </summary>
     /// <remarks>This method extends the game to simplify attaching a 2D camera controller to a camera entity.
