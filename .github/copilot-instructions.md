@@ -354,10 +354,15 @@ Guidance for the Bepu demos specifically:
   header comment describing the controls. Rename one and the others silently drift, leaving
   documentation that names a key doing nothing. Grep for the old letter after changing a binding.
 - **The on-screen help reads top down.** In an example's `DebugOverlay` section the key lines come
-  first, one key per line (`"N - next station"`, never three keys joined on one line), then a blank
-  line, then the status and explanation lines. Keep every line to about fifty characters and split
-  a longer sentence over two lines. A reader scans the block vertically for the key they want; a
-  long horizontal line hides it.
+  first, one key per line, then a blank line, then the status and explanation lines. A key line is
+  `"[N] Next station"`: the key in square brackets, a space, then what it does, capitalised like a
+  sentence, no colon or dash - the same shape the overlay gives a collapsible title
+  (`[+] [F2] Camera controls`). Multi-word inputs keep the brackets (`[Arrow keys] Move`,
+  `[Mouse wheel] Zoom`, `[Shift] Hold to move faster`, `[Left drag] Pan`); two keys that do the
+  same thing sit on one line as `[Q] [E] Ascend / descend`. Never three unrelated keys joined on one
+  line. Keep every line to about fifty characters and split a longer sentence over two lines. Live
+  numbers use fixed decimals (`{x:0.00}`) so the block does not change width every frame. A reader
+  scans the block vertically for the key they want; a long horizontal line hides it.
 
 ## Running & debugging examples (AI assistants)
 
