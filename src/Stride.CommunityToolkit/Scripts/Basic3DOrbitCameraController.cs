@@ -114,14 +114,16 @@ public class Basic3DOrbitCameraController : SyncScript
         _instructions = DebugOverlay.GetOrCreate(Game).AddCollapsibleSection(
             "Camera", "Camera controls", HelpToggleKey, () =>
             [
-                new("F3: Reposition Help", Color.LightGoldenrodYellow),
-                new($"{OrbitButton} Mouse Drag: Orbit"),
-                new("Mouse Wheel: Zoom"),
-                new($"{PanButton} Mouse Drag: Pan target"),
-                new("Hold Shift: Faster zoom and pan"),
-                new("H: Reset view"),
-                new($"Target: {Target.X:0.##}, {Target.Y:0.##}, {Target.Z:0.##}", Color.Yellow),
-                new($"Distance: {_distance:0.##}  Yaw: {MathUtil.RadiansToDegrees(_yaw):0.#}°  Pitch: {MathUtil.RadiansToDegrees(_pitch):0.#}°", Color.Yellow),
+                // Keys first, one per line, each in the brackets the title uses, then the live values
+                // with fixed decimals so they stop changing width as the camera orbits
+                new("[F3] Reposition help", Color.LightGoldenrodYellow),
+                new("[H] Reset view"),
+                new($"[{OrbitButton} drag] Orbit"),
+                new($"[{PanButton} drag] Pan target"),
+                new("[Mouse wheel] Zoom"),
+                new("[Shift] Hold for faster zoom and pan"),
+                new($"Target: {Target.X:0.00}, {Target.Y:0.00}, {Target.Z:0.00}", Color.Yellow),
+                new($"Distance: {_distance:0.00}  Yaw: {MathUtil.RadiansToDegrees(_yaw):0.0}°  Pitch: {MathUtil.RadiansToDegrees(_pitch):0.0}°", Color.Yellow),
             ], HelpCollapsed, order: -100);
     }
 
