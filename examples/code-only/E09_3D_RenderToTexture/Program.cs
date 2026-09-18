@@ -58,8 +58,8 @@ void Start(Scene scene)
     game.AddEntityTextRenderer();
 
     // Looking at the monitors from the scene's side, with the scene in the foreground
-    game.SetCameraPosition(new Vector3(0f, 7f, 20f));
-    game.SetCameraRotation(new Vector3(0f, -9f, 0f));
+    game.SetCameraPosition(new(-1, 15, 27));
+    game.SetCameraRotation(new(0, -17, 0));
 
     BuildScene(scene);
 

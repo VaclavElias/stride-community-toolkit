@@ -6,8 +6,8 @@ using Stride.CommunityToolkit.Shapes;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Graphics;
 using Stride.Games;
+using Stride.Graphics;
 using Stride.Input;
 
 // An easing cheat sheet that runs. Every curve in EasingFunction gets a tile: its graph over a unit
@@ -271,7 +271,8 @@ IReadOnlyList<TextElement> BuildOverlayLines() =>
     // it reaches the sixth tile column on a 150% display
     new($"{tiles.Length} curves, {duration:0.0} s per run, t = {t:0.00}" + (paused ? " paused" : ""), Color.LightGreen),
     new(family switch { Family.In => "Showing the ease-in family", Family.Out => "Showing the ease-out family", Family.InOut => "Showing the in-out family", _ => "Showing every family" }, Color.LightGreen),
-    new("Dot: the graph at t. Discs: eased vs grey linear.", Color.LightGray),
+    new("Dot: the graph at t.", Color.LightGray),
+    new("Discs: eased vs grey linear.", Color.LightGray),
 ];
 
 static Entity Label(string text, Vector2 position, float fontSize, Color colour)
