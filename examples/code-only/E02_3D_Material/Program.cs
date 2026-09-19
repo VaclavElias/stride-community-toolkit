@@ -157,8 +157,8 @@ void InitializeDebugOverlay()
 
 static List<TextElement> GenerateInstructions(float skyBoxLightIntensity)
     => [
-            new("[Z] Dim the skybox light", Color.Gold),
-            new("[X] Brighten the skybox light", Color.Gold),
+            new("Z", "Dim the skybox light", Color.Gold),
+            new("X", "Brighten the skybox light", Color.Gold),
             new(""),
             new($"Skybox light intensity: {skyBoxLightIntensity:0.00}", Color.LightGreen),
         ];

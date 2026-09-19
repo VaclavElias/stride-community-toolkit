@@ -256,7 +256,9 @@ void Start(Scene scene)
             (Keys)(Keys.D1 + pair.Index), pair.Item.Name, () => ApplyTheme(pair.Index)))],
     };
 
-    DebugOverlay.GetOrCreate(game).AddSection("Panels", OverlayLines);
+    var overlay = DebugOverlay.GetOrCreate(game);
+    overlay.SectionGap = 0;
+    overlay.AddSection("Panels", OverlayLines);
 }
 
 void Update(Scene scene, GameTime gameTime)
@@ -564,19 +566,23 @@ Vector3 CellCenter(int station, bool withText)
 
 IReadOnlyList<TextElement> OverlayLines()
 {
-    List<TextElement> lines =
-    [
-        new("Panels: ShapeBatch, one draw call for all 48", Color.LightGreen),
-        new("Upper row of each pair is the panel alone", Color.LightGray),
-        new("Corner numbers match the stations array in Program.cs", Color.LightGray),
-        new("Wheel zooms - borders, glows and dashes keep their pixel size", Color.LightGray),
-        new(string.Empty),
-    ];
+    List<TextElement> lines = [];
 
     if (themeMenu is not null)
     {
         lines.AddRange(themeMenu.GetLines());
+        lines.Add(new(string.Empty));
     }
+
+    lines.AddRange(
+    [
+        new("Mouse wheel", "Zoom", Color.Gold),
+        new(string.Empty),
+        new("Panels: ShapeBatch, one draw call for all 48", Color.LightGreen),
+        new("Upper row of each pair is the panel alone", Color.LightGray),
+        new("Corner numbers match the stations array in Program.cs", Color.LightGray),
+        new("Borders, glows and dashes keep their pixel size", Color.LightGray),
+    ]);
 
     return lines;
 }

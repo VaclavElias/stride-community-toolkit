@@ -177,10 +177,10 @@ void HandleInput()
 
 IReadOnlyList<TextElement> BuildOverlayLines() =>
 [
-    new("[Space] Run again from the start", Color.Gold),
-    new("[P] Pause and resume", Color.Gold),
-    new("[1] [2] [3] [4] Focus on one lane", Color.Gold),
-    new("[0] Show every lane", Color.Gold),
+    new("Space", "Run again from the start", Color.Gold),
+    new("P", "Pause and resume", Color.Gold),
+    new(["1", "2", "3", "4"], "Focus on one lane", Color.Gold),
+    new("0", "Show every lane", Color.Gold),
     new(""),
     new($"t = {Math.Clamp(elapsed1 / Duration, 0f, 1f):0.00} of a {Duration:0.0} s run" + (paused ? ", paused" : ""), Color.LightGreen),
     new("Lanes 2, 3 and 4 move together:", Color.LightGray),

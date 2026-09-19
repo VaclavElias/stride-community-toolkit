@@ -1,0 +1,18 @@
+<Project>
+  <!--
+    For ProgramEngineOnly.cs, the file-based app with no toolkit package. It needs Stride.AssetCompiler
+    for the build step that compiles the engine's shaders into the output, and it needs that package
+    build-only: its lib/ assemblies copied next to the app make it fail at start-up with "Could not
+    load file or assembly 'Stride.NuGetResolver'". A .csproj says IncludeAssets="build;buildTransitive"
+    on the reference; a #:package directive has no way to, so the Update below says it instead.
+    A file-based app imports Directory.Build.targets like any project. The other two apps in this
+    folder reach the asset compiler through the toolkit (a project reference and a package that already
+    pass it on build-only), so the Update finds nothing to change for them.
+    MSBuild imports only the nearest Directory.Build.targets, so the examples one is imported by hand.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <ItemGroup>
+    <PackageReference Update="Stride.AssetCompiler" IncludeAssets="build;buildTransitive" />
+  </ItemGroup>
+</Project>

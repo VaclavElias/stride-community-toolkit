@@ -258,14 +258,14 @@ void HandleInput()
 
 IReadOnlyList<TextElement> BuildOverlayLines() =>
 [
-    new("[N] Next curve", Color.Gold),
-    new("[P] Previous curve", Color.Gold),
-    new("[Click] Select a tile", Color.Gold),
-    new("[1] [2] [3] One family: in, out, in-out", Color.Gold),
-    new("[0] Show every curve", Color.Gold),
-    new("[Space] Pause the clock", Color.Gold),
-    new("[R] Restart the clock", Color.Gold),
-    new("[Left] [Right] Shorter or longer run", Color.Gold),
+    new("N", "Next curve", Color.Gold),
+    new("P", "Previous curve", Color.Gold),
+    new("Click", "Select a tile", Color.Gold),
+    new(["1", "2", "3"], "One family: in, out, in-out", Color.Gold),
+    new("0", "Show every curve", Color.Gold),
+    new("Space", "Pause the clock", Color.Gold),
+    new("R", "Restart the clock", Color.Gold),
+    new(["Left", "Right"], "Shorter or longer run", Color.Gold),
     new(""),
     // Lines stay under about 45 characters: the block is as wide as its widest line, and past that
     // it reaches the sixth tile column on a 150% display

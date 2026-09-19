@@ -106,9 +106,9 @@ void InitializeDebugOverlay()
 
     instructions = overlay.AddSection("Game", static () =>
     [
-        new("[P] Show or hide the collidable gizmos", Color.Gold),
-        new("[F11] Show or hide the debug meshes", Color.Gold),
-        new("[R] Reset the scene", Color.Gold),
+        new("P", "Show or hide the collidable gizmos", Color.Gold),
+        new("F11", "Show or hide the debug meshes", Color.Gold),
+        new("R", "Reset the scene", Color.Gold),
     ]);
 }
 /*
