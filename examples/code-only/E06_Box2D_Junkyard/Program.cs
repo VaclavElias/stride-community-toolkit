@@ -104,7 +104,7 @@ void Start(Scene rootScene)
 
     DebugOverlay.GetOrCreate(game).AddSection("Junkyard", static () =>
     [
-        new("Left mouse - pick a rock up, carry it, throw it", Color.Yellow),
+        new("Left mouse", "Pick a rock up, carry it, throw it", Color.Yellow),
     ]);
 
     CreateGround();

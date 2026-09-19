@@ -2,7 +2,6 @@ using Box2D.NET;
 using Stride.CommunityToolkit.Box2D;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Shapes;
@@ -389,20 +388,24 @@ void AddInstructions()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
-    // Live numbers on the first two lines, the keys under them.
+    // The keys first, the live numbers under them.
     overlay.AddSection("Mover", () =>
     {
         var m = mover!;
 
         return
         [
-            new($"position {m.Position.X,7:0.00} {m.Position.Y,6:0.00}   velocity {m.Velocity.X,6:0.00} {m.Velocity.Y,6:0.00}   {(m.IsOnGround ? "on ground" : "in the air")}", Color.LightGreen),
-            new($"planes {m.Planes.Length}   solver iterations {m.IterationsLastStep}"),
-            new("A / D  walk      Space  jump      K  kick the ball      Left mouse  throw things at the character", Color.Yellow),
-            new($"G  Box2D contact points {(showContacts ? "on" : "off")}      R  reset"),
+            new(["A", "D"], "Walk", Color.Yellow),
+            new("Space", "Jump", Color.Yellow),
+            new("K", "Kick the ball", Color.Yellow),
+            new("G", $"Box2D contact points {(showContacts ? "on" : "off")}", Color.Yellow),
+            new("R", "Reset", Color.Yellow),
+            new("Left mouse", "Throw things at the character", Color.Yellow),
             .. pogoMenu?.GetLines() ?? [],
+            new(""),
+            new($"Position {m.Position.X:0.00}, {m.Position.Y:0.00}, {(m.IsOnGround ? "on ground" : "in the air")}", Color.LightGreen),
+            new($"Velocity {m.Velocity.X:0.00}, {m.Velocity.Y:0.00}", Color.LightGreen),
+            new($"Planes {m.Planes.Length}, solver iterations {m.IterationsLastStep}"),
         ];
     });
 }
