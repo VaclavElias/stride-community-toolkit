@@ -8,6 +8,7 @@
     <Project Path="examples/code-only/E01_2D_BasicScene_Bullet/E01_2D_BasicScene_Bullet.csproj" />
     <Project Path="examples/code-only/E01_3D_BasicScene/E01_3D_BasicScene.csproj" />
     <Project Path="examples/code-only/E01_3D_BasicScene_Bullet/E01_3D_BasicScene_Bullet.csproj" />
+    <Project Path="examples/code-only/E01_3D_BasicScene_EngineOnly/E01_3D_BasicScene_EngineOnly.csproj" />
     <Project Path="examples/code-only/E01_3D_BasicScene_FSharp/E01_3D_BasicScene_FSharp.fsproj" />
     <Project Path="examples/code-only/E01_3D_BasicScene_VisualBasic/E01_3D_BasicScene_VisualBasic.vbproj" />
     <Project Path="examples/code-only/E02_2D_Easing/E02_2D_Easing.csproj" />
@@ -112,11 +113,14 @@
     <File Path=".github/workflows/dotnet.yml" />
     <File Path=".github/workflows/github-pages.yml" />
     <File Path="Directory.Build.props" />
-    <File Path="examples/code-only/E01_3D_BasicScene_FileBasedApp/Program.cs" />
-    <File Path="examples/code-only/E01_3D_BasicScene_FileBasedApp/ProgramSimple.cs" />
     <File Path="README.md" />
     <File Path="src/CommonSettings.props" />
     <File Path="tools/Stride.CommunityToolkit.Examples.Launcher/examples-manifest.json" />
+  </Folder>
+  <Folder Name="/Solution Items/E01_3D_BasicScene_FileBasedApp/">
+    <File Path="examples/code-only/E01_3D_BasicScene_FileBasedApp/Program.cs" />
+    <File Path="examples/code-only/E01_3D_BasicScene_FileBasedApp/ProgramEngineOnly.cs" />
+    <File Path="examples/code-only/E01_3D_BasicScene_FileBasedApp/ProgramSimple.cs" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Stride.CommunityToolkit.GoldScenes/Stride.CommunityToolkit.GoldScenes.csproj" />
