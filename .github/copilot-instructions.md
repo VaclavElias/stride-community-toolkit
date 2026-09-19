@@ -354,13 +354,15 @@ Guidance for the Bepu demos specifically:
   header comment describing the controls. Rename one and the others silently drift, leaving
   documentation that names a key doing nothing. Grep for the old letter after changing a binding.
 - **The on-screen help reads top down.** In an example's `DebugOverlay` section the key lines come
-  first, one key per line, then a blank line, then the status and explanation lines. A key line is
-  `"[N] Next station"`: the key in square brackets, a space, then what it does, capitalised like a
-  sentence, no colon or dash - the same shape the overlay gives a collapsible title
-  (`[+] [F2] Camera controls`). Multi-word inputs keep the brackets (`[Arrow keys] Move`,
-  `[Mouse wheel] Zoom`, `[Shift] Hold to move faster`, `[Left drag] Pan`); two keys that do the
-  same thing sit on one line as `[Q] [E] Ascend / descend`. Never three unrelated keys joined on one
-  line. Keep every line to about fifty characters and split a longer sentence over two lines. Live
+  first, one key per line, then a blank line, then the status and explanation lines. A key line names
+  its keys as data, never in the text: `new("N", "Next station", Color.Gold)`, and
+  `new(["Q", "E"], "Ascend / descend")` for keys that do the same thing - not `new("[N] Next station")`.
+  The overlay decorates them when it draws (`DebugOverlay.KeyFormat`, default `[{0}]`, and `KeyColor`,
+  a shade lighter than the text), and gives a collapsible title the same shape, `[+] [F2] Camera controls`.
+  Multi-word inputs are just keys: `new("Arrow keys", "Move")`, `new("Mouse wheel", "Zoom")`,
+  `new("Shift", "Hold to move faster")`, `new("Left drag", "Pan")`. What a key does is capitalised
+  like a sentence, with no colon or dash. Never three unrelated keys joined on one line. Keep every
+  line to about fifty characters and split a longer sentence over two lines. Live
   numbers use fixed decimals (`{x:0.00}`) so the block does not change width every frame. A reader
   scans the block vertically for the key they want; a long horizontal line hides it.
 
