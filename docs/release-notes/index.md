@@ -50,7 +50,7 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 
 ### 🎨 Rendering
 
-- `ShapeGlow.Strength`: how strong a glow is at the outline, 0 to 1, on top of its colour's alpha. It is the knob for a glow in each shape's own colour, where there is no colour of your own to give an alpha to - `Glow.Set(10f); Glow.Strength = 0.35f; Glow.Additive = true;` is the neon look on every shape a batch draws. `Clear()` resets it.
+- `ShapeGlow.Strength`: how strong a glow in the outline colour is at the outline, 0 to 1; a colour of your own carries its own alpha and is used as given. It is the knob for a glow in each shape's own colour, where there is no colour to give an alpha to - `Glow.Set(10f); Glow.Strength = 0.35f; Glow.Additive = true;` is the neon look on every shape a batch draws. `Clear()` resets it.
 - ShapeBatch: the pixel stage reads each shape's record from a structured buffer instead of fifteen interpolated registers, points live in their own buffer so a shape has as many as it needs, streams are integer-exact, the border is a flat band with an anti-aliasing ramp measured from screen derivatives, and a 4x4 Bayer dither hides banding in glows.
 - `ShapeGlow.Additive`: a glow that adds light rather than covering what is behind it.
 - The render feature gathers every batch of the frame into shared buffers once, draws each batch under a lock, and flushes after the last view; batches can be removed with `RemoveShapeBatch`.
@@ -95,7 +95,9 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 - **2D Panels** grew to twenty-four stations; the **HUD** and the **SignalR** deck use strokes and additive glows; **ShapeBatch** shows a glowing helix and a trefoil knot as space strokes, three dashed rings turning at their own gap ratios, and a numbered label on every demo that L widens to name the method it is made of.
 - Five Bepu examples use `game.AddGrabber()`.
 - `E05_3D_Constraints_Simple` has an overlay: the grabber keys, and that carrying one sphere brings the other along.
+- `E08_2D_DebugRender` names its two keys on the overlay: `F11` for the mesh wireframes and `P` for the collider outlines.
 - `E06_Box2D`: the shapes glow like neon tubes - an additive bloom outside every border in the border's own colour, through the new `ShapeGlow.Strength`; the start-up rectangles are in the Box2D awake colour instead of black, which no glow can show. The rarer keys moved from `F1`, which the profiler owns, to `Z`.
+- The galleries (`E09_3D_Particles`, `E11_3D_ShapeBatch`) start from above and outside the ring, looking down 17 degrees, so every station is in view at once; the index board hangs in the air where that view has its top-left corner, and stays there when the camera moves; from home, `N` and `P` both go to the first station, and count from the nearest one only once the camera has been steered away; `Home` itself is a longer flight that keeps facing the first station on the way, so from there it is the flight out reversed and from anywhere else the camera turns to it as it rises. The ring on the ground under each station is a button: it fills under the mouse and a click flies there. Station numbers are in a regular face - the built-in font is bold. The shape gallery's Glow station and its G key glow in each shape's own colour at a third of its strength, the neon look, rather than as fatter strokes.
 
 ### 🔧 Engineering
 

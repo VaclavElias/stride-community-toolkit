@@ -129,8 +129,11 @@ that must always show ([the playground](../code-only/examples/shape-batch.md) ru
 One number decides what a glow reads as, and it is not the width: the glow colour's **alpha**. At
 full alpha the halo is solid colour where it meets the edge and only then falls off, so a thin
 stroke with a six-pixel glow looks like a stroke three times fatter. At 30 to 40 percent it reads
-as light around the stroke, which is the neon look. `Glow.Additive` then makes that light add to
-the scene rather than cover it, which is what a lit thing over a dark ground wants.
+as light around the stroke, which is the neon look. For a glow in each shape's own colour, where there
+is no colour of your own to give an alpha to, `Glow.Strength` is that number: `Glow.Set(10f);
+Glow.Strength = 0.35f;` glows everything the batch draws in its own colour, at a third. `Glow.Additive`
+then makes that light add to the scene rather than cover it, which is what a lit thing over a dark
+ground wants.
 
 ## Flat shapes, anywhere in 3D
 
