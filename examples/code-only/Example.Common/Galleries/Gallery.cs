@@ -2,9 +2,9 @@ using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Shapes;
-using Stride.Graphics;
 using Stride.Engine;
 using Stride.Games;
+using Stride.Graphics;
 using Stride.Rendering;
 
 namespace Example.Common.Galleries;
@@ -28,10 +28,44 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     /// <summary>How high above the pad the label pin floats.</summary>
     private const float PinHeight = 7.5f;
 
-    /// <summary>One line of the index board, in world units; the frame is the lines plus a margin.</summary>
+    /// <summary>
+    /// One line of the index board, in world units; the frame is the lines plus a margin. The list's
+    /// size on screen is set by <see cref="BoardShare"/>, not by this or by the text's font size,
+    /// which is only how finely it is rasterised: the board hangs at whatever distance makes it that
+    /// share of the home view, so a taller line just means a bigger board at a greater distance.
+    /// </summary>
     private const float LineHeight = 0.45f;
 
-    private static readonly Vector3 BoardCentre = new(0f, 5.6f, 0f);
+    /// <summary>
+    /// The home view: how high above and how far outside the ring the camera sits, as fractions of
+    /// the radius, and how far it looks down - the whole ring in view at once.
+    /// </summary>
+    private const float HomeHeight = 0.66f;
+    private const float HomeDistance = 1.85f;
+    private const float HomePitchDegrees = -17f;
+
+    /// <summary>The flight home: longer than a hop between stations, arcing up by this fraction of the radius, facing the ring's centre on the way.</summary>
+    private const float HomeFlightSeconds = 1.8f;
+    private const float HomeFlightLift = 0.2f;
+
+    /// <summary>The index board's width in world units; its height follows the registry.</summary>
+    private const float BoardWidth = 10f;
+
+    /// <summary>How much of the home view's height the board takes, and the margin it keeps from the view's top and left edges, in world units at its distance.</summary>
+    private const float BoardShare = 0.6f;
+    private const float BoardMargin = 0.6f;
+
+    /// <summary>How far in from the frame the corner brackets sit and the list starts.</summary>
+    private const float BoardInset = 0.3f;
+
+    /// <summary>The field of view the board's placement assumes: the default camera's, at a 16:9 window.</summary>
+    private const float ViewFovDegrees = 45f;
+    private const float ViewAspect = 16f / 9f;
+
+    private readonly Vector3 _boardCentre;
+    private readonly Vector3 _boardRight;
+    private readonly Vector3 _boardUp;
+    private readonly SpriteFont? _labelFont;
 
     private readonly Game _game;
     private readonly Scene _scene;
@@ -43,6 +77,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     private readonly ShapeBatch _overlay;
     private readonly GalleryCamera _camera;
     private int _destination;
+    private bool _atHome;
 
     /// <summary>
     /// Builds the ring: the ground, every station with its pillars and label, the index board,
@@ -66,6 +101,8 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         Options = options ?? GalleryOptions.Default;
         Radius = MathF.Max(Options.MinimumRadius, exhibits.Count * Options.Spacing / MathF.Tau);
         _camera = new GalleryCamera(game);
+        // A regular face for the labels: Stride's built-in font is bold
+        _labelFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 20f);
         _pillarMaterial = game.CreateMaterial(Options.PillarColor ?? new Color(96, 103, 116), specular: 0.1f, microSurface: 0.35f);
 
         // Depth-tested for the pads and the board, over everything for the dotted lines and pins
@@ -79,6 +116,10 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
             _stations.Add(BuildStation(i, exhibits.Count, exhibits[i], configure));
         }
 
+        // The board hangs in the air where the home view has its top-left corner: in front of the
+        // home camera, offset left and up in its frame, turned to face it. Steer the camera away
+        // and it stays put; Home brings it back to the corner
+        (_boardCentre, _boardRight, _boardUp) = PlaceBoard();
         BuildBoard();
     }
 
@@ -117,34 +158,34 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     /// </summary>
     public Action<TStation>? Prepare { get; set; }
 
-    /// <summary>Sends the visitor home: in front of the index board, the ring all around.</summary>
+    /// <summary>Sends the visitor home: above and outside the ring, every station in view, the index board in the top-left corner. From there, next and previous both go to the first station.</summary>
     /// <param name="instant">Put the camera there at once, rather than flying it.</param>
     public void GoHome(bool instant = false)
     {
         _destination = Current;
-        // Further back and higher for a long registry, so the whole board fits the view
-        var extra = MathF.Max(0f, BoardSize.Y - 12f);
-
-        _camera.FlyTo(new Vector3(0f, 6.2f + extra * 0.4f, 22f + extra * 1.6f), Quaternion.RotationYawPitchRoll(0f, MathUtil.DegreesToRadians(-4f), 0f), instant);
+        _atHome = true;
+        _camera.FlyTo(HomePosition, HomeRotation, instant, HomeFlightSeconds, Radius * HomeFlightLift, Vector3.Zero);
     }
+
+    private Vector3 HomePosition => new(0f, Radius * HomeHeight, Radius * HomeDistance);
+
+    private static Quaternion HomeRotation => Quaternion.RotationYawPitchRoll(0f, MathUtil.DegreesToRadians(HomePitchDegrees), 0f);
 
     /// <summary>Sends the visitor to a station: a little way towards the centre from its pad, looking at it.</summary>
     /// <param name="index">The station, counted from 0 and wrapped, so one past the last is the first.</param>
     /// <param name="instant">Put the camera there at once, rather than flying it.</param>
     public void GoTo(int index, bool instant = false)
     {
+        // From home there is no station to count from: the first, whichever way the visitor turns
+        if (_atHome) index = 0;
+        _atHome = false;
+
         _destination = (index % _stations.Count + _stations.Count) % _stations.Count;
 
         var station = _stations[_destination];
         var eye = station.At(0f, 4.5f, 13f);
         var target = station.At(0f, 1.6f, -1f);
-        var direction = Vector3.Normalize(target - eye);
-
-        // A camera looks down its -Z; yaw turns that towards -X, pitch lifts it
-        var yaw = MathF.Atan2(-direction.X, -direction.Z);
-        var pitch = MathF.Asin(direction.Y);
-
-        _camera.FlyTo(eye, Quaternion.RotationYawPitchRoll(yaw, pitch, 0f), instant);
+        _camera.FlyTo(eye, GalleryCamera.LookRotation(target - eye), instant);
     }
 
     /// <summary>
@@ -159,6 +200,10 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
 
         var seconds = (float)time.Total.TotalSeconds;
         var camera = _game.GetCameraEntity().Transform.Position;
+
+        // Steered off the home spot - by more than a nudge, so a settled flight still counts as home -
+        // and next and previous count from the nearest station again
+        if (_atHome && !Flying && Vector3.DistanceSquared(camera, HomePosition) > 0.25f) _atHome = false;
 
         Current = NearestStation(camera);
 
@@ -246,6 +291,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         {
             Text = $"{station.Number}",
             FontSize = 20,
+            Font = _labelFont,
             TextColor = Color.White,
             Anchor = TextAnchor.MiddleLeft,
             Offset = new Vector2(10f, 0f),
@@ -299,18 +345,51 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
             TextColor = new Color(130, 205, 255),
             GlowColor = new Color(0, 140, 255, 120),
             GlowSize = 3f,
-            Anchor = TextAnchor.TopCenter,
+            Anchor = TextAnchor.TopLeft,
             Alignment = TextAlignment.Left,
             Billboard = false,
         };
 
-        var entity = new Entity("Index board") { Transform = { Position = BoardCentre + Vector3.UnitY * (BoardSize.Y * 0.5f - 0.5f) + Vector3.UnitZ * 0.01f } };
+        // Hung from the top-left of the frame, inset like the corner brackets, a hair in front, in the board's own plane
+        var towardsCamera = Vector3.Cross(_boardRight, _boardUp);
+        var entity = new Entity("Index board")
+        {
+            Transform =
+            {
+                Position = _boardCentre - _boardRight * (BoardSize.X * 0.5f - BoardInset) + _boardUp * (BoardSize.Y * 0.5f - 0.5f) + towardsCamera * 0.01f,
+                Rotation = HomeRotation,
+            },
+        };
 
         entity.Add(board);
         entity.Scene = _scene;
     }
 
-    private Vector2 BoardSize => new(11f, MathF.Max(4f, _stations.Count * LineHeight + 1f));
+    private Vector2 BoardSize => new(BoardWidth, MathF.Max(4f, _stations.Count * LineHeight + 1f));
+
+    /// <summary>
+    /// Where the board hangs: the home camera's frame, far enough in front that the board takes
+    /// <see cref="BoardShare"/> of the view's height, then across to the view's top-left corner.
+    /// </summary>
+    private (Vector3 Centre, Vector3 Right, Vector3 Up) PlaceBoard()
+    {
+        var rotation = HomeRotation;
+        var right = Vector3.Transform(Vector3.UnitX, rotation);
+        var up = Vector3.Transform(Vector3.UnitY, rotation);
+        var forward = Vector3.Transform(-Vector3.UnitZ, rotation);
+
+        var halfTan = MathF.Tan(MathUtil.DegreesToRadians(ViewFovDegrees) * 0.5f);
+        var distance = BoardSize.Y / (2f * halfTan * BoardShare);
+        var viewHalf = new Vector2(distance * halfTan * ViewAspect, distance * halfTan);
+        var half = BoardSize * 0.5f;
+
+        var centre = HomePosition
+            + forward * distance
+            + right * (-viewHalf.X + BoardMargin + half.X)
+            + up * (viewHalf.Y - BoardMargin - half.Y);
+
+        return (centre, right, up);
+    }
 
     private void DrawBoardFrame()
     {
@@ -320,18 +399,18 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         shapes.Fill.Set(new Color(4, 14, 30), 0.8f);
         shapes.BorderWidth = 1.5f;
         shapes.Glow.Set(7f, new Color(0, 150, 255, 160));
-        shapes.DrawRectangle(BoardCentre, Vector3.UnitX, Vector3.UnitY, BoardSize, hudBlue, cornerRadius: 0.35f);
+        shapes.DrawRectangle(_boardCentre, _boardRight, _boardUp, BoardSize, hudBlue, cornerRadius: 0.35f);
         shapes.Glow.Clear();
 
-        // A title above the board, and its corner brackets, the HUD cliche
+        // The corner brackets, the HUD cliche
         var half = BoardSize * 0.5f;
-        var topLeft = BoardCentre + new Vector3(-half.X + 0.3f, half.Y - 0.3f, 0f);
-        var bottomRight = BoardCentre + new Vector3(half.X - 0.3f, -half.Y + 0.3f, 0f);
+        var topLeft = _boardCentre - _boardRight * (half.X - BoardInset) + _boardUp * (half.Y - BoardInset);
+        var bottomRight = _boardCentre + _boardRight * (half.X - BoardInset) - _boardUp * (half.Y - BoardInset);
 
-        shapes.DrawPixelLine(topLeft, topLeft + Vector3.UnitX * 0.8f, 1.5f, hudBlue);
-        shapes.DrawPixelLine(topLeft, topLeft - Vector3.UnitY * 0.5f, 1.5f, hudBlue);
-        shapes.DrawPixelLine(bottomRight, bottomRight - Vector3.UnitX * 0.8f, 1.5f, hudBlue);
-        shapes.DrawPixelLine(bottomRight, bottomRight + Vector3.UnitY * 0.5f, 1.5f, hudBlue);
+        shapes.DrawPixelLine(topLeft, topLeft + _boardRight * 0.8f, 1.5f, hudBlue);
+        shapes.DrawPixelLine(topLeft, topLeft - _boardUp * 0.5f, 1.5f, hudBlue);
+        shapes.DrawPixelLine(bottomRight, bottomRight - _boardRight * 0.8f, 1.5f, hudBlue);
+        shapes.DrawPixelLine(bottomRight, bottomRight + _boardUp * 0.5f, 1.5f, hudBlue);
 
         shapes.Fill.Set(null, 0.45f);
         shapes.BorderWidth = 3f;
