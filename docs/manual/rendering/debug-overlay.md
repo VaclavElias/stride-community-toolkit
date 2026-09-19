@@ -42,9 +42,19 @@ A section can collapse to a single title line and expand again on a key:
 overlay.AddCollapsibleSection("Physics", "Physics", Keys.F5, () => [ ... ], collapsed: true);
 ```
 
-That is how `[+] [F2] Camera controls` works: the marker first so every dropdown lines up, the key in brackets, and the body indented one marker so its own `[Key]` lines sit under the title's key. `AddSection` returns the `DebugOverlaySection`, so a
+That is how `[+] [F2] Camera controls` works: the marker first so every dropdown lines up, then the key, decorated the same way the section's own key lines are, and the body indented one marker so its keys sit under the title's. `AddSection` returns the `DebugOverlaySection`, so a
+
+Keys are data, not text. A help line names them - `new("H", "Reset camera", Color.Gold)`, or
+`new(["Q", "E"], "Ascend / descend")` for keys that do the same thing, or `new("Arrow keys", "Move")` -
+and the overlay decorates them when it draws: each key through `KeyFormat` (default `[{0}]`), joined by
+`KeySeparator`, in `KeyColor`, which defaults to the line's colour blended halfway to white so the keys
+and the `[+]` marker read a shade apart from what they do. Restyling every help line in every example,
+from `[F2]` to `F2:`, is then one property: `overlay.KeyFormat = "{0}:"`. A line with no keys is drawn
+as it always was.
 
 `BlockBounds` is the rectangle the block was last drawn in, in screen pixels. A scene laid out in world units can read it to keep something clear of the help - the easing sheet places its big panel under the block each frame, as tall as the space left, instead of guessing how many pixels twelve lines are on a scaled display.
+
+Sections are separated by one blank line; `SectionGap` changes how many, and `0` runs them together.
 section can be disabled, collapsed or removed later.
 
 > [!TIP]

@@ -15,8 +15,14 @@
   items:
   - name: Create Project
     href: code-only/create-project.md
+    items:
+    - name: Engine Only
+      href: code-only/create-project-engine-only.md
   - name: Create File-Based App
     href: code-only/create-file-based-app.md
+    items:
+    - name: Engine Only
+      href: code-only/create-file-based-app-engine-only.md
   - name: Extensions
     href: code-only/extensions.md
 - name: Code-Only Examples (87)
