@@ -66,6 +66,13 @@ public sealed class Tween
     /// Whether a non-looping tween has reached its end. A looping tween never completes; stop it
     /// with <see cref="Stop"/>.
     /// </summary>
+    /// <remarks>
+    /// Stays set until <see cref="Start"/> or <see cref="Reset"/>. Code that writes a transform from the
+    /// tween every frame it reports running or complete keeps writing the end pose for ever, which pins
+    /// the object there against anything else that moves it, such as a camera controller. Write the end
+    /// pose once on the frame it completes and then <see cref="Reset"/>, or drive only while
+    /// <see cref="IsRunning"/> and let the last update land it.
+    /// </remarks>
     public bool IsComplete { get; private set; }
 
     /// <summary>The normalised time in [0, 1], before easing: where the run is, with ping-pong folded back.</summary>
