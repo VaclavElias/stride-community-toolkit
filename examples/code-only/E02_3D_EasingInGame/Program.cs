@@ -272,11 +272,11 @@ void LookFrom(Vector3 eye)
 
 IReadOnlyList<TextElement> BuildOverlayLines() =>
 [
-    new("L - pause and resume the lift", Color.Gold),
-    new("O - open and close the door", Color.Gold),
-    new("P - pop the crystals in again", Color.Gold),
-    new("V - fly to the other viewpoint", Color.Gold),
-    new("R - drop the bodies back onto the platform", Color.Gold),
+    new("[L] Pause and resume the lift", Color.Gold),
+    new("[O] Open and close the door", Color.Gold),
+    new("[P] Pop the crystals in again", Color.Gold),
+    new("[V] Fly to the other viewpoint", Color.Gold),
+    new("[R] Drop the bodies back onto the platform", Color.Gold),
     new(""),
     new($"Lift {(lift.IsRunning ? "running" : "paused")}, sine in-out ping-pong at {lift.Progress:0.00}", Color.LightGreen),
     new($"Door {(doorOpen ? "opening" : "closing")} on a cubic in-out", Color.LightGreen),

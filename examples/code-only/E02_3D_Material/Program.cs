@@ -1,7 +1,6 @@
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -151,8 +150,6 @@ void InitializeDebugOverlay()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     // The callback runs every frame the overlay is drawn, so the live light intensity appears without
     // anything having to push it
     instructions = overlay.AddSection("Game", () => GenerateInstructions(skyBoxLightIntensity));
@@ -160,10 +157,10 @@ void InitializeDebugOverlay()
 
 static List<TextElement> GenerateInstructions(float skyBoxLightIntensity)
     => [
-            new("GAME INSTRUCTIONS"),
-            //new("Click the golden sphere and drag to move it (Y-axis locked)"),
-            new("Hold Z to decrease, X to increase Skybox light intensity", Color.Yellow),
-            new($"Intensity: {skyBoxLightIntensity}", Color.Yellow),
+            new("[Z] Dim the skybox light", Color.Gold),
+            new("[X] Brighten the skybox light", Color.Gold),
+            new(""),
+            new($"Skybox light intensity: {skyBoxLightIntensity:0.00}", Color.LightGreen),
         ];
 
 /*

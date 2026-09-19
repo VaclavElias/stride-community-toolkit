@@ -1,7 +1,6 @@
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -105,14 +104,11 @@ void InitializeDebugOverlay()
     // needs to be called every frame
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     instructions = overlay.AddSection("Game", static () =>
     [
-        new("INSTRUCTIONS"),
-        new("Press P to see collidables"),
-        new("Press F11 to see debug meshes"),
-        new("Press R to reset the scene", Color.Yellow),
+        new("[P] Show or hide the collidable gizmos", Color.Gold),
+        new("[F11] Show or hide the debug meshes", Color.Gold),
+        new("[R] Reset the scene", Color.Gold),
     ]);
 }
 /*

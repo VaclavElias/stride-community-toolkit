@@ -129,11 +129,11 @@ void Start(Scene rootScene)
 
     DebugOverlay.GetOrCreate(game).AddSection("Easing", () =>
     [
-        new("C - pop the next coin in", Color.Gold),
-        new("Space - collect every coin on screen", Color.Gold),
-        new("X - shake the camera", Color.Gold),
-        new("L - pause and resume the lift", Color.Gold),
-        new("R - drop the boxes back onto the lift", Color.Gold),
+        new("[C] Pop the next coin in", Color.Gold),
+        new("[Space] Collect every coin on screen", Color.Gold),
+        new("[X] Shake the camera", Color.Gold),
+        new("[L] Pause and resume the lift", Color.Gold),
+        new("[R] Drop the boxes back onto the lift", Color.Gold),
         new(""),
         new($"Score {score}", Color.LightGreen),
         new($"Lift {(lift.IsRunning ? "running" : "paused")}, sine in-out ping-pong at {lift.Progress:0.00}", Color.LightGreen),
