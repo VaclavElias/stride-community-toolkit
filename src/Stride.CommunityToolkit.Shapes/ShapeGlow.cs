@@ -38,6 +38,14 @@ public sealed class ShapeGlow
     public Color? Color { get; set; }
 
     /// <summary>
+    /// How strong the glow is at the outline, 0 to 1, on top of the colour's own alpha. The default
+    /// 1 leaves the colour as it is. It is the knob for a glow in the outline colour, where there is
+    /// no colour of your own to give an alpha to: <c>Strength = 0.35f</c> with <see cref="Color"/>
+    /// left <c>null</c> is the neon look in every shape's own colour.
+    /// </summary>
+    public float Strength { get; set; } = 1f;
+
+    /// <summary>
     /// Whether the glow adds its light to whatever is behind it rather than covering it. Off by
     /// default: a glow then behaves like a soft, translucent halo that can darken as well as
     /// lighten. On, it is a neon bloom that only ever brightens - a black glow adds nothing.
@@ -53,13 +61,19 @@ public sealed class ShapeGlow
         Color = color;
     }
 
-    /// <summary>No glow, back to the outline colour, and not additive.</summary>
+    /// <summary>No glow, back to the outline colour at full strength, and not additive.</summary>
     public void Clear()
     {
         Set(0f);
+        Strength = 1f;
         Additive = false;
     }
 
-    /// <summary>The glow as a draw call captures it, the colour resolved against the outline colour.</summary>
-    internal GlowStyle Capture(Color outline) => new(Width, Color ?? outline, Additive);
+    /// <summary>The glow as a draw call captures it: the colour resolved against the outline colour, its alpha scaled by <see cref="Strength"/>.</summary>
+    internal GlowStyle Capture(Color outline)
+    {
+        var color = Color ?? outline;
+        if (Strength < 1f) color.A = (byte)MathUtil.Clamp(MathF.Round(color.A * MathF.Max(Strength, 0f)), 0f, 255f);
+        return new(Width, color, Additive);
+    }
 }
