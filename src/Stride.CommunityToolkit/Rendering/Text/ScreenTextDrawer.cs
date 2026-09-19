@@ -75,22 +75,7 @@ internal static class ScreenTextDrawer
 
         if (style.EnableBackground && backgroundTexture is not null)
         {
-            var scaledSize = textSize * scale;
-            var topLeft = position - origin * scale - style.Padding;
-
-            var background = new RectangleF(
-                topLeft.X,
-                topLeft.Y,
-                scaledSize.X + style.Padding.X * 2,
-                scaledSize.Y + style.Padding.Y * 2);
-
-            var colour = style.BackgroundColor;
-
-            colour.A *= opacity;
-
-            // The rectangle stays axis-aligned and does not turn with Rotation. Rotated text with a
-            // background is rare enough that the limitation is worth stating rather than working around.
-            spriteBatch.Draw(backgroundTexture, background, colour);
+            DrawBackground(spriteBatch, backgroundTexture, position, textSize, style);
         }
 
         if (style.EnableShadow)
@@ -126,6 +111,44 @@ internal static class ScreenTextDrawer
     /// <summary>
     /// Maps an anchor to the fraction of the text's width and height sitting before the anchor point.
     /// </summary>
+    /// <summary>
+    /// Draws only the background strip a text of <paramref name="textSize"/> at <paramref name="position"/>
+    /// would get, for a caller that then draws the text itself in more than one run or colour.
+    /// </summary>
+    /// <param name="spriteBatch">The sprite batch to draw with, already begun.</param>
+    /// <param name="backgroundTexture">A one-pixel texture, tinted to the background colour.</param>
+    /// <param name="position">Where the text is drawn, in pixels.</param>
+    /// <param name="textSize">The measured size of the whole text, before <see cref="ScreenTextStyle.Scale"/>.</param>
+    /// <param name="style">How the text is drawn; the padding, background colour, anchor and opacity are used.</param>
+    internal static void DrawBackground(
+        SpriteBatch spriteBatch,
+        Texture backgroundTexture,
+        Vector2 position,
+        Vector2 textSize,
+        in ScreenTextStyle style)
+    {
+        var opacity = MathUtil.Clamp(style.Opacity, 0f, 1f);
+        var scale = new Vector2(style.Scale);
+        var anchorFactor = GetAnchorFactor(style.Anchor);
+        var origin = new Vector2(textSize.X * anchorFactor.X, textSize.Y * anchorFactor.Y);
+        var scaledSize = textSize * scale;
+        var topLeft = position - origin * scale - style.Padding;
+
+        var background = new RectangleF(
+            topLeft.X,
+            topLeft.Y,
+            scaledSize.X + style.Padding.X * 2,
+            scaledSize.Y + style.Padding.Y * 2);
+
+        var colour = style.BackgroundColor;
+
+        colour.A *= opacity;
+
+        // The rectangle stays axis-aligned and does not turn with Rotation. Rotated text with a
+        // background is rare enough that the limitation is worth stating rather than working around.
+        spriteBatch.Draw(backgroundTexture, background, colour);
+    }
+
     internal static Vector2 GetAnchorFactor(TextAnchor anchor) => anchor switch
     {
         TextAnchor.TopLeft => new Vector2(0f, 0f),

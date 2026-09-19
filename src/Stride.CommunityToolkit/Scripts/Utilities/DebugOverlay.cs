@@ -29,7 +29,7 @@ namespace Stride.CommunityToolkit.Scripts.Utilities;
 /// overlay.AddSection("Stress pile", () =>
 /// [
 ///     new($"{bodies.Count:N0} bodies", Color.LightGreen),
-///     new("[Space] Spawn more", Color.Yellow),
+///     new("Space", "Spawn more", Color.Yellow),
 /// ]);
 /// </code>
 /// </example>
@@ -128,6 +128,10 @@ public sealed class DebugOverlay : GameSystemBase
     {
         Enabled = true;
         Visible = true;
+
+        // Help goes over everything drawn in the frame, the immediate debug shapes included (they draw
+        // at 0xffffff); only the screenshot capture, at int.MaxValue, comes after, so it sees the text
+        DrawOrder = int.MaxValue - 1;
     }
 
     /// <summary>
@@ -166,6 +170,9 @@ public sealed class DebugOverlay : GameSystemBase
     /// </summary>
     public float LineSpacing { get; set; } = 2f;
 
+    /// <summary>Gets or sets how many blank lines separate one section from the next - the empty line under the camera controls, for one. Defaults to 1; <c>0</c> runs a section straight on from the one above it.</summary>
+    public int SectionGap { get; set; } = 1;
+
     /// <summary>
     /// Gets or sets how far the text is shifted inside its background strip, in screen pixels, positive downwards. Defaults to <c>-1</c>: a font's line gap sits above its ascender, so glyphs land about a pixel low in a strip sized from the line height, and one pixel up centres them. Not multiplied by the scale: the imbalance stays close to one pixel at the sizes the overlay is drawn at.
     /// </summary>
@@ -187,6 +194,23 @@ public sealed class DebugOverlay : GameSystemBase
     /// <summary>Gets or sets the marker shown on an expanded section's title line.</summary>
     public string ExpandedMarker { get; set; } = "[-]";
 
+    /// <summary>
+    /// Gets or sets how a key named by a <see cref="TextElement"/> is decorated when drawn: a composite format
+    /// with the key at <c>{0}</c>. Defaults to <c>[{0}]</c>, so <c>H</c> reads <c>[H]</c>; <c>{0}:</c> reads
+    /// <c>H:</c>. One place to restyle every help line in every example.
+    /// </summary>
+    public string KeyFormat { get; set; } = "[{0}]";
+
+    /// <summary>Gets or sets what separates the keys of a line that names several, as in <c>[Q] [E]</c>. Defaults to one space.</summary>
+    public string KeySeparator { get; set; } = " ";
+
+    /// <summary>
+    /// Gets or sets the colour of markers and keys. <see langword="null"/>, the default, draws them in the
+    /// line's own colour blended halfway to white, so they stand a shade apart from the text without leaving
+    /// its palette.
+    /// </summary>
+    public Color? KeyColor { get; set; }
+
     /// <summary>Gets or sets the colour used for section title lines.</summary>
     public Color? TitleColor { get; set; }
 
@@ -200,6 +224,30 @@ public sealed class DebugOverlay : GameSystemBase
 
     /// <summary>Gets the sections currently registered, in insertion order.</summary>
     public IReadOnlyList<DebugOverlaySection> Sections => _sections;
+
+    /// <summary>
+    /// Decorates keys the way this overlay draws them: each through <see cref="KeyFormat"/>, joined by
+    /// <see cref="KeySeparator"/>. <c>["Q", "E"]</c> gives <c>[Q] [E]</c> with the defaults.
+    /// </summary>
+    /// <param name="keys">The keys, in order.</param>
+    /// <returns>The decorated keys, or an empty string for none.</returns>
+    public string FormatKeys(IReadOnlyList<string> keys)
+    {
+        ArgumentNullException.ThrowIfNull(keys);
+
+        return string.Join(KeySeparator, keys.Select(key => string.Format(KeyFormat, key)));
+    }
+
+    /// <summary>What is drawn before a line's text, in the key colour: its marker, then its decorated keys, then a space.</summary>
+    private string Prefix(TextElement line)
+    {
+        var parts = new List<string>(2);
+
+        if (!string.IsNullOrEmpty(line.Marker)) parts.Add(line.Marker);
+        if (line.Keys is { Count: > 0 } keys) parts.Add(FormatKeys(keys));
+
+        return parts.Count == 0 ? string.Empty : string.Join(" ", parts) + (line.Text.Length > 0 ? " " : string.Empty);
+    }
 
     /// <summary>
     /// Returns the overlay registered with the game, creating and registering one if there is none.
@@ -347,7 +395,7 @@ public sealed class DebugOverlay : GameSystemBase
 
         if (graphicsContext is null || backBuffer is null || content is null) return;
 
-        var lines = CollectLines(out var indented);
+        var lines = CollectLines();
 
         if (lines.Count == 0) return;
 
@@ -366,6 +414,7 @@ public sealed class DebugOverlay : GameSystemBase
         // Measured rather than declared, so a section appearing or a dropdown expanding keeps the block
         // anchored to its corner instead of running off the edge
         var sizes = new Vector2[lines.Count];
+        var prefixes = new string[lines.Count];
         var blockWidth = 0f;
 
         // Lines under a collapsible title start one marker in, so their keys sit under the title's key
@@ -373,15 +422,19 @@ public sealed class DebugOverlay : GameSystemBase
 
         for (var i = 0; i < lines.Count; i++)
         {
-            if (lines[i].Text.Length == 0) continue;
+            prefixes[i] = Prefix(lines[i]);
+
+            var text = prefixes[i] + lines[i].Text;
+
+            if (text.Length == 0) continue;
 
             // Whole pixels: a strip 18.7 pixels tall would end on a half pixel, and which row that half
             // pixel fills depends on where the block is anchored, so the gap under the text would
             // differ by a pixel between a top and a bottom corner
-            var measured = font.MeasureString(lines[i].Text, fontSize);
+            var measured = font.MeasureString(text, fontSize);
 
             sizes[i] = new Vector2(MathF.Ceiling(measured.X), MathF.Ceiling(measured.Y));
-            blockWidth = Math.Max(blockWidth, sizes[i].X + (indented[i] ? indentWidth : 0f));
+            blockWidth = Math.Max(blockWidth, sizes[i].X + (lines[i].Indented ? indentWidth : 0f));
         }
 
         // A live value gaining or losing a digit would otherwise move a right-anchored block every frame
@@ -428,27 +481,41 @@ public sealed class DebugOverlay : GameSystemBase
         for (var i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
+            var prefix = prefixes[i];
 
             // Blank entries exist to space sections apart; drawing them would be wasted work
-            if (line.Text.Length > 0)
+            if (prefix.Length + line.Text.Length > 0)
             {
+                var colour = line.Color ?? DefaultTextColor;
+                var position = new Vector2(left + (line.Indented ? indentWidth : 0f), y);
+
                 var style = new ScreenTextStyle
                 {
                     Font = font,
                     FontSize = fontSize,
-                    Color = line.Color ?? DefaultTextColor,
+                    Color = colour,
                     Anchor = TextAnchor.TopLeft,
                     Scale = 1f,
                     Opacity = 1f,
-                    EnableBackground = drawBackground,
+                    EnableBackground = false,
                     BackgroundColor = backgroundColor,
                     Padding = padding,
                     TextOffset = new Vector2(0f, MathF.Round(TextNudge)),
                 };
 
-                var x = left + (indented[i] ? indentWidth : 0f);
+                // One strip under the whole line, then the text in up to two runs: the marker and keys in
+                // the key colour, and what they do in the line's own, starting where the keys end
+                if (drawBackground) ScreenTextDrawer.DrawBackground(_spriteBatch, _background, position, sizes[i], style);
 
-                ScreenTextDrawer.Draw(_spriteBatch, _background, line.Text, new Vector2(x, y), sizes[i], style);
+                if (prefix.Length > 0)
+                {
+                    var keyColour = KeyColor ?? Color.Lerp(colour, Color.White, 0.5f);
+
+                    ScreenTextDrawer.Draw(_spriteBatch, null, prefix, position, sizes[i], style with { Color = keyColour });
+                    position.X += MathF.Round(font.MeasureString(prefix, fontSize).X);
+                }
+
+                if (line.Text.Length > 0) ScreenTextDrawer.Draw(_spriteBatch, null, line.Text, position, sizes[i], style);
             }
 
             y += linePitch;
@@ -480,11 +547,10 @@ public sealed class DebugOverlay : GameSystemBase
         }
     }
 
-    /// <summary>The lines to draw, top down, with a flag per line saying whether it sits under a collapsible title and is indented past its marker.</summary>
-    private List<TextElement> CollectLines(out List<bool> indented)
+    /// <summary>The lines to draw, top down: section titles built, and the body of a collapsible section marked indented.</summary>
+    private List<TextElement> CollectLines()
     {
         var lines = new List<TextElement>();
-        indented = [];
 
         foreach (var section in _sections.OrderBy(section => section.Order))
         {
@@ -500,28 +566,28 @@ public sealed class DebugOverlay : GameSystemBase
 
             if (lines.Count > 0)
             {
-                lines.Add(new(string.Empty));
-                indented.Add(false);
+                for (var gap = 0; gap < SectionGap; gap++) lines.Add(new(string.Empty));
             }
 
             if (collapsible)
             {
-                var marker = section.Collapsed ? CollapsedMarker : ExpandedMarker;
-
-                // "[+] [F2] Camera controls": the marker first, so every dropdown lines up, then the key in
-                // the same brackets the section's own key lines use
-                lines.Add(new($"{marker} [{KeyNames.Describe(section.ToggleKey!.Value)}] {section.Title}", TitleColor));
-                indented.Add(false);
+                // "[+] [F2] Camera controls": the marker first, so every dropdown lines up, then the key,
+                // decorated like the section's own key lines
+                lines.Add(new(KeyNames.Describe(section.ToggleKey!.Value), section.Title!, TitleColor)
+                {
+                    Marker = section.Collapsed ? CollapsedMarker : ExpandedMarker,
+                });
             }
             else if (!string.IsNullOrEmpty(section.Title))
             {
                 lines.Add(new(section.Title, TitleColor));
-                indented.Add(false);
             }
 
             // Under a "[+] [F2]" title the body starts where the key does, one marker in
-            lines.AddRange(sectionLines);
-            indented.AddRange(Enumerable.Repeat(collapsible, sectionLines.Count));
+            foreach (var line in sectionLines)
+            {
+                lines.Add(collapsible && !line.Indented ? line with { Indented = true } : line);
+            }
         }
 
         return lines;

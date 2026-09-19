@@ -138,15 +138,15 @@ public class Basic3DCameraController : SyncScript
                 [
                     // Keys first, one per line, each in the brackets the title uses, then the live
                     // values with two fixed decimals so they stop changing width as the camera flies
-                    new("[F3] Reposition help", Color.LightGoldenrodYellow),
-                    new("[F4] Hide help", Color.LightGoldenrodYellow),
-                    new("[H]  Reset camera", Color.LightGreen),
-                    new("[W A S D] Move", Color.LightGreen),
-                    new("[Arrow keys] Move", Color.LightGreen),
-                    new("[Q] [E] Ascend / descend", Color.LightGreen),
-                    new("[Numpad 2 4 6 8] Rotate", Color.LightGreen),
-                    new("[Shift] Hold to move faster", Color.LightGreen),
-                    new("[Right drag] Rotate", Color.LightGreen),
+                    new("F3", "Reposition help", Color.LightGoldenrodYellow),
+                    new("F4", "Hide help", Color.LightGoldenrodYellow),
+                    new("H", "Reset camera", Color.LightGreen),
+                    new("W A S D", "Move", Color.LightGreen),
+                    new("Arrow keys", "Move", Color.LightGreen),
+                    new(["Q", "E"], "Ascend / descend", Color.LightGreen),
+                    new("Numpad 2 4 6 8", "Rotate", Color.LightGreen),
+                    new("Shift", "Hold to move faster", Color.LightGreen),
+                    new("Right drag", "Rotate", Color.LightGreen),
                     new($"Position: {position.X:0.00}, {position.Y:0.00}, {position.Z:0.00}", Color.Yellow),
                     new($"Rotation (YPR): {MathUtil.RadiansToDegrees(rotation.X):0.00}, {MathUtil.RadiansToDegrees(rotation.Y):0.00}, {MathUtil.RadiansToDegrees(rotation.Z):0.00}", Color.Yellow),
                 ];

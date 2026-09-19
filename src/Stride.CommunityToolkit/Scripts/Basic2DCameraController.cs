@@ -260,20 +260,20 @@ public class Basic2DCameraController : SyncScript
                 // Keys first, one per line, each in the brackets the title uses, then the live values
                 var lines = new List<TextElement>
                 {
-                    new("[F3] Reposition help", Color.LightGoldenrodYellow),
-                    new("[F4] Hide help", Color.LightGoldenrodYellow),
-                    new("[H]  Reset camera"),
+                    new("F3", "Reposition help", Color.LightGoldenrodYellow),
+                    new("F4", "Hide help", Color.LightGoldenrodYellow),
+                    new("H", "Reset camera"),
                 };
 
                 if (EnableWasdMovement)
-                    lines.Add(new("[W A S D] Move"));
+                    lines.Add(new("W A S D", "Move"));
 
-                lines.Add(new("[Arrow keys] Move"));
-                lines.Add(new("[Shift] Hold to move faster"));
-                lines.Add(new("[Mouse wheel] Zoom"));
+                lines.Add(new("Arrow keys", "Move"));
+                lines.Add(new("Shift", "Hold to move faster"));
+                lines.Add(new("Mouse wheel", "Zoom"));
 
                 if (EnableMouseDragPan)
-                    lines.Add(new($"[{MouseDragButton} drag] Pan"));
+                    lines.Add(new($"{MouseDragButton} drag", "Pan"));
 
                 // Live state, matching the 3D controller's help: where the camera is and how much of
                 // the world is visible (OrthographicSize is the view height in world units). Two fixed
