@@ -3,6 +3,7 @@ using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Instancing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -88,6 +89,7 @@ void Start(Scene rootScene)
     game.Add3DGround(new() { Size = new Vector3(300, 1, 300) });
     game.AddSkybox();
     game.AddProfiler();
+    DebugOverlay.GetOrCreate(game).AddSection("Instancing", OverlayLines);
 
     // Without this nothing instanced is drawn, and nothing warns you: the code-built compositor
     // wires up transform, skinning, material and lighting, but not instancing
@@ -311,7 +313,6 @@ Entity CreatePhysicsItem(string name)
 void Update(Scene rootScene, GameTime time)
 {
     HandleInput();
-    DrawOverlay();
 }
 
 void HandleInput()
@@ -330,13 +331,8 @@ void HandleInput()
     if (game.Input.IsKeyPressed(Keys.X)) ClearItems();
 }
 
-void DrawOverlay()
+IReadOnlyList<TextElement> OverlayLines()
 {
-    var line = 0;
-
-    void Print(string text, Color? color = null)
-        => game.DebugTextSystem.Print(text, new Int2(6, 60 + line++ * 18), color ?? Color.White);
-
     // Read straight from the masters: these are the numbers the renderer actually uses
     var stockType = stockMaster?.Type as TimedInstancingEntityTransform;
 
@@ -350,31 +346,27 @@ void DrawOverlay()
 
     var uploadStatus = bufferedInstancing?.UploadSkippedLastFrame == true ? "skipped" : "uploading";
 
-    Print($"1 STOCK    {stockItems.Count,6} bodies -> 1 draw call   update {stockType?.LastUpdateMilliseconds:0.00} ms, uploads every frame",
-        stockItems.Count > 0 ? Color.LightGreen : Color.Gray);
-
-    Print($"3 TOOLKIT  {toolkitItems.Count,6} bodies -> 1 draw call   update {toolkitStatus}, uploads every frame",
-        toolkitItems.Count > 0 ? Color.Cyan : Color.Gray);
-
-    Print($"4 BUFFERED {bufferedItems.Count,6} bodies -> 1 draw call   update {bufferedStatus}, upload {uploadStatus}",
-        bufferedItems.Count > 0 ? Color.Magenta : Color.Gray);
-
-    Print($"2 PLAIN    {plainItems.Count,6} bodies -> {plainItems.Count} draw calls",
-        plainItems.Count > 0 ? Color.Orange : Color.Gray);
-
-    Print("");
-    Print($"1 stock   2 plain   3 toolkit   4 buffered   X remove all   (SHIFT = {ItemsPerDrop * 10} per drop)", Color.Yellow);
-    Print("");
-    Print($"Shape: {modelType} - change modelType at the top of Program.cs to drop something else.");
-    Print("");
-    Print("Drop one kind at a time and let the pile come to rest. The frame");
-    Print("counter is a rolling average, so give it a second to settle.");
-    Print("");
-    Print("Kinds 3 and 4 stop working entirely once Bepu puts every body to");
-    Print("sleep - watch their update cost fall to zero as the pile rests,");
-    Print("while kind 1 keeps paying the same price for a scene that is not");
-    Print("moving. Kind 4 stops uploading to the GPU as well.");
-    Print("See notes/plans/instancing-entity-transform.md for how far this was taken.");
+    return
+    [
+        new("1", $"Stock: {stockItems.Count:N0} bodies, 1 draw call", stockItems.Count > 0 ? Color.LightGreen : Color.Gray),
+        new("2", $"Plain: {plainItems.Count:N0} bodies, {plainItems.Count:N0} draw calls", plainItems.Count > 0 ? Color.Orange : Color.Gray),
+        new("3", $"Toolkit: {toolkitItems.Count:N0} bodies, 1 draw call", toolkitItems.Count > 0 ? Color.Cyan : Color.Gray),
+        new("4", $"Buffered: {bufferedItems.Count:N0} bodies, 1 draw call", bufferedItems.Count > 0 ? Color.Magenta : Color.Gray),
+        new("X", "Remove all", Color.Yellow),
+        new("Shift", $"Hold for {ItemsPerDrop * 10} per drop", Color.Yellow),
+        new(""),
+        new($"Stock update {stockType?.LastUpdateMilliseconds:0.00} ms, uploads every frame", Color.LightGreen),
+        new($"Toolkit update {toolkitStatus}, uploads every frame", Color.Cyan),
+        new($"Buffered update {bufferedStatus}, upload {uploadStatus}", Color.Magenta),
+        new($"Shape: {modelType}, set modelType at the top of Program.cs", Color.LightGray),
+        new("Drop one kind at a time and let the pile come to rest.", Color.LightGray),
+        new("The frame counter is a rolling average; give it a second.", Color.LightGray),
+        new("Kinds 3 and 4 stop working once Bepu sleeps every body:", Color.LightGray),
+        new("their update cost falls to zero as the pile rests, while", Color.LightGray),
+        new("kind 1 keeps paying for a scene that is not moving.", Color.LightGray),
+        new("Kind 4 stops uploading to the GPU as well.", Color.LightGray),
+        new("See notes/plans/instancing-entity-transform.md", Color.LightGray),
+    ];
 }
 
 /*

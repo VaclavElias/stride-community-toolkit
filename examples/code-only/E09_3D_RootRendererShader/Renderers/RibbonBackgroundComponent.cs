@@ -7,7 +7,7 @@ using Stride.Rendering;
 
 namespace E09_3D_RootRendererShader.Renderers;
 
-[DataContract("RibbonBackgroundComponent")]
+[DataContract(nameof(RibbonBackgroundComponent))]
 [ComponentCategory("Xmb")]
 [Display("Ribbon Background", Expand = ExpandRule.Once)]
 [DefaultEntityComponentRenderer(typeof(RibbonBackgroundRenderProcessor))]

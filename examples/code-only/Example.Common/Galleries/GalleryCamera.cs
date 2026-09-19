@@ -20,7 +20,7 @@ public sealed class GalleryCamera(Game game)
 {
     /// <summary>How long a flight from one pose to another takes, in seconds.</summary>
     /// <summary>How long a flight between stations takes; a flight home may ask for longer.</summary>
-    public const float FlightDuration = 0.7f;
+    public const float FlightDuration = 1.5f;
 
     // Where the camera set off from, where it is going, and how far along it is. An elapsed time
     // past the duration means no flight is running.
@@ -30,7 +30,6 @@ public sealed class GalleryCamera(Game game)
     private Quaternion _toRotation;
     private float _elapsed = float.MaxValue;
     private float _duration = FlightDuration;
-    private float _lift;
     private Vector3? _facing;
 
     /// <summary>Whether the camera is flying itself somewhere rather than being steered.</summary>
@@ -45,9 +44,8 @@ public sealed class GalleryCamera(Game game)
     /// <param name="rotation">How to face on arrival.</param>
     /// <param name="instant">Put the camera there at once, rather than flying it.</param>
     /// <param name="duration">How long the flight takes, in seconds.</param>
-    /// <param name="lift">How far the path arcs upward at its middle, in world units; 0 flies straight.</param>
-    /// <param name="facing">A point to keep facing on the way: the camera turns to it over the first quarter of the flight and settles onto <paramref name="rotation"/> as it arrives.</param>
-    public void FlyTo(Vector3 position, Quaternion rotation, bool instant, float duration = FlightDuration, float lift = 0f, Vector3? facing = null)
+    /// <param name="facing">A point to keep facing on the way: the camera turns to it over the first half of the flight and settles onto <paramref name="rotation"/> as it arrives.</param>
+    public void FlyTo(Vector3 position, Quaternion rotation, bool instant, float duration = FlightDuration, Vector3? facing = null)
     {
         var camera = game.GetCameraEntity().Transform;
 
@@ -65,7 +63,6 @@ public sealed class GalleryCamera(Game game)
         _to = position;
         _toRotation = rotation;
         _duration = MathF.Max(duration, 0.01f);
-        _lift = lift;
         _facing = facing;
         _elapsed = 0f;
     }
@@ -94,16 +91,15 @@ public sealed class GalleryCamera(Game game)
         var eased = Easing.SmoothStep(t);
         var camera = game.GetCameraEntity().Transform;
 
-        // The lift is a half sine over the flight: up and over rather than through the exhibits
-        var position = Vector3.Lerp(_from, _to, eased) + Vector3.UnitY * (_lift * MathF.Sin(t * MathF.PI));
+        var position = Vector3.Lerp(_from, _to, eased);
         camera.Position = position;
 
         if (_facing is { } focus)
         {
-            // Turn to the focus over the first quarter, hold it through the middle, and settle onto
-            // the final rotation towards the end - squared, so the ring stays in view for longer
+            // Turn to the focus over the first half, and settle onto the final rotation towards the
+            // end - squared, so the focus stays in view for longer
             var towards = LookRotation(focus - position);
-            var turned = Quaternion.Slerp(_fromRotation, towards, MathUtil.Clamp(t / 0.25f, 0f, 1f));
+            var turned = Quaternion.Slerp(_fromRotation, towards, MathUtil.Clamp(t / 0.5f, 0f, 1f));
 
             camera.Rotation = Quaternion.Slerp(turned, _toRotation, eased * eased);
         }

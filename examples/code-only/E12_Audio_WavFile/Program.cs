@@ -3,7 +3,6 @@ using Stride.CommunityToolkit.Audio;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -135,20 +134,19 @@ void AddInstructions()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     overlay.AddSection("Wav file", () =>
     {
         var padOn = padInstance?.PlayState == PlayState.Playing;
 
         return
         [
-            new($"chime.wav     {Describe(chime)}"),
-            new($"pad-loop.wav  {Describe(pad)}"),
-            new($"Space  chime        {chimes.Count} playing  (press fast: they overlap)", chimes.Count > 0 ? Color.Yellow : null),
-            new($"L      pad loop     {(padOn ? "playing" : "stopped")}", padOn ? Color.LightGreen : null),
-            new($"J / K  volume       {volume:0.00}"),
-            new($"N / M  pan          {pan:+0.00;-0.00; 0.00}  (mono sources only)"),
+            new("Space", $"Chime, {chimes.Count} playing (press fast: they overlap)", chimes.Count > 0 ? Color.LightGreen : Color.Yellow),
+            new("L", $"Pad loop {(padOn ? "playing" : "stopped")}", padOn ? Color.LightGreen : Color.Yellow),
+            new(["J", "K"], $"Volume {volume:0.00}", Color.Yellow),
+            new(["N", "M"], $"Pan {pan:+0.00;-0.00;0.00} (mono sources only)", Color.Yellow),
+            new(""),
+            new($"chime.wav: {Describe(chime)}", Color.LightGray),
+            new($"pad-loop.wav: {Describe(pad)}", Color.LightGray),
         ];
     });
 

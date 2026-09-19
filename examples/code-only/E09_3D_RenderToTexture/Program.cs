@@ -74,7 +74,9 @@ void Start(Scene scene)
 
     BuildMonitors(scene);
 
-    DebugOverlay.GetOrCreate(game).AddSection("Feeds", OverlayLines);
+    var overlay = DebugOverlay.GetOrCreate(game);
+    overlay.SectionGap = 0;
+    overlay.AddSection("Feeds", OverlayLines);
 }
 
 void Update(Scene scene, GameTime time)
@@ -331,10 +333,11 @@ IReadOnlyList<TextElement> OverlayLines()
 {
     List<TextElement> lines =
     [
-        new($"{feeds.Length} cameras drawing into {FeedSize}x{FeedSize} textures, plus the main view", Color.LightGreen),
-        new("1-5 - put a feed on the big screen", Color.Gold),
-        new("Space - next feed", Color.Gold),
+        new("1 - 5", "Put a feed on the big screen", Color.Gold),
+        new("Space", "Next feed", Color.Gold),
         new(""),
+        new($"{feeds.Length} cameras drawing into {FeedSize}x{FeedSize} textures", Color.LightGreen),
+        new("plus the main view", Color.LightGreen),
     ];
 
     for (var i = 0; i < feeds.Length; i++)

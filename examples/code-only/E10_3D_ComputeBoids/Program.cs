@@ -3,13 +3,11 @@ using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Instancing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Engine.Design;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
@@ -95,8 +93,6 @@ void Start(Scene scene)
 
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    // Top-left, out of the flock's way
-    overlay.Position = DisplayPosition.TopLeft;
     overlay.AddSection("Boids", OverlayLines);
 }
 
@@ -144,10 +140,13 @@ IReadOnlyList<TextElement> OverlayLines()
 
     return
     [
-        new($"{simulation.Count} boids, {pairs / 1_000_000f:0.0} million pairs a frame, all on the GPU", Color.LightGreen),
-        new("One dispatch, one instanced draw call, nothing per frame on the CPU", Color.LightGray),
-        new(simulation.Paused ? "SPACE - resume" : "SPACE - freeze", Color.Yellow),
-        new("R - scatter    1 2 3 - flock size", Color.Yellow),
+        new("Space", simulation.Paused ? "Resume" : "Freeze", Color.Yellow),
+        new("R", "Scatter", Color.Yellow),
+        new(["1", "2", "3"], "Flock size", Color.Yellow),
+        new(""),
+        new($"{simulation.Count} boids, {pairs / 1_000_000f:0.0} million pairs a frame", Color.LightGreen),
+        new("All on the GPU: one dispatch, one instanced draw call,", Color.LightGray),
+        new("nothing per frame on the CPU", Color.LightGray),
     ];
 }
 

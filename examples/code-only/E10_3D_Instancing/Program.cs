@@ -1,5 +1,6 @@
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -50,6 +51,7 @@ void Start(Scene rootScene)
     game.Add3DCameraController();
     game.AddSkybox();
     game.AddProfiler();
+    DebugOverlay.GetOrCreate(game).AddSection("Instancing", OverlayLines);
     game.SetCameraPosition(new(33, 65, -90));
     game.SetCameraRotation(new(161, -22, 0));
 
@@ -170,7 +172,6 @@ IEnumerable<Vector3> GridPositions(float offsetX)
 void Update(Scene rootScene, GameTime time)
 {
     HandleInput();
-    DrawOverlay();
 }
 
 void HandleInput()
@@ -195,25 +196,18 @@ void HandleInput()
     }
 }
 
-void DrawOverlay()
-{
-    var line = 0;
-
-    void Print(string text, Color? color = null)
-        => game.DebugTextSystem.Print(text, new Int2(6, 60 + line++ * 18), color ?? Color.White);
-
-    Print($"LEFT wall: 1 entity, 1 draw call, {cubeCount} instances: Press [1] {(showInstanced ? "shown" : "hidden")}",
-        showInstanced ? Color.LightGreen : Color.Gray);
-    Print($"RIGHT wall: {cubeCount} entities, {cubeCount} draw calls: Press [2] {(showIndividual ? "shown" : "hidden")}",
-        showIndividual ? Color.Orange : Color.Gray);
-    Print("");
-    Print($"ONLY VISIBLE: {(showIndividual && showInstanced ? "BOTH walls" : showIndividual ? "INDIVIDUAL (2000 draws)" : showInstanced ? "INSTANCED (1 draw)" : "nothing")}",
-        Color.Yellow);
-    Print("");
-    Print("Both walls draw the same Model and look identical.");
-    Print("Toggle each one and compare the frame rate above.");
-    Print("The counter is a rolling average, so give it a second to settle.");
-}
+IReadOnlyList<TextElement> OverlayLines() =>
+[
+    new("1", $"Instanced wall {(showInstanced ? "shown" : "hidden")}", showInstanced ? Color.LightGreen : Color.Gray),
+    new("2", $"Individual wall {(showIndividual ? "shown" : "hidden")}", showIndividual ? Color.Orange : Color.Gray),
+    new(""),
+    new($"Left wall: 1 entity, 1 draw call, {cubeCount} instances", Color.LightGreen),
+    new($"Right wall: {cubeCount} entities, {cubeCount} draw calls", Color.Orange),
+    new($"Visible: {(showIndividual && showInstanced ? "both walls" : showIndividual ? $"individual ({cubeCount} draws)" : showInstanced ? "instanced (1 draw)" : "nothing")}", Color.Yellow),
+    new("Both walls draw the same Model and look identical.", Color.LightGray),
+    new("Toggle each one and compare the frame rate above.", Color.LightGray),
+    new("The counter is a rolling average; give it a second.", Color.LightGray),
+];
 
 /*
 ---example-metadata

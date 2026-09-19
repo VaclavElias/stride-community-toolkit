@@ -44,7 +44,9 @@ public sealed class ShapeStation : GalleryStation
         batch.BorderWidth = Style.BorderWidth;
         batch.Fill.Set(null, Style.FillAlpha);
         batch.Glow.Clear();
+        // The visitor's glow is in each shape's own colour, so at a third of its strength: light around the stroke, not a fatter one
         batch.Glow.Width = Style.GlowWidth;
+        batch.Glow.Strength = 0.35f;
         batch.Dash.Clear();
         batch.Gradient.Clear();
         batch.Opacity = 1f;

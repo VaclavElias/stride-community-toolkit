@@ -230,14 +230,14 @@ IReadOnlyList<TextElement> OverlayLines()
 {
     List<TextElement> lines =
     [
-        new("No colliders anywhere: the renderer", Color.LightGreen),
-        new("answers what is under the mouse", Color.LightGreen),
-        new("Hover - highlight", Color.Gold),
-        new("Left click - select", Color.Gold),
-        new("Escape - clear", Color.Gold),
+        new("Hover", "Highlight", Color.Gold),
+        new("Left click", "Select", Color.Gold),
+        new("Escape", "Clear", Color.Gold),
         new(""),
         new($"Under the mouse: {Describe(picker?.Result)}", Color.Cyan),
         new($"Selected: {Describe(selected)}", Color.Gold),
+        new("No colliders anywhere: the renderer", Color.LightGreen),
+        new("answers what is under the mouse", Color.LightGreen),
     ];
 
     return lines;

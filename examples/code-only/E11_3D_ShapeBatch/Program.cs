@@ -1,4 +1,5 @@
 using E11_3D_ShapeBatch;
+using Example.Common;
 using Example.Common.Galleries;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Scripts.Utilities;
@@ -115,8 +116,8 @@ void Update(Scene scene, GameTime gameTime)
 
 void HandleInput(Gallery<ShapeStation> gallery)
 {
-    if (game.Input.IsKeyPressed(Keys.N)) gallery.GoTo(gallery.Focus + 1);
-    if (game.Input.IsKeyPressed(Keys.P)) gallery.GoTo(gallery.Focus - 1);
+    if (game.Input.IsKeyPressed(Keys.N)) gallery.Step(+1);
+    if (game.Input.IsKeyPressed(Keys.P)) gallery.Step(-1);
     if (game.Input.IsKeyPressed(Keys.Home)) gallery.GoHome();
     if (game.Input.IsKeyPressed(Keys.Tab)) gallery.Solo = !gallery.Solo;
     if (game.Input.IsKeyPressed(Keys.T)) depthTested = !depthTested;
@@ -164,19 +165,24 @@ IReadOnlyList<TextElement> BuildOverlayLines()
 
     List<TextElement> lines =
     [
-        new($"{submitted} shapes this frame, {gallery.Stations.Count} stations on a ring of radius {gallery.Radius:0}", Color.LightGreen),
-        new($"Border {style.BorderWidth:0} px (+/-)   Fill {style.FillAlpha:0.00} (F)   Glow {style.GlowWidth:0} px (G)", Color.MediumSeaGreen),
-        new(depthTested ? "T - depth tested: the scene occludes shapes" : "T - overlay: shapes draw on top", Color.Gold),
-        new("N / P - next and previous station   Home - home   Tab - " + (gallery.Solo ? "one station at a time" : "every station"), Color.Gold),
-        new(gallery.LabelDetail switch { 0 => "L - labels: the number", 1 => "L - labels: the number and the method", _ => "L - labels: everything" }, Color.Gold),
+        new("N", "Next station", Color.Gold),
+        new("P", "Previous station", Color.Gold),
+        new("Home", "Home", Color.Gold),
+        new("Tab", gallery.Solo ? "One station at a time" : "Every station", Color.Gold),
+        new("L", gallery.LabelDetail switch { 0 => "Labels: the number", 1 => "Labels: the number and the method", _ => "Labels: everything" }, Color.Gold),
+        new("T", depthTested ? "Depth tested: the scene occludes shapes" : "Overlay: shapes draw on top", Color.Gold),
+        new(["+", "-"], $"Border {style.BorderWidth:0} px", Color.Gold),
+        new("F", $"Fill {style.FillAlpha:0.00}", Color.Gold),
+        new("G", $"Glow {style.GlowWidth:0} px", Color.Gold),
         new(""),
+        new($"{submitted} shapes this frame, {gallery.Stations.Count} stations", Color.LightGreen),
     ];
 
     // The index board at the centre is the full list; here, only where the visitor stands
     var station = gallery.Stations[gallery.Current];
 
     lines.Add(new($"Station {station.Number} of {gallery.Stations.Count} - {station.Exhibit.Title}", Color.White));
-    lines.Add(new($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray));
+    lines.AddRange(OverlayText.Wrap($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray));
 
     return lines;
 }

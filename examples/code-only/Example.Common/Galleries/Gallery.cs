@@ -5,6 +5,7 @@ using Stride.CommunityToolkit.Shapes;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
+using Stride.Input;
 using Stride.Rendering;
 
 namespace Example.Common.Galleries;
@@ -44,15 +45,17 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     private const float HomeDistance = 1.85f;
     private const float HomePitchDegrees = -17f;
 
-    /// <summary>The flight home: longer than a hop between stations, arcing up by this fraction of the radius, facing the ring's centre on the way.</summary>
-    private const float HomeFlightSeconds = 1.8f;
-    private const float HomeFlightLift = 0.2f;
+    /// <summary>The flight home: longer than a hop between stations, facing the first station on the way - from there it is the flight out, reversed; from anywhere else the camera turns to it as it rises.</summary>
+    private const float HomeFlightSeconds = 3.5f;
+
+    /// <summary>The radius of the ring on the ground under every station, which is also what the mouse picks.</summary>
+    private const float PadRadius = 5.8f;
 
     /// <summary>The index board's width in world units; its height follows the registry.</summary>
     private const float BoardWidth = 10f;
 
     /// <summary>How much of the home view's height the board takes, and the margin it keeps from the view's top and left edges, in world units at its distance.</summary>
-    private const float BoardShare = 0.6f;
+    private const float BoardShare = 0.48f;
     private const float BoardMargin = 0.6f;
 
     /// <summary>How far in from the frame the corner brackets sit and the list starts.</summary>
@@ -78,6 +81,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     private readonly GalleryCamera _camera;
     private int _destination;
     private bool _atHome;
+    private int _hovered = -1;
 
     /// <summary>
     /// Builds the ring: the ground, every station with its pillars and label, the index board,
@@ -141,6 +145,9 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     /// <summary>The station nearest the camera, updated every frame; next and previous count from it.</summary>
     public int Current { get; private set; }
 
+    /// <summary>The station whose pad is under the mouse, or -1: the pad fills, and a click flies there.</summary>
+    public int Hovered => _hovered;
+
     /// <summary>Whether the camera is flying itself somewhere rather than being steered.</summary>
     public bool Flying => _camera.Flying;
 
@@ -164,20 +171,22 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     {
         _destination = Current;
         _atHome = true;
-        _camera.FlyTo(HomePosition, HomeRotation, instant, HomeFlightSeconds, Radius * HomeFlightLift, Vector3.Zero);
+        _camera.FlyTo(HomePosition, HomeRotation, instant, HomeFlightSeconds, _stations[0].At(0f, 2f, 0f));
     }
 
     private Vector3 HomePosition => new(0f, Radius * HomeHeight, Radius * HomeDistance);
 
     private static Quaternion HomeRotation => Quaternion.RotationYawPitchRoll(0f, MathUtil.DegreesToRadians(HomePitchDegrees), 0f);
 
+    /// <summary>Next or previous: one station on from <see cref="Focus"/> - or, from home, the first station whichever way the visitor turns.</summary>
+    /// <param name="direction">+1 for the next station, -1 for the previous.</param>
+    public void Step(int direction) => GoTo(_atHome ? 0 : Focus + direction);
+
     /// <summary>Sends the visitor to a station: a little way towards the centre from its pad, looking at it.</summary>
     /// <param name="index">The station, counted from 0 and wrapped, so one past the last is the first.</param>
     /// <param name="instant">Put the camera there at once, rather than flying it.</param>
     public void GoTo(int index, bool instant = false)
     {
-        // From home there is no station to count from: the first, whichever way the visitor turns
-        if (_atHome) index = 0;
         _atHome = false;
 
         _destination = (index % _stations.Count + _stations.Count) % _stations.Count;
@@ -205,6 +214,10 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         // and next and previous count from the nearest station again
         if (_atHome && !Flying && Vector3.DistanceSquared(camera, HomePosition) > 0.25f) _atHome = false;
 
+        // A pad under the mouse lights up, and a click on it is a flight there
+        _hovered = Flying ? -1 : PadUnderMouse();
+        if (_hovered >= 0 && _game.Input.IsMouseButtonPressed(MouseButton.Left)) GoTo(_hovered);
+
         Current = NearestStation(camera);
 
         for (var i = 0; i < _stations.Count; i++)
@@ -215,7 +228,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
             station.Seconds = seconds;
             station.IsCurrent = current;
 
-            DrawPad(station, current);
+            DrawPad(station, current, i == _hovered);
 
             if (Solo && !current) continue;
 
@@ -417,15 +430,46 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     }
 
     /// <summary>A faint ring under every station, so a pad reads as a place even when its exhibit is small.</summary>
-    private void DrawPad(GalleryStation station, bool current)
+    private void DrawPad(GalleryStation station, bool current, bool hovered)
     {
         var shapes = _furniture;
+        var centre = station.Origin + Vector3.UnitY * 0.01f;
 
-        shapes.BorderWidth = current ? 2f : 1f;
-        shapes.Opacity = current ? 0.9f : 0.35f;
-        shapes.DrawRing(station.Origin + Vector3.UnitY * 0.01f, Vector3.UnitY, 5.8f, current ? new Color(150, 210, 255) : new Color(110, 140, 170));
-        shapes.Opacity = 1f;
+        if (hovered)
+        {
+            // Lit and filled: the whole disc is the button
+            shapes.BorderWidth = 2f;
+            shapes.Fill.Set(null, 0.3f);
+            shapes.DrawDisc(centre, Vector3.UnitY, PadRadius, new Color(170, 220, 255));
+            shapes.Fill.Set(null, 0.45f);
+        }
+        else
+        {
+            shapes.BorderWidth = current ? 2f : 1f;
+            shapes.Opacity = current ? 0.9f : 0.35f;
+            shapes.DrawRing(centre, Vector3.UnitY, PadRadius, current ? new Color(150, 210, 255) : new Color(110, 140, 170));
+            shapes.Opacity = 1f;
+        }
+
         shapes.BorderWidth = 3f;
+    }
+
+    /// <summary>The station whose pad the mouse is over, by casting the mouse ray onto the ground, or -1.</summary>
+    private int PadUnderMouse()
+    {
+        if (_game.GetCameraEntity().Get<CameraComponent>() is not { } camera) return -1;
+
+        var ray = camera.GetPickRay(_game.Input.MousePosition);
+        if (ray.Direction.Y >= 0f) return -1;
+
+        var hit = ray.Position + ray.Direction * (-ray.Position.Y / ray.Direction.Y);
+
+        for (var i = 0; i < _stations.Count; i++)
+        {
+            if (Vector3.DistanceSquared(hit, _stations[i].Origin) <= PadRadius * PadRadius) return i;
+        }
+
+        return -1;
     }
 
     /// <summary>

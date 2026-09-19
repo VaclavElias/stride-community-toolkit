@@ -1,4 +1,5 @@
 using E09_3D_Particles;
+using Example.Common;
 using Example.Common.Galleries;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Scripts.Utilities;
@@ -84,8 +85,8 @@ void Update(Scene scene, GameTime gameTime)
 
 void HandleInput(Gallery<ParticleStation> gallery)
 {
-    if (game.Input.IsKeyPressed(Keys.N)) gallery.GoTo(gallery.Focus + 1);
-    if (game.Input.IsKeyPressed(Keys.P)) gallery.GoTo(gallery.Focus - 1);
+    if (game.Input.IsKeyPressed(Keys.N)) gallery.Step(+1);
+    if (game.Input.IsKeyPressed(Keys.P)) gallery.Step(-1);
     if (game.Input.IsKeyPressed(Keys.Home)) gallery.GoHome();
     if (game.Input.IsKeyPressed(Keys.Tab)) gallery.Solo = !gallery.Solo;
 
@@ -116,20 +117,21 @@ IReadOnlyList<TextElement> BuildOverlayLines()
 
     List<TextElement> lines =
     [
-        new($"{living:N0} particles alive over {gallery.Stations.Count} stations on a ring of radius {gallery.Radius:0}", Color.LightGreen),
-        new("N / P - next and previous station", Color.Gold),
-        new("Home - home", Color.Gold),
-        new("Tab - " + (gallery.Solo ? "one station at a time" : "every station"), Color.Gold),
-        new(gallery.LabelDetail switch { 0 => "L - labels: the number", 1 => "L - labels: the number and the method", _ => "L - labels: everything" }, Color.Gold),
-        new("Space - restart the station", Color.Gold),
+        new("N", "Next station", Color.Gold),
+        new("P", "Previous station", Color.Gold),
+        new("Home", "Home", Color.Gold),
+        new("Tab", gallery.Solo ? "One station at a time" : "Every station", Color.Gold),
+        new("L", gallery.LabelDetail switch { 0 => "Labels: the number", 1 => "Labels: the number and the method", _ => "Labels: everything" }, Color.Gold),
+        new("Space", "Restart the station", Color.Gold),
         new(""),
+        new($"{living:N0} particles alive over {gallery.Stations.Count} stations", Color.LightGreen),
         new($"Station {station.Number} of {gallery.Stations.Count} - {station.Exhibit.Title}", Color.White),
-        new($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray),
+        .. OverlayText.Wrap($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray),
     ];
 
     if (station.VariationNames.Count > 1)
     {
-        lines.Add(new($"V - variation {station.Variation + 1} of {station.VariationNames.Count}: {station.VariationNames[station.Variation]}", Color.Cyan));
+        lines.Add(new("V", $"Variation {station.Variation + 1} of {station.VariationNames.Count}: {station.VariationNames[station.Variation]}", Color.Cyan));
     }
 
     // What each emitter holds, so a child emitter that never spawns shows as a zero

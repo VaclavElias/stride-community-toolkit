@@ -132,7 +132,6 @@ void Start(Scene scene)
     // Bottom-left is the one corner with nothing behind it.
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
     overlay.AddSection("Station", OverlayLines);
 
     // A screenshot of an empty deck shows nothing. When the capture harness is driving, drop a
@@ -209,8 +208,12 @@ IReadOnlyList<TextElement> OverlayLines()
 {
     List<TextElement> lines =
     [
-        new("1 2 3 sizes   SPACE random   B batch", Color.LightGray),
-        new("C clear   X shake   click a scheme", Color.LightGray),
+        new(["1", "2", "3"], "Drop a container of that size", Color.Gold),
+        new("Space", "Drop a random one", Color.Gold),
+        new("B", "Drop a batch", Color.Gold),
+        new("C", "Clear the deck", Color.Gold),
+        new("X", "Shake", Color.Gold),
+        new("Click", "Pick a scheme", Color.Gold),
         new(string.Empty),
     ];
 

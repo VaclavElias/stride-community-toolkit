@@ -34,8 +34,9 @@ public static class EffectStations
     /// <summary>
     /// The glow lives outside the outline and fades over a pixel width, so it neither tints the
     /// fill nor changes with distance. Its best use is contrast: a white cursor ring on a dark halo
-    /// stays readable over anything. Wide and in the shape's own colour it is neon - standing here
-    /// as a ring, a disc whose glow stops at its edge, and an arc. Press G to glow every station.
+    /// stays readable over anything. Wide, in the shape's own colour at a third of its strength and
+    /// adding light, it is neon - standing here as a ring, a disc whose glow stops at its edge, and
+    /// an arc. Press G to glow every station.
     /// </summary>
     public static void Glow(ShapeStation s)
     {
@@ -49,6 +50,8 @@ public static class EffectStations
         shapes.DrawPixelLine(cursor - s.Forward * 1.3f, cursor + s.Forward * 1.3f, 1.5f, Color.White);
 
         shapes.Glow.Set(28f);
+        shapes.Glow.Strength = 0.35f;
+        shapes.Glow.Additive = true;
         shapes.DrawRing(s.At(0f, 2.6f, -1f), s.Forward, 1.2f, Color.Cyan);
         shapes.DrawDisc(s.At(-3.4f, 2.6f, -1f), s.Forward, 0.9f, Color.Magenta);
         shapes.DrawArc(s.At(3.4f, 2.6f, -1f), s.Forward, 1.2f, s.Seconds * 1.5f, MathF.PI * 1.2f, Color.OrangeRed);

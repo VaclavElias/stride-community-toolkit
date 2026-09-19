@@ -3,7 +3,6 @@ using Stride.CommunityToolkit.Audio;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -142,20 +141,20 @@ void AddInstructions()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     overlay.AddSection("Procedural sound", () =>
     {
         var playing = tone?.PlayState == PlayState.Playing;
 
         return
         [
-            new("No sound file: a callback fills 4096 samples at a time"),
-            new($"1-4    waveform   {waveforms[waveform]}", Color.Yellow),
-            new($"J / K  frequency  {frequency,7:0.0} Hz  (hold to sweep)"),
-            new($"Space  {(playing ? "playing" : "stopped")}", playing ? Color.LightGreen : Color.OrangeRed),
-            new($"M      {(muted ? "muted" : "unmuted")}"),
-            new($"level  {new string('#', (int)(level * 40)),-14}"),
+            new(["1", "2", "3", "4"], $"Waveform: {waveforms[waveform]}", Color.Yellow),
+            new(["J", "K"], $"Frequency {frequency:0.0} Hz, hold to sweep", Color.Yellow),
+            new("Space", playing ? "Playing" : "Stopped", playing ? Color.LightGreen : Color.OrangeRed),
+            new("M", muted ? "Muted" : "Unmuted", Color.Yellow),
+            new(""),
+            new($"Level {new string('#', (int)(level * 40)),-14}"),
+            new("No sound file: a callback fills 4096 samples", Color.LightGray),
+            new("at a time", Color.LightGray),
         ];
     });
 }

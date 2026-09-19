@@ -2,7 +2,6 @@ using E08_3D_DebugShapes.Scripts;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.DebugShapes.Code;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Engine;
 
@@ -19,7 +18,7 @@ void Start(Scene rootScene)
 void SetupBaseScene()
 {
     game.AddGraphicsCompositor();
-    game.Add3DCamera().Add3DCameraController(displayPosition: DisplayPosition.BottomRight);
+    game.Add3DCamera().Add3DCameraController();
     game.AddDirectionalLight();
     game.AddSkybox();
     game.Add3DGround();
