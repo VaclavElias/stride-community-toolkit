@@ -5,7 +5,6 @@ using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -29,13 +28,15 @@ using Stride.Rendering;
 // geometry on the front wheels, and constraint targets re-applied only when they change, so the
 // car is not woken every frame.
 //
-// W S drive, A D steer, Space brakes, Shift doubles the speed. There is no camera controller:
-// a chase camera on the camera entity follows the car, which is what frees W A S D for driving.
-// The left mouse button, through the grabber on the same entity, picks the car or a crate up.
+// W S drive, A D steer, Space brakes, Shift doubles the speed, R puts the car back at the start.
+// There is no camera controller: a chase camera on the camera entity follows the car, which is what
+// frees W A S D for driving. The left mouse button, through the grabber on the same entity, picks
+// the car or a crate up. Physics runs on a fixed step, so the bodies interpolate between steps or
+// the car would stutter on any display faster than the simulation.
 
 const float SuspensionLength = 0.25f;
-const float MaxSteeringAngle = MathF.PI * 0.23f;
-const float SteeringSpeed = 1.5f;
+const float MaxSteeringAngle = MathF.PI * 0.3f;      // the demo's 0.23 turns wide; 54 degrees at the lock makes the slalom drivable
+const float SteeringSpeed = 2.5f;                    // radians per second towards the key
 const float ForwardSpeed = 75f;
 const float ForwardForce = 6f;
 const float BackwardSpeed = 30f;
@@ -48,13 +49,14 @@ const float WheelBaseWidth = 1.8f;
 
 var suspensionDirection = new Vector3(0, -1, 0);
 var wheelAxleInChassis = new Vector3(-1, 0, 0);     // the wheel's Y after its quarter turn about Z
+var wheelTurn = Quaternion.RotationZ(MathUtil.PiOverTwo);   // the quarter turn that makes a cylinder's Y the axle
 
 Car? car = null;
 var steeringAngle = 0f;
 var previousTargetSpeed = float.NaN;
 var previousTargetForce = float.NaN;
 List<Entity> crates = [];
-var autoDrive = true;                  // drives itself until W, S or Space is pressed, so the scene moves from the start
+var start = new Vector3(0, 1.5f, 0);
 
 using var game = new Game();
 
@@ -77,7 +79,7 @@ void Start(Scene scene)
     game.GetCameraEntity().GetSimulation().CollisionMatrix = matrix;
 
     BuildCourse(scene);
-    car = BuildCar(scene, new Vector3(0, 1.5f, 0));
+    car = BuildCar(scene, start);
 
     var cameraEntity = game.GetCameraEntity();
     cameraEntity.Add(new ChaseCamera { Target = car.Chassis.Entity });
@@ -93,13 +95,7 @@ void Update(Scene scene, GameTime time)
     var input = game.Input;
     var dt = (float)time.Elapsed.TotalSeconds;
 
-    if (input.IsKeyPressed(Keys.R))
-    {
-        car.Chassis.Teleport(new Vector3(0, 1.5f, 0), Quaternion.Identity);
-        car.Chassis.LinearVelocity = Vector3.Zero;
-        car.Chassis.AngularVelocity = Vector3.Zero;
-        car.Chassis.Awake = true;
-    }
+    if (input.IsKeyPressed(Keys.R)) ResetCar(car);
 
     // Steering eases toward the key at a fixed rate, as a wheel turned by hand would.
     var steerTarget = ((input.IsKeyDown(Keys.A) ? 1 : 0) - (input.IsKeyDown(Keys.D) ? 1 : 0)) * MaxSteeringAngle;
@@ -110,12 +106,35 @@ void Update(Scene scene, GameTime time)
     if (steeringAngle != previousSteering)
         Steer(car, steeringAngle);
 
-    if (input.IsKeyDown(Keys.W) || input.IsKeyDown(Keys.S) || input.IsKeyDown(Keys.Space))
-        autoDrive = false;
-
-    var throttle = autoDrive ? 1 : (input.IsKeyDown(Keys.W) ? 1 : 0) - (input.IsKeyDown(Keys.S) ? 1 : 0);
+    var throttle = (input.IsKeyDown(Keys.W) ? 1 : 0) - (input.IsKeyDown(Keys.S) ? 1 : 0);
     var zoom = input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift);
     Drive(car, throttle, zoom, brake: input.IsKeyDown(Keys.Space));
+}
+
+// Back to the start line, wheels included. Teleporting the chassis alone leaves the wheels wherever
+// they were, and the four constraints then drag chassis and wheels together across the gap - the
+// car lands on its side or tumbles in. Every body goes to its resting pose, still, and the
+// steering and the motor targets start over.
+void ResetCar(Car car)
+{
+    Place(car.Chassis, start, Quaternion.Identity);
+
+    foreach (var wheel in new[] { car.FrontLeft, car.FrontRight, car.RearLeft, car.RearRight })
+    {
+        Place(wheel.Body, start + wheel.Mount + suspensionDirection * SuspensionLength, wheelTurn);
+    }
+
+    steeringAngle = 0;
+    Steer(car, 0);
+    previousTargetSpeed = float.NaN;
+
+    static void Place(BodyComponent body, Vector3 position, Quaternion rotation)
+    {
+        body.Teleport(position, rotation);
+        body.LinearVelocity = Vector3.Zero;
+        body.AngularVelocity = Vector3.Zero;
+        body.Awake = true;
+    }
 }
 
 // The demo's Ackermann steering: on a turn the inner wheel turns more than the outer one, so
@@ -202,6 +221,7 @@ Car BuildCar(Scene scene, Vector3 position)
             },
             FrictionCoefficient = 0.35f,
             CollisionLayer = CollisionLayer.Layer1,
+            InterpolationMode = InterpolationMode.Interpolated,
         },
     };
     chassisEntity.Transform.Position = position;
@@ -224,7 +244,6 @@ Car BuildCar(Scene scene, Vector3 position)
 // constraints hang off its entity, each naming the chassis as the other body.
 Wheel BuildWheel(Scene scene, BodyComponent chassis, Vector3 mount)
 {
-    var quarterTurn = Quaternion.RotationZ(MathUtil.PiOverTwo);
     var entity = new Entity("Wheel")
     {
         new BodyComponent
@@ -232,10 +251,11 @@ Wheel BuildWheel(Scene scene, BodyComponent chassis, Vector3 mount)
             Collider = new CompoundCollider { Colliders = { new CylinderCollider { Radius = 0.4f, Length = 0.18f, Mass = 0.25f } } },
             FrictionCoefficient = 1f,
             CollisionLayer = CollisionLayer.Layer1,
+            InterpolationMode = InterpolationMode.Interpolated,
         },
     };
     entity.Transform.Position = chassis.Entity.Transform.Position + mount + suspensionDirection * SuspensionLength;
-    entity.Transform.Rotation = quarterTurn;
+    entity.Transform.Rotation = wheelTurn;
     entity.AddChild(Model(PrimitiveModelType.Cylinder, new Vector3(0.4f, 0, 0.18f), game.CreateMaterial(new Color(40, 40, 45), specular: 0.2f, microSurface: 0.5f), Vector3.Zero));
 
     var wheel = entity.Get<BodyComponent>();
@@ -297,7 +317,7 @@ Wheel BuildWheel(Scene scene, BodyComponent chassis, Vector3 mount)
     entity.Add(hinge);
     entity.Scene = scene;
 
-    return new Wheel(wheel, motor, hinge);
+    return new Wheel(wheel, motor, hinge, mount);
 }
 
 Entity Model(PrimitiveModelType type, Vector3 size, Material material, Vector3 localPosition)
@@ -355,18 +375,23 @@ void AddInstructions()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     overlay.AddSection("Car", () =>
     {
         var speed = car?.Chassis.LinearVelocity.Length() ?? 0;
 
         return
         [
-            new("W / S  drive      A / D  steer      Space  brake      Shift  double speed", Color.Yellow),
-            new($"speed {speed * 3.6f,5:0} km/h    steering {MathUtil.RadiansToDegrees(steeringAngle),5:0}°    motor cap {previousTargetForce:0.00}"),
-            new("R  back to the start        Left mouse  pick up the car or a crate"),
-            new("Four constraints per wheel: suspension spring, strut, drive motor, steering hinge", Color.Gray),
+            new(["W", "S"], "Drive", Color.Yellow),
+            new(["A", "D"], "Steer", Color.Yellow),
+            new("Space", "Brake", Color.Yellow),
+            new("Shift", "Hold for double speed", Color.Yellow),
+            new("R", "Back to the start", Color.Yellow),
+            new("Left mouse", "Pick up the car or a crate", Color.Yellow),
+            new(""),
+            new($"Speed {speed * 3.6f:0} km/h, steering {MathUtil.RadiansToDegrees(steeringAngle):0}°"),
+            new($"Motor cap {previousTargetForce:0.00}"),
+            new("Four constraints per wheel: suspension spring,", Color.Gray),
+            new("strut, drive motor, steering hinge", Color.Gray),
         ];
     });
 }
@@ -374,8 +399,8 @@ void AddInstructions()
 /// <summary>The chassis body and its four wheels, front pair first.</summary>
 sealed record Car(BodyComponent Chassis, Wheel FrontLeft, Wheel FrontRight, Wheel RearLeft, Wheel RearRight);
 
-/// <summary>A wheel body and the two constraints the controller drives: the motor and the steering hinge.</summary>
-sealed record Wheel(BodyComponent Body, AngularAxisMotorConstraintComponent Motor, AngularHingeConstraintComponent Hinge);
+/// <summary>A wheel body, the two constraints the controller drives - the motor and the steering hinge - and where it mounts on the chassis.</summary>
+sealed record Wheel(BodyComponent Body, AngularAxisMotorConstraintComponent Motor, AngularHingeConstraintComponent Hinge, Vector3 Mount);
 
 /// <summary>
 /// Sits behind the target and looks at it, easing into place. On the camera entity in place of the

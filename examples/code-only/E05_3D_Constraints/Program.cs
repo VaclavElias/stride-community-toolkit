@@ -4,7 +4,6 @@ using Stride.BepuPhysics.Definitions;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -390,15 +389,15 @@ void InitializeDebugOverlay()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     instructions = overlay.AddSection("Game", static () =>
     [
-        new("GAME INSTRUCTIONS"),
-        new("Left mouse   pick up any body, carry it, throw it - the constraints keep pulling", Color.Yellow),
-        new("Wheel        carry distance     T + mouse  turn the held body"),
-        new("Middle click a stacked cube to remove it; the cubes above collapse", Color.Yellow),
-        new("R            reset the scene", Color.Yellow),
+        new("Left mouse", "Pick up any body, carry it, throw it", Color.Yellow),
+        new("Mouse wheel", "Carry distance", Color.Yellow),
+        new("T", "Hold and move the mouse to turn the held body", Color.Yellow),
+        new("Middle click", "Remove a stacked cube; the ones above collapse", Color.Yellow),
+        new("R", "Reset the scene", Color.Yellow),
+        new(""),
+        new("The constraints keep pulling on whatever you carry", Color.LightGray),
     ]);
 }
 

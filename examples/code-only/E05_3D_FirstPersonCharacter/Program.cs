@@ -4,6 +4,7 @@ using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -18,7 +19,7 @@ CharacterComponent? character = null;
 
 using var game = new Game();
 
-game.Run(start: Start, update: Update);
+game.Run(start: Start);
 
 void Start(Scene scene)
 {
@@ -56,15 +57,19 @@ void Start(Scene scene)
     // automatically.
     var camera = scene.GetCamera();
     camera?.Entity.Add(new FirstPersonControllerComponent { Character = character });
-}
 
-void Update(Scene scene, GameTime time)
-{
-    game.DebugTextSystem.Print("WASD move, Space jump, Shift sprint, V toggle fly/noclip", new(5, 30));
-    game.DebugTextSystem.Print("Escape releases the mouse, left-click grabs it again", new(5, 50));
-
-    if (character != null)
-        game.DebugTextSystem.Print($"IsGrounded: {character.IsGrounded}", new(5, 70));
+    // The keys, then the live state; the callback runs every frame the overlay is drawn
+    DebugOverlay.GetOrCreate(game).AddSection("Character", () =>
+    [
+        new("W A S D", "Move", Color.Gold),
+        new("Space", "Jump", Color.Gold),
+        new("Shift", "Hold to sprint", Color.Gold),
+        new("V", "Toggle fly / noclip", Color.Gold),
+        new("Escape", "Release the mouse", Color.Gold),
+        new("Left click", "Grab the mouse again", Color.Gold),
+        new(""),
+        new(character?.IsGrounded == true ? "Grounded" : "In the air", Color.LightGreen),
+    ]);
 }
 
 /*
