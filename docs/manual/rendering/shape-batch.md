@@ -258,6 +258,79 @@ The screen HUD station in the shape gallery draws only while you stand at it, be
 on the screen, not on the ring. Gold scene `shapes-screen` pins the pixel mapping, the Y-down
 convention, the viewport offset and the near-plane depth over a depth-tested world disc.
 
+## Which shape is under the mouse
+
+Sooner or later something drawn wants to be clicked: a HUD button, a chart's hover, a station's
+pad, a tile in a sheet. The obvious tools are the wrong ones. GPU picking reads mesh IDs back from
+a render target, and a shape is not a mesh, so it is invisible to it; a physics collider is a body,
+not a drawing. Four places in this repository once answered the question by hand - a ray against
+a plane, then a rectangle or a disc test in that plane's coordinates - each re-deriving geometry
+the batch already held. The batch is the one thing that knows the exact outline it painted, and
+the functions it painted it with are the distance functions above. So it answers itself, with the
+same functions on the CPU:
+
+```csharp
+shapes.Tag = station;                                    // state, like Fill or Glow
+shapes.DrawRing(station.Origin, Vector3.UnitY, 5.8f, Color.White);
+shapes.Tag = null;
+
+// Next frame, in Update
+if (shapes.TryPick(Input.MousePosition, out var hit) && hit.Tag is Station picked)
+{
+    GoTo(picked);
+}
+```
+
+`Tag` is per-draw state captured as each call is made, like every other property: set it, draw,
+clear it. A shape drawn with no tag can never be picked and costs nothing - the batch records only
+tagged shapes, and only what a distance test needs. The answer comes from the frame last drawn,
+which is the frame on the screen: a script asks between one draw and the next, and "what is under
+the mouse right now" is exactly what the user is looking at.
+
+`TryPick` returns the topmost shape - the nearest to the camera, and at equal depth the one drawn
+last, so a HUD's top layer wins; a screen shape is over everything. `PickAll` returns every hit
+front to back. A hit is a `ShapeHit`: the tag, the world point where the pick lands (pixels for a
+screen shape), the same point in the shape's own plane coordinates - relative to the position it
+was drawn at, in the units its vertices were given in, which is what a board turns into a button
+index or a chart into a value - the signed distance to the outline, and the depth.
+
+Every kind of shape is tested the way the shader draws it. A flat shape in the world is a ray
+against its plane and then the plane's field: the polygon with its rounding radius, the band of a
+ring or an annulus, the wedge of a sector, the run of a polyline with its width. A screen shape is
+pixels straight from the mouse. A billboard and a pixel-measured marker are placed from the view
+the batch was last drawn in, the same right, up and depth the vertex stage used. A space stroke is
+measured on its projection, in pixels, like the pixels themselves. The border counts as part of the
+shape - it straddles the outline, and it is what you see - and `slackPixels` adds a few more, which
+is what makes a one-pixel line or a hairline ring clickable:
+
+```csharp
+shapes.TryPick(Input.MousePosition, out var hit, slackPixels: 4f);
+```
+
+A ring, an arc or a polyline picks on its stroke, because that is the shape; a pad or a button that
+should take a click anywhere inside is a disc or a rectangle with a transparent fill
+(`Fill.Set(null, 0f)`), which paints the same outline and picks as the whole area.
+
+A `ShapeComponent` has a `Pickable` switch, since Game Studio cannot store an object as a tag; a
+pickable component is its own tag, and its entity is one step away.
+
+What a pick cannot see, so you reach for the right tool:
+
+- **Occlusion by the scene.** The batch has no depth buffer on the CPU, so a depth-tested shape
+  behind a wall still picks. GPU picking is the other way round: it sees exactly what is on screen,
+  but only meshes. A game that needs both runs both.
+- **Dashes.** A dashed outline picks as if solid. The gaps are visual.
+- **More than one view.** The batch remembers the last view that drew it; a batch drawn by a
+  render-texture camera and the main camera in the same frame answers for whichever came last.
+- **The first frame.** Nothing has been drawn yet; `CanPick` says so.
+
+The **Picking** station in the shape gallery draws one of everything with a tag and lights up
+whatever the mouse is over, printing the tag, the local coordinates and the distance. The 2D
+panels example highlights the panel under the mouse; the easing sheet's tiles, the galleries' pads
+and the SignalR board's scheme buttons all pick this way now, where each used to carry its own
+ray-and-rectangle maths. `ShapePickTests` holds every kind to a round trip: a known world point
+projected to the screen and picked back.
+
 ## Where it came from, and where it went
 
 The renderer was born as the Box2D package's debug draw on 2026-08-31, because the mesh approach
@@ -325,9 +398,9 @@ Honest limits, so you reach for the right tool:
 - **No text.** Pair with World Text, or render text to a texture and fill a shape with it.
 - **One fill source per batch.** A composition is resolved when the effect is built, so a batch
   with two pictures is two batches, or one atlas and a node that selects from it.
-- **No layout, no input.** It draws. If you want a clickable button in the world, you pick it
-  yourself - the SignalR example's `Board` class does it with one ray-plane intersection in board
-  coordinates, and that is about fifteen lines.
+- **No layout.** It draws, and it can say which shape is under a point (above), but it has no
+  buttons, focus or events: a hover and a click are two lines in your `Update`, and anything with
+  layout is Stride UI's job.
 - **One sort decision per batch.** A batch is a single render object with a meaningless bounding
   box, so how it sorts against *transparent meshes* is one decision for all its shapes. Use an
   overlay batch (`depthTest: false`) for things that must never be covered rather than trusting

@@ -20,8 +20,8 @@ crosses first. Fast, exact, and it answers now, on the CPU. It has one blind spo
 spot is large: **it only sees colliders**. A decorative mesh with no body, an instanced flock of
 birds, a procedural model, a skinned character that has an animation but no capsule, a teapot -
 the ray goes straight through all of them. Every example in the toolkit that clicks on things
-carries a physics package for that reason alone, and the SignalR console does its own ray-to-plane
-maths because its buttons are shapes, not bodies.
+carries a physics package for that reason alone, and the SignalR console asks its shape batch
+which button is under the mouse because its buttons are shapes, not bodies.
 
 You can fit a collider to everything, of course. Then every decorative mesh needs a body it never
 uses for anything else, the shape is a box around a thing that is not a box, and an instanced
@@ -111,8 +111,9 @@ The effect file and the id writer are eleven lines between them; what a package 
   nothing you will see; an instanced model is one draw however many instances it has. Narrow
   `Pickable` to a render group to keep decorative geometry out.
 - **Meshes only.** Sprites, UI, particles, debug shapes and shape-batch shapes are not picked.
-  Shapes are analytic functions the CPU can test directly, which is what the SignalR board does
-  and the right tool for them.
+  A shape is an analytic function the CPU can test directly, which is what `ShapeBatch.TryPick`
+  does - see [ShapeBatch](shape-batch.md#which-shape-is-under-the-mouse) - and the right tool for
+  them.
 - **The main camera.** The picker reads the camera in the compositor's first slot. A feed drawn
   into a texture would need a picker of its own if its picture were ever clickable.
 
