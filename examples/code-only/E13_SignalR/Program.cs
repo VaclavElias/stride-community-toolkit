@@ -3,7 +3,6 @@ using E13_SignalR.SignalR;
 using E13_SignalR.Station;
 using E13_SignalR_Shared;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Windows;
 using Stride.Core.Diagnostics;
@@ -131,7 +130,7 @@ void Start(Scene scene)
     // The overlay keeps only what is genuinely keyboard help; everything else is on the boards.
     // Bottom-left is the one corner with nothing behind it.
     var overlay = DebugOverlay.GetOrCreate(game);
-
+    overlay.SectionGap = 0;
     overlay.AddSection("Station", OverlayLines);
 
     // A screenshot of an empty deck shows nothing. When the capture harness is driving, drop a
@@ -206,18 +205,17 @@ void HandleKeys()
 
 IReadOnlyList<TextElement> OverlayLines()
 {
-    List<TextElement> lines =
+    List<TextElement> lines = [];
+    lines.AddRange(console.MenuLines());
+    lines.AddRange(
     [
-        new(["1", "2", "3"], "Drop a container of that size", Color.Gold),
+        new(["1 - 3"], "Drop a container of that size", Color.Gold),
         new("Space", "Drop a random one", Color.Gold),
         new("B", "Drop a batch", Color.Gold),
         new("C", "Clear the deck", Color.Gold),
         new("X", "Shake", Color.Gold),
         new("Click", "Pick a scheme", Color.Gold),
-        new(string.Empty),
-    ];
-
-    lines.AddRange(console.MenuLines());
+    ]);
 
     return lines;
 }
