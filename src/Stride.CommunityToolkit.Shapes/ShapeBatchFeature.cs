@@ -176,14 +176,19 @@ public class ShapeBatchFeature : RootRenderFeature
 
                 var effect = EffectFor(batch, context.GraphicsDevice);
 
-                if (batch.Instances.Count == 0) continue;
-
-                using var _ = context.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
-
                 // A display at 150% has 1.5 physical pixels where a 100% one has one, so the same
                 // width in "pixels" needs 1.5 of them: fewer pixels per world unit, as the shader
                 // sees it, is what makes every pixel-measured width come out that much wider
                 var displayScale = batch.AutoScale && _displayScale is not null ? _displayScale.Value : 1f;
+
+                // What a pick needs to place the mouse the way this view placed the shapes; the last
+                // view to draw the batch is the one its picks answer for
+                batch.LastView = new ShapeView(renderView.ViewProjection, Matrix.Invert(renderView.ViewProjection), renderView.ViewSize, pixelScale / displayScale, displayScale, cameraRight, cameraUp, eyePosition);
+
+                if (batch.Instances.Count == 0) continue;
+
+                using var _ = context.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
+
 
                 effect.UpdateEffect(context.GraphicsDevice);
                 effect.Parameters.Set(ShapeShaderKeys.ViewProjection, renderView.ViewProjection);

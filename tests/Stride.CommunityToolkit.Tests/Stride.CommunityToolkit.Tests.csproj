@@ -36,5 +36,6 @@
             internal to the package and reach these tests through its InternalsVisibleTo.
         -->
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Charts\Stride.CommunityToolkit.Charts.csproj" />
+        <ProjectReference Include="..\..\src\Stride.CommunityToolkit.Shapes\Stride.CommunityToolkit.Shapes.csproj" />
     </ItemGroup>
 </Project>

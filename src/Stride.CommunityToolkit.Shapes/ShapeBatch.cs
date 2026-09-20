@@ -264,12 +264,13 @@ public sealed partial class ShapeBatch : RenderObject
     /// </remarks>
     public bool DepthTest { get; set; }
 
-    /// <summary>Called by the render feature once the batch is drawn; the next frame starts empty.</summary>
+    /// <summary>Called by the render feature once the batch is drawn; the next frame starts empty, and the drawn frame's tagged shapes become what a pick is answered from.</summary>
     internal void Reset()
     {
         Instances.Clear();
         Points.Clear();
         SpacePoints.Clear();
+        HandOverPicks();
     }
 
     /// <summary>A stroke with no area: a hollow band of zero depth, which is what a ring or an arc is.</summary>
@@ -395,6 +396,7 @@ public sealed partial class ShapeBatch : RenderObject
             foreach (var point in piece) SpacePoints.Add(new Vector4(point, radius));
 
             Instances.Add(new ShapeInstance(SpacePlane, style, SpaceStroke, new ShapePointRun(offset, piece.Length, Vector2.Zero, 1f), radius, 1f));
+            RecordSpacePick(piece, style, radius);
         }
     }
 
@@ -445,5 +447,6 @@ public sealed partial class ShapeBatch : RenderObject
         }
 
         Instances.Add(new ShapeInstance(placed, style, slice, new ShapePointRun(offset, vertices.Length, center, localScale), radius, scale));
+        RecordPick(vertices, placed, style, slice, radius, scale);
     }
 }

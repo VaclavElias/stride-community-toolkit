@@ -66,6 +66,13 @@ public sealed class ShapeComponent : ActivableEntityComponent
     public bool Billboard { get; set; }
 
     /// <summary>
+    /// Whether the shape answers <see cref="ShapeBatch.TryPick(Vector2, out ShapeHit, float)"/>: the
+    /// hit's <see cref="ShapeHit.Tag"/> is then this component, and its entity one step away. Off
+    /// by default.
+    /// </summary>
+    public bool Pickable { get; set; }
+
+    /// <summary>
     /// The batch this shape draws through, or <c>null</c> to use the game's default - the first one
     /// registered with <c>AddShapeBatch()</c>.
     /// </summary>

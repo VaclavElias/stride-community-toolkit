@@ -47,6 +47,7 @@ public sealed class ShapeProcessor : EntityProcessor<ShapeComponent>
             var fillColor = batch.Fill.Color;
             var glowWidth = batch.Glow.Width;
             var glowColor = batch.Glow.Color;
+            var tag = batch.Tag;
 
             // Negative means "inherit"; a transparent colour means the same for the colours,
             // because Game Studio cannot edit nullable value types (see ShapeComponent.Inherit)
@@ -55,6 +56,8 @@ public sealed class ShapeProcessor : EntityProcessor<ShapeComponent>
             batch.Fill.Color = component.FillColor.A == 0 ? fillColor : component.FillColor;
             batch.Glow.Width = component.GlowWidth < 0f ? glowWidth : component.GlowWidth;
             batch.Glow.Color = component.GlowColor.A == 0 ? glowColor : component.GlowColor;
+            // A pickable component is its own tag: the hit hands the component back
+            batch.Tag = component.Pickable ? component : null;
 
             Draw(batch, component);
 
@@ -63,6 +66,7 @@ public sealed class ShapeProcessor : EntityProcessor<ShapeComponent>
             batch.Fill.Color = fillColor;
             batch.Glow.Width = glowWidth;
             batch.Glow.Color = glowColor;
+            batch.Tag = tag;
         }
     }
 
