@@ -26,4 +26,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_Particles).
 
-[!code-csharp[](../../../../examples/code-only/E09_3D_Particles/Program.cs?start=1&end=145)]
+[!code-csharp[](../../../../examples/code-only/E09_3D_Particles/Program.cs?start=1&end=147)]

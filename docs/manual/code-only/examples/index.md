@@ -28,6 +28,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/basic-scene-engine-only.webp" class="card-img-top" alt="Screenshot of the Basic3D Scene (Engine Only) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="basic-scene-engine-only.md">Basic3D Scene (Engine Only)</a></h3>
+                <p><span class="badge text-bg-secondary">Shapes</span></p>
+                <p class="card-text">A ground, a cube and a camera written against Stride alone, with no toolkit package: the graphics compositor, the camera, the lights, the procedural...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/file-based-app.webp" class="card-img-top" alt="Screenshot of the Basic3D Scene (Capsule) - File-Based App example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="file-based-app.md">Basic3D Scene (Capsule) - File-Based App</a></h3>
@@ -313,6 +323,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="simple-geometry.md">Simple Geometry (Labelled Triangle)</a></h3>
                 <p><span class="badge text-bg-secondary">Geometry</span></p>
                 <p class="card-text">The smallest possible custom mesh - one triangle from three vertices - with each vertex labelled on screen so the relationship between the numbers in...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/material-gallery.webp" class="card-img-top" alt="Screenshot of the Material Gallery example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="material-gallery.md">Material Gallery</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">The engine's material system on a ring of stations, all from code: the four numbers of a PBR material first, then the maps, the inputs a map can be...</p>
             </div>
         </div>
     </div>

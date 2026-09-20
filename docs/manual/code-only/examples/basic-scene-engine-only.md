@@ -19,6 +19,8 @@ The `Program.cs` file shows how to:
 - PlaneProceduralModel and CubeProceduralModel generated into a Model
 - A Material from a MaterialDescriptor
 
+![Basic3D Scene (Engine Only)](media/basic-scene-engine-only.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E01_3D_BasicScene_EngineOnly).
 
 [!code-csharp[](../../../../examples/code-only/E01_3D_BasicScene_EngineOnly/Program.cs?start=1&end=91)]
