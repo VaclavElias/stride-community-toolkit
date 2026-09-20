@@ -48,7 +48,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     /// <summary>The flight home: longer than a hop between stations, facing the first station on the way - from there it is the flight out, reversed; from anywhere else the camera turns to it as it rises.</summary>
     private const float HomeFlightSeconds = 3.5f;
 
-    /// <summary>The radius of the ring on the ground under every station, which is also what the mouse picks.</summary>
+    /// <summary>The radius of the ring on the ground under every station.</summary>
     private const float PadRadius = 5.8f;
 
     /// <summary>The index board's width in world units; its height follows the registry.</summary>
@@ -435,6 +435,9 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         var shapes = _furniture;
         var centre = station.Origin + Vector3.UnitY * 0.01f;
 
+        // Drawn under the station as its tag, so the batch can say which pad the mouse is over
+        shapes.Tag = station;
+
         if (hovered)
         {
             // Lit and filled: the whole disc is the button
@@ -445,32 +448,23 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         }
         else
         {
+            // A disc with a transparent fill paints the same ring, but picks as the whole disc: a ring
+            // picks on its band alone, which would make the pad a button one pixel wide
             shapes.BorderWidth = current ? 2f : 1f;
             shapes.Opacity = current ? 0.9f : 0.35f;
-            shapes.DrawRing(centre, Vector3.UnitY, PadRadius, current ? new Color(150, 210, 255) : new Color(110, 140, 170));
+            shapes.Fill.Set(null, 0f);
+            shapes.DrawDisc(centre, Vector3.UnitY, PadRadius, current ? new Color(150, 210, 255) : new Color(110, 140, 170));
+            shapes.Fill.Set(null, 0.45f);
             shapes.Opacity = 1f;
         }
 
+        shapes.Tag = null;
         shapes.BorderWidth = 3f;
     }
 
-    /// <summary>The station whose pad the mouse is over, by casting the mouse ray onto the ground, or -1.</summary>
+    /// <summary>The station whose pad the mouse is over, as the batch drew it last frame, or -1.</summary>
     private int PadUnderMouse()
-    {
-        if (_game.GetCameraEntity().Get<CameraComponent>() is not { } camera) return -1;
-
-        var ray = camera.GetPickRay(_game.Input.MousePosition);
-        if (ray.Direction.Y >= 0f) return -1;
-
-        var hit = ray.Position + ray.Direction * (-ray.Position.Y / ray.Direction.Y);
-
-        for (var i = 0; i < _stations.Count; i++)
-        {
-            if (Vector3.DistanceSquared(hit, _stations[i].Origin) <= PadRadius * PadRadius) return i;
-        }
-
-        return -1;
-    }
+        => _furniture.TryPick(_game.Input.MousePosition, out var hit) && hit.Tag is TStation station ? _stations.IndexOf(station) : -1;
 
     /// <summary>
     /// The dotted line from each exhibit up to its pin, through the overlay batch so a pillar never

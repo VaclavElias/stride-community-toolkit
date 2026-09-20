@@ -152,7 +152,10 @@ void DrawTile(ShapeBatch shapes, Tile tile, bool isSelected)
 
     if (isSelected) shapes.Glow.Set(10f, new Color(colour.R, colour.G, colour.B, (byte)140));
 
+    // The box carries the tile as its tag, so a click can ask the batch which tile it hit
+    shapes.Tag = tile;
     shapes.DrawRectangle(new Vector3(tile.Centre, 0f), Vector3.UnitX, Vector3.UnitY, new Vector2(TileSize), isSelected ? colour : new Color(70, 76, 90), cornerRadius: 0.12f);
+    shapes.Tag = null;
     shapes.Glow.Clear();
     shapes.Fill.Set(null, 1f);
 
@@ -239,20 +242,10 @@ void HandleInput()
     if (input.IsKeyPressed(Keys.Left)) duration = MathF.Max(0.5f, duration - 0.5f);
     if (input.IsKeyPressed(Keys.Right)) duration = MathF.Min(8f, duration + 0.5f);
 
-    // A click picks the tile under the mouse: the orthographic camera sits at the origin, so the
-    // window maps straight onto world units
-    if (input.IsMouseButtonPressed(MouseButton.Left) && shapes is not null && shapes.ScreenSize.Y > 0f)
+    // A click picks the tile under the mouse: the batch knows which box it drew there
+    if (input.IsMouseButtonPressed(MouseButton.Left) && shapes is not null && shapes.TryPick(input.MousePosition, out var hit) && hit.Tag is Tile picked)
     {
-        var aspect = shapes.ScreenSize.X / shapes.ScreenSize.Y;
-        var world = new Vector2((input.MousePosition.X - 0.5f) * ViewHeight * aspect, (0.5f - input.MousePosition.Y) * ViewHeight);
-
-        foreach (var (index, tile) in tiles.Index())
-        {
-            if (MathF.Abs(world.X - tile.Centre.X) <= TileSize / 2f && MathF.Abs(world.Y - tile.Centre.Y) <= TileSize / 2f)
-            {
-                selected = index;
-            }
-        }
+        selected = Array.IndexOf(tiles, picked);
     }
 }
 

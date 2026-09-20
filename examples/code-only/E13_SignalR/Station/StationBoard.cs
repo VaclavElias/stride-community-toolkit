@@ -89,24 +89,12 @@ public sealed class StationBoard
 
     /// <summary>
     /// Tracks the mouse over the scheme buttons and returns the scheme clicked this frame, if any.
-    /// Call before <see cref="Draw"/>, which highlights the hovered button.
+    /// Call before <see cref="Draw"/>, which highlights the hovered button. The buttons are drawn
+    /// with their index as the tag, so the batch says which one the mouse is over.
     /// </summary>
-    public string? Pick(InputManager input, CameraComponent camera)
+    public string? Pick(ShapeBatch shapes, InputManager input)
     {
-        _hovered = -1;
-
-        if (_board.TryPick(camera.GetPickRay(input.MousePosition), out var local))
-        {
-            for (var i = 0; i < Schemes.All.Length; i++)
-            {
-                var center = ButtonCenter(i);
-
-                if (MathF.Abs(local.X - center.X) <= ButtonSize.X / 2f && MathF.Abs(local.Y - center.Y) <= ButtonSize.Y / 2f)
-                {
-                    _hovered = i;
-                }
-            }
-        }
+        _hovered = shapes.TryPick(input.MousePosition, out var hit) && hit.Tag is int index ? index : -1;
 
         return _hovered >= 0 && input.IsMouseButtonPressed(MouseButton.Left) ? Schemes.All[_hovered].Name : null;
     }
@@ -166,7 +154,9 @@ public sealed class StationBoard
                 shapes.Glow.Additive = true;
             }
 
+            shapes.Tag = i;
             shapes.DrawRectangle(_board.Place(center), _board.AxisX, _board.AxisY, ButtonSize, selected ? accent : Hex.WithAlpha(accent, 210), 0.12f);
+            shapes.Tag = null;
             shapes.Glow.Clear();
 
             _labels.Set($"scheme-{i}", scheme.Name, _board, center.X, center.Y, selected ? fill : accent);

@@ -55,6 +55,10 @@ var time = 0f;
 List<(WorldTextComponent Text, Action<WorldTextComponent, Theme> Restyle)> themedText = [];
 DebugTextDropdown? themeMenu = null;
 
+// The panel under the mouse, as the batch last drew it: every panel is drawn with its station as
+// the tag, and the batch answers from the frame on screen
+GalleryStation? hoveredPanel = null;
+
 // Dark grounds throughout: a glow is light added to what is behind it, so it only reads as a glow
 // against something dark. That is why every HUD in every spaceship is dark.
 Theme[] themes =
@@ -267,6 +271,8 @@ void Update(Scene scene, GameTime gameTime)
 
     themeMenu?.Update(game.Input);
 
+    hoveredPanel = shapes.TryPick(game.Input.MousePosition, out var hit) ? hit.Tag as GalleryStation : null;
+
     time += (float)gameTime.Elapsed.TotalSeconds;
 
     var theme = themes[themeIndex];
@@ -291,7 +297,10 @@ void DrawPanel(GalleryStation station, Vector3 center, Theme theme)
     // for part of the panel
     shapes!.DrawRectangle(center, stripeAxisX, stripeAxisY, new Vector2(PanelWidth * 0.85f, 0.5f), new Color(118, 130, 150));
 
-    shapes.BorderWidth = station.BorderWidth;
+    // Tagged with its station, so a pick hands the station back; the one under the mouse gets a
+    // heavier border
+    shapes.Tag = station;
+    shapes.BorderWidth = station == hoveredPanel ? station.BorderWidth + 1.5f : station.BorderWidth;
 
     // null fills with the outline colour, which is the Box2D testbed's behaviour; a colour of its own
     // is what makes a dark panel behind a bright border
@@ -508,6 +517,7 @@ void Reset()
     shapes.Dash.Clear();
     shapes.Gradient.Clear();
     shapes.Opacity = 1f;
+    shapes.Tag = null;
 }
 
 /// <summary>Creates one text entity, styled through the same delegate a theme change re-runs.</summary>
@@ -578,6 +588,7 @@ IReadOnlyList<TextElement> OverlayLines()
     [
         new("Mouse wheel", "Zoom", Color.Gold),
         new(string.Empty),
+        new(hoveredPanel is { } hovered ? $"Under the mouse: panel {hovered.Number}" : "Under the mouse: nothing", Color.LightGray),
         new("Panels: ShapeBatch, one draw call for all 48", Color.LightGreen),
         new("Upper row of each pair is the panel alone", Color.LightGray),
         new("Corner numbers match the stations array in Program.cs", Color.LightGray),

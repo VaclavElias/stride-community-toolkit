@@ -45,7 +45,6 @@ var commands = new StationCommands(deck, console);
 StationBoard? board = null;
 FeedBoard? feed = null;
 DeckEffects? effects = null;
-CameraComponent? camera = null;
 
 var uptime = 0f;
 var untilHeartbeat = HeartbeatSeconds;
@@ -72,8 +71,6 @@ void Start(Scene scene)
     var labels = new Labels(scene, game, console);
 
     station.Build(scene, labels, console);
-
-    camera = scene.GetCamera();
 
     // The boards face the camera's starting point, so they are read square-on from there
     board = new StationBoard(labels, console, StationScene.BoardCenter, StationScene.CameraPosition - StationScene.BoardCenter);
@@ -156,7 +153,7 @@ void Update(Scene scene, GameTime time)
 
     HandleKeys();
 
-    if (camera is not null && board!.Pick(game.Input, camera) is { } clicked)
+    if (station.Shapes is { } picking && board!.Pick(picking, game.Input) is { } clicked)
     {
         console.Select(clicked);
     }

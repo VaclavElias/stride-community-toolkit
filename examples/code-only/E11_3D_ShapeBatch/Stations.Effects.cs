@@ -1,4 +1,5 @@
 using Stride.CommunityToolkit.Rendering.Compositing;
+using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Shapes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -360,5 +361,81 @@ public static class EffectStations
 
         s.ResetStyle(shapes);
         shapes.Screen = false;
+    }
+
+    /// <summary>The label above the station that says what the mouse is over.</summary>
+    public static void PickingSetup(ShapeStation s)
+    {
+        var text = new WorldTextComponent
+        {
+            Text = "",
+            FontSize = 40,
+            Height = 0.32f,
+            TextColor = HudBlue,
+            GlowColor = new Color(0, 140, 255, 170),
+            GlowSize = 3f,
+            Alignment = Stride.Graphics.TextAlignment.Center,
+            Billboard = false,
+        };
+
+        var entity = new Entity($"Station {s.Number} pick label")
+        {
+            Transform = { Position = s.At(0f, 4f, -1f), Rotation = s.FacingRotation() },
+        };
+
+        entity.Add(text);
+        entity.Scene = s.Scene;
+        s.State = text;
+    }
+
+    /// <summary>
+    /// The batch knows which shape is under the mouse, from what it drew last frame and with the
+    /// same distance functions the pixels are painted with. Every shape here carries a tag; the one
+    /// under the mouse lights up, and the label says what it is, where on it the mouse is in the
+    /// shape's own coordinates, and how far inside the outline. The filled shapes and the border
+    /// are hit exactly as drawn; a few pixels of slack make the ring, the line and the polyline
+    /// easy to catch.
+    /// </summary>
+    public static void Picking(ShapeStation s)
+    {
+        var shapes = s.Shapes;
+
+        // What was under the mouse as of the frame last drawn; only while the visitor is here, so
+        // the other stations' shapes are not lit from afar
+        var hovered = s.IsCurrent && shapes.TryPick(s.Game.Input.MousePosition, out var hit, slackPixels: 4f) ? hit : (ShapeHit?)null;
+
+        Tagged("disc", () => shapes.DrawDisc(s.At(-2.6f, Lift, 1.5f), s.Up, 1.1f, Color.DeepSkyBlue));
+        Tagged("ring", () => shapes.DrawRing(s.At(0f, Lift, 1.5f), s.Up, 1.1f, Color.Gold));
+        Tagged("sector", () => shapes.DrawSector(s.At(2.6f, Lift, 1.5f), s.Up, 1.2f, 0.4f, 4.4f, Color.Orange));
+        Tagged("panel", () => shapes.DrawRectangle(s.At(-2.2f, 2f, -1f), s.Right, s.Up, new Vector2(2.4f, 1.4f), Color.MediumPurple, cornerRadius: 0.3f));
+        Tagged("line", () => shapes.DrawLine(s.At(-0.4f, 1.2f, -1f), s.At(2.6f, 3f, -1f), 0.12f, Color.LimeGreen));
+        Tagged("marker", () => shapes.DrawPixelDisc(s.At(2.6f, 1.2f, -1f), 12f, Color.White));
+        Tagged("polyline", () => shapes.DrawPixelPolyline([new(-2.6f, 0f), new(-1.3f, 1f), new(0f, 0f), new(1.3f, 1f), new(2.6f, 0f)], s.At(0f, Lift, -3f), s.Right, s.Forward, 3f, Color.Tomato));
+
+        if (s.State is WorldTextComponent label)
+        {
+            label.Text = hovered is { } h
+                ? $"{h.Tag}   local ({h.Local.X:0.00}, {h.Local.Y:0.00})   distance {h.Distance:0.00}"
+                : "move the mouse over a shape";
+        }
+
+        // Every shape drawn under its own tag; the hovered one with a fuller fill and a glow of its
+        // own colour, the style put back after each
+        void Tagged(string name, Action draw)
+        {
+            shapes.Tag = name;
+
+            if (hovered is { } current && Equals(current.Tag, name))
+            {
+                shapes.Fill.Set(null, 0.85f);
+                shapes.Glow.Set(14f);
+                shapes.Glow.Strength = 0.5f;
+                shapes.Glow.Additive = true;
+            }
+
+            draw();
+            s.ResetStyle(shapes);
+            shapes.Tag = null;
+        }
     }
 }

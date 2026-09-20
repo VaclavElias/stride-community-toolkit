@@ -181,9 +181,17 @@ public class ShapeBatchFeature : RootRenderFeature
                 // sees it, is what makes every pixel-measured width come out that much wider
                 var displayScale = batch.AutoScale && _displayScale is not null ? _displayScale.Value : 1f;
 
-                // What a pick needs to place the mouse the way this view placed the shapes; the last
-                // view to draw the batch is the one its picks answer for
-                batch.LastView = new ShapeView(renderView.ViewProjection, Matrix.Invert(renderView.ViewProjection), renderView.ViewSize, pixelScale / displayScale, displayScale, cameraRight, cameraUp, eyePosition);
+                // What a pick needs to place the mouse the way this view placed the shapes. The mouse is
+                // in the window, so the view drawn at the window's size is the one picks answer for; a
+                // render-texture camera draws the same batch at its own size and must not take over.
+                // Any view will do until the window's has drawn once.
+                var backBuffer = context.GraphicsDevice.Presenter?.BackBuffer;
+                var windowView = backBuffer is null || (renderView.ViewSize.X == backBuffer.Width && renderView.ViewSize.Y == backBuffer.Height);
+
+                if (windowView || batch.LastView is null)
+                {
+                    batch.LastView = new ShapeView(renderView.ViewProjection, Matrix.Invert(renderView.ViewProjection), renderView.ViewSize, pixelScale / displayScale, displayScale, cameraRight, cameraUp, eyePosition);
+                }
 
                 if (batch.Instances.Count == 0) continue;
 
