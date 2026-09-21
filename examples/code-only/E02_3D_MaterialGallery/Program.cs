@@ -2,6 +2,7 @@ using E02_3D_MaterialGallery;
 using Example.Common;
 using Example.Common.Galleries;
 using Stride.CommunityToolkit.Engine;
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.CommunityToolkit.Windows;
@@ -10,6 +11,8 @@ using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
+using Stride.Rendering.Colors;
+using Stride.Rendering.Lights;
 
 // A gallery of the engine's material system, built entirely from code. Every material in Stride is
 // a MaterialDescriptor - a bag of features composed into one shader - and every station here is one
@@ -47,8 +50,10 @@ void Start(Scene rootScene)
     game.Window.AllowUserResizing = true;
     game.Window.Title = "Material Gallery - Stride Community Toolkit";
 
-    game.SetupBase3D();
+    game.AddGraphicsCompositor().AddCleanUIStage();
+    game.Add3DCamera();
     game.Add3DCameraController();
+    var sun = game.AddDirectionalLight();
     game.AddSkybox();
     game.AddProfiler();
 
@@ -67,6 +72,7 @@ void Start(Scene rootScene)
         if (station.Number == startStation) station.Variation = startVariation;
     });
     gallery.UpdateLabels();
+    LightTheRing(rootScene, gallery.Radius, sun);
 
     if (startStation > 0) gallery.GoTo(startStation - 1, instant: true);
     else gallery.GoHome(instant: true);
@@ -103,6 +109,31 @@ void HandleInput(Gallery<MaterialStation> gallery)
         station.Variation++;
         Stations.All[gallery.Current].Setup?.Invoke(station);
     }
+}
+
+// One sun lights a ring badly. The exhibits face the centre, so the station the sun points at is
+// front-lit and the one opposite gets nothing but sky. The ring is symmetric about its centre, so a
+// point light there is the same key light for every station, from the side the camera stands on,
+// and high enough to come in at forty-five degrees rather than as a flat headlight - the higher it
+// sits, the less the floor under it outshines the exhibits, since a point light falls off with the
+// square of the distance. The sun stays for its shadows, steepened so its share is nearly the same
+// all the way round.
+void LightTheRing(Scene scene, float radius, Entity sun)
+{
+    sun.Transform.Rotation = Quaternion.RotationX(MathUtil.DegreesToRadians(-65f)) * Quaternion.RotationY(MathUtil.DegreesToRadians(-180f));
+
+    var key = new Entity("Key light")
+    {
+        new LightComponent
+        {
+            // By the exhibits, at the ring's radius times root two, this is about 12: a little over half the sun
+            Intensity = 30f * radius * radius,
+            Type = new LightPoint { Radius = radius * 2.5f, Color = new ColorRgbProvider(Color.White) },
+        }
+    };
+
+    key.Transform.Position = new Vector3(0f, radius, 0f);
+    key.Scene = scene;
 }
 
 IReadOnlyList<TextElement> BuildOverlayLines()
