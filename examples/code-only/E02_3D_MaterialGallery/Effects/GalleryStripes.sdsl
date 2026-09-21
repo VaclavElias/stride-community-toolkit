@@ -1,0 +1,15 @@
+namespace E02_3D_MaterialGallery
+{
+    // Diagonal stripes from the texture coordinates, with the engine's Math class for PI: the
+    // shader-author library (Math, ColorUtility, HSVUtils) is there for any material node.
+    shader GalleryStripes : ComputeColor, Texturing, Math
+    {
+        override float4 Compute()
+        {
+            float wave = 0.5 + 0.5 * sin((streams.TexCoord.x + streams.TexCoord.y) * 2.0 * PI * 5.0);
+            float band = smoothstep(0.35, 0.65, wave);
+
+            return lerp(float4(0.85, 0.30, 0.20, 1.0), float4(0.95, 0.85, 0.55, 1.0), band);
+        }
+    };
+}
