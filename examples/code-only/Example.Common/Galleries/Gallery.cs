@@ -124,6 +124,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         // home camera, offset left and up in its frame, turned to face it. Steer the camera away
         // and it stays put; Home brings it back to the corner
         (_boardCentre, _boardRight, _boardUp) = PlaceBoard();
+
         BuildBoard();
     }
 
@@ -233,7 +234,8 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
             if (Solo && !current) continue;
 
             Prepare?.Invoke(station);
-            _exhibits[i].Update?.Invoke(station);
+            var update = _exhibits[i].Update;
+            if (update is not null) Guarded(station, () => update(station));
         }
 
         DrawLabels();
@@ -297,7 +299,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         }
 
         configure?.Invoke(station);
-        exhibit.Setup?.Invoke(station);
+        Guarded(station, () => exhibit.Setup?.Invoke(station));
 
         // The label: screen-space text pinned to a point above the pad, so it reads at any distance
         var label = new EntityTextComponent
@@ -320,6 +322,26 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         _labels.Add(label);
 
         return station;
+    }
+
+    /// <summary>
+    /// Runs a station's own code with the ring standing by: an exhibit that throws - a feature the
+    /// GPU or the engine refuses - leaves its pad empty with the message on the station, and the
+    /// other stations stand. Once a station has failed its update is not run again.
+    /// </summary>
+    private static void Guarded(TStation station, Action action)
+    {
+        if (station.Error is not null) return;
+
+        try
+        {
+            action();
+        }
+        catch (Exception exception)
+        {
+            station.Error = exception.Message;
+            Console.Error.WriteLine($"Station {station.Number} ({station.Exhibit.Title}) failed: {exception}");
+        }
     }
 
     private void BuildGround()

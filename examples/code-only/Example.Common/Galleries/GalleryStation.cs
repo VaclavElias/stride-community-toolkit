@@ -2,18 +2,6 @@ using Stride.Engine;
 
 namespace Example.Common.Galleries;
 
-/// <summary>A solid block a station can hide things behind or hang markers from.</summary>
-/// <param name="Base">The centre of its footprint on the ground, in world coordinates.</param>
-/// <param name="Height">Its height; the top is <see cref="Base"/> lifted by this.</param>
-public readonly record struct Pillar(Vector3 Base, float Height)
-{
-    /// <summary>The centre of the top face.</summary>
-    public Vector3 Top => Base + Vector3.UnitY * Height;
-
-    /// <summary>The centre of the block.</summary>
-    public Vector3 Centre => Base + Vector3.UnitY * (Height * 0.5f);
-}
-
 /// <summary>
 /// One place in a gallery: a frame on the ground facing the centre, and what an exhibit's methods
 /// need to work in it. A method works in station coordinates - X to its right as the visitor sees
@@ -61,6 +49,9 @@ public class GalleryStation
 
     /// <summary>Whether the visitor is nearest this station this frame - what a station with screen-space content draws only for.</summary>
     public bool IsCurrent { get; internal set; }
+
+    /// <summary>What went wrong the last time the station's setup or update ran, or null: a station that throws is an empty pad with a message, not a dead gallery.</summary>
+    public string? Error { get; internal set; }
 
     /// <summary>A point in station coordinates, in the world.</summary>
     public Vector3 At(float x, float y, float z) => Origin + Right * x + Vector3.UnitY * y + Forward * z;
