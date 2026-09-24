@@ -24,17 +24,28 @@ public static class ShapeBatchExtensions
     /// A fill source for a textured batch - see <see cref="ShapeBatch.FillSource"/> - or <c>null</c>
     /// for plain fills. <see cref="ShapeBatch.FillWith"/> installs one later for the common case.
     /// </param>
+    /// <param name="afterPostEffects">
+    /// Draw the batch after the post-processing chain, in the compositor's UI stage, where the text
+    /// renderers draw: a colour comes out as given. In the scene, a shape goes through the tone
+    /// mapper with everything else, and under auto exposure a white shape lands at whatever grey
+    /// the frame's brightness leaves it - about half, next to text that is truly white. That is
+    /// right for a decal on the ground and wrong for a HUD. Nothing is depth-tested there; the
+    /// compositor must have the toolkit's UI stage (<c>AddUIStage</c> or <c>AddCleanUIStage</c>,
+    /// which <c>SetupBase3D</c> and <c>AddGraphicsCompositor</c> both do), else the batch falls
+    /// back to the scene's transparent stage.
+    /// </param>
     /// <returns>The batch: submit shapes to it every frame from your update logic.</returns>
     /// <remarks>
     /// Shapes render in the compositor's "Transparent" stage, alpha-blended in submission order,
-    /// before UI and debug text. Call after the graphics compositor exists (from the Start callback).
+    /// before UI and debug text - or, with <paramref name="afterPostEffects"/>, in the UI stage
+    /// after the post effects. Call after the graphics compositor exists (from the Start callback).
     /// Calling this more than once adds another independent batch, which is how you get depth-tested
     /// and overlay shapes in the same scene; the first batch registers as the service that
     /// <see cref="ShapeComponent"/> draws through. A scene that never calls this still draws its
     /// components: the processor registers a depth-tested batch of its own the first time it needs one.
     /// </remarks>
     /// <exception cref="InvalidOperationException">The compositor has no "Transparent" render stage.</exception>
-    public static ShapeBatch AddShapeBatch(this Game game, bool depthTest = false, IComputeColor? fill = null)
+    public static ShapeBatch AddShapeBatch(this Game game, bool depthTest = false, IComputeColor? fill = null, bool afterPostEffects = false)
     {
         ArgumentNullException.ThrowIfNull(game);
 
@@ -45,6 +56,10 @@ public static class ShapeBatchExtensions
             ?? throw new InvalidOperationException("The game has no scene instance yet; add the batch from the Start callback or later.");
 
         var batch = new ShapeBatch { DepthTest = depthTest, FillSource = fill };
+
+        // Group 31 is the toolkit's UI group: the main view leaves it out and a second camera renderer
+        // draws it, in the UI stage, once the post effects have run
+        if (afterPostEffects) batch.RenderGroup = RenderGroup.Group31;
         var displayScale = DisplayScale.GetOrCreate(game);
 
         // Screen shapes and Corner() work in the display's scaled pixels, so the window is asked each
@@ -78,14 +93,12 @@ public static class ShapeBatchExtensions
     internal static void Register(SceneInstance sceneInstance, RenderSystem renderSystem, ShapeBatch batch)
     {
         RenderStage? transparentStage = null;
+        RenderStage? uiStage = null;
 
         foreach (var stage in renderSystem.RenderStages)
         {
-            if (stage.Name == "Transparent")
-            {
-                transparentStage = stage;
-                break;
-            }
+            if (stage.Name == "Transparent") transparentStage = stage;
+            else if (stage.Name == "UiStage") uiStage = stage;
         }
 
         if (transparentStage is null)
@@ -93,17 +106,27 @@ public static class ShapeBatchExtensions
 
         if (!renderSystem.RenderFeatures.OfType<ShapeBatchFeature>().Any())
         {
-            renderSystem.RenderFeatures.Add(new ShapeBatchFeature
+            var feature = new ShapeBatchFeature();
+
+            // Every batch to the transparent stage, except the UI group, which goes to the UI stage
+            // after the post effects when the compositor has one. Without a UI stage the group draws
+            // with everything else, so a batch asked to draw after the post effects still draws
+            feature.RenderStageSelectors.Add(new SimpleGroupToRenderStageSelector
             {
-                RenderStageSelectors =
-                {
-                    new SimpleGroupToRenderStageSelector
-                    {
-                        RenderStage = transparentStage,
-                        RenderGroup = RenderGroupMask.All,
-                    }
-                }
+                RenderStage = transparentStage,
+                RenderGroup = uiStage is null ? RenderGroupMask.All : RenderGroupMask.All & ~RenderGroupMask.Group31,
             });
+
+            if (uiStage is not null)
+            {
+                feature.RenderStageSelectors.Add(new SimpleGroupToRenderStageSelector
+                {
+                    RenderStage = uiStage,
+                    RenderGroup = RenderGroupMask.Group31,
+                });
+            }
+
+            renderSystem.RenderFeatures.Add(feature);
         }
 
         VisibilityGroupFor(sceneInstance, renderSystem).RenderObjects.Add(batch);
