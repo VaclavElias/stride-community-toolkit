@@ -258,6 +258,35 @@ The screen HUD station in the shape gallery draws only while you stand at it, be
 on the screen, not on the ring. Gold scene `shapes-screen` pins the pixel mapping, the Y-down
 convention, the viewport offset and the near-plane depth over a depth-tested world disc.
 
+## Why a white HUD came out grey
+
+The shape gallery's frame draws a dotted line from each exhibit up to its label, in `Color.White`,
+and next to the label - which is white - it read as grey. Every variant did: solid, dashed, thin,
+thick, and a line in world units. Measured in a capture, every one of them peaked at 127 out of
+255. Exactly half, and the same half whatever the width, which rules out anti-aliasing and the dash
+ends and points at something that happens to the whole batch.
+
+It is the tone mapper. The batch draws in the scene's transparent stage, into the HDR buffer, and
+the post-processing chain then treats its pixels as scene light: auto exposure scales the frame to
+the lit surfaces, which sit at several times one, and the tone map curve compresses what is left.
+A shape's white is a unit colour, so it lands wherever the exposure puts one - about half, in a
+scene lit for the material gallery - and it moves as the exposure adapts. The text renderers never
+have this problem because they draw after the post effects, in the compositor's UI stage, which is
+why the label beside the line was truly white.
+
+```csharp
+var world = game.AddShapeBatch(depthTest: true);          // a decal: lit, exposed and tone-mapped with the scene
+var hud = game.AddShapeBatch(afterPostEffects: true);     // a HUD: a colour comes out as given
+```
+
+`afterPostEffects` puts the batch in the UI stage, after the chain, where a colour is written as it
+was given. The batch is in the toolkit's UI render group, which the main view leaves out and a second
+camera renderer draws last, so nothing there is depth-tested - that is the trade, and for a HUD it
+is the right one. A compositor without the toolkit's UI stage has no such place, and the batch then
+draws in the transparent stage like any other. Which to use is what the shape *is*: a marker on the
+ground is part of the scene and should be exposed with it; a crosshair, a gauge, a leader line to a
+label, is on the glass and should not.
+
 ## Which shape is under the mouse
 
 Sooner or later something drawn wants to be clicked: a HUD button, a chart's hover, a station's

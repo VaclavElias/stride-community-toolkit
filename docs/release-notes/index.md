@@ -55,6 +55,7 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 - ShapeBatch: the pixel stage reads each shape's record from a structured buffer instead of fifteen interpolated registers, points live in their own buffer so a shape has as many as it needs, streams are integer-exact, the border is a flat band with an anti-aliasing ramp measured from screen derivatives, and a 4x4 Bayer dither hides banding in glows.
 - `ShapeGlow.Additive`: a glow that adds light rather than covering what is behind it.
 - The render feature gathers every batch of the frame into shared buffers once, draws each batch under a lock, and flushes after the last view; batches can be removed with `RemoveShapeBatch`.
+- `game.AddShapeBatch(afterPostEffects: true)` draws a batch in the compositor's UI stage, after the post-processing chain, so a colour comes out as given. A batch in the scene goes through auto exposure and the tone mapper with everything else, and a white shape lands at about half next to text that is truly white - measured at exactly 127 of 255 in the gallery frame, solid or dashed, thin or thick. Nothing in the UI stage is depth-tested; the gallery frame's leader lines and pins use it.
 
 ### ✨ Enhancement
 
