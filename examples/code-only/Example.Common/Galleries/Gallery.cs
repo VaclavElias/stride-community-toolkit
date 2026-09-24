@@ -27,7 +27,7 @@ namespace Example.Common.Galleries;
 public sealed class Gallery<TStation> where TStation : GalleryStation, new()
 {
     /// <summary>How high above the pad the label pin floats.</summary>
-    private const float PinHeight = 7.5f;
+    private const float PinHeight = 5.25f;
 
     /// <summary>
     /// One line of the index board, in world units; the frame is the lines plus a margin. The list's
@@ -109,9 +109,11 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         _labelFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 20f);
         _pillarMaterial = game.CreateMaterial(Options.PillarColor ?? new Color(96, 103, 116), specular: 0.1f, microSurface: 0.35f);
 
-        // Depth-tested for the pads and the board, over everything for the dotted lines and pins
+        // Depth-tested for the pads and the board, over everything for the dotted lines and pins -
+        // and after the post effects, or the tone mapper would turn their white into the same grey
+        // it makes of any unit colour in the scene, next to labels that are truly white
         _furniture = game.AddShapeBatch(depthTest: true);
-        _overlay = game.AddShapeBatch(depthTest: false);
+        _overlay = game.AddShapeBatch(afterPostEffects: true);
 
         BuildGround();
 
