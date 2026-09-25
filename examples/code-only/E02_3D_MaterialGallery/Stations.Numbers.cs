@@ -109,4 +109,43 @@ public static class NumberStations
         ], spacing: 2.4f);
     }
 
+    /// <summary>
+    /// A mirror: glossiness 1, metalness 1 and no Fresnel term, so the whole environment comes back
+    /// at full strength from every angle. It is the community's recipe for checking a cubemap
+    /// (Stride discussion 3031), with the implicit visibility and Blinn-Phong distribution it
+    /// uses. A metal's diffuse colour is the colour of its reflection, so a gold tint makes a gold
+    /// mirror; V switches. There is no Fresnel variation because there would be nothing to see:
+    /// the Fresnel function shapes the highlights of lights, pinpoints at this glossiness, while the
+    /// reflection of the sky - all of what a mirror shows - is the environment term's business, and
+    /// that is the same polynomial whichever Fresnel is chosen. On a white metal even the highlights
+    /// agree, since a reflectance of one has nowhere to rise to.
+    /// </summary>
+    public static void Mirror(MaterialStation s)
+    {
+        s.Clear();
+
+        var colour = s.Pick("mirror", "gold mirror") == 0 ? Color.White : new Color(255, 200, 90);
+
+        var mirror = s.Material(new MaterialDescriptor
+        {
+            Attributes =
+            {
+                Diffuse = new MaterialDiffuseMapFeature(new ComputeColor(colour)),
+                DiffuseModel = new MaterialDiffuseLambertModelFeature(),
+                MicroSurface = new MaterialGlossinessMapFeature(new ComputeFloat(1f)),
+                Specular = new MaterialMetalnessMapFeature(new ComputeFloat(1f)),
+                SpecularModel = new MaterialSpecularMicrofacetModelFeature
+                {
+                    Fresnel = new MaterialSpecularMicrofacetFresnelNone(),
+                    Visibility = new MaterialSpecularMicrofacetVisibilityImplicit(),
+                    NormalDistribution = new MaterialSpecularMicrofacetNormalDistributionBlinnPhong(),
+                    // The polynomial term, as everywhere here: the LUT one needs a texture a code-only game never loads
+                    Environment = new MaterialSpecularMicrofacetEnvironmentGGXPolynomial(),
+                },
+            },
+        });
+
+        s.PlaceTrio(mirror);
+    }
+
 }

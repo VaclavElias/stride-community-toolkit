@@ -193,7 +193,8 @@ public static class MapStations
 
         foreach (var n in normals)
         {
-            // The face's own axes, so its four corners are laid out counter-clockwise seen from outside
+            // The face's own axes; its four corners go round clockwise seen from outside, which is the
+            // front face in Stride as in Direct3D - the other way round and culling shows the insides
             var up = MathF.Abs(n.Y) > 0.5f ? Vector3.UnitZ : Vector3.UnitY;
             var right = Vector3.Cross(up, n);
             var first = builder.VertexCount;
@@ -210,11 +211,11 @@ public static class MapStations
             }
 
             builder.AddIndex(first);
+            builder.AddIndex(first + 2);
             builder.AddIndex(first + 1);
-            builder.AddIndex(first + 2);
             builder.AddIndex(first);
-            builder.AddIndex(first + 2);
             builder.AddIndex(first + 3);
+            builder.AddIndex(first + 2);
         }
 
         return new Model { new Mesh { Draw = builder.ToMeshDraw(s.Game.GraphicsDevice), MaterialIndex = 0 } };

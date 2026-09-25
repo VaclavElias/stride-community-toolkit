@@ -21,6 +21,7 @@ public static class Stations
         new("Metalness sweep", "dielectric to metal: why a metal has no diffuse colour", nameof(MaterialMetalnessMapFeature), Setup: NumberStations.MetalnessSweep, Anchor: new Vector3(0f, 1.6f, 0f)),
         new("Specular colour", "the other workflow: F0 given as a colour instead of metalness", nameof(MaterialSpecularMapFeature), Setup: NumberStations.SpecularColour, Anchor: new Vector3(0f, 1.6f, 0f)),
         new("Three distributions", "GGX, Beckmann and Blinn-Phong: the shape of the highlight", nameof(MaterialSpecularMicrofacetModelFeature.NormalDistribution), Setup: NumberStations.Distributions, Anchor: new Vector3(0f, 1.6f, 0f)),
+        new("Mirror", "glossiness 1, metalness 1, no Fresnel: the whole environment back, the cubemap check", nameof(MaterialSpecularMicrofacetFresnelNone), Setup: NumberStations.Mirror, Anchor: new Vector3(0f, 1.8f, 0f)),
         new("Albedo texture", "a texture where the colour was, tiled by its scale", nameof(ComputeTextureColor), Setup: MapStations.AlbedoTexture, Anchor: new Vector3(0f, 1.8f, 0f)),
         new("Normal map", "the same albedo with and without its normal map", nameof(MaterialNormalMapFeature), Setup: MapStations.NormalMap, Anchor: new Vector3(1.6f, 1.8f, 0f)),
         new("Gloss and metal maps", "wood, iron and gold: the numbers varying per texel", nameof(MaterialMetalnessMapFeature.MetalnessMap), Setup: MapStations.GlossAndMetalMaps, Anchor: new Vector3(0f, 1.8f, 0f)),

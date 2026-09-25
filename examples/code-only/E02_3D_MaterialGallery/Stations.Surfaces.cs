@@ -46,6 +46,13 @@ public static class SurfaceStations
     /// colour and the glass would go opaque; that is how the engine's own sample glass is built. V
     /// cycles clear, tinted and frosted, where frosted is nothing but a lower glossiness.
     /// </summary>
+    /// <remarks>
+    /// The engine's transmittance pass ships with its blend state wiped - a 2025 refactor of the
+    /// blend description replaced the render target's whole struct where it meant to set two alpha
+    /// factors - so the pass paints its transmittance as an opaque colour and the glass is a grey
+    /// wall with nothing behind it. The station puts the multiply back on the transmittance passes
+    /// after the material is generated; see <c>notes/upstream/thin-glass-transmittance-blend-state.md</c>.
+    /// </remarks>
     public static void ThinGlass(MaterialStation s)
     {
         s.Clear();
@@ -74,6 +81,17 @@ public static class SurfaceStations
                 CullMode = CullMode.None,
             },
         });
+
+        // What is behind, times the transmittance, the alpha left alone: the blend state the engine's
+        // transmittance pass means to have. Every even pass is a transmittance pass, back faces and front
+        var transmit = new BlendStateDescription(Blend.Zero, Blend.SourceColor);
+        transmit.RenderTargets[0].AlphaSourceBlend = Blend.One;
+        transmit.RenderTargets[0].AlphaDestinationBlend = Blend.Zero;
+
+        foreach (var pass in glass.Passes)
+        {
+            if (pass.PassIndex % 2 == 0) pass.BlendState = transmit;
+        }
 
         s.Place(PrimitiveModelType.Sphere, s.Material(Recipes.Pbr(new Color(230, 120, 60), 0.5f, 0f)), new Vector3(-2.8f, 0.8f, -2.4f), new Vector3(0.8f));
         s.Place(PrimitiveModelType.Cube, s.Material(Recipes.Pbr(new Color(60, 160, 90), 0.5f, 0f)), new Vector3(2.8f, 0.8f, -2.4f), new Vector3(1.4f));

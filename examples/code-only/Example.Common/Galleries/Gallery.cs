@@ -51,6 +51,10 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     /// <summary>The radius of the ring on the ground under every station.</summary>
     private const float PadRadius = 5.8f;
 
+    /// <summary>The little ring where a leader line touches its exhibit, and the dot where it hangs its label, in pixels.</summary>
+    private const float LeaderEndRadius = 4f;
+    private const float LeaderWidth = 1f;
+
     /// <summary>The index board's width in world units; its height follows the registry.</summary>
     private const float BoardWidth = 10f;
 
@@ -498,7 +502,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     {
         var shapes = _overlay;
 
-        shapes.BorderWidth = 1.5f;
+        shapes.BorderWidth = LeaderWidth;
         shapes.Dash.Set(2f, 5f);
 
         foreach (var station in _stations)
@@ -509,7 +513,15 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
 
             if (!visible) continue;
 
-            shapes.DrawPixelLine(AnchorOf(station), PinOf(station), 1.5f, Color.White);
+            var anchor = AnchorOf(station);
+            var pin = PinOf(station);
+
+            // The line starts at the ring's outer edge, not its centre: the ring is a pixel radius,
+            // so the gap is that many pixels' worth of world at the anchor's distance, plus the stroke
+            var direction = Vector3.Normalize(pin - anchor);
+            var start = anchor + direction * ((LeaderEndRadius + LeaderWidth) * shapes.WorldPerPixel(anchor));
+
+            shapes.DrawPixelLine(start, pin, LeaderWidth, Color.White);
         }
 
         shapes.Dash.Clear();
@@ -518,8 +530,8 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         {
             if (Solo && station.Number - 1 != Current) continue;
 
-            shapes.DrawPixelRing(AnchorOf(station), 4f, Color.White);
-            shapes.DrawPixelDisc(PinOf(station), 4f, Color.White);
+            shapes.DrawPixelRing(AnchorOf(station), LeaderEndRadius, Color.White);
+            shapes.DrawPixelDisc(PinOf(station), LeaderEndRadius, Color.White);
         }
 
         shapes.BorderWidth = 3f;
