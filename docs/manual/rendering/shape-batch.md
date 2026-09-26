@@ -49,8 +49,8 @@ a border that had to be rebuilt per zoom bucket to look pixel-constant; a fill a
 whose draw order flipped at random between runs (opaque-stage sorting is draw-order dependent per
 material pair); a rewrite of the border as a non-overlapping ring so order could not matter; and
 then the discovery that a transparent material on an *instanced* mesh renders at full opacity in
-Stride 4.4. Days of work for a rectangle with a border. The record is in the example's history and in
-`notes/upstream/`; the lesson is that this path fights the engine at every step because the
+Stride 4.4. Days of work for a rectangle with a border. The record is in the example's history; the
+lesson is that this path fights the engine at every step because the
 engine's mesh pipeline was built for lit, opaque, textured objects, and a debug rectangle is none
 of those.
 

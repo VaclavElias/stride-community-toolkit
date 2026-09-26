@@ -2,7 +2,7 @@
 
 All examples live in the [examples](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only) folder.
 
-Suggested and in-progress examples are tracked in the [example backlog](https://github.com/stride3d/stride-community-toolkit/blob/main/notes/example-backlog.md). Check it before you start, and add your idea there if it is not listed.
+Before you start, look through the existing examples and the open issues: the idea may already be built, in progress, or declined for a reason worth knowing. If it is new, open an issue so it can be discussed before the work.
 
 ## Naming the project
 

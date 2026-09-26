@@ -365,7 +365,6 @@ IReadOnlyList<TextElement> OverlayLines()
         new("their update cost falls to zero as the pile rests, while", Color.LightGray),
         new("kind 1 keeps paying for a scene that is not moving.", Color.LightGray),
         new("Kind 4 stops uploading to the GPU as well.", Color.LightGray),
-        new("See notes/plans/instancing-entity-transform.md", Color.LightGray),
     ];
 }
 

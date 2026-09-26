@@ -95,8 +95,8 @@ as flat slivers at mirrored positions, which is a picture worth a thousand theor
 
 The fix is in `GpuPickingRenderFeature`: for its own render nodes it rebinds the two buffers by
 name, walking the effect's per-draw resource entries. The engine's own picking has the same gap,
-so an instanced entity in Game Studio's viewport probably cannot be clicked either; the note is in
-`notes/upstream`.
+so an instanced entity in Game Studio's viewport probably cannot be clicked either; that is one for
+the engine.
 
 The effect file and the id writer are eleven lines between them; what a package needs to carry a shader at all is on [Shaders in a toolkit package](../../contributing/toolkit/shaders.md).
 

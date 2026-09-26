@@ -125,7 +125,7 @@ void LightTheRing(Scene scene, float radius, Entity sun)
     // The subsurface-scattering station reads the shadow map's thickness for its translucency term. The
     // blur that would spread light under the surface is a forward-renderer post effect; on 4.4 its shader
     // needs an engine fix and, once it compiles, every material draw trips a constant-buffer size
-    // mismatch and the frame is wrong - notes/upstream/subsurface-blur-buffer-layout.md - so it stays off
+    // mismatch and the frame is wrong (an engine matter, reported upstream), so it stays off
     ((LightDirectional)sun.Get<LightComponent>().Type).Shadow.ComputeTransmittance = true;
 
     var key = new Entity("Key light")

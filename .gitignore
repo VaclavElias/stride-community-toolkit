@@ -408,3 +408,4 @@ tools/**/examples-manifest.json
 screenshots-review/
 imgui.ini
 /favorites.json
+/notes

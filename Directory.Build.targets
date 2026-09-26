@@ -20,7 +20,7 @@
         sources/assets/Stride.AssetCompiler/build/Stride.AssetCompiler.targets
     the override switches itself off and this block can be deleted. If Stride ever adds another inline
     task containing "return true;", the guard stays on - harmless, since this copy sorts the same way.
-    Upstream fix: notes/upstream/asset-compiler-sort-items-unreachable-code.md
+    The upstream fix is to drop the unreachable statement from the inline task, or to sort the items there.
   -->
   <PropertyGroup>
     <_StrideAssetCompilerTargets>$(NuGetPackageRoot)stride.assetcompiler/$(StrideVersion)/buildTransitive/Stride.AssetCompiler.targets</_StrideAssetCompilerTargets>

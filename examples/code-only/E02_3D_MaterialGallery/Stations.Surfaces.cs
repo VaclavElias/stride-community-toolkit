@@ -53,7 +53,7 @@ public static class SurfaceStations
     /// blend description replaced the render target's whole struct where it meant to set two alpha
     /// factors - so the pass paints its transmittance as an opaque colour and the glass is a grey
     /// wall with nothing behind it. The station puts the multiply back on the transmittance passes
-    /// after the material is generated; see <c>notes/upstream/thin-glass-transmittance-blend-state.md</c>.
+    /// after the material is generated. Reported upstream; the workaround can go once the fix ships.
     /// </remarks>
     public static void ThinGlass(MaterialStation s)
     {
@@ -115,7 +115,7 @@ public static class SurfaceStations
     /// for the same reason as everywhere in this gallery. V cycles the three shading models.
     /// </summary>
     /// <remarks>
-    /// On 4.4 this needs the engine fix in <c>notes/upstream/hair-material-abstract-direction-function.md</c>:
+    /// On 4.4 this needs a small engine fix, reported upstream:
     /// the hair functions implement abstract methods without <c>override</c>, which the old mixer
     /// forgave and the new one does not. The light attenuation is set to none on both models: the
     /// default directional attenuation renders these shapes black at its defaults, which is not
@@ -282,9 +282,9 @@ public static class SurfaceStations
     /// Subsurface scattering: light that enters the surface and leaves elsewhere, the softness of
     /// skin and wax. The feature marks the material for the compositor's scattering blur and adds a
     /// translucency term from the shadow map's thickness, with a scattering profile - skin's here -
-    /// and a kernel. The blur is off here: on 4.4 its shader needs an engine fix and then trips a
-    /// constant-buffer layout mismatch - <c>notes/upstream/subsurface-blur-buffer-layout.md</c> - so
-    /// what shows is the translucency, from the sun's shadow map with transmittance on. V cycles it.
+    /// and a kernel. The blur is off here: on 4.4 its shader needs an engine fix and then draws the
+    /// frame wrong (reported upstream), so what shows is the translucency, from the sun's shadow map
+    /// with transmittance on. V cycles it.
     /// </summary>
     /// <remarks>Needs the same engine fix as the hair station: its profile functions lack <c>override</c>.</remarks>
     public static void Subsurface(MaterialStation s)
