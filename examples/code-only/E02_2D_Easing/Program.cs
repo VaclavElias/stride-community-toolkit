@@ -402,7 +402,7 @@ tags:
   - ShapeBatch
 related:
   - E02_2D_EasingBasics
-  - E11_3D_ShapeBatch
+  - E11_3D_ShapeBatch_Gallery
   - E20_3D_CubeCollapse
 enabled: true
 created: 2026-09-14

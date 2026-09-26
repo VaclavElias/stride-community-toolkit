@@ -19,7 +19,7 @@
     <Project Path="examples/code-only/E02_3D_GiveMeACube/E02_3D_GiveMeACube.csproj" />
     <Project Path="examples/code-only/E02_3D_GiveMeACube_SimulationUpdate/E02_3D_GiveMeACube_SimulationUpdate.csproj" />
     <Project Path="examples/code-only/E02_3D_Material/E02_3D_Material.csproj" />
-    <Project Path="examples/code-only/E02_3D_MaterialGallery/E02_3D_MaterialGallery.csproj" />
+    <Project Path="examples/code-only/E02_3D_Material_Gallery/E02_3D_Material_Gallery.csproj" />
     <Project Path="examples/code-only/E02_3D_Primitives/E02_3D_Primitives.csproj" />
     <Project Path="examples/code-only/E02_3D_SyncScript/E02_3D_SyncScript.csproj" />
     <Project Path="examples/code-only/E03_2D_HUD/E03_2D_HUD.csproj" />
@@ -76,7 +76,7 @@
     <Project Path="examples/code-only/E09_2D_ImageProcessing/E09_2D_ImageProcessing.csproj" />
     <Project Path="examples/code-only/E09_3D_GpuPicking/E09_3D_GpuPicking.csproj" />
     <Project Path="examples/code-only/E09_3D_MeshOutline/E09_3D_MeshOutline.csproj" />
-    <Project Path="examples/code-only/E09_3D_Particles/E09_3D_Particles.csproj" />
+    <Project Path="examples/code-only/E09_3D_Particles_Gallery/E09_3D_Particles_Gallery.csproj" />
     <Project Path="examples/code-only/E09_3D_PostEffects/E09_3D_PostEffects.csproj" />
     <Project Path="examples/code-only/E09_3D_RenderToTexture/E09_3D_RenderToTexture.csproj" />
     <Project Path="examples/code-only/E09_3D_RootRendererShader/E09_3D_RootRendererShader.csproj" />
@@ -88,7 +88,7 @@
     <Project Path="examples/code-only/E10_3D_Instancing_EntityTransform/E10_3D_Instancing_EntityTransform.csproj" />
     <Project Path="examples/code-only/E11_2D_Charts/E11_2D_Charts.csproj" />
     <Project Path="examples/code-only/E11_3D_Charts/E11_3D_Charts.csproj" />
-    <Project Path="examples/code-only/E11_3D_ShapeBatch/E11_3D_ShapeBatch.csproj" />
+    <Project Path="examples/code-only/E11_3D_ShapeBatch_Gallery/E11_3D_ShapeBatch_Gallery.csproj" />
     <Project Path="examples/code-only/E12_Audio_Procedural/E12_Audio_Procedural.csproj" />
     <Project Path="examples/code-only/E12_Audio_Spatial/E12_Audio_Spatial.csproj" />
     <Project Path="examples/code-only/E12_Audio_WavFile/E12_Audio_WavFile.csproj" />
