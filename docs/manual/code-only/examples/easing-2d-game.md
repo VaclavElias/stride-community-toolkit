@@ -19,6 +19,8 @@ The `Program.cs` file shows how to:
 - An elastic ease-out as a camera shake
 - Visual-only primitives with IncludeCollider off, next to physics bodies
 
+![Easing in a 2D Game](media/easing-2d-game.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_2D_EasingInGame).
 
 [!code-csharp[](../../../../examples/code-only/E02_2D_EasingInGame/Program.cs?start=1&end=301)]

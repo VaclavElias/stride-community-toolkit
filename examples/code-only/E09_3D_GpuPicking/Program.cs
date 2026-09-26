@@ -103,7 +103,7 @@ void BuildScene(Scene scene)
     var ground = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions
     {
         EntityName = "Ground",
-        Material = game.CreateMaterial(new Color(52, 56, 64), specular: 0.05f, microSurface: 0.3f),
+        Material = game.CreateMaterial(new Color(52, 56, 64), metalness: 0.05f, glossiness: 0.3f),
         Size = new Vector3(44f, 0.5f, 44f),
         Position = new Vector3(0f, -0.25f, 0f),
     });
@@ -113,7 +113,7 @@ void BuildScene(Scene scene)
     var teapot = game.Create3DPrimitive(PrimitiveModelType.Teapot, new Primitive3DEntityOptions
     {
         EntityName = "Teapot",
-        Material = game.CreateMaterial(Color.Gold, specular: 0.6f, microSurface: 0.8f),
+        Material = game.CreateMaterial(Color.Gold, metalness: 0.6f, glossiness: 0.8f),
         Size = new Vector3(3f),
         Position = new Vector3(0f, 0f, 0f),
     });
@@ -130,7 +130,7 @@ void BuildScene(Scene scene)
         var pillar = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions
         {
             EntityName = $"Pillar {i + 1}",
-            Material = game.CreateMaterial(colours[i], specular: 0.2f, microSurface: 0.5f),
+            Material = game.CreateMaterial(colours[i], metalness: 0.2f, glossiness: 0.5f),
             Size = new Vector3(1.4f, height, 1.4f),
             Position = new Vector3(MathF.Cos(angle) * 7f, height * 0.5f, MathF.Sin(angle) * 7f),
         });
@@ -151,7 +151,7 @@ void BuildScene(Scene scene)
         var entity = game.Create3DPrimitive(type, new Primitive3DEntityOptions
         {
             EntityName = name,
-            Material = game.CreateMaterial(colour, specular: 0.3f, microSurface: 0.6f),
+            Material = game.CreateMaterial(colour, metalness: 0.3f, glossiness: 0.6f),
             Size = new Vector3(2f),
             Position = at,
         });
@@ -191,7 +191,7 @@ void BuildCrates(Scene scene)
     crates = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions
     {
         EntityName = "Crates",
-        Material = game.CreateMaterial(new Color(176, 120, 64), specular: 0.1f, microSurface: 0.4f),
+        Material = game.CreateMaterial(new Color(176, 120, 64), metalness: 0.1f, glossiness: 0.4f),
         Size = new Vector3(0.9f),
     });
 

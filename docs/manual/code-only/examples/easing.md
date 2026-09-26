@@ -19,6 +19,8 @@ The `Program.cs` file shows how to:
 - A 2D ShapeBatch scene with pixel polylines, discs and a dashed reference line
 - Screen-space labels with EntityTextComponent, and DebugOverlay for the keys
 
+![Easing Cheat Sheet](media/easing.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_2D_Easing).
 
 [!code-csharp[](../../../../examples/code-only/E02_2D_Easing/Program.cs?start=1&end=366)]

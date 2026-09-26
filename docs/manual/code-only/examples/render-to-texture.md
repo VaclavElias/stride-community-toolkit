@@ -21,6 +21,8 @@ The `Program.cs` file shows how to:
 - Colour transforms of your own on a camera's post-effects chain - night vision and thermal
 - Swapping a model's material at runtime to change what a screen shows
 
+![Render to Texture](media/render-to-texture.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_RenderToTexture).
 
 [!code-csharp[](../../../../examples/code-only/E09_3D_RenderToTexture/Program.cs?start=1&end=352)]

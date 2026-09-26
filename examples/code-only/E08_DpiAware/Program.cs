@@ -16,7 +16,7 @@ using Stride.Engine;
 //
 //     WindowsDpiManager.EnablePerMonitorV2();
 //
-// from Stride.CommunityToolkit.Windows - see E03_2D_HUD or E04_ImGuiNet.
+// from Stride.CommunityToolkit.Windows - see E02_2D_EasingBasics or E09_3D_Particles_Gallery.
 // The call also works in a file-based app, which has no project file to hold a manifest. Use one
 // route, not both: when a manifest exists Windows refuses the call, and the manifest's setting wins.
 

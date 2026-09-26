@@ -62,7 +62,7 @@ public sealed class ContainerFactory(Game game)
         if (!_materials.TryGetValue(paint, out var material))
         {
             // Matte and a little rough: rusted steel does not shine
-            material = game.CreateMaterial(Hex.ToColor(Paints.Hex(paint)), specular: 0.15f, microSurface: 0.3f);
+            material = game.CreateMaterial(Hex.ToColor(Paints.Hex(paint)), metalness: 0.15f, glossiness: 0.3f);
 
             _materials[paint] = material;
         }

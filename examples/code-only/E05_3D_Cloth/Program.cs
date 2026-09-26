@@ -140,7 +140,7 @@ Model ModelFor(float radius)
     var model = game.Create3DPrimitive(PrimitiveModelType.Sphere, new Primitive3DEntityOptions
     {
         Size = new Vector3(radius),
-        Material = game.CreateMaterial(new Color(230, 120, 90), specular: 0.3f, microSurface: 0.7f),
+        Material = game.CreateMaterial(new Color(230, 120, 90), metalness: 0.3f, glossiness: 0.7f),
     }).Get<ModelComponent>().Model;
 
     models[radius] = model;
