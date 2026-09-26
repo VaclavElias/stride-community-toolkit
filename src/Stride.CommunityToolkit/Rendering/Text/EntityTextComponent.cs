@@ -10,7 +10,7 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Add <see cref="Renderers.EntityTextRenderer"/> to the graphics compositor
+/// Add <see cref="EntityTextRenderer"/> to the graphics compositor
 /// for anything to appear - the component records what to draw, the renderer draws it.
 /// </para>
 /// <para>
@@ -42,7 +42,7 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 /// </code>
 /// </example>
 /// </remarks>
-[DefaultEntityComponentProcessor(typeof(EntityTextProcessor), ExecutionMode = ExecutionMode.Runtime)]
+[DefaultEntityComponentProcessor(typeof(EntityTextProcessor), ExecutionMode = ExecutionMode.All)]
 // Several labels on one entity is a normal thing to want - a name and a subtitle, a score and its
 // multiplier - and text is presentation rather than identity, so nothing is ambiguous about having
 // two. Without this Stride rejects the second with "Cannot add a component of type ... multiple
@@ -51,11 +51,10 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 // DataContract is what makes the component usable from Game Studio at all: without it the editor
 // cannot clone the component to the game side and reports "No serializer available for type".
 [DataContract("EntityTextComponent")]
-// The renderer is registered by the running game, not by the component, so a component added in
-// Game Studio draws nothing until someone calls AddEntityTextRenderer - with no error to explain it.
-// Stride has no description or tooltip attribute, so the display name carries the reminder; it shows
-// in the Add-component menu and the component header, which is exactly where the decision is made.
-[Display("Entity Text (call AddEntityTextRenderer)", Expand = ExpandRule.Once)]
+// Editor as well as runtime: the processor puts the renderer on the scene's compositor itself, so a
+// label placed in Game Studio is drawn in the viewport and in a game that never called
+// AddEntityTextRenderer.
+[Display("Entity Text", Expand = ExpandRule.Once)]
 [ComponentCategory("Text")]
 public class EntityTextComponent : EntityComponent
 {
@@ -226,23 +225,23 @@ public class EntityTextComponent : EntityComponent
 
     /// <summary>
     /// Gets or sets the distance from the camera at which the text starts fading out, in world units.
-    /// Leave <see langword="null"/> to disable fading.
+    /// 0, the default, is no fade.
     /// </summary>
     /// <remarks>
     /// Only applies in <see cref="TextPositionMode.World"/>. Requires <see cref="MaxDistance"/> to be
     /// set as well; the text fades from fully opaque at this distance to invisible at that one.
     /// </remarks>
-    public float? FadeStartDistance { get; set; }
+    public float FadeStartDistance { get; set; }
 
     /// <summary>
     /// Gets or sets the distance from the camera beyond which the text is not drawn, in world units.
-    /// Leave <see langword="null"/> for no limit.
+    /// 0, the default, is no limit.
     /// </summary>
     /// <remarks>
     /// Only applies in <see cref="TextPositionMode.World"/>. Useful on its own as a cutoff, without
     /// <see cref="FadeStartDistance"/>, when labels should simply stop rather than fade.
     /// </remarks>
-    public float? MaxDistance { get; set; }
+    public float MaxDistance { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EntityTextComponent"/> class.

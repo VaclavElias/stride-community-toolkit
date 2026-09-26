@@ -1,6 +1,7 @@
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Collections;
 using Stride.CommunityToolkit.DebugShapes.Code;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Core.Threading;
@@ -14,8 +15,6 @@ public class ShapeUpdater : SyncScript
     private const int ChangePerSecond = 8192 + 2048;
     private const int InitialNumPrimitives = 1024;
     private const int AreaSize = 64;
-    private const int TextIncrement = 16;
-    private const int StartTextPositionY = 32;
     private const int MinNumberOfPrimitives = 0;
     private const int MaxNumberOfPrimitives = 327680;
 
@@ -97,7 +96,23 @@ public class ShapeUpdater : SyncScript
         _debugDraw.PrimitiveColor = Color.Green;
         ResizeDebugDrawCapacity(_currentNumPrimitives);
         _debugDraw.Visible = true;
-        DebugText.Visible = true;
+
+        // The keys, then the live state; the callback runs every frame the overlay is drawn
+        DebugOverlay.GetOrCreate(Game).AddSection("Debug shapes", () =>
+        [
+            new("Mouse wheel", "Primitive count", Color.Gold),
+            new("Shift", "Hold to change the count faster", Color.Gold),
+            new("Left Alt", "Next render mode", Color.Gold),
+            new("Left Ctrl", "Toggle depth testing", Color.Gold),
+            new("Tab", "Toggle wireframe", Color.Gold),
+            new("Space", "Pause and resume", Color.Gold),
+            new(""),
+            new($"Primitives {_currentNumPrimitives:N0}", Color.LightGreen),
+            new($"Render mode {_mode}", Color.LightGreen),
+            new($"Depth testing {(_useDepthTesting ? "on" : "off")}", Color.LightGreen),
+            new($"Fill {(_useWireframe ? "wireframe" : "solid")}", Color.LightGreen),
+            new(_running ? "Simulating" : "Paused", Color.LightGreen),
+        ]);
 
         InitializePrimitives(0, _currentNumPrimitives);
     }
@@ -108,7 +123,6 @@ public class ShapeUpdater : SyncScript
 
         HandleInput(dt, out int newCount);
         AdjustPrimitiveCount(newCount);
-        DrawUiText();
         if (_running && _currentNumPrimitives > 0) Simulate(dt);
         DrawPrimitives();
         HandleMousePicking();
@@ -241,17 +255,6 @@ public class ShapeUpdater : SyncScript
             case CurrentRenderMode.Arrow: _debugDraw!.DrawArrow(position, position + velocity, color: color, depthTest: _useDepthTesting, solid: !_useWireframe); break;
             case CurrentRenderMode.None: break;
         }
-    }
-
-    private void DrawUiText()
-    {
-        int textPositionX = (int)Input.Mouse.SurfaceSize.X - 384;
-        DebugText.Print($"Primitive Count: {_currentNumPrimitives} (scroll wheel to adjust)", new Int2(textPositionX, StartTextPositionY));
-        DebugText.Print(" - Hold shift: faster count adjustment", new Int2(textPositionX, StartTextPositionY + TextIncrement));
-        DebugText.Print($" - Render Mode: {_mode} (left alt to switch)", new Int2(textPositionX, StartTextPositionY + (TextIncrement * 2)));
-        DebugText.Print($" - Depth Testing: {(_useDepthTesting ? "On " : "Off")} (left ctrl to toggle)", new Int2(textPositionX, StartTextPositionY + (TextIncrement * 3)));
-        DebugText.Print($" - Fill mode: {(_useWireframe ? "Wireframe" : "Solid")} (tab to toggle)", new Int2(textPositionX, StartTextPositionY + (TextIncrement * 4)));
-        DebugText.Print($" - State: {(_running ? "Simulating" : "Paused")} (space to toggle)", new Int2(textPositionX, StartTextPositionY + (TextIncrement * 5)));
     }
 
     private void HandleMousePicking()

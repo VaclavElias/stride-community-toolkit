@@ -3,7 +3,6 @@ using Stride.CommunityToolkit.Audio;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -145,8 +144,6 @@ void AddInstructions()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     overlay.AddSection("Spatial sound", () =>
     {
         var camera = game.GetCameraEntity().Transform.WorldMatrix;
@@ -157,13 +154,15 @@ void AddInstructions()
 
         return
         [
-            new("Listener: the camera (AttachListener). Emitter: the orb (SoundEmitterScript)"),
-            new($"orb    {toOrb.Length(),4:0.0} m away, {(side < 0 ? "left" : "right")}, {(ahead < 0 ? "behind" : "ahead")}", Color.Yellow),
-            new($"T      HRTF {(hrtf ? "on " : "off")}  (Windows only; OpenAL ignores it)", hrtf ? Color.LightGreen : null),
-            new($"G      orbit {(orbiting ? "running" : "paused")}"),
-            new($"Space  pad {(playing ? "playing" : "stopped")}"),
-            new("N      chime at the orb"),
-            new("Walk around with the camera keys: the sound follows"),
+            new("T", $"HRTF {(hrtf ? "on" : "off")} (Windows only; OpenAL ignores it)", hrtf ? Color.LightGreen : Color.Yellow),
+            new("G", $"Orbit {(orbiting ? "running" : "paused")}", Color.Yellow),
+            new("Space", $"Pad {(playing ? "playing" : "stopped")}", Color.Yellow),
+            new("N", "Chime at the orb", Color.Yellow),
+            new(""),
+            new($"Orb {toOrb.Length():0.0} m away, {(side < 0 ? "left" : "right")}, {(ahead < 0 ? "behind" : "ahead")}", Color.LightGreen),
+            new("Listener: the camera (AttachListener)", Color.LightGray),
+            new("Emitter: the orb (SoundEmitterScript)", Color.LightGray),
+            new("Walk around with the camera keys: the sound follows", Color.LightGray),
         ];
     });
 }

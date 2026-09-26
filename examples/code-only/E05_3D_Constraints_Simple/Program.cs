@@ -3,6 +3,7 @@ using Stride.BepuPhysics.Constraints;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -23,6 +24,18 @@ void Start(Scene scene)
 
     // Left mouse picks either sphere up; the servo drags the other one along (GrabberScript, see E05_3D_Grabber).
     game.GetCameraEntity().Add(new GrabberScript());
+
+    var overlay = DebugOverlay.GetOrCreate(game);
+    overlay.SectionGap = 0;
+    overlay.AddSection("Constraint", static () =>
+    [
+        new("Left mouse", "Pick a sphere up, carry it, throw it", Color.Yellow),
+        new("Mouse wheel", "Carry distance", Color.Yellow),
+        new("T", "Hold and move the mouse to turn the held sphere", Color.Yellow),
+        new(""),
+        new("A distance servo holds the spheres 3 units apart", Color.LightGray),
+        new("Carry one and the other follows", Color.LightGray),
+    ]);
 
     // Create an additional capsule for visual reference
     var entity = game.Create3DPrimitive(PrimitiveModelType.Capsule);
@@ -90,7 +103,6 @@ related:
   - E05_3D_Constraints
   - E05_3D_Constraints_Motors
   - E05_3D_Constraints_Rope
-media: stride-game-engine-example-15-simple-constraint.webp
 enabled: true
 created: 2025-03-09
 ---

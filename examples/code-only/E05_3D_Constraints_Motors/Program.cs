@@ -3,7 +3,6 @@ using Stride.BepuPhysics.Constraints;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -102,9 +101,11 @@ game.Run(start: Start, update: Update);
 void Start(Scene scene)
 {
     game.SetupBase3DScene();
+    game.SetCameraPosition(new(2.5f, 9, 19));
+    game.SetCameraRotation(new(3, -25, 0));
 
     // Pick up and throw any body with the left mouse button (GrabberScript, see E05_3D_Grabber).
-    game.GetCameraEntity().Add(new GrabberScript());
+    game.AddGrabber();
     game.AddSkybox();
     game.AddProfiler();
     game.AddGroundGizmo(new Vector3(-9, 0, -9), showAxisName: true);
@@ -394,13 +395,19 @@ IReadOnlyList<TextElement> BuildInstructions()
     // pushing. A hinged blade carrying momentum coasts for a very long time, so without a number on
     // screen turning the motor off looks exactly like nothing happening.
     return [
-        new("SERVO drives to a target and stops. MOTOR drives a velocity forever. LIMIT only clamps."),
-        new("Left: hinge + angular motor. Middle: ball socket + angular motor. Right: same pendulum, with and without a swing limit."),
-        new($"M - Mixer motor: {OnOff(mixerMotor?.Enabled)}   (blade spin {Spin(mixerMotor?.A)} rad/s)", Color.Yellow),
-        new($"N - Arm motor: {OnOff(armMotor?.Enabled)}   (arm spin {Spin(armMotor?.B)} rad/s)", Color.Yellow),
-        new($"G - Swing limit: {OnOff(swingLimit?.Enabled)}", Color.Yellow),
-        new("Left mouse - pick up any body and throw it", Color.Yellow),
-        new("P - Push both right-hand pendulums", Color.Yellow),
+        new("M", $"Mixer motor {OnOff(mixerMotor?.Enabled)}, blade spin {Spin(mixerMotor?.A)} rad/s", Color.Yellow),
+        new("N", $"Arm motor {OnOff(armMotor?.Enabled)}, arm spin {Spin(armMotor?.B)} rad/s", Color.Yellow),
+        new("G", $"Swing limit {OnOff(swingLimit?.Enabled)}", Color.Yellow),
+        new("P", "Push both right-hand pendulums", Color.Yellow),
+        new("Left mouse", "Pick up any body and throw it", Color.Yellow),
+        new(""),
+        new("SERVO drives to a target and stops", Color.LightGray),
+        new("MOTOR drives a velocity forever", Color.LightGray),
+        new("LIMIT only clamps", Color.LightGray),
+        new("Left: hinge + angular motor", Color.LightGray),
+        new("Middle: ball socket + angular motor", Color.LightGray),
+        new("Right: the same pendulum with", Color.LightGray),
+        new("and without a swing limit.", Color.LightGray),
     ];
 }
 
@@ -411,8 +418,6 @@ static string Spin(BodyComponent? body) => body is null ? "-" : MathF.Abs(body.A
 void InitializeDebugOverlay()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
-
-    overlay.Position = DisplayPosition.BottomLeft;
 
     // BuildInstructions runs every frame the overlay is drawn, which is what puts the live spin
     // readouts on screen without anything having to push them

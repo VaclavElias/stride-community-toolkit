@@ -2,7 +2,7 @@
 
 In this example, we delve into creating procedural geometry meshes including a triangle, a plane, and a circle, and integrate them into a Stride scene. Utilizing the @Stride.CommunityToolkit.Rendering.Utilities.MeshBuilder class from the toolkit, the process of crafting and rendering these geometries is streamlined.
 
-![Stride UI Example](media/stride-game-engine-procedural-geometry.webp)
+![Stride UI Example](media/procedural-geometry.webp)
 
 The `MeshBuilder` class is employed to define the layout and data for each mesh. For instance, the `GiveMeATriangle`, `GiveMeAPlane`, and `GiveMeACircle` methods demonstrate how to configure vertices, indices, and other properties to form a triangle, a plane, and a circle, respectively.
 

@@ -119,7 +119,6 @@ related:
   - E04_StrideUI_DragAndDrop
   - E04_CubeClicker
   - E04_ImGui
-media: stride-game-engine-example03-stride-ui-basic-window.webp
 tocName: Stride UI - Capsule with rigid body and Window
 enabled: true
 created: 2023-09-16

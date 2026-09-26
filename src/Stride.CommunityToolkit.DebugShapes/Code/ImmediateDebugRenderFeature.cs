@@ -1,3 +1,5 @@
+using Stride.Core.Diagnostics;
+using Stride.Core.Mathematics;
 // Copyright (c) Stride contributors (https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
@@ -49,6 +51,11 @@ public class ImmediateDebugRenderFeature : RootRenderFeature
         }
     }
 
+    /// <summary>The block the profiler shows this feature's GPU time under.</summary>
+    public static readonly ProfilingKey ProfilingKey = new("DebugShapes");
+
+    private static readonly Color4 ProfileColor = new(0.3f, 0.8f, 0.4f, 1f);
+
     /// <inheritdoc/>
     public override void Prepare(RenderDrawContext context)
     {
@@ -59,6 +66,8 @@ public class ImmediateDebugRenderFeature : RootRenderFeature
     public override void Draw(RenderDrawContext context, RenderView renderView, RenderViewStage renderViewStage, int startIndex, int endIndex)
     {
         if (_primitiveRenderer is null) return;
+
+        using var _ = context.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
 
         var commandList = context.CommandList;
 

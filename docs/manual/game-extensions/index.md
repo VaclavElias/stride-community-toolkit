@@ -13,6 +13,7 @@ They all live in `Stride.CommunityToolkit.Engine`, so one `using` covers everyth
 - [`Run()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Run(Stride.Engine.Game,System.Action{Stride.Engine.Scene},System.Action{Stride.Engine.Scene,Stride.Games.GameTime},Stride.Games.GameContext)) - Starts the game loop. `start` runs once the root scene exists, `update` runs every frame after it.
 - [`Run()` with async `start`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Run(Stride.Engine.Game,System.Func{Stride.Engine.Scene,System.Threading.Tasks.Task},System.Action{Stride.Engine.Scene,Stride.Games.GameTime},Stride.Games.GameContext)) - The same, with a `start` that can `await` between steps. `update` begins only once that task completes.
 - [`Exit()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Exit(Stride.Games.IGame)) - Closes the game from an `IGame` reference.
+- [`SetWindowSize()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetWindowSize(Stride.Engine.Game,System.Int32,System.Int32)) - The size the window opens at, before `Run`; the engine's default is 1280 by 720.
 - [`UseGameSettings()`](xref:Stride.CommunityToolkit.Engine.GameSettingsExtensions.UseGameSettings(Stride.Engine.Game,System.Action{Stride.Engine.Design.GameSettings})) - What a Game Studio project gets from its `GameSettings` asset, built in code and applied the same way: the configurations the audio, physics and navigation systems read (HRTF, physics defaults, navigation build settings, Bepu simulations), rendering settings (graphics profile, back buffer, colour space) and the shader compilation mode. Call it before `Run()`. Safe in a project that has the asset too: the asset wins, and the call only adds the configurations it lacks.
 
 > [!NOTE]
@@ -75,12 +76,13 @@ For image-based ambient light, `AddSkybox()` ships in the `Stride.CommunityToolk
 
 Both register their renderer once, however many times you call them.
 
-- [`AddEntityTextRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddEntityTextRenderer(Stride.Engine.Game)) - Enables `EntityTextComponent`, screen-space text drawn over the scene. See [Entity Text](../rendering/entity-text.md).
-- [`AddWorldTextRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddWorldTextRenderer(Stride.Engine.Game)) - Enables `WorldTextComponent`, text that lives in the 3D scene. See [World Text](../rendering/world-text.md).
+- [`AddEntityTextRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddEntityTextRenderer(Stride.Engine.Game)) - Puts the renderer for `EntityTextComponent`, screen-space text drawn over the scene, on the compositor before the first frame; the component registers it itself when missing. See [Entity Text](../rendering/entity-text.md).
+- [`AddWorldTextRenderer()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddWorldTextRenderer(Stride.Engine.Game)) - Puts the renderer for `WorldTextComponent`, text that lives in the 3D scene, on the compositor before the first frame; the component registers it itself when missing. See [World Text](../rendering/world-text.md).
 
 ## Debugging and diagnostics
 
 - [`AddProfiler()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddProfiler(Stride.Engine.Game,System.String)) - Adds Stride's profiler, toggled with <kbd>Left Shift</kbd> + <kbd>Left Ctrl</kbd> + <kbd>P</kbd>.
+- [`SetDeterministic()`](xref:Stride.CommunityToolkit.Engine.GameLoopExtensions.SetDeterministic(Stride.Engine.Game,System.Nullable{System.TimeSpan})) - Pins the loop so frame N is the same simulated instant on every run: fixed timestep, draws in step, one update per draw. For replays, lockstep, tests and screenshots.
 - [`AddGroundGizmo()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.AddGroundGizmo(Stride.Engine.Game,System.Nullable{Stride.Core.Mathematics.Vector3},System.Boolean,System.Boolean)) - Draws the world axes at the origin, optionally labelled. The quickest way to work out which way you are facing.
 - [`AddEntityDebugSceneRenderer()`](xref:Stride.CommunityToolkit.Renderers.GraphicsCompositorExtensions.AddEntityDebugSceneRenderer(Stride.Engine.Game,Stride.CommunityToolkit.Renderers.EntityDebugSceneRendererOptions)) - Draws entity names and positions over the scene. In `Stride.CommunityToolkit.Renderers`.
 - [`TakeScreenShot()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.TakeScreenShot(Stride.Games.IGame,System.String,Stride.Graphics.ImageFileType)) - Saves the current frame to a file. This is what the toolkit's own screenshot capture is built on.

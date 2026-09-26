@@ -1,4 +1,3 @@
-using Stride.CommunityToolkit.Renderers;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Text;
@@ -297,6 +296,58 @@ public static partial class GameExtensions
         entity.Scene = game.SceneSystem.SceneInstance.RootScene;
 
         return entity;
+    }
+
+    /// <summary>
+    /// Sets the size the window opens at, in pixels. Call it before <c>Run</c>; once the device exists
+    /// the window is the user's to resize.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The engine's default is 1280 by 720. An example whose scene is drawn in world units under a
+    /// pixel-sized overlay - the easing sheet, with its twelve-line help block - gets more room from a
+    /// taller window than from a smaller scene, so it opens a step larger. On a scaled display the
+    /// window still opens at this many physical pixels: the size is the back buffer's, not the desktop's.
+    /// </para>
+    /// <para>
+    /// The engine creates the window at the device manager's preferred back-buffer size, which its
+    /// <c>PrepareContext</c> resets to the default just before - with <see cref="Game.AutoLoadDefaultSettings"/>
+    /// on, which it is by default. So neither a <see cref="GameContext"/> with a requested size nor
+    /// <c>PreferredBackBufferWidth</c> set before <c>Run</c> survives, and <c>RenderingSettings</c> put
+    /// back afterwards are clamped to the window already made: that route can shrink a window but never
+    /// grow it. Resizing the window later - at <see cref="GameBase.WindowCreated"/>, or from a startup
+    /// script with <c>game.Window.SetSize</c> as the Stride manual shows - works, but the window has
+    /// been resized after its handle was made and shows the old outline for its first few milliseconds.
+    /// This turns <see cref="Game.AutoLoadDefaultSettings"/> off instead, so the size set through
+    /// <see cref="GameSettingsExtensions.UseGameSettings"/> stands and the window is created at it.
+    /// What the flag would otherwise have supplied from the same defaults - the graphics profile and
+    /// the colour space - <c>UseGameSettings</c> applies too, so nothing else changes. An example that
+    /// already mirrors a Game Studio project's settings can keep doing that for everything else; this
+    /// is the one line for the window.
+    /// </para>
+    /// </remarks>
+    /// <param name="game">The game whose window to size.</param>
+    /// <param name="width">The width in pixels.</param>
+    /// <param name="height">The height in pixels.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the game is already running.</exception>
+    public static void SetWindowSize(this Game game, int width, int height)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+
+        // Off, PrepareContext leaves the device manager alone, the window is created at this size and
+        // the engine's clamp to the window (which could only shrink) is skipped. UseGameSettings applies
+        // the profile and colour space the flag would have set, from the same defaults.
+        game.AutoLoadDefaultSettings = false;
+
+        game.UseGameSettings(settings =>
+        {
+            var rendering = settings.GetOrCreateConfiguration<RenderingSettings>();
+
+            rendering.DefaultBackBufferWidth = width;
+            rendering.DefaultBackBufferHeight = height;
+        });
     }
 
     /// <summary>
@@ -674,6 +725,7 @@ public static partial class GameExtensions
 
         return entity;
     }
+
 
     /// <summary>
     /// Creates a basic material with optional color, specular reflection, and microsurface smoothness values.

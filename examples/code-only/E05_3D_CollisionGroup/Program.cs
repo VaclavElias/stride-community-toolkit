@@ -90,7 +90,6 @@ tags:
 related:
   - E05_3D_CollisionLayer
   - E05_3D_Raycast
-media: stride-game-engine-example16-collision-group.webp
 enabled: true
 created: 2025-03-08
 ---

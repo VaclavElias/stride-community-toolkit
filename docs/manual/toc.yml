@@ -15,15 +15,21 @@
   items:
   - name: Create Project
     href: code-only/create-project.md
+    items:
+    - name: Engine Only
+      href: code-only/create-project-engine-only.md
   - name: Create File-Based App
     href: code-only/create-file-based-app.md
-  - name: Examples (80)
-    # href supplies the children (the generated per-level toc); topicHref makes the node itself
-    # clickable, landing on the visual gallery.
-    href: code-only/examples/toc.yml
-    topicHref: code-only/examples/index.md
+    items:
+    - name: Engine Only
+      href: code-only/create-file-based-app-engine-only.md
   - name: Extensions
     href: code-only/extensions.md
+- name: Code-Only Examples (83)
+  # href supplies the children (the generated per-level toc); topicHref makes the node itself
+  # clickable, landing on the visual gallery.
+  href: code-only/examples/toc.yml
+  topicHref: code-only/examples/index.md
 - name: Extensions
   expanded: true
   items:
@@ -77,3 +83,5 @@
     href: rendering/texture-canvas.md
 - name: Troubleshooting
   href: troubleshooting.md
+- name: Glossary
+  href: glossary.md

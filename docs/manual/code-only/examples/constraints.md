@@ -15,7 +15,7 @@ The example features interactive elements where you can:
 
 This demonstrates how constraints can be used to create complex physical behaviors with controlled degrees of freedom. The example illustrates important physics concepts like servo constraints with spring settings, rigid body connections, and collision filtering between different object types.
 
-![Stride UI Example](media/stride-game-engine-example-15-constraints.webp)
+![Stride UI Example](media/constraints.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_Constraints).
 

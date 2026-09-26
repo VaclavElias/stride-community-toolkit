@@ -9,7 +9,7 @@ The `Program.cs` file shows how to:
 > [!NOTE]
 > Other required NuGet package: `Stride.CommunityToolkit.DebugShapes`.
 
-![DebugShapes Usage Example](media/stride-game-engine-example08-debugshapes-usage.webp)
+![DebugShapes Usage Example](media/debug-shapes-usage.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E08_3D_DebugShapes_QuickStart).
 

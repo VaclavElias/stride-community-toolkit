@@ -58,9 +58,12 @@ public static class GameSettingsExtensions
     ///   <item><description>
     ///   A <see cref="RenderingSettings"/> configuration, if one was added, is applied to the
     ///   <see cref="GraphicsDeviceManager"/> immediately - graphics profile, back buffer size and
-    ///   colour space - mirroring <c>Game.PrepareContext</c>. As in the engine, the back buffer and
-    ///   colour space are only applied while <see cref="Game.AutoLoadDefaultSettings"/> is
-    ///   <see langword="true"/>.
+    ///   colour space - mirroring <c>Game.PrepareContext</c>, and again from <c>WindowCreated</c>:
+    ///   with <see cref="Game.AutoLoadDefaultSettings"/> on and no asset, <c>PrepareContext</c>
+    ///   writes the engine's built-in defaults (feature level 10) over the device manager, so
+    ///   the caller's values are put back before the device is created. As in the engine, the
+    ///   back buffer and colour space are only applied while <see cref="Game.AutoLoadDefaultSettings"/>
+    ///   is <see langword="true"/>.
     ///   </description></item>
     ///   <item><description>
     ///   <see cref="GameSettings.CompilationMode"/> and a <see cref="StreamingSettings"/>
@@ -175,6 +178,11 @@ public static class GameSettingsExtensions
                 return;
             }
 
+            // PrepareContext has just run and, with AutoLoadDefaultSettings on, has written a fresh
+            // RenderingSettings - feature level 10 - over the device manager. The device is created
+            // after this event, so the caller's settings go back on now, and stick.
+            ApplyRenderingSettings(game, settings);
+
             game.Services.AddService<IGameSettingsService>(new CodeOnlyGameSettingsService(settings));
 
             // Read from the settings instance at start, not captured now, so a later call that changes the
@@ -209,16 +217,15 @@ public static class GameSettingsExtensions
         if (game.GraphicsDeviceManager is not GraphicsDeviceManager deviceManager)
             return;
 
+        // The engine applies an asset's rendering settings only with AutoLoadDefaultSettings on; these
+        // were written by the caller, so they go on regardless. SetWindowSize turns the flag off to
+        // keep PrepareContext from resetting the sizes, and relies on this for the profile and colour
+        // space the flag would otherwise have supplied.
         if (rendering.DefaultGraphicsProfile > 0)
         {
             deviceManager.ShaderProfile ??= rendering.DefaultGraphicsProfile;
-
-            if (game.AutoLoadDefaultSettings)
-                deviceManager.PreferredGraphicsProfile = [rendering.DefaultGraphicsProfile];
+            deviceManager.PreferredGraphicsProfile = [rendering.DefaultGraphicsProfile];
         }
-
-        if (!game.AutoLoadDefaultSettings)
-            return;
 
         if (rendering.DefaultBackBufferWidth > 0) deviceManager.PreferredBackBufferWidth = rendering.DefaultBackBufferWidth;
         if (rendering.DefaultBackBufferHeight > 0) deviceManager.PreferredBackBufferHeight = rendering.DefaultBackBufferHeight;

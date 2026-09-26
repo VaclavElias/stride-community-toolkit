@@ -36,7 +36,7 @@ using Stride.Rendering;
 // Sheet dimensions in world units, between the outermost node centres.
 const float HangingWidth = 4.5f;
 const float HangingHeight = 7.5f;
-const float DrapeExtent = 9.5f;
+const float DrapeExtent = 12f;
 
 // The demo's proportions: neighbours sit a little closer than a node diameter, so the sheet reads
 // as a surface rather than a string of beads.
@@ -72,7 +72,7 @@ instancing?.Dispose();
 void Start(Scene scene)
 {
     game.SetupBase3D();
-    game.Add3DCameraController();
+    game.Add3DCameraController(displayPosition: DisplayPosition.BottomRight);
     game.AddSkybox();
     game.AddProfiler();
     game.Add3DGround(new() { Size = new Vector3(40, 1, 40) });
@@ -80,7 +80,7 @@ void Start(Scene scene)
     game.SetCameraPosition(new Vector3(-1, 8, -26));
     game.SetCameraRotation(new Vector3(180, -12, 0));
 
-    game.GetCameraEntity().Add(new GrabberScript());
+    game.AddGrabber();
 
     rootScene = scene;
     SetupInstancing(scene);
@@ -180,13 +180,23 @@ void BuildScene(Scene scene)
     // A ball for the fourth sheet to drape over.
     var ball = game.Create3DPrimitive(PrimitiveModelType.Sphere, new()
     {
-        Size = new Vector3(2f),
+        Size = new Vector3(1.5f),
         Material = game.CreateMaterial(new Color(120, 160, 220)),
-        Component = new StaticComponent { Collider = new CompoundCollider { Colliders = { new SphereCollider { Radius = 2f } } } },
+        Component = new StaticComponent { Collider = new CompoundCollider { Colliders = { new SphereCollider { Radius = 1.5f } } } },
         Position = new Vector3(9, 2, -4),
     });
     ball.Scene = scene;
     extras.Add(ball);
+
+    var cube = game.Create3DPrimitive(PrimitiveModelType.Cube, new()
+    {
+        Size = new Vector3(1.0f),
+        Material = game.CreateMaterial(new Color(120, 160, 220)),
+        Component = new StaticComponent { Collider = new CompoundCollider { Colliders = { new BoxCollider { Size = new Vector3(1.0f) } } } },
+        Position = new Vector3(13, 0.5f, -7),
+    });
+    cube.Scene = scene;
+    extras.Add(cube);
 
     DrapeSheet(scene, new Vector3(9, 6, -4), distanceHertz: 10, areaHertz: 30);
 }
@@ -350,15 +360,19 @@ void DropBall(Scene scene)
 void AddInstructions()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
-
-    overlay.Position = DisplayPosition.BottomLeft;
+    overlay.SectionGap = 0;
 
     overlay.AddSection("Cloth", () =>
     [
-        new($"{nodes.Count:N0} nodes, {constraintCount:N0} constraints, one draw call, 8 solver substeps", Color.LightGreen),
-        new("Hanging, left to right: stiff distance limits only / stiff + area constraints / soft + area constraints"),
-        new("Left mouse  pull on a sheet      N  drop a ball on the draped sheet      R  rebuild", Color.Yellow),
         .. sizeMenu?.GetLines() ?? [],
+        new("Left mouse", "Pull on a sheet", Color.Yellow),
+        new("N", "Drop a ball on the draped sheet", Color.Yellow),
+        new("R", "Rebuild", Color.Yellow),
+        new(""),
+        new($"{nodes.Count:N0} nodes, {constraintCount:N0} constraints", Color.LightGreen),
+        new("One draw call, 8 solver substeps", Color.LightGreen),
+        new("Hanging, left to right: stiff distance limits only,"),
+        new("stiff + area constraints, soft + area constraints"),
     ]);
 }
 

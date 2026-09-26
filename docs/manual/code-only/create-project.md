@@ -82,6 +82,8 @@ void Start(Scene rootScene)
 
 `Create3DPrimitive()` creates a capsule with [rigid body physics](https://doc.stride3d.net/latest/en/manual/physics/rigid-bodies.html). Because it starts above the ground, it will fall due to gravity.
 
+Curious what those helpers do underneath, or want Stride with nothing else? [Create Project - Engine Only](create-project-engine-only.md) builds a ground, a cube and a camera against the engine alone and maps each part to the helper it replaces.
+
 > [!TIP]
 > Remove entities you no longer need to free resources and avoid unnecessary physics updates.
 

@@ -3,7 +3,6 @@ using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Instancing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.CommunityToolkit.Windows;
@@ -36,16 +35,10 @@ WindowsDpiManager.EnablePerMonitorV2();
 using var game = new Game();
 
 // Compute shaders with more than one writable buffer need shader model 5, which is Direct3D
-// feature level 11. A code-only game has no settings asset, and as it starts the engine then
-// applies its built-in defaults - feature level 10 - over anything set on the device manager,
-// so those defaults are switched off and the level asked for directly. At level 10 the shader
-// compiles for cs_4_0, which has a single UAV slot and refuses the second buffer.
-game.AutoLoadDefaultSettings = false;
-
-var deviceManager = (GraphicsDeviceManager)game.GraphicsDeviceManager;
-
-deviceManager.PreferredGraphicsProfile = [GraphicsProfile.Level_11_0];
-deviceManager.ShaderProfile = GraphicsProfile.Level_11_0;
+// feature level 11. A code-only game has no settings asset and starts at the engine's default,
+// level 10, where the shader compiles for cs_4_0 - one UAV slot, so the second buffer is refused.
+// UseGameSettings is how a code-only game asks for a profile.
+game.UseGameSettings(settings => settings.GetOrCreateConfiguration<RenderingSettings>().DefaultGraphicsProfile = GraphicsProfile.Level_11_0);
 
 BoidsSimulation? simulation = null;
 BoidsComputeRenderer? computeRenderer = null;
@@ -100,8 +93,6 @@ void Start(Scene scene)
 
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    // Top-left, out of the flock's way
-    overlay.Position = DisplayPosition.TopLeft;
     overlay.AddSection("Boids", OverlayLines);
 }
 
@@ -149,10 +140,13 @@ IReadOnlyList<TextElement> OverlayLines()
 
     return
     [
-        new($"{simulation.Count} boids, {pairs / 1_000_000f:0.0} million pairs a frame, all on the GPU", Color.LightGreen),
-        new("One dispatch, one instanced draw call, nothing per frame on the CPU", Color.LightGray),
-        new(simulation.Paused ? "SPACE - resume" : "SPACE - freeze", Color.Yellow),
-        new("R - scatter    1 2 3 - flock size", Color.Yellow),
+        new("Space", simulation.Paused ? "Resume" : "Freeze", Color.Yellow),
+        new("R", "Scatter", Color.Yellow),
+        new(["1", "2", "3"], "Flock size", Color.Yellow),
+        new(""),
+        new($"{simulation.Count} boids, {pairs / 1_000_000f:0.0} million pairs a frame", Color.LightGreen),
+        new("All on the GPU: one dispatch, one instanced draw call,", Color.LightGray),
+        new("nothing per frame on the CPU", Color.LightGray),
     ];
 }
 
@@ -160,7 +154,7 @@ IReadOnlyList<TextElement> OverlayLines()
 /// The flock's GPU state: two boid buffers that swap every frame, the two matrix buffers the mesh
 /// renderer reads, and the instancing type that hands them over.
 /// </summary>
-sealed class BoidsSimulation : IDisposable
+public sealed class BoidsSimulation : IDisposable
 {
     // Where the flock lives and how it flies. All of it goes to the shader every dispatch, so
     // any of it could be a slider.
@@ -270,7 +264,7 @@ sealed class BoidsSimulation : IDisposable
 }
 
 /// <summary>One boid as the shader sees it: two float4s, the fourth components unused.</summary>
-readonly record struct Boid(Vector4 Position, Vector4 Velocity)
+public readonly record struct Boid(Vector4 Position, Vector4 Velocity)
 {
     public Boid(Vector3 position, Vector3 velocity) : this(new Vector4(position, 0f), new Vector4(velocity, 0f))
     {
@@ -282,10 +276,10 @@ readonly record struct Boid(Vector4 Position, Vector4 Velocity)
 /// shader once per frame. ComputeEffectShader wraps the effect, the thread counts and the pipeline
 /// state; all this does is bind the buffers, set the numbers and dispatch.
 /// </summary>
-sealed class BoidsComputeRenderer : SceneRendererBase
+public sealed class BoidsComputeRenderer : SceneRendererBase
 {
     // Set by the example; a scene renderer is a data contract and needs a parameterless constructor
-    public Func<BoidsSimulation?> Simulation { get; set; } = () => null;
+    public Func<BoidsSimulation?> Simulation { private get; set; } = () => null;
 
     // One thread per boid, in groups of this many; the shader ignores the threads past the end
     private const int ThreadsPerGroup = 256;

@@ -3,7 +3,6 @@ using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -115,18 +114,20 @@ void AddInstructions()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     // The lines are rebuilt whenever the overlay draws, so each shows the live state.
     overlay.AddSection("Post effects", () =>
     {
-        var lines = new List<TextElement> { new("Each key toggles one effect; R switches all off") };
+        var lines = new List<TextElement>();
 
         foreach (var (key, effect) in effects)
         {
             var on = effect.IsOn();
-            lines.Add(new($"{KeyLabel(key)}  {effect.Name,-26} {(on ? "ON" : "off")}", on ? Color.Yellow : null));
+            lines.Add(new(KeyLabel(key), $"{effect.Name} {(on ? "on" : "off")}", on ? Color.Yellow : null));
         }
+
+        lines.Add(new("R", "All off"));
+        lines.Add(new(""));
+        lines.Add(new("Each key toggles one effect", Color.LightGray));
 
         return lines;
     });

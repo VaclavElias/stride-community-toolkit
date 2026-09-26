@@ -6,44 +6,70 @@ Welcome to the Release Notes for the **Stride Community Toolkit**. This section 
 
 The Stride Community Toolkit is developed with rapid iteration in mind. It moves at a faster development pace compared to the Stride Game Engine. As a result, you should expect frequent updates that may introduce breaking changes. This fast-paced approach allows us to incorporate community feedback quickly and continue improving the toolkit.
 
-
-## 1.0.0.0-preview.63
+## 1.0.0.0-preview.64
 
 ## What's Changed
-### 🔧 Engineering
-* refactor: Code clean up by @VaclavElias in [#313](https://github.com/stride3d/stride-community-toolkit/pull/313)
-* refactor: Design and code modernization, new features, and documentation improvements by @VaclavElias in [#319](https://github.com/stride3d/stride-community-toolkit/pull/319)
-* feat: Add clearColor parameter to AddGraphicsCompositor by @ourabigdev in [#346](https://github.com/stride3d/stride-community-toolkit/pull/346)
-* feat: Add Polygon 2D primitive support with Bepu physics by @ourabigdev in [#349](https://github.com/stride3d/stride-community-toolkit/pull/349)
-* refactor: Support for custom polygonal 2D primitives by @VaclavElias in [#363](https://github.com/stride3d/stride-community-toolkit/pull/363)
-* refactor: Improve XML comments and remove empty line by @VaclavElias in [#348](https://github.com/stride3d/stride-community-toolkit/pull/348)
-* refactor: Code structure, enhance documentation, and add features by @VaclavElias in [#365](https://github.com/stride3d/stride-community-toolkit/pull/365)
-* refactor: Examples improvements by @VaclavElias in [#372](https://github.com/stride3d/stride-community-toolkit/pull/372)
-* refactor: Build updates by @VaclavElias in [#385](https://github.com/stride3d/stride-community-toolkit/pull/385)
-* feat: New examples and updated docs by @VaclavElias in [#387](https://github.com/stride3d/stride-community-toolkit/pull/387)
-* feat: Enhance build process, examples, and documentation across toolkit by @VaclavElias in [#388](https://github.com/stride3d/stride-community-toolkit/pull/388)
-* refactor: Example improvements by @VaclavElias in [#390](https://github.com/stride3d/stride-community-toolkit/pull/390)
-* refactor: Update documentation, refactor physics, and enhance rendering features by @VaclavElias in [#392](https://github.com/stride3d/stride-community-toolkit/pull/392)
-### 🎓 Examples
-* fix: Example 7 removed from the solution temporarily by @VaclavElias in [#314](https://github.com/stride3d/stride-community-toolkit/pull/314)
-* feat: jitter2 physics example by @ourabigdev in [#318](https://github.com/stride3d/stride-community-toolkit/pull/318)
-* feat: Add E05_3D_FirstPersonCharacter code-only example by @Spajker7 in [#370](https://github.com/stride3d/stride-community-toolkit/pull/370)
-* Upgrade to Stride 4.4.0 and streamline build workflows by @VaclavElias in [#380](https://github.com/stride3d/stride-community-toolkit/pull/380)
-* feat: New example added E06_Jitter2_ConstrainedTo2D by @VaclavElias in [#384](https://github.com/stride3d/stride-community-toolkit/pull/384)
-### 🔁 Build & Deploy
-* Add GitHub Agentic Workflow for daily activity reports by @VaclavElias with @Copilot in [#323](https://github.com/stride3d/stride-community-toolkit/pull/323)
-* ci: Update workflow actions and .NET version by @VaclavElias in [#329](https://github.com/stride3d/stride-community-toolkit/pull/329)
-* Update GitHub Actions to latest versions for security and features by @VaclavElias in [#337](https://github.com/stride3d/stride-community-toolkit/pull/337)
-* fix: Fix disable weekly action by @VaclavElias in [#361](https://github.com/stride3d/stride-community-toolkit/pull/361)
-### 💪 Other Changes
-* fix: Update NDepend runtime to .NET 10 by @VaclavElias in [#315](https://github.com/stride3d/stride-community-toolkit/pull/315)
-* chore: NuGet packages bumped by @VaclavElias in [#316](https://github.com/stride3d/stride-community-toolkit/pull/316)
-* chore: Nuget packages bumped by @VaclavElias in [#321](https://github.com/stride3d/stride-community-toolkit/pull/321)
-* chore: NuGet packages bumped by @VaclavElias in [#328](https://github.com/stride3d/stride-community-toolkit/pull/328)
-* chore: NuGet packages bumped by @VaclavElias in [#331](https://github.com/stride3d/stride-community-toolkit/pull/331)
-* feat: easy daily/weekly cadence switch for activity report workflow by @VaclavElias with @Copilot in [#350](https://github.com/stride3d/stride-community-toolkit/pull/350)
 
-## New Contributors
-* @ourabigdev made their first contribution in [#318](https://github.com/stride3d/stride-community-toolkit/pull/318)
-* @VaclavElias with @Copilot made their first contribution in [#323](https://github.com/stride3d/stride-community-toolkit/pull/323)
-* @Spajker7 made their first contribution in [#370](https://github.com/stride3d/stride-community-toolkit/pull/370)
+### 💥 Breaking Changes
+
+- The text renderers moved next to their components: `WorldTextRenderer`, `EntityTextRenderer`, `ScreenTextDrawer` and `ScreenTextStyle` are now in `Stride.CommunityToolkit.Rendering.Text` instead of `Stride.CommunityToolkit.Renderers`. Change the `using`; `Renderers` keeps `EntityDebugSceneRenderer`.
+- `WorldTextComponent` and `EntityTextComponent`: `FadeStartDistance` and `MaxDistance` are `float` with 0 meaning off, instead of `float?`, which Game Studio could not edit.
+- The `Display` names of `WorldTextComponent` and `EntityTextComponent` lost their "(call Add…)" suffixes: the calls are no longer required.
+
+### 🎉 New Features
+
+- **Components in Game Studio**: `WorldTextComponent` and `EntityTextComponent` draw in the scene editor's viewport, before Play. Their processors run in the editor and register the render feature or scene renderer themselves, on the compositor of the scene they belong to, and again whenever the editor swaps compositors. No `AddWorldTextRenderer` or `AddEntityTextRenderer` call is required for a component to draw; the calls remain for control - the renderer's place in the chain.
+- `GrabberScript` appears in Game Studio under Physics: the Bepu package now registers its assembly for scanning. `game.AddGrabber()` puts the Bepu grabber on the camera entity from code.
+- New example **Compute Boids** (`E10_3D_ComputeBoids`): a flock on the GPU - a compute shader steers thousands of boids and writes the instance matrices an instanced mesh draws from.
+
+### 🐞 Bug Fixes
+
+- `UseGameSettings` can now raise the graphics profile of a code-only game: the engine's `PrepareContext` wrote its level-10 default over the device manager after the toolkit had applied the caller's settings; they are applied again from `WindowCreated`, before the device is created.
+- ImGui, ImGui.NET and DebugShapes decoded their colours for a gamma target on Stride's sRGB backbuffer; they now decode to linear like ShapeBatch. DebugShapes' primitive shader read its colour as float bits, which turned some colours into NaN.
+- Text and debug renderers no longer throw when the compositor has no camera slot, and text renderers fall back to a system font when the built-in font is not in the content database - both the case in Game Studio's scene editor.
+- `E04_ImGuiNet`'s overlay margins follow the display scale.
+- `E05_3D_Car`: `R` puts the whole car back - the chassis alone was teleported and the wheels stayed behind, so the constraints dragged the two together and the car landed on its side, or tumbled in from wherever it had fallen; now every body goes to its resting pose with its velocities cleared and the steering and motor targets start over. The bodies interpolate between physics steps, which takes the stutter out of driving on a display faster than the fixed step; the steering lock is wider (54 degrees, up from 41) and quicker to reach; and the car waits for `W` instead of driving off on its own.
+
+### ✨ Enhancement
+
+- `game.SetWindowSize(width, height)` sets the size the window opens at, before `Run`. It turns `AutoLoadDefaultSettings` off so the engine's `PrepareContext` stops resetting the size to 1280 by 720 before the window is made, and applies the size, profile and colour space through the game settings. Resizing the window later, at `WindowCreated` or from a startup script, shows the old outline for a few milliseconds; the settings alone (`RenderingSettings.DefaultBackBufferWidth` and `Height`) are clamped to the window the engine has already created, so they could shrink a window but never grow it: `E09_2D_ImageProcessing` asked for 1000 by 1080 that way and opened at 1000 by 720; it uses the helper now. `DebugOverlay.BlockBounds` reports the rectangle the block was last drawn in, so a scene laid out in world units can keep out from under the help.
+- Help-line keys are data on `TextElement` - `new("H", "Reset camera")`, `new(["Q", "E"], "Ascend / descend")` - and `DebugOverlay` decorates them when it draws: `KeyFormat` (default `[{0}]`), `KeySeparator`, and `KeyColor`, which defaults to the line's colour blended halfway to white so keys and the `[+]` marker stand a shade apart from the text. Restyling every example's help from `[F2]` to `F2:` is one property. `Marker` and `Indented` on `TextElement` carry a collapsible title's state and a dropdown's indent the same way. The three camera controllers, `DebugTextDropdown` and the E02 examples name their keys this way.
+- `DebugOverlay` draws after everything else in the frame (`DrawOrder = int.MaxValue - 1`), so the immediate debug shapes no longer paint over the help; only the screenshot capture comes later.
+- `DebugOverlay.SectionGap` sets how many blank lines separate sections (default 1, `0` to run them together).
+- Every example's on-screen help now follows the one shape: keys as data, one key per line, keys first and status under them, in the overlay's default top-right corner. `E05_3D_FirstPersonCharacter`, `E05_3D_Raycast`, `E08_3D_DebugShapes` and both `E10_3D_Instancing` examples, which printed through `DebugTextSystem`, draw through `DebugOverlay` sections instead.
+- `DebugOverlay` collapsible titles read `[+] [F2] Camera controls`: the marker first so every dropdown lines up, the key in the same brackets the body lines use, and the body indented one marker so its keys sit under the title's. `DebugTextDropdown` follows the same shape. The block keeps the widest width it has had since its line count changed, so a live number gaining a digit no longer nudges a right-anchored block every frame. The three camera controllers' help is rewritten in that style - `[H] Reset camera`, `[Arrow keys] Move`, `[Shift] Hold to move faster` - with fixed decimals on position, rotation and zoom. The overlay also draws on whole pixels now - line pitch, padding, origin and strip sizes are rounded - so a strip looks the same in a bottom corner as in a top one, and `TextNudge` (default one pixel up) centres the glyphs in their strip, where the font's line gap had them sitting low.
+- `DebugOverlay.SetPosition(x, y)` places the overlay at a pixel position in one call, setting the custom position and switching `Position` to `Custom` together, and `SetPosition(DisplayPosition)` picks a corner through the same method; setting `CustomPosition` alone did nothing while `Position` was a corner, which no example ever got past.
+- `game.SetDeterministic(step)` pins the loop - fixed timestep, draws in step with updates, exactly one update per draw - for replays, lockstep games, tests and captures; the screenshot capture now calls it. A test reads the engine's one-update-per-draw switch back through the same reflection, so an engine rename fails a test rather than un-pinning every golden.
+- Every custom renderer draws inside a GPU timing scope - DebugShapes, world text, entity text, the entity debug overlay, the instancing upload join ShapeBatch - so each shows under its own name in the profiler overlay and as a marker in a frame capture.
+- `SceneRendererRegistration` and `CompositorCameras` in `Rendering.Compositing`, for any component library that wants to work in Game Studio the way the toolkit's do.
+- Every toolkit script has a display name and a category in the Add-component list: the camera controllers under Camera, the profiler under Debug, the Bepu gizmo and debug scripts under Physics.
+
+### 📄 Docs
+
+- Example screenshots are named after the example slug: the `media:` override left every metadata block but the Myra example, whose file still carries the old name, twenty `stride-game-engine-*` files went, and the hand-owned example pages point at the slug-named files.
+- **Glossary** (`manual/glossary.md`): about 140 terms the manual, examples and release notes use - engine building blocks, content, rendering, shaders, particles, physics, maths, input and tooling - each a sentence or two with a link to the toolkit page or the Stride manual page that says more, grouped by topic the way the Stride glossary is.
+- New contributing page [Shaders in a toolkit package](../contributing/toolkit/shaders.md): where a shader lives and why core has none, the `Effects/` folder and the build reference, internal shaders and generated keys, the engine's function libraries, the colour-space rule, the ordered dither and the timing scope as snippets, effect files and the generated mixins class, the render-feature phase model, and how a shader change is proven.
+- The examples index, the level pages and each affected example page say which examples run only from a clone of the repository, because a package they reference is not on NuGet yet. The metadata generator reads the packages from each example's project file; the list of unpublished packages lives in one place beside the publish workflow.
+- [Using toolkit components in Game Studio](../manual/game-studio.md) rewritten around components that draw by themselves; [Making components work in Game Studio](../contributing/toolkit/game-studio-components.md) is the recipe for library authors, with the editor traps named.
+- API docs now include the Box2D package.
+
+### 🎓 Examples
+
+- `E01_3D_BasicScene_EngineOnly` and `E01_3D_BasicScene_FileBasedApp/ProgramEngineOnly.cs` (new): a ground, a cube and a camera in Stride alone, with no toolkit package - the compositor, camera, lights, procedural models and material the toolkit's one-liners stand for - once as a regular project and once as a file-based app. Both need `Stride.Engine` and a build-only `Stride.AssetCompiler`; the file-based one carries a `Directory.Build.targets` for the build-only part, which a `#:package` directive cannot express. The manual has an "Engine Only" page under both Create Project and Create File-Based App.
+- Five Bepu examples use `game.AddGrabber()`.
+- `E05_3D_Constraints_Simple` has an overlay: the grabber keys, and that carrying one sphere brings the other along.
+- `E08_2D_DebugRender` names its two keys on the overlay: `F11` for the mesh wireframes and `P` for the collider outlines.
+
+### 🔧 Engineering
+
+- Switching `StrideVersion` does not rebuild an example's asset bundle: the asset compiler's incremental step kept shaders compiled from the previous package, and the runtime reads shader sources from that bundle's recorded paths. After a version switch, delete the example's `obj/stride`, `obj/Debug/net10.0/stride` and `bin/.../data` before trusting a shader change.
+
+- Known issue on Stride 4.4.0-beta7: `DebugRenderComponentScript` (the Bepu debug wireframe) throws on its first frame because the engine's `SinglePassWireframeShader` fails to compile under the new SPIR-V shader pipeline. `E02_3D_Primitives`, `E08_2D_DebugRender` and `E08_3D_DebugRenderComponent` are affected. Fixed upstream in the shader compiler (the stage `streams` variable is zero-initialised) and verified with `4.4.0-dev`; it lands in the next Stride package.
+- DPI awareness has one route per example: nine examples dropped their `app.manifest` and call `WindowsDpiManager.EnablePerMonitorV2()` instead. Six had both, which was worse than redundant: a manifest present makes Windows refuse the call, and theirs asked only for plain per-monitor awareness, so those examples ran without Per-Monitor V2. `E08_DpiAware` stays the one manifest example, now declaring `PerMonitorV2` with a fallback, and its comment shows the code alternative.
+- NDepend at zero issues across the solution.
+- The host-only build settings moved out of `examples/Directory.Build.props` into `build/HostRuntime.props` and `build/HostRuntime.targets`, imported by the `Directory.Build.*` files under `examples/`, `tests/` and `tools/` (the gold-scenes project's private copy of the block is gone). The test project's `bin` drops from 495 MB to 89 MB and the Avalonia launcher's from 561 MB to 28 MB per configuration: no more native runtimes for 25 platforms, and no more native symbol files for Skia and HarfBuzz, which were 100 MB of the one platform it runs on. Native libraries now sit flat beside the executable rather than under `runtimes/`.
+- Two scripts at the repository root, `delete-bin.bat` and `delete-bin-examples.bat`, remove every `bin` and `obj` folder in the tree or under `examples/` only, printing what went and reporting a folder a running process still holds; the contributing build page describes them.
+
+### 💪 Other Changes
+
+- Examples' manifest and doc pages regenerated.

@@ -1,4 +1,7 @@
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.Engine;
+using Stride.Rendering;
+using Stride.Rendering.Compositing;
 
 namespace Stride.CommunityToolkit.Rendering.Text;
 
@@ -8,7 +11,10 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 /// <remarks>
 /// <para>
 /// Registered automatically through the <c>DefaultEntityComponentProcessor</c> attribute on the
-/// component, so nothing needs to add it by hand.
+/// component, so nothing needs to add it by hand. It also makes sure an
+/// <see cref="EntityTextRenderer"/> is on the scene's compositor, which is what draws the
+/// components in Game Studio's scene editor and in a game that never called
+/// <c>AddEntityTextRenderer</c>.
 /// </para>
 /// <para>
 /// It replaces the renderer walking the scene's entity list each frame, which had two consequences
@@ -24,10 +30,23 @@ public class EntityTextProcessor : EntityProcessor<EntityTextComponent, EntityTe
 {
     private readonly List<EntityTextRenderData> _texts = [];
 
+    // The compositor the renderer was last ensured on; the editor swaps compositors
+    private GraphicsCompositor? _ensuredOn;
+
     /// <summary>
     /// Gets every text currently in the scene, in no particular order.
     /// </summary>
     public IReadOnlyList<EntityTextRenderData> Texts => _texts;
+
+    /// <inheritdoc />
+    public override void Draw(RenderContext context)
+    {
+        base.Draw(context);
+
+        if (_texts.Count == 0) return;
+
+        SceneRendererRegistration.Ensure(Services, EntityManager, ref _ensuredOn, () => new EntityTextRenderer());
+    }
 
     /// <inheritdoc />
     protected override EntityTextRenderData GenerateComponentData(Entity entity, EntityTextComponent component)

@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    MSBuild imports only the NEAREST Directory.Build.props, so the repository-root one must be
+    imported explicitly or its settings (TargetFramework, StrideVersion, ...) would be lost here.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    Host-only runtime and a lean output, shared with examples/ and tools/. The test project references
+    Stride through the toolkit packages, so without it every native runtime Stride knows about is copied.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)../build/HostRuntime.props" />
+</Project>

@@ -58,7 +58,6 @@ These repository instructions guide GitHub Copilot (and similar AI assistants) t
 - `build/`: Repository scripts, all .NET file-based apps run with `dotnet run --file build/<name>.cs`: `pack-local.cs` (local dev NuGet packages), `capture-screenshots.cs` (the documentation screenshots), `gold-images.cs` (rendering regression against `tests/gold`)
 - `docs/`: DocFX sources (manuals, API reference, contributing)
 - `.github/`: GitHub workflows, release metadata, automation, and this instruction file
-- `notes/`: maintainer working documents, never published; `notes/README.md` says what each file is for. `notes/ARCHITECTURE.md` is the running backlog of API-design observations (see below) and `notes/plans/backlog.md` the one living to-do list
 
 Solutions: `Stride.CommunityToolkit.slnx` contains everything; `Stride.CommunityToolkit.Core.slnf`
 is a solution filter loading only libraries, tests and tools, because the 56 example projects slow
@@ -76,14 +75,14 @@ IDE load noticeably. See [Building the Toolkit](../docs/contributing/toolkit/bui
 |---|---|---|
 | `Directory.Build.props` (root) | Every project in the repository | `TargetFramework` (net10.0), `ImplicitUsings`, `Nullable`, `StrideVersion` |
 | `src/CommonSettings.props` | Library projects, imported explicitly | Package metadata: version, licence, authors, icon, readme, SourceLink |
-| `examples/Directory.Build.props` | Example projects only | Host-only `RuntimeIdentifier`, `SelfContained`, output-path settings that keep the example build small |
-| `examples/Directory.Build.targets` | Example projects only | Strips package XML documentation from build output |
+| `build/HostRuntime.props` | Imported by the `Directory.Build.props` under `examples/`, `tests/` and `tools/`; never by `src/` | Host-only `RuntimeIdentifier`, `SelfContained`, output-path settings that keep those builds small |
+| `build/HostRuntime.targets` | Imported by the `Directory.Build.targets` under the same three folders | Strips package XML documentation and native symbol files from build output |
 
 Two rules when editing these:
 
 - **MSBuild imports only the *nearest* `Directory.Build.props` / `.targets`.** A nested file must
   explicitly `Import` the one above it, or the parent's settings are silently lost. The files under
-  `examples/` do this; preserve it.
+  `examples/`, `tests/` and `tools/` do this; preserve it.
 - **`StrideVersion` is the single place the Stride version is set.** Reference it as
   `Version="$(StrideVersion)"` in a `PackageReference` rather than hard-coding a version.
 
@@ -165,6 +164,15 @@ void Start(Scene rootScene)
 }
 ```
 
+### Components in Game Studio
+
+Every `EntityComponent` and script the toolkit ships must work when added in Game Studio, not only
+from code: assembly registered for scanning (`Module.cs`), `[DataContract]`, a `[Display]` name and a
+`[ComponentCategory]`, `List<T>` never arrays, no nullable value types, and a processor that runs in
+the editor and provisions its own renderer on the owning compositor. The recipe, with the editor
+traps, is `docs/contributing/toolkit/game-studio-components.md`; the shape and text components are
+the worked examples. Verify against a package from `build/pack-local.cs`, not a `ProjectReference`.
+
 ## Coding Style & Conventions
 
 - Use latest C# features (file-scoped namespaces, target-typed `new`, pattern matching, spans where beneficial, primary ctors where suitable).
@@ -193,6 +201,7 @@ void Start(Scene rootScene)
 
 ### Shaders (SDSL)
 
+- The recipe for a package that ships a shader - folder, build reference, the engine's function libraries, dither, timing scope, effects - is [docs/contributing/toolkit/shaders.md](../docs/contributing/toolkit/shaders.md); this section is the compiler facts.
 - Stride 4.4 compiles SDSL through its **SPIR-V** toolchain (`sources/shaders/` in the engine clone):
   SDSL to SPIR-V, then SPIRV-Cross to HLSL for Direct3D 11. The old HLSL-based compiler is gone.
 - **Key classes are generated at build time** by a Roslyn source generator that the
@@ -231,6 +240,10 @@ void Start(Scene rootScene)
 - Update conceptual docs and XML comments when changing public APIs.
 - New libraries: update navigation, TOC, and contributing guides (`docs/contributing/toolkit/library-project.md`).
 - Provide concise, runnable examples that minimize boilerplate.
+- Keep `docs/release-notes/index.md` current: every change goes under the heading of the version in
+  progress, in the categories of `.github/release.yml` (breaking changes first - a renamed or moved
+  public type, a changed property type, a visual change a user would notice). Write the entry with the
+  change, not at release time.
 
 ## Verification & provenance
 
@@ -266,22 +279,6 @@ change in Stride to be possible at all.
   patterns noticed in passing are worth reporting. Fixing them as a side effect of unrelated work
   makes the diff harder to review and is out of scope unless requested.
 
-## Architecture notes (`notes/ARCHITECTURE.md`)
-
-[`notes/ARCHITECTURE.md`](../notes/ARCHITECTURE.md) collects API-design observations: the
-places where the *shape* of an API, rather than a bug in it, is what trips people up. It is a backlog
-of observations, not a decision record — nothing in it is agreed or scheduled.
-
-- **Read it before proposing an API change.** The friction may already be recorded, with options and
-  impact weighed up.
-- **Add to it when friction is noticed**, especially while writing examples, which is where API
-  problems surface first. Record the observation even when not acting on it: what was observed, why
-  it matters, and what the options are, including the do-nothing one.
-- **Keep it current.** Remove items once resolved or rejected, and note which. An item that no longer
-  reflects the code is worse than no item.
-- Prefer it over burying the observation in a code comment. A comment explains one call site; this
-  file is where a pattern across the API gets seen.
-
 ## Reference repositories (read them before writing physics code)
 
 Two sibling clones are often available next to this one. Neither is required, but when present they
@@ -310,7 +307,7 @@ Guidance for the Bepu demos specifically:
 ## Adding a new example
 
 - Create a folder under `examples/code-only/` named `E<NN>_<Dimension>_<Subject>`, optionally with
-  a `_<Qualifier>` suffix: `E11_3D_ShapeBatch`, `E06_Box2D_Junkyard`, `E01_3D_BasicScene_FSharp`.
+  a `_<Qualifier>` suffix: `E10_3D_Instancing_EntityTransform`, `E06_Box2D_Junkyard`, `E01_3D_BasicScene_FSharp`.
   The dimension is `2D` or `3D`, or the library when that is the point (`Box2D`, `Jitter2`,
   `Audio`); the number groups examples by topic, not by order of creation. Each variant gets its
   own folder, not sibling files in a shared one.
@@ -321,15 +318,36 @@ Guidance for the Bepu demos specifically:
   - **Quote any value containing `#` or `:`.** `#` starts a YAML comment, so
     `- Uses #:package` is silently truncated to `- Uses` with no error. This is why entries such as
     `"Using helpers: SetupBase3DScene"` are quoted.
+  - An example built on a toolkit package that is not on NuGet yet gets a "run it from a clone"
+    note on its page and on the index automatically. When a package joins the publish list in
+    `.github/workflows/dotnet-nuget.yml`, take it off `DocPaths.PackagesNotOnNuGet` in the
+    generator and regenerate the docs.
 - Examples reference toolkit libraries by `ProjectReference`, not `PackageReference`.
+- **DPI awareness comes from code, not a manifest.** An example calls
+  `WindowsDpiManager.EnablePerMonitorV2();` before `new Game()` and has no `app.manifest`.
+  `E08_DpiAware` is the one example that shows the manifest route instead. Never both: with a
+  manifest present Windows refuses the call and keeps the manifest's setting.
 - **Do not bind example keys that the camera controller already owns.** `Add3DCameraController`
   (included in `SetupBase3DScene`) claims `W A S D`, `Q E`, the arrow keys, `NumPad 2/4/6/8`,
-  `LeftShift`/`RightShift`, `H`, `F2` and `F3`. Binding one of those gives a key that appears to work
+  `LeftShift`/`RightShift`, `H`, `F2` and `F3`; `Add2DCameraController` (in `SetupBase2DScene`)
+  claims `W A S D`, the arrow keys, the shifts, `H` and `F2`. Binding one of those gives a key that appears to work
   intermittently while also flying the camera — `S` for "stabilise" is a real example of this. Safe
   single letters include `G J K L M N P R T Z`.
 - **A key binding lives in three places**: the `IsKeyPressed` call, the on-screen label, and any
   header comment describing the controls. Rename one and the others silently drift, leaving
   documentation that names a key doing nothing. Grep for the old letter after changing a binding.
+- **The on-screen help reads top down.** In an example's `DebugOverlay` section the key lines come
+  first, one key per line, then a blank line, then the status and explanation lines. A key line names
+  its keys as data, never in the text: `new("N", "Next station", Color.Gold)`, and
+  `new(["Q", "E"], "Ascend / descend")` for keys that do the same thing - not `new("[N] Next station")`.
+  The overlay decorates them when it draws (`DebugOverlay.KeyFormat`, default `[{0}]`, and `KeyColor`,
+  a shade lighter than the text), and gives a collapsible title the same shape, `[+] [F2] Camera controls`.
+  Multi-word inputs are just keys: `new("Arrow keys", "Move")`, `new("Mouse wheel", "Zoom")`,
+  `new("Shift", "Hold to move faster")`, `new("Left drag", "Pan")`. What a key does is capitalised
+  like a sentence, with no colon or dash. Never three unrelated keys joined on one line. Keep every
+  line to about fifty characters and split a longer sentence over two lines. Live
+  numbers use fixed decimals (`{x:0.00}`) so the block does not change width every frame. A reader
+  scans the block vertically for the key they want; a long horizontal line hides it.
 
 ## Running & debugging examples (AI assistants)
 
@@ -376,9 +394,9 @@ readout and pins auto-exposure, so the same frame is the same image on every run
 
 ```powershell
 dotnet run --file build/capture-screenshots.cs -- --review --only shape-batch --keep-png   # look at one example
-dotnet run --file build/gold-images.cs -- --only shape-batch                              # compare with tests/gold
-dotnet run --file build/gold-images.cs -- --only shape-batch --noise                      # what drift looks like with no change
-dotnet run --file build/gold-images.cs -- --only shape-batch --update                     # accept a reviewed change
+dotnet run --file build/gold-images.cs                                                    # compare the gold scenes with tests/gold, on WARP
+dotnet run --file build/gold-images.cs -- --only shapes-2d --noise                        # what drift looks like with no change
+dotnet run --file build/gold-images.cs -- --only shapes-2d --update                       # accept a reviewed change
 ```
 
 - `--review` writes to `screenshots-review/`, the gold script to `screenshots-review/gold/`, each

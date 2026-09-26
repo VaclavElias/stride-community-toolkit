@@ -436,9 +436,8 @@ IReadOnlyList<TextElement> BuildOverlayLines()
 {
     List<TextElement> lines =
     [
-        new($"{bodies.Count:N0} bodies, two draw calls", Color.LightGreen),
-        new($"{bodies.Count - sleepingCount:N0} awake / {sleepingCount:N0} asleep", Color.MediumSeaGreen),
-        new(string.Empty),
+        new("Space", $"Spawn {batchSize:N0} more", Color.Yellow),
+        new("X", "Clear", Color.Yellow),
     ];
 
     // Laid out in sequence, so an expanded menu pushes the ones below it down instead of overlapping
@@ -448,7 +447,8 @@ IReadOnlyList<TextElement> BuildOverlayLines()
     }
 
     lines.Add(new(string.Empty));
-    lines.Add(new($"SPACE - spawn {batchSize:N0} more     X - clear", Color.Yellow));
+    lines.Add(new($"{bodies.Count:N0} bodies, two draw calls", Color.LightGreen));
+    lines.Add(new($"{bodies.Count - sleepingCount:N0} awake, {sleepingCount:N0} asleep", Color.MediumSeaGreen));
 
     return lines;
 }

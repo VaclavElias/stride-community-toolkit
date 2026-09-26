@@ -4,7 +4,6 @@ using NexVYaml;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Compositing;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Engine;
 using Stride.Graphics;
@@ -26,7 +25,7 @@ game.Run(start: Start);
 void Start(Scene rootScene)
 {
     game.AddGraphicsCompositor().AddCleanUIStage();
-    game.Add3DCamera().Add3DCameraController(displayPosition: DisplayPosition.BottomRight);
+    game.Add3DCamera().Add3DCameraController();
     game.AddDirectionalLight();
     game.Add3DGround();
     game.AddSkybox();

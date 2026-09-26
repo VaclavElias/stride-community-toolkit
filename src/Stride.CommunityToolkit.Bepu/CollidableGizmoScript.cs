@@ -2,6 +2,7 @@ using Stride.BepuPhysics;
 using Stride.BepuPhysics.Systems;
 using Stride.CommunityToolkit.Engine;
 using Stride.Core.Mathematics;
+using Stride.Core;
 using Stride.Engine;
 using Stride.Input;
 using Stride.Rendering.Materials;
@@ -12,6 +13,8 @@ namespace Stride.CommunityToolkit.Bepu;
 /// Toggles visualization gizmos for all <see cref="CollidableComponent"/> instances in the current scene
 /// when a specified key is pressed.
 /// </summary>
+[Display("Collidable Gizmo (Bepu)")]
+[ComponentCategory("Physics")]
 public class CollidableGizmoScript : SyncScript
 {
     private const string GizmoEntityName = "CollidableGizmo";

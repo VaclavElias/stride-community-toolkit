@@ -11,7 +11,7 @@ This example demonstrates creating a 3D cylinder mesh programmatically by breaki
 
 We will be utilizing the @Stride.CommunityToolkit.Rendering.Utilities.MeshBuilder class from the toolkit, the process of crafting and rendering these geometries is streamlined.
 
-![Stride UI Example](media/stride-game-engine-example-05-cylinder-mesh.webp)
+![Stride UI Example](media/cylinder-mesh.webp)
 
 For more details of `MeshBuilder`, refer to our [MeshBuilder manual](../../rendering/mesh-builder.md).
 

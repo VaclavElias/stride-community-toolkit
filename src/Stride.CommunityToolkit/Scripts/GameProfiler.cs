@@ -1,3 +1,4 @@
+using Stride.Core;
 using Stride.Engine;
 using Stride.Input;
 using Stride.Profiling;
@@ -13,6 +14,8 @@ namespace Stride.CommunityToolkit.Scripts;
 /// changing the filtering mode with F1, altering the sorting mode with F2, navigating result pages with F3 and F4,
 /// and adjusting the refresh interval with the plus and minus keys.
 /// </remarks>
+[Display("Game Profiler")]
+[ComponentCategory("Debug")]
 public class GameProfiler : AsyncScript
 {
     /// <summary>

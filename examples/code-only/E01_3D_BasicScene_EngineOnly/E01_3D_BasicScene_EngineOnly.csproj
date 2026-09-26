@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <!--
+      The engine alone, no toolkit. Stride.Engine is the runtime. Stride.AssetCompiler is the build step
+      that compiles the engine's shaders into the output - without it the first frame fails with "Shader
+      ShaderBase could not be found" - and it is referenced build-only: its assemblies copied next to
+      the app make it fail at start-up instead ("Could not load file or assembly Stride.NuGetResolver").
+    -->
+    <ItemGroup>
+        <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
+        <PackageReference Include="Stride.AssetCompiler" Version="$(StrideVersion)" IncludeAssets="build;buildTransitive" />
+    </ItemGroup>
+
+</Project>

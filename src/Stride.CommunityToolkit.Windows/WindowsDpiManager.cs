@@ -51,8 +51,10 @@ public static class WindowsDpiManager
     /// </summary>
     /// <remarks>
     /// Call it before the game is created - Windows refuses the change once the process has a window.
-    /// It is also refused, harmlessly, when an <c>app.manifest</c> has already made the declaration,
-    /// so a project can have both. Off Windows it does nothing: there is nothing to declare there.
+    /// It is also refused when an <c>app.manifest</c> has already made a declaration, and the manifest's
+    /// setting then stands - if that manifest asks only for <c>PerMonitor</c>, the process stays on the
+    /// older mode rather than getting V2. Use one route, not both. Off Windows it does nothing: there is
+    /// nothing to declare there.
     /// </remarks>
     public static void EnablePerMonitorV2()
     {

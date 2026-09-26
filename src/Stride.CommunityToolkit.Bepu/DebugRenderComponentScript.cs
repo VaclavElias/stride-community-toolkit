@@ -1,4 +1,5 @@
 using Stride.BepuPhysics.Debug;
+using Stride.Core;
 using Stride.Engine;
 
 namespace Stride.CommunityToolkit.Bepu;
@@ -20,6 +21,8 @@ namespace Stride.CommunityToolkit.Bepu;
 /// - When a physics body is not awake, its debug mesh is rendered with a lighter color to indicate
 ///   the sleeping/non-awake state.
 /// </remarks>
+[Display("Debug Render (Bepu)")]
+[ComponentCategory("Physics")]
 public class DebugRenderComponentScript : SyncScript
 {
     /// <summary>

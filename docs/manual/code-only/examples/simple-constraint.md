@@ -9,7 +9,7 @@ This example demonstrates how to create a physics-based constraint between two o
 
 The distance servo constraint connects the two spheres and enforces a target distance of 3.0 units between them, causing them to pull toward or push away from each other to maintain this distance. This example showcases how constraints can be used to create physically-driven connections between objects, which is useful for creating joints, hinges, ropes, and other interconnected mechanical systems.
 
-![Stride UI Example](media/stride-game-engine-example-15-simple-constraint.webp)
+![Stride UI Example](media/simple-constraint.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_Constraints_Simple).
 
