@@ -3,24 +3,27 @@ generated: true
 slug: particles
 ---
 
-# Particles
+# Particle Gallery
 
-A blue fountain: fifty particles a second launched upward from a small area, pulled back down by
-gravity, each rendered as a camera-facing billboard. Built entirely from code, so every part of the
-system is visible - the emitter and its spawn rate, the initializers that randomise starting
-position and velocity, and the gravity updater that acts on them afterwards.
+Thirty-one particle systems on a ring of stations, all built from code: the building blocks one at a
+time - spawners, shapes, initializers, updaters, materials, flipbooks, soft particles - and then
+the showpieces that put them together: a campfire, fireworks with child emitters, a tornado, a
+swarm driven by an updater of our own, lasers, rain that splashes, a portal, a rocket engine. Most
+stations have variations on a key, so what a setting does is a keypress away.
 
 The `Program.cs` file shows how to:
 
-- Creating a ParticleSystemComponent from code
-- Setting lifetime, size range and spawn rate on an emitter
-- Randomising start position and velocity with initializers
-- Applying gravity with an updater
-- Rendering particles as billboards
-- Using helpers: SetupBase3DScene, Add3DGround
+- Building a ParticleSystemComponent from code - emitters, spawners, initializers, updaters, shapes, materials
+- Textures, flipbooks and scrolling texture coordinates on particles
+- Curves over a particle's life for size, colour and rotation
+- Force fields, colliders and spawning by distance
+- Child emitters spawned on a parent's death, distance or collision
+- Soft particles against geometry
+- Writing an updater and an initializer of your own
+- A ring of stations from the shared gallery frame in Example.Common, with variations per station
 
-![Particles](media/particles.webp)
+![Particle Gallery](media/particles.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_Particles).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E09_3D_Particles_Gallery).
 
-[!code-csharp[](../../../../examples/code-only/E09_3D_Particles/Program.cs?start=1&end=111)]
+[!code-csharp[](../../../../examples/code-only/E09_3D_Particles_Gallery/Program.cs?start=1&end=156)]

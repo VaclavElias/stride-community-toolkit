@@ -292,7 +292,7 @@ related:
   - E05_3D_Raycast
   - E09_3D_RenderToTexture
   - E10_3D_Instancing
-  - E11_3D_ShapeBatch
+  - E11_3D_ShapeBatch_Gallery
 tocName: GPU picking
 enabled: true
 created: 2026-09-12

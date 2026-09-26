@@ -108,7 +108,7 @@
     href: first-person-character.md
   - name: GPU Instancing
     href: instancing.md
-  - name: Particles
+  - name: Particle Gallery
     href: particles.md
   - name: Debug Shapes
     href: debug-shapes.md
@@ -118,7 +118,7 @@
     href: gpu-picking.md
   - name: Debug Shapes Usage
     href: debug-shapes-usage.md
-  - name: Shapes playground
+  - name: Shape gallery
     href: shape-batch.md
   - name: Stride UI - Capsule with rigid body and Window
     href: stride-ui-capsule-with-rigid-body.md
