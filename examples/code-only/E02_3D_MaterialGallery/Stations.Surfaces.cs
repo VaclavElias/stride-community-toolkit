@@ -1,6 +1,8 @@
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.Core.Mathematics;
+using Stride.Engine;
 using Stride.Graphics;
+using Stride.Rendering;
 using Stride.Rendering.Materials;
 using Stride.Rendering.Materials.ComputeColors;
 
@@ -96,6 +98,210 @@ public static class SurfaceStations
         s.Place(PrimitiveModelType.Sphere, s.Material(Recipes.Pbr(new Color(230, 120, 60), 0.5f, 0f)), new Vector3(-2.8f, 0.8f, -2.4f), new Vector3(0.8f));
         s.Place(PrimitiveModelType.Cube, s.Material(Recipes.Pbr(new Color(60, 160, 90), 0.5f, 0f)), new Vector3(2.8f, 0.8f, -2.4f), new Vector3(1.4f));
         s.PlaceTrio(glass);
+    }
+
+    /// <summary>
+    /// Hair: the Kajiya-Kay family of shading models, where the highlight runs along the strand
+    /// direction - the mesh tangent - rather than around the normal, with two shifted specular
+    /// lobes and a diffuse term wrapped round the strand. Written for hair cards, so the station is
+    /// three heads of them, faces towards the visitor: a quiff, a bob and long hair, the last on a
+    /// raised head so it can hang. Each is a haircut from a runtime mesh - roots above a hairline,
+    /// longer on the crown than at the sides, swept and lifted the way the cut says - wearing a
+    /// runtime strand texture whose alpha the material's three passes turn into solid cores and
+    /// soft edges (see <see cref="HairCards"/>). The hair moves: the heads turn slowly, and a
+    /// feature of the gallery's own in the material's displacement slot - the vertex-stage hook -
+    /// sways the cards by a wind set every frame (<see cref="HairSwayFeature"/>), so the anisotropic
+    /// highlight slides along the strands as they move. The environment term is the polynomial fit
+    /// for the same reason as everywhere in this gallery. V cycles the three shading models.
+    /// </summary>
+    /// <remarks>
+    /// On 4.4 this needs the engine fix in <c>notes/upstream/hair-material-abstract-direction-function.md</c>:
+    /// the hair functions implement abstract methods without <c>override</c>, which the old mixer
+    /// forgave and the new one does not. The light attenuation is set to none on both models: the
+    /// default directional attenuation renders these shapes black at its defaults, which is not
+    /// understood yet and is noted in the same file.
+    /// </remarks>
+    public static void Hair(MaterialStation s)
+    {
+        s.Clear();
+
+        // Scheuermann first: on solid shapes its sheen reads at once, where Kajiya-Kay's is subtle
+        var model = s.Pick("Scheuermann approximation", "Scheuermann improved", "Kajiya-Kay shifted") switch
+        {
+            0 => HairShared.HairShadingModel.ScheuermannApproximation,
+            1 => HairShared.HairShadingModel.ScheuermannImproved,
+            _ => HairShared.HairShadingModel.KajiyaKayShifted,
+        };
+
+        var colour = new Color(120, 75, 35);
+        var device = s.Game.GraphicsDevice;
+        var strands = s.Textures.Generated("strands", () => HairCards.Strands(device, colour));
+
+        // The strand texture is the diffuse; its alpha is what the passes cut by. Both faces of a card are hair
+        // Clamped along the strand: wrapped, the tip row would blend with the root row and paint a line across every card end
+        var strandInput = Recipes.Colour(strands);
+        strandInput.AddressModeV = TextureAddressMode.Clamp;
+        var cards = s.Material(HairMaterial(model, strandInput, twoSided: true));
+
+        // A skin-coloured head, so the clear forehead reads as a face; the face is towards the visitor
+        const float headRadius = 0.55f;
+        var skin = s.Material(Recipes.Pbr(new Color(225, 180, 150), 0.35f, 0f));
+
+        var heads = new List<(Entity Entity, Quaternion Placed)>();
+
+        Head(new Vector3(-2.8f, 1.1f, 0f), HairStyle.Quiff);
+        Head(new Vector3(0f, 1.1f, 0f), HairStyle.Bob);
+        Head(new Vector3(2.8f, 2.6f, 0f), HairStyle.Long);
+
+        s.State = new HairState(cards, heads);
+
+        void Head(Vector3 at, HairStyle style)
+        {
+            var head = s.Place(PrimitiveModelType.Sphere, skin, at, new Vector3(headRadius));
+            var hair = s.PlaceModel(HairCards.Haircut(device, headRadius, style), cards, at);
+
+            heads.Add((head, head.Transform.Rotation));
+            heads.Add((hair, hair.Transform.Rotation));
+        }
+    }
+
+    /// <summary>
+    /// The hair station's frame: the heads turn to and fro, and the sway shader gets the time, a
+    /// wind and how far a tip may travel. The material is shared by the three heads, so the wind is
+    /// one vector in the hair's object space, which turns with the heads - close enough for a
+    /// breeze, and one parameter set rather than three.
+    /// </summary>
+    public static void HairSway(MaterialStation s)
+    {
+        if (s.State is not HairState state) return;
+
+        var turn = Quaternion.RotationY(MathF.Sin(s.Seconds * 0.35f) * 0.7f);
+
+        foreach (var (entity, placed) in state.Heads)
+        {
+            entity.Transform.Rotation = placed * turn;
+        }
+
+        foreach (var pass in state.Cards.Passes)
+        {
+            pass.Parameters.Set(HairSwayKeys.SwayTime, s.Seconds);
+            pass.Parameters.Set(HairSwayKeys.SwayStrength, 0.18f);
+            pass.Parameters.Set(HairSwayKeys.SwayWind, new Vector3(1f, 0.1f, 0.4f));
+        }
+    }
+
+    /// <summary>What the hair station keeps between frames: the cards' material and every entity that turns, with the rotation it was placed at.</summary>
+    private sealed record HairState(Material Cards, List<(Entity Entity, Quaternion Placed)> Heads);
+
+    /// <summary>
+    /// The other parts of a hair material, one at a time against the station before: the three
+    /// passes painted red, green and blue; the shadowing function that thins a shadow by the
+    /// strand's thickness from the shadow map; per-strand noise on the highlight shift and the
+    /// glints, from a runtime texture instead of flat values; and the engine's default direction
+    /// function, which reads the bitangent, on cards laid out for it. V walks them; the first
+    /// variation is the plain material for reference.
+    /// </summary>
+    public static void HairParts(MaterialStation s)
+    {
+        s.Clear();
+
+        var device = s.Game.GraphicsDevice;
+        var colour = new Color(120, 75, 35);
+        var strands = s.Textures.Generated("strands", () => HairCards.Strands(device, colour));
+        var strandInput = Recipes.Colour(strands);
+        strandInput.AddressModeV = TextureAddressMode.Clamp;
+
+        var part = s.Pick("plain", "the three passes in colour", "scattering shadowing", "per-strand noise", "direction from the bitangent");
+
+        IComputeScalar? noise = part == 3 ? Recipes.Scalar(s.Textures.Generated("noise", () => RuntimeTextures.Noise(device)), 6f) : null;
+        IMaterialHairShadowingFunction? shadowing = part == 2 ? new MaterialHairShadowingFunctionScattering { ExtinctionStrength = 15f } : null;
+        IMaterialHairDirectionFunction? direction = part == 4 ? new MaterialHairDirectionFunctionBitangent() : null;
+
+        var cards = s.Material(HairMaterial(HairShared.HairShadingModel.ScheuermannApproximation, strandInput, twoSided: true,
+            sway: false, debugPasses: part == 1, shadowing: shadowing, noise: noise, direction: direction));
+
+        const float headRadius = 0.55f;
+        var skin = s.Material(Recipes.Pbr(new Color(225, 180, 150), 0.35f, 0f));
+        var at = new Vector3(0f, 1.1f, 0f);
+
+        s.Place(PrimitiveModelType.Sphere, skin, at, new Vector3(headRadius));
+        s.PlaceModel(HairCards.Haircut(device, headRadius, HairStyle.Bob, directionInBitangent: part == 4), cards, at);
+    }
+
+    /// <summary>
+    /// The hair material: both hair models on one shading model, attenuation off, the polynomial
+    /// environment, and by default flat noise, shadow-map shadowing, the strand in the tangent.
+    /// </summary>
+    /// <param name="sway">The vertex-stage sway, on two-sided cards.</param>
+    /// <param name="debugPasses">Paint the opaque, back and front passes red, green and blue.</param>
+    /// <param name="shadowing">A shadowing function other than the shadow map's.</param>
+    /// <param name="noise">A per-strand noise for the highlight shift and the glints, instead of flat values.</param>
+    /// <param name="direction">A direction function other than the tangent's.</param>
+    private static MaterialDescriptor HairMaterial(HairShared.HairShadingModel model, IComputeColor diffuse, bool twoSided = false,
+        bool sway = true, bool debugPasses = false, IMaterialHairShadowingFunction? shadowing = null, IComputeScalar? noise = null, IMaterialHairDirectionFunction? direction = null) => new()
+    {
+        Attributes =
+        {
+            Diffuse = new MaterialDiffuseMapFeature(diffuse),
+            DiffuseModel = new MaterialDiffuseHairModelFeature
+            {
+                ShadingModel = model,
+                AlphaThreshold = 0.5f,
+                DebugRenderPasses = debugPasses,
+                HairDirectionFunction = direction ?? new MaterialHairDirectionFunctionTangent(),
+                HairShadowingFunction = shadowing ?? new MaterialHairShadowingFunctionShadowing(),
+                LightAttenuationFunction = new MaterialHairLightAttenuationFunctionNone(),
+            },
+            MicroSurface = new MaterialGlossinessMapFeature(new ComputeFloat(0.6f)),
+            Specular = new MaterialMetalnessMapFeature(new ComputeFloat(0f)),
+            SpecularModel = new MaterialSpecularHairModelFeature
+            {
+                ShadingModel = model,
+                AlphaThreshold = 0.5f,
+                DebugRenderPasses = debugPasses,
+                // Two lobes in the hair's own colour, well under the defaults, or the sheen bleaches the strands white
+                SpecularColor1 = new Color3(0.9f, 0.75f, 0.5f),
+                SpecularScale1 = 0.05f,
+                SpecularColor2 = new Color3(0.7f, 0.45f, 0.2f),
+                SpecularScale2 = 0.12f,
+                HairDirectionFunction = direction ?? new MaterialHairDirectionFunctionTangent(),
+                HairShadowingFunction = shadowing ?? new MaterialHairShadowingFunctionShadowing(),
+                LightAttenuationFunction = new MaterialHairLightAttenuationFunctionNone(),
+                // Flat noise unless given some: no shift jitter, full glints. The defaults are texture lookups with no texture
+                HairSpecularHighlightsShiftNoise = noise ?? new ComputeFloat(0.5f),
+                HairSecondarySpecularGlintsNoise = noise ?? new ComputeFloat(1f),
+                Environment = new MaterialSpecularMicrofacetEnvironmentGGXPolynomial(),
+            },
+            // The vertex-stage hook: the sway, on the cards only
+            Displacement = twoSided && sway ? new HairSwayFeature() : null,
+            CullMode = twoSided ? CullMode.None : CullMode.Back,
+        },
+    };
+
+    /// <summary>
+    /// Subsurface scattering: light that enters the surface and leaves elsewhere, the softness of
+    /// skin and wax. The feature marks the material for the compositor's scattering blur and adds a
+    /// translucency term from the shadow map's thickness, with a scattering profile - skin's here -
+    /// and a kernel. The blur is off here: on 4.4 its shader needs an engine fix and then trips a
+    /// constant-buffer layout mismatch - <c>notes/upstream/subsurface-blur-buffer-layout.md</c> - so
+    /// what shows is the translucency, from the sun's shadow map with transmittance on. V cycles it.
+    /// </summary>
+    /// <remarks>Needs the same engine fix as the hair station: its profile functions lack <c>override</c>.</remarks>
+    public static void Subsurface(MaterialStation s)
+    {
+        s.Clear();
+
+        var translucency = s.Pick("translucency 0.83", "translucency 0.3", "translucency 1") switch { 0 => 0.83f, 1 => 0.3f, _ => 1f };
+
+        var descriptor = Recipes.Pbr(new Color(230, 180, 160), 0.45f, 0f);
+        descriptor.Attributes.SubsurfaceScattering = new MaterialSubsurfaceScatteringFeature
+        {
+            Translucency = translucency,
+            ScatteringWidth = 0.015f,
+            TranslucencyMap = new ComputeFloat(1f),
+        };
+
+        s.PlaceTrio(s.Material(descriptor));
     }
 
     /// <summary>

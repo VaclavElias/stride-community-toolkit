@@ -134,6 +134,20 @@ public static class RuntimeTextures
         return Texture.New2D(device, size, size, PixelFormat.R8G8B8A8_UNorm, pixels);
     }
 
+    /// <summary>Grey noise, 0 to 1 per texel: what a per-strand jitter reads from.</summary>
+    public static Texture Noise(GraphicsDevice device, int size = 128)
+    {
+        var pixels = new Color[size * size];
+        var random = new Random(17);
+
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            pixels[i] = Grey((float)random.NextDouble());
+        }
+
+        return Texture.New2D(device, size, size, PixelFormat.R8G8B8A8_UNorm, pixels);
+    }
+
     private static Color Grey(float value)
     {
         var v = Math.Clamp(value, 0f, 1f);

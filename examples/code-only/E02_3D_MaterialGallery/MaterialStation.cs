@@ -17,7 +17,9 @@ public sealed class MaterialStation : GalleryStation
 {
     /// <summary>Where the trio stands on every station: sphere left, cube in the middle, teapot right.</summary>
     public static readonly Vector3 SphereSpot = new(-2.8f, 1f, 0f);
-    public static readonly Vector3 CubeSpot = new(0f, 0.9f, 0f);
+    // A centimetre above the ground: with its bottom face exactly on the ground plane the two fight for the
+    // depth buffer, which the two-sided glass shows as a flickering bottom
+    public static readonly Vector3 CubeSpot = new(0f, 0.91f, 0f);
     public static readonly Vector3 TeapotSpot = new(2.8f, 0.4f, 0f);
 
     // A primitive's size is what its procedural model calls size: a sphere's is its radius, a cube's

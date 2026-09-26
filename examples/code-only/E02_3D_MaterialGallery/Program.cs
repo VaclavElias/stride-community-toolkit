@@ -122,6 +122,12 @@ void LightTheRing(Scene scene, float radius, Entity sun)
 {
     sun.Transform.Rotation = Quaternion.RotationX(MathUtil.DegreesToRadians(-65f)) * Quaternion.RotationY(MathUtil.DegreesToRadians(-180f));
 
+    // The subsurface-scattering station reads the shadow map's thickness for its translucency term. The
+    // blur that would spread light under the surface is a forward-renderer post effect; on 4.4 its shader
+    // needs an engine fix and, once it compiles, every material draw trips a constant-buffer size
+    // mismatch and the frame is wrong - notes/upstream/subsurface-blur-buffer-layout.md - so it stays off
+    ((LightDirectional)sun.Get<LightComponent>().Type).Shadow.ComputeTransmittance = true;
+
     var key = new Entity("Key light")
     {
         new LightComponent
@@ -181,14 +187,14 @@ description:
   en: |-
     The engine's material system on a ring of stations, all from code: the four numbers of a PBR
     material first, then the maps, the inputs a map can be built from, and the surfaces and shading
-    models that change what light does - transparency, glass, clear coat, cel shading,
-    displacement and tessellation, layers - ending with Game Studio's Material Package
+    models that change what light does - transparency, glass, clear coat, cel shading, hair,
+    subsurface scattering, displacement and tessellation, layers - ending with Game Studio's Material Package
     transcribed into C#. Every station puts its materials on the same three shapes, and most
     have variations on a key.
   cs: |-
     Materiálový systém enginu na kruhu stanic, vše z kódu: nejprve čtyři čísla PBR materiálu, pak
     mapy, vstupy, z nichž lze mapu sestavit, a povrchy a modely stínování, které mění, co světlo
-    dělá - průhlednost, sklo, lak, cel shading, displacement a teselace, vrstvy - a nakonec balíček materiálů z Game Studia přepsaný do C#. Každá stanice
+    dělá - průhlednost, sklo, lak, cel shading, vlasy, podpovrchový rozptyl, displacement a teselace, vrstvy - a nakonec balíček materiálů z Game Studia přepsaný do C#. Každá stanice
     ukazuje své materiály na stejných třech tvarech a většina má varianty na klávese.
 concepts:
   - Building a Material from a MaterialDescriptor in code - diffuse, glossiness, metalness, specular models
@@ -196,7 +202,7 @@ concepts:
   - Textures as material inputs - colour maps as sRGB, data maps as linear
   - Normal, glossiness, metalness, occlusion and emissive maps
   - Compute nodes - vertex streams, arithmetic, a custom shader class, textures made at runtime
-  - Transparency, thin glass, clear coat and cel shading
+  - Transparency, thin glass, clear coat, cel shading, hair and subsurface scattering
   - Displacement, tessellation and material layers
   - "Game Studio's Material Package, transcribed from its .sdmat files"
 tags:
