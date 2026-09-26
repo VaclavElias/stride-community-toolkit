@@ -75,7 +75,7 @@
     <Project Path="examples/code-only/E09_2D_ImageProcessing/E09_2D_ImageProcessing.csproj" />
     <Project Path="examples/code-only/E09_3D_GpuPicking/E09_3D_GpuPicking.csproj" />
     <Project Path="examples/code-only/E09_3D_MeshOutline/E09_3D_MeshOutline.csproj" />
-    <Project Path="examples/code-only/E09_3D_Particles/E09_3D_Particles.csproj" />
+    <Project Path="examples/code-only/E09_3D_Particles_Gallery/E09_3D_Particles_Gallery.csproj" />
     <Project Path="examples/code-only/E09_3D_PostEffects/E09_3D_PostEffects.csproj" />
     <Project Path="examples/code-only/E09_3D_RenderToTexture/E09_3D_RenderToTexture.csproj" />
     <Project Path="examples/code-only/E09_3D_RootRendererShader/E09_3D_RootRendererShader.csproj" />
@@ -87,10 +87,10 @@
     <Project Path="examples/code-only/E10_3D_Instancing_EntityTransform/E10_3D_Instancing_EntityTransform.csproj" />
     <Project Path="examples/code-only/E11_2D_Charts/E11_2D_Charts.csproj" />
     <Project Path="examples/code-only/E11_3D_Charts/E11_3D_Charts.csproj" />
+    <Project Path="examples/code-only/E11_3D_ShapeBatch_Gallery/E11_3D_ShapeBatch_Gallery.csproj" />
     <Project Path="examples/code-only/E12_Audio_Procedural/E12_Audio_Procedural.csproj" />
     <Project Path="examples/code-only/E12_Audio_Spatial/E12_Audio_Spatial.csproj" />
     <Project Path="examples/code-only/E12_Audio_WavFile/E12_Audio_WavFile.csproj" />
-    <Project Path="examples/code-only/E11_3D_ShapeBatch/E11_3D_ShapeBatch.csproj" />
     <Project Path="examples/code-only/E13_SignalR/E13_SignalR.csproj" />
     <Project Path="examples/code-only/E13_SignalR_Blazor/E13_SignalR_Blazor.csproj" />
     <Project Path="examples/code-only/E13_SignalR_Shared/E13_SignalR_Shared.csproj" />

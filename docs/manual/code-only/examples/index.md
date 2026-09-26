@@ -478,11 +478,11 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/particles.webp" class="card-img-top" alt="Screenshot of the Particles example" width="1280" height="720" loading="lazy">
+            <img src="media/particles.webp" class="card-img-top" alt="Screenshot of the Particle Gallery example" width="1280" height="720" loading="lazy">
             <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="particles.md">Particles</a></h3>
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="particles.md">Particle Gallery</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
-                <p class="card-text">A blue fountain: fifty particles a second launched upward from a small area, pulled back down by gravity, each rendered as a camera-facing billboard.</p>
+                <p class="card-text">Thirty-one particle systems on a ring of stations, all built from code: the building blocks one at a time - spawners, shapes, initializers, updaters,...</p>
             </div>
         </div>
     </div>
@@ -508,11 +508,11 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/shape-batch.webp" class="card-img-top" alt="Screenshot of the ShapeBatch Shapes example" width="1280" height="720" loading="lazy">
+            <img src="media/shape-batch.webp" class="card-img-top" alt="Screenshot of the ShapeBatch Gallery example" width="1280" height="720" loading="lazy">
             <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="shape-batch.md">ShapeBatch Shapes</a></h3>
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="shape-batch.md">ShapeBatch Gallery</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
-                <p class="card-text">The full tour of ShapeBatch in 3D: ground discs and selection rings, decals, glowing HUD panels with world text on them, genuinely thick 3D lines and...</p>
+                <p class="card-text">A ring of numbered stations, one ShapeBatch idea each, from a single disc to a scrolling textured panel: discs, rings, polygons and rectangles on any...</p>
             </div>
         </div>
     </div>
