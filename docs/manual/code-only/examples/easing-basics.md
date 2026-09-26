@@ -19,6 +19,8 @@ The `Program.cs` file shows how to:
 - Tween, which also keeps the clock
 - Evenly spaced positions for no easing, bunched positions for an ease-out
 
+![Easing Basics](media/easing-basics.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_2D_EasingBasics).
 
 [!code-csharp[](../../../../examples/code-only/E02_2D_EasingBasics/Program.cs?start=1&end=207)]

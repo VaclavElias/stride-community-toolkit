@@ -146,7 +146,7 @@ void BuildScene(Scene scene)
     game.Add3DGround(new()
     {
         Size = new Vector3(40, 1, 40),
-        Material = game.CreateMaterial(new Color(95, 100, 110), specular: 0.5f, microSurface: 0.85f),
+        Material = game.CreateMaterial(new Color(95, 100, 110), metalness: 0.5f, glossiness: 0.85f),
     });
 
     // A corridor of pillars receding into the distance: depth of field blurs the far ones, fog swallows them.

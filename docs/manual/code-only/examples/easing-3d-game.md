@@ -19,6 +19,8 @@ The `Program.cs` file shows how to:
 - A staggered pop-in by starting tweens with a negative head start
 - A camera flight as one tween over position and rotation
 
+![Easing in a 3D Game](media/easing-3d-game.webp)
+
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_3D_EasingInGame).
 
 [!code-csharp[](../../../../examples/code-only/E02_3D_EasingInGame/Program.cs?start=1&end=292)]

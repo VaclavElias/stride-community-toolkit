@@ -107,7 +107,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="material.md">Material</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
-                <p class="card-text">A row of cubes that differ only in their material, so the effect of each property is visible in isolation.</p>
+                <p class="card-text">The four numbers of a material, one per row of cubes: a glossiness sweep from rough to mirror, a metalness sweep from dielectric to metal, and a front...</p>
             </div>
         </div>
     </div>
@@ -188,6 +188,46 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="entity-text.md">Entity Text (Screen-Space)</a></h3>
                 <p><span class="badge text-bg-secondary">Text</span></p>
                 <p class="card-text">A gallery of everything EntityTextComponent can do, one feature per pole: anchoring, shadows, backgrounds, scaling, rotation, opacity, distance...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/easing-basics.webp" class="card-img-top" alt="Screenshot of the Easing Basics example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="easing-basics.md">Easing Basics</a></h3>
+                <p><span class="badge text-bg-secondary">Mathematics</span></p>
+                <p class="card-text">Easing from the ground up, in four lanes that move a disc over the same two seconds: by hand with no easing, by hand with one formula, with the...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/easing.webp" class="card-img-top" alt="Screenshot of the Easing Cheat Sheet example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="easing.md">Easing Cheat Sheet</a></h3>
+                <p><span class="badge text-bg-secondary">Mathematics</span></p>
+                <p class="card-text">Every easing curve in the toolkit on one screen: a tile per curve with its graph, a dot riding the graph on a shared clock, and a slider that moves...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/easing-3d-game.webp" class="card-img-top" alt="Screenshot of the Easing in a 3D Game example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="easing-3d-game.md">Easing in a 3D Game</a></h3>
+                <p><span class="badge text-bg-secondary">Mathematics</span></p>
+                <p class="card-text">Easing doing real work in a 3D scene, four ways, each one a Tween: a kinematic platform lifts a stack of physics bodies on a sine curve and comes back...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/easing-2d-game.webp" class="card-img-top" alt="Screenshot of the Easing in a 2D Game example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="easing-2d-game.md">Easing in a 2D Game</a></h3>
+                <p><span class="badge text-bg-secondary">Mathematics</span></p>
+                <p class="card-text">Easing doing real work in a 2D physics scene, each piece a Tween: a kinematic lift carries a stack of boxes up and down on a sine curve, coins pop in...</p>
             </div>
         </div>
     </div>
@@ -283,6 +323,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="simple-geometry.md">Simple Geometry (Labelled Triangle)</a></h3>
                 <p><span class="badge text-bg-secondary">Geometry</span></p>
                 <p class="card-text">The smallest possible custom mesh - one triangle from three vertices - with each vertex labelled on screen so the relationship between the numbers in...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/material-gallery.webp" class="card-img-top" alt="Screenshot of the Material Gallery example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="material-gallery.md">Material Gallery</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">The engine's material system on a ring of stations, all from code: the four numbers of a PBR material first, then the maps, the inputs a map can be...</p>
             </div>
         </div>
     </div>
@@ -493,6 +543,26 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="debug-shapes.md">Debug Shapes</a></h3>
                 <p><span class="badge text-bg-secondary">Debug</span></p>
                 <p class="card-text">The full tour of the DebugShapes package: every immediate-mode primitive it can draw, exercised from a ShapeUpdater component so the shapes animate...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/render-to-texture.webp" class="card-img-top" alt="Screenshot of the Render to Texture example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="render-to-texture.md">Render to Texture</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">Five cameras watch one scene and each draws into a texture shown on a monitor: an overhead map, a chase camera following an orbiting ball, a fixed...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/gpu-picking.webp" class="card-img-top" alt="Screenshot of the GPU Picking example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="gpu-picking.md">GPU Picking</a></h3>
+                <p><span class="badge text-bg-secondary">Rendering</span></p>
+                <p class="card-text">What is under the mouse, answered by the renderer instead of by physics.</p>
             </div>
         </div>
     </div>

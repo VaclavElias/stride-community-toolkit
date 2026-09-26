@@ -44,7 +44,7 @@ void CreateLetterEntity(Scene rootScene)
     // mesh has position and normal only, so it needs a material with a colour of its own
     var model = new Model
     {
-        new MaterialInstance { Material = game.CreateMaterial(Color.Gold, specular: 0.1f, microSurface: 0.4f) },
+        new MaterialInstance { Material = game.CreateMaterial(Color.Gold, metalness: 0.1f, glossiness: 0.4f) },
         new Mesh
         {
             Draw = LetterMeshFactory.CreateTextMeshDraw(game.GraphicsDevice, "XYZ"),

@@ -103,9 +103,9 @@ public sealed class StationScene(Game game)
         game.AddWorldTextRenderer();
         game.AddEntityTextRenderer();
 
-        var deckMaterial = game.CreateMaterial(new Color(34, 37, 44), specular: 0.05f, microSurface: 0.25f);
-        var lipMaterial = game.CreateMaterial(new Color(58, 62, 72), specular: 0.08f, microSurface: 0.3f);
-        var hullMaterial = game.CreateMaterial(new Color(74, 80, 94), specular: 0.1f, microSurface: 0.35f);
+        var deckMaterial = game.CreateMaterial(new Color(34, 37, 44), metalness: 0.05f, glossiness: 0.25f);
+        var lipMaterial = game.CreateMaterial(new Color(58, 62, 72), metalness: 0.08f, glossiness: 0.3f);
+        var hullMaterial = game.CreateMaterial(new Color(74, 80, 94), metalness: 0.1f, glossiness: 0.35f);
 
         AddStatic(scene, "Deck", deckMaterial, new Vector3(DeckHalf * 2f, 0.5f, DeckHalf * 2f), new Vector3(0, -0.25f, 0));
 

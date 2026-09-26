@@ -95,7 +95,7 @@ void Update(Scene scene, GameTime time)
 /// </summary>
 void BuildScene(Scene scene)
 {
-    var groundMaterial = game.CreateMaterial(new Color(52, 56, 64), specular: 0.05f, microSurface: 0.3f);
+    var groundMaterial = game.CreateMaterial(new Color(52, 56, 64), metalness: 0.05f, glossiness: 0.3f);
 
     var ground = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions
     {
@@ -117,7 +117,7 @@ void BuildScene(Scene scene)
         var pillar = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions
         {
             EntityName = $"Pillar {i}",
-            Material = game.CreateMaterial(colours[i], specular: 0.2f, microSurface: 0.5f),
+            Material = game.CreateMaterial(colours[i], metalness: 0.2f, glossiness: 0.5f),
             Size = new Vector3(1.4f, height, 1.4f),
             Position = new Vector3(MathF.Cos(angle) * 8f, height * 0.5f, MathF.Sin(angle) * 8f),
         });
@@ -128,7 +128,7 @@ void BuildScene(Scene scene)
     var cube = game.Create3DPrimitive(PrimitiveModelType.Cube, new Primitive3DEntityOptions
     {
         EntityName = "Cube",
-        Material = game.CreateMaterial(Color.LightSteelBlue, specular: 0.4f, microSurface: 0.7f),
+        Material = game.CreateMaterial(Color.LightSteelBlue, metalness: 0.4f, glossiness: 0.7f),
         Size = new Vector3(2f),
         Position = new Vector3(0f, 1.5f, 0f),
     });

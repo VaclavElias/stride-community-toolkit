@@ -223,9 +223,9 @@ public class CubeClickScript : AsyncScript
 
         // Cached across restarts: materials are GPU resources, and a fresh set per game over would
         // leak three of them every time the player presses R
-        var letterMaterial = _letterMaterial ??= game.CreateMaterial(Color.Gold, specular: 0.1f, microSurface: 0.4f);
-        var digitMaterial = _digitMaterial ??= game.CreateMaterial(Color.White, specular: 0.1f, microSurface: 0.4f);
-        var menuMaterial = _menuMaterial ??= game.CreateMaterial(new Color(170, 220, 255), specular: 0.1f, microSurface: 0.4f);
+        var letterMaterial = _letterMaterial ??= game.CreateMaterial(Color.Gold, metalness: 0.1f, glossiness: 0.4f);
+        var digitMaterial = _digitMaterial ??= game.CreateMaterial(Color.White, metalness: 0.1f, glossiness: 0.4f);
+        var menuMaterial = _menuMaterial ??= game.CreateMaterial(new Color(170, 220, 255), metalness: 0.1f, glossiness: 0.4f);
 
         // The player can be anywhere on the orbit when the board dies, so the words spawn turned
         // toward wherever the camera is right now. Facing is decided once, at spawn - after that the

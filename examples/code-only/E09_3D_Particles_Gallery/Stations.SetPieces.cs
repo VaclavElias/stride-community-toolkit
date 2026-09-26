@@ -151,7 +151,7 @@ public static class SetPieceStations
             var nozzle = s.Game.Create3DPrimitive(PrimitiveModelType.Cone, new Primitive3DEntityOptions
             {
                 EntityName = $"Station {s.Number} nozzle",
-                Material = s.Game.CreateMaterial(new Color(70, 72, 78), specular: 0.5f, microSurface: 0.7f),
+                Material = s.Game.CreateMaterial(new Color(70, 72, 78), metalness: 0.5f, glossiness: 0.7f),
                 Size = new Vector3(1.2f, 1f, 1.2f),
                 Position = s.At(0f, 3.7f, 0f),
             });
@@ -159,7 +159,7 @@ public static class SetPieceStations
             var body = s.Game.Create3DPrimitive(PrimitiveModelType.Cylinder, new Primitive3DEntityOptions
             {
                 EntityName = $"Station {s.Number} body",
-                Material = s.Game.CreateMaterial(new Color(200, 205, 210), specular: 0.3f, microSurface: 0.6f),
+                Material = s.Game.CreateMaterial(new Color(200, 205, 210), metalness: 0.3f, glossiness: 0.6f),
                 Size = new Vector3(0.9f, 2f, 0.9f),
                 Position = s.At(0f, 5.2f, 0f),
             });

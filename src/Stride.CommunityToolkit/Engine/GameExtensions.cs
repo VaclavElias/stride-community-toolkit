@@ -728,14 +728,20 @@ public static partial class GameExtensions
 
 
     /// <summary>
-    /// Creates a basic material with optional color, specular reflection, and microsurface smoothness values.
+    /// Creates a material from the four numbers of a PBR material: a colour, a metalness and a glossiness,
+    /// under the Lambert diffuse and microfacet specular models.
     /// </summary>
     /// <param name="game">The game instance used to access the graphics device.</param>
-    /// <param name="color">The color of the material. Defaults to null, which will use the _defaultMaterialColor.</param>
-    /// <param name="specular">The specular reflection factor of the material. Defaults to 1.0f.</param>
-    /// <param name="microSurface">The microsurface smoothness value of the material. Defaults to 0.65f.</param>
+    /// <param name="color">The colour. Defaults to null, which uses <see cref="GameDefaults.DefaultMaterialColor"/>.</param>
+    /// <param name="metalness">0 for a dielectric, which keeps its colour as diffuse and reflects a colourless 4 percent; 1 for a metal, which has no diffuse and reflects in its own colour. Defaults to 0, a matte coloured surface.</param>
+    /// <param name="glossiness">0 for rough, where the highlight is a haze; 1 for a mirror. Defaults to 0.65f.</param>
     /// <returns>A new material instance with the specified or default attributes.</returns>
-    public static Material CreateMaterial(this IGame game, Color? color = null, float specular = 1.0f, float microSurface = 0.65f)
+    /// <remarks>
+    /// The specular model's environment term is the polynomial fit rather than the engine's default lookup
+    /// texture: the default resolves that texture through an attached reference a code-only game never loads,
+    /// and every metal then renders black. A colour alone gives a dielectric; ask for a metal explicitly. See the manual page on materials for what the numbers claim.
+    /// </remarks>
+    public static Material CreateMaterial(this IGame game, Color? color = null, float metalness = 0f, float glossiness = 0.65f)
     {
         var materialDescription = new MaterialDescriptor
         {
@@ -743,9 +749,9 @@ public static partial class GameExtensions
             {
                 Diffuse = new MaterialDiffuseMapFeature(new ComputeColor(color ?? GameDefaults.DefaultMaterialColor)),
                 DiffuseModel = new MaterialDiffuseLambertModelFeature(),
-                Specular = new MaterialMetalnessMapFeature(new ComputeFloat(specular)),
-                SpecularModel = new MaterialSpecularMicrofacetModelFeature(),
-                MicroSurface = new MaterialGlossinessMapFeature(new ComputeFloat(microSurface))
+                Specular = new MaterialMetalnessMapFeature(new ComputeFloat(metalness)),
+                SpecularModel = new MaterialSpecularMicrofacetModelFeature { Environment = new MaterialSpecularMicrofacetEnvironmentGGXPolynomial() },
+                MicroSurface = new MaterialGlossinessMapFeature(new ComputeFloat(glossiness))
             }
         };
 

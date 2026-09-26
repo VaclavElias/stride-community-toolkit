@@ -1,0 +1,16 @@
+namespace E02_3D_Material_Gallery
+{
+    // A material input written as a shader class: any class that derives from ComputeColor and
+    // overrides Compute() can sit in a material slot through ComputeShaderClassColor. This one
+    // paints a checker from the texture coordinates, no texture involved.
+    shader GalleryChecker : ComputeColor, Texturing
+    {
+        override float4 Compute()
+        {
+            float2 cell = floor(streams.TexCoord * 6.0);
+            float odd = fmod(cell.x + cell.y, 2.0);
+
+            return lerp(float4(0.92, 0.90, 0.84, 1.0), float4(0.16, 0.18, 0.22, 1.0), odd);
+        }
+    };
+}

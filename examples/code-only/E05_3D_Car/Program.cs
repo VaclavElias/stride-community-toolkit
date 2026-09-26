@@ -70,7 +70,7 @@ void Start(Scene scene)
     game.Add3DGround(new()
     {
         Size = new Vector3(240, 1, 240),
-        Material = game.CreateMaterial(new Color(95, 105, 100), specular: 0.3f, microSurface: 0.7f),
+        Material = game.CreateMaterial(new Color(95, 105, 100), metalness: 0.3f, glossiness: 0.7f),
     });
 
     // Car parts on one layer that does not collide with itself; everything else stays as it was.
@@ -226,7 +226,7 @@ Car BuildCar(Scene scene, Vector3 position)
     };
     chassisEntity.Transform.Position = position;
 
-    var body = game.CreateMaterial(new Color(200, 60, 50), specular: 0.6f, microSurface: 0.8f);
+    var body = game.CreateMaterial(new Color(200, 60, 50), metalness: 0.6f, glossiness: 0.8f);
     chassisEntity.AddChild(Model(PrimitiveModelType.Cube, new Vector3(1.85f, 0.7f, 4.73f), body, Vector3.Zero));
     chassisEntity.AddChild(Model(PrimitiveModelType.Cube, new Vector3(1.85f, 0.6f, 2.5f), body, new Vector3(0, 0.65f, -0.35f)));
     chassisEntity.Scene = scene;
@@ -256,7 +256,7 @@ Wheel BuildWheel(Scene scene, BodyComponent chassis, Vector3 mount)
     };
     entity.Transform.Position = chassis.Entity.Transform.Position + mount + suspensionDirection * SuspensionLength;
     entity.Transform.Rotation = wheelTurn;
-    entity.AddChild(Model(PrimitiveModelType.Cylinder, new Vector3(0.4f, 0, 0.18f), game.CreateMaterial(new Color(40, 40, 45), specular: 0.2f, microSurface: 0.5f), Vector3.Zero));
+    entity.AddChild(Model(PrimitiveModelType.Cylinder, new Vector3(0.4f, 0, 0.18f), game.CreateMaterial(new Color(40, 40, 45), metalness: 0.2f, glossiness: 0.5f), Vector3.Zero));
 
     var wheel = entity.Get<BodyComponent>();
 

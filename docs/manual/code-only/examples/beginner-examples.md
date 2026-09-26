@@ -10,7 +10,7 @@ One new idea at a time, on top of the base scene. Toolkit helpers only, with no 
 
 - [Basic3D Scene (Every Primitive)](primitives-3d.md): Every 3D primitive the toolkit can build - cube, cone, capsule, sphere, cylinder, teapot, torus and triangular prism - dropped into one scene so the shapes, their default sizes and their generated colliders can be compared side by side.
 - [Basic Gum UI Setup](gum-stride-ui-basic.md): Initialize Gum UI in Stride using the official Gum.Stride runtime and the Stride Community Toolkit.
-- [Material](material.md): A row of cubes that differ only in their material, so the effect of each property is visible in isolation.
+- [Material](material.md): The four numbers of a material, one per row of cubes: a glossiness sweep from rough to mirror, a metalness sweep from dielectric to metal, and a front row that builds the same numbers as a MaterialDescriptor feature by feature - which is what CreateMaterial does.
 - [Post Effects](post-effects.md): Every post effect Stride ships, one key each: bloom, ambient occlusion, screen-space reflections, depth of field, light streaks, lens flare, fog, outline, FXAA, and the vignette, film-grain and dither colour transforms.
 - [Mesh Line](mesh-line.md): A line drawn between two spheres, built as a real mesh rather than a debug primitive.
 - [Wav File](wav-file.md): Play a .wav read from disk at runtime, with no compiled asset: LoadWav decodes the file into memory and each CreateInstance is an independent playback.

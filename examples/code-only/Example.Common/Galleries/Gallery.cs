@@ -111,7 +111,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         _camera = new GalleryCamera(game);
         // A regular face for the labels: Stride's built-in font is bold
         _labelFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 20f);
-        _pillarMaterial = game.CreateMaterial(Options.PillarColor ?? new Color(96, 103, 116), specular: 0.1f, microSurface: 0.35f);
+        _pillarMaterial = game.CreateMaterial(Options.PillarColor ?? new Color(96, 103, 116), metalness: 0.1f, glossiness: 0.35f);
 
         // Depth-tested for the pads and the board, over everything for the dotted lines and pins -
         // and after the post effects, or the tone mapper would turn their white into the same grey
@@ -365,7 +365,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     private void BuildGround()
     {
         // Dark and matte, so exhibits read against it instead of fighting a specular hotspot
-        var groundMaterial = _game.CreateMaterial(new Color(38, 41, 47), specular: 0.04f, microSurface: 0.25f);
+        var groundMaterial = _game.CreateMaterial(new Color(38, 41, 47), metalness: 0.04f, glossiness: 0.25f);
 
         // Room for the ring, and for the exhibits that run outwards
         var side = (Radius + Options.GroundMargin) * 2f;

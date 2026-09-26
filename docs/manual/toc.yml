@@ -79,6 +79,8 @@
     href: rendering/render-to-texture.md
   - name: GPU Picking
     href: rendering/gpu-picking.md
+  - name: Materials from Code
+    href: rendering/materials.md
   - name: Charts
     href: rendering/charts.md
   - name: MeshBuilder
