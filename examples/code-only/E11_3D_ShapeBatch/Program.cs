@@ -179,7 +179,12 @@ IReadOnlyList<TextElement> BuildOverlayLines()
     ];
 
     // The index board at the centre is the full list; here, only where the visitor stands
-    var station = gallery.Stations[gallery.Current];
+    if (gallery.CurrentStation is not { } station)
+    {
+        if (gallery.Stations.Count > 0) lines.Add(new($"Home - {gallery.Stations.Count} stations; N, P or a pad to visit", Color.White));
+
+        return lines;
+    }
 
     lines.Add(new($"Station {station.Number} of {gallery.Stations.Count} - {station.Exhibit.Title}", Color.White));
     lines.AddRange(OverlayText.Wrap($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray));

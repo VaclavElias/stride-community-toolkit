@@ -149,8 +149,18 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     /// <summary>When set, only the station nearest the camera runs and shows its label - one exhibit at a time.</summary>
     public bool Solo { get; set; }
 
-    /// <summary>The station nearest the camera, updated every frame; next and previous count from it.</summary>
+    /// <summary>The station nearest the camera, updated every frame; next and previous count from it. 0 when the registry is empty, when there is no station to index.</summary>
     public int Current { get; private set; }
+
+    /// <summary>
+    /// The station the visitor is at: the nearest one, or <c>null</c> at home, where the nearest station is
+    /// not where the visitor is, and <c>null</c> when the registry is empty - the frame stands with its
+    /// board and its ground either way.
+    /// </summary>
+    public TStation? CurrentStation => _stations.Count > 0 && !_atHome ? _stations[Current] : null;
+
+    /// <summary>Whether the visitor is at the home spot, above and outside the ring: no station is current there.</summary>
+    public bool AtHome => _atHome;
 
     /// <summary>The station whose pad is under the mouse, or -1: the pad fills, and a click flies there.</summary>
     public int Hovered => _hovered;
@@ -178,7 +188,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     {
         _destination = Current;
         _atHome = true;
-        _camera.FlyTo(HomePosition, HomeRotation, instant, HomeFlightSeconds, _stations[0].At(0f, 2f, 0f));
+        _camera.FlyTo(HomePosition, HomeRotation, instant, HomeFlightSeconds, _stations.Count > 0 ? _stations[0].At(0f, 2f, 0f) : null);
     }
 
     private Vector3 HomePosition => new(0f, Radius * HomeHeight, Radius * HomeDistance);
@@ -194,6 +204,8 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     /// <param name="instant">Put the camera there at once, rather than flying it.</param>
     public void GoTo(int index, bool instant = false)
     {
+        if (_stations.Count == 0) return;
+
         _atHome = false;
 
         _destination = (index % _stations.Count + _stations.Count) % _stations.Count;
@@ -230,7 +242,7 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
         for (var i = 0; i < _stations.Count; i++)
         {
             var station = _stations[i];
-            var current = i == Current;
+            var current = i == Current && !_atHome;
 
             station.Seconds = seconds;
             station.IsCurrent = current;
@@ -375,7 +387,8 @@ public sealed class Gallery<TStation> where TStation : GalleryStation, new()
     /// </summary>
     private void BuildBoard()
     {
-        var lines = string.Join('\n', _stations.Select(s => $"{s.Number,2}  {s.Exhibit.Title}"));
+        // An empty registry keeps its board, with nothing listed: the frame is the same whatever is on it
+        var lines = _stations.Count > 0 ? string.Join('\n', _stations.Select(s => $"{s.Number,2}  {s.Exhibit.Title}")) : " ";
 
         var board = new WorldTextComponent
         {

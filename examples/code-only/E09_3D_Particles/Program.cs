@@ -96,7 +96,7 @@ void HandleInput(Gallery<ParticleStation> gallery)
         gallery.UpdateLabels();
     }
 
-    var station = gallery.Stations[gallery.Current];
+    if (gallery.CurrentStation is not { } station) return;
 
     // A variation is the same setup method with a different branch taken: bump and rebuild
     if (game.Input.IsKeyPressed(Keys.V) && station.VariationNames.Count > 1)
@@ -112,7 +112,6 @@ IReadOnlyList<TextElement> BuildOverlayLines()
 {
     if (gallery is null) return [];
 
-    var station = gallery.Stations[gallery.Current];
     var living = gallery.Stations.Sum(s => s.LivingParticles);
 
     List<TextElement> lines =
@@ -125,9 +124,19 @@ IReadOnlyList<TextElement> BuildOverlayLines()
         new("Space", "Restart the station", Color.Gold),
         new(""),
         new($"{living:N0} particles alive over {gallery.Stations.Count} stations", Color.LightGreen),
-        new($"Station {station.Number} of {gallery.Stations.Count} - {station.Exhibit.Title}", Color.White),
-        .. OverlayText.Wrap($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray),
     ];
+
+    if (gallery.CurrentStation is not { } station)
+    {
+        lines.Add(gallery.Stations.Count == 0
+            ? new("No stations in the registry", Color.OrangeRed)
+            : new($"Home - {gallery.Stations.Count} stations; N, P or a pad to visit", Color.White));
+
+        return lines;
+    }
+
+    lines.Add(new($"Station {station.Number} of {gallery.Stations.Count} - {station.Exhibit.Title}", Color.White));
+    lines.AddRange(OverlayText.Wrap($"{station.Exhibit.Method}: {station.Exhibit.Summary}", Color.LightGray));
 
     if (station.VariationNames.Count > 1)
     {
