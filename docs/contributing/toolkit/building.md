@@ -59,6 +59,22 @@ Two details worth knowing before editing them:
 > paths and launcher commands valid. With a runtime identifier set, native libraries land flat
 > beside the executable rather than under `runtimes/<rid>/`.
 
+## Cleaning build output
+
+Even at the smaller sizes above, a full tree of `bin` and `obj` folders runs to several gigabytes,
+and a stale `obj/stride` can keep shaders compiled from a previous Stride package (see the
+release notes for the asset-bundle trap). Two scripts at the repository root remove them:
+
+| Script | Removes |
+|---|---|
+| `delete-bin.bat` | Every `bin` and `obj` folder in the repository, or only under the folders given as arguments: `delete-bin.bat examples tests` |
+| `delete-bin-examples.bat` | The same under `examples/` only, snippets included; library, test and tool outputs stay |
+
+Each folder removed is printed. One that a running process holds open, such as Visual Studio with
+the project loaded, is reported as locked and skipped. Nothing git tracks is named `bin` or `obj`,
+so the scripts never touch source. They are deliberately not `git clean -xdf`, which would also
+delete every other ignored file, local settings included.
+
 ## Building local NuGet packages
 
 To test the toolkit the way a consumer uses it, through `PackageReference` rather than

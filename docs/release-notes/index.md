@@ -123,6 +123,7 @@ The Stride Community Toolkit is developed with rapid iteration in mind. It moves
 - Gold-image regression: `build/gold-images.cs` photographs five purpose-built scenes in `tests/Stride.CommunityToolkit.GoldScenes` - 2D shapes, 3D shapes, text, DebugShapes, ImGui - on the WARP software renderer and compares them with `tests/gold` under Stride's per-pixel rule; reproducible frame for frame across machines. The new `gold-images.yml` workflow runs it on pull requests that touch a renderer and uploads the contact sheet.
 - NDepend at zero issues across the solution.
 - The host-only build settings moved out of `examples/Directory.Build.props` into `build/HostRuntime.props` and `build/HostRuntime.targets`, imported by the `Directory.Build.*` files under `examples/`, `tests/` and `tools/` (the gold-scenes project's private copy of the block is gone). The test project's `bin` drops from 495 MB to 89 MB and the Avalonia launcher's from 561 MB to 28 MB per configuration: no more native runtimes for 25 platforms, and no more native symbol files for Skia and HarfBuzz, which were 100 MB of the one platform it runs on. Native libraries now sit flat beside the executable rather than under `runtimes/`.
+- Two scripts at the repository root, `delete-bin.bat` and `delete-bin-examples.bat`, remove every `bin` and `obj` folder in the tree or under `examples/` only, printing what went and reporting a folder a running process still holds; the contributing build page describes them.
 
 ### 💪 Other Changes
 
