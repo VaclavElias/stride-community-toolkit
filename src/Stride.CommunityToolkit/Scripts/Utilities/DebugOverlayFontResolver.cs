@@ -1,4 +1,3 @@
-using Stride.CommunityToolkit.Renderers;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Core.Diagnostics;
 using Stride.Core.Serialization.Contents;

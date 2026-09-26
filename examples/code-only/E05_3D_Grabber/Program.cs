@@ -4,7 +4,6 @@ using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -127,29 +126,29 @@ void AddInstructions()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
 
-    overlay.Position = DisplayPosition.BottomLeft;
-
     overlay.AddSection("Grabber", () =>
     {
         var held = grabber?.Held;
         var lines = new List<TextElement>
         {
-            new("Left mouse  grab and carry; release to drop or throw"),
-            new("Wheel       carry distance     T + mouse  turn the held body"),
-            new("R           reset the scene"),
+            new("Left mouse", "Grab and carry; release to drop or throw"),
+            new("Mouse wheel", "Carry distance"),
+            new("T", "Hold and move the mouse to turn the held body"),
+            new("R", "Reset the scene"),
+            new(""),
         };
 
         if (held is null)
         {
-            lines.Add(new("holding    nothing - click a cube, a ball or the capsule", Color.Gray));
+            lines.Add(new("Holding nothing: click a cube, a ball or the capsule", Color.Gray));
         }
         else
         {
             var mass = held.BodyInertia.InverseMass > 0 ? 1 / held.BodyInertia.InverseMass : 0;
             var locked = Bodies.HasLockedInertia(held.BodyInertia.InverseInertiaTensor);
 
-            lines.Add(new($"holding    {held.Entity.Name}  {mass,5:0.0} kg  at {grabber!.HoldDistance:0.0} m", Color.Yellow));
-            lines.Add(new($"servo      {GrabberForce(held):0} N linear cap{(locked ? ", no angular servo (rotation locked)" : "")}"));
+            lines.Add(new($"Holding {held.Entity.Name}, {mass:0.0} kg, at {grabber!.HoldDistance:0.0} m", Color.Yellow));
+            lines.Add(new($"Servo {GrabberForce(held):0} N linear cap{(locked ? ", no angular servo" : "")}"));
         }
 
         return lines;

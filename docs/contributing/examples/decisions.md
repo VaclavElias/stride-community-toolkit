@@ -185,7 +185,7 @@ Three conventions in the naming rules exist because a specific pair of examples 
   is a port.** `E06_Box2D_Junkyard` against `E10_2D_StressPile_Box2D`. Without the split, a port
   either loses its engine or stops sorting next to the original it exists to be compared with.
 - **"Playground" means scratch space with no metadata block** (D42), so it cannot also mean "a tour
-  of a feature". That is why `Example_Shapes_Playground` became `E11_3D_ShapeBatch` and
+  of a feature". That is why `Example_Shapes_Playground` became `E11_3D_ShapeBatch_Gallery` and
   `Example02_Junkyard_Playground_Box2D` became `E06_Box2D_JunkyardInteractive`.
 
 **A Stride package file must be named after its project.** `E20_3D_CubeCollapse` is the only example

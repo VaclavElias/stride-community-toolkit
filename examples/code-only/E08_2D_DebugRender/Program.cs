@@ -2,6 +2,7 @@ using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Mathematics;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Rendering.Lights;
@@ -53,6 +54,12 @@ void Start(Scene rootScene)
 
     // Activate debug rendering by pressing P for colliders and F11 for mesh
     AddPhysicsDebugGizmo(rootScene);
+
+    DebugOverlay.GetOrCreate(game).AddSection("Debug", static () =>
+    [
+        new("F11", "Mesh wireframes", Color.Yellow),
+        new("P", "Collider outlines", Color.Yellow),
+    ]);
 }
 
 static void AddSpotLight(Scene rootScene)

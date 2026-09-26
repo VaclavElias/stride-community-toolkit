@@ -16,7 +16,7 @@ This configuration ensures that:
 - The players will collide with each other because the difference between their IndexA values is 2
 - The enemy entity won't collide with either player because the difference between their IndexA values is 1
 
-![Stride UI Example](media/stride-game-engine-example16-collision-group.webp)
+![Stride UI Example](media/collision-group.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E05_3D_CollisionGroup).
 

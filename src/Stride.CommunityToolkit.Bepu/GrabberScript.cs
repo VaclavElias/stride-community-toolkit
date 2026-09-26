@@ -111,7 +111,7 @@ public class GrabberScript : SyncScript
         if (Held is null)
         {
             if (Input.IsMouseButtonPressed(Button))
-                TryGrab();
+                GrabUnderMouse();
 
             return;
         }
@@ -205,7 +205,7 @@ public class GrabberScript : SyncScript
         return true;
     }
 
-    private void TryGrab()
+    private void GrabUnderMouse()
     {
         if (_camera is null)
             return;

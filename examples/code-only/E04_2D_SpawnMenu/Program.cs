@@ -78,7 +78,9 @@ void Start(Scene rootScene)
     };
 
     // No order given, so it lands after the camera controller's help, which registers at -100
-    DebugOverlay.GetOrCreate(game).AddSection("Spawn", () => spawnMenu.GetLines());
+    var overlay = DebugOverlay.GetOrCreate(game);
+    overlay.SectionGap = 0;
+    overlay.AddSection("Spawn", () => spawnMenu.GetLines());
 }
 
 void Spawn(ShapeItem shape, Vector3 position)

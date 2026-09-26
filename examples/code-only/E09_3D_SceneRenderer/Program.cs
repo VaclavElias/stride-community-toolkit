@@ -2,7 +2,6 @@ using E09_3D_SceneRenderer;
 using Stride.BepuPhysics;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
-using Stride.CommunityToolkit.Renderers;
 using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
 using Stride.CommunityToolkit.Rendering.Text;
@@ -135,7 +134,6 @@ related:
   - E03_3D_EntityText
   - E09_3D_RootRendererShader
   - E07_3D_MeshLine
-media: stride-game-engine-example09-renderer.webp
 enabled: true
 created: 2024-09-24
 ---

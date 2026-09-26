@@ -1,5 +1,7 @@
 using Stride.CommunityToolkit.Rendering;
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.CommunityToolkit.Rendering.Text;
+using Stride.Core.Diagnostics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
@@ -65,9 +67,16 @@ public class EntityDebugSceneRenderer : SceneRendererBase
         }
     }
 
+    /// <summary>The block the profiler shows this renderer's GPU time under.</summary>
+    public static readonly ProfilingKey ProfilingKey = new("EntityDebug");
+
+    private static readonly Color4 ProfileColor = new(0.6f, 0.6f, 0.9f, 1f);
+
     /// <inheritdoc />
     protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
     {
+        using var _ = drawContext.QueryManager.BeginProfile(ProfileColor, ProfilingKey);
+
         if (!_options.ShowEntityName && !_options.ShowEntityPosition) return;
 
         if (_spriteBatch is null || _font is null) return;
@@ -75,7 +84,7 @@ public class EntityDebugSceneRenderer : SceneRendererBase
         // Resolved per frame rather than cached at initialisation, so swapping the scene or the
         // camera does not leave the overlay drawing against the ones it started with
         var scene = SceneInstance.GetCurrent(context)?.RootScene;
-        var camera = context.Tags.Get(GraphicsCompositor.Current)?.Cameras[0]?.Camera;
+        var camera = CompositorCameras.Find(context);
 
         if (scene is null || camera is null || scene.Entities.Count == 0) return;
 

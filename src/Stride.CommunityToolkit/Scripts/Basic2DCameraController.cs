@@ -1,4 +1,5 @@
 using Stride.CommunityToolkit.Scripts.Utilities;
+using Stride.Core;
 using Stride.Engine;
 using Stride.Input;
 
@@ -18,6 +19,8 @@ namespace Stride.CommunityToolkit.Scripts;
 /// - The 'H' key resets the camera to its default position and orthographic size.
 /// - Default settings: FarClipPlane=1000, NearClipPlane=0.1f, OrthographicSize=10.
 /// </remarks>
+[Display("Basic 2D Camera Controller")]
+[ComponentCategory("Camera")]
 public class Basic2DCameraController : SyncScript
 {
     // Movement Properties
@@ -254,27 +257,33 @@ public class Basic2DCameraController : SyncScript
         _instructions = DebugOverlay.GetOrCreate(Game).AddCollapsibleSection(
             "Camera", "Camera controls", HelpToggleKey, () =>
             {
+                // Keys first, one per line, each in the brackets the title uses, then the live values
                 var lines = new List<TextElement>
                 {
-                    new("F3: Reposition Help", Color.LightGoldenrodYellow),
-                    new("F4: Hide Help", Color.LightGoldenrodYellow),
-                    new("H: Reset Camera"),
-                    new(EnableWasdMovement ? "WASD / Arrow Keys: Move" : "Arrow Keys: Move"),
-                    new("Hold Shift: Increase speed"),
-                    new("Mouse Wheel: Zoom"),
+                    new("F3", "Reposition help", Color.LightGoldenrodYellow),
+                    new("F4", "Hide help", Color.LightGoldenrodYellow),
+                    new("H", "Reset camera"),
                 };
 
+                if (EnableWasdMovement)
+                    lines.Add(new("W A S D", "Move"));
+
+                lines.Add(new("Arrow keys", "Move"));
+                lines.Add(new("Shift", "Hold to move faster"));
+                lines.Add(new("Mouse wheel", "Zoom"));
+
                 if (EnableMouseDragPan)
-                    lines.Add(new($"{MouseDragButton} Mouse Drag: Pan"));
+                    lines.Add(new($"{MouseDragButton} drag", "Pan"));
 
                 // Live state, matching the 3D controller's help: where the camera is and how much of
-                // the world is visible (OrthographicSize is the view height in world units)
+                // the world is visible (OrthographicSize is the view height in world units). Two fixed
+                // decimals, so the numbers stop changing width as the camera moves.
                 var position = Entity.Transform.Position;
-                lines.Add(new($"Position: {position.X:0.##}, {position.Y:0.##}", Color.Yellow));
+                lines.Add(new($"Position: {position.X:0.00}, {position.Y:0.00}", Color.Yellow));
 
                 var camera = _camera ?? Entity.Get<CameraComponent>();
                 if (camera is not null)
-                    lines.Add(new($"Zoom: {camera.OrthographicSize:0.##} world units high", Color.Yellow));
+                    lines.Add(new($"Zoom: {camera.OrthographicSize:0.00} world units high", Color.Yellow));
 
                 return lines;
             }, HelpCollapsed, order: -100);

@@ -3,6 +3,7 @@ using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.Gizmos;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
+using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -40,6 +41,12 @@ void Start(Scene scene)
     game.AddProfiler();
     game.AddGroundGizmo(new(-5, 0, -5), showAxisName: true);
 
+    DebugOverlay.GetOrCreate(game).AddSection("Raycast", static () =>
+    [
+        new("Left click", "On the ground: apply a direction impulse", Color.Gold),
+        new("Left click", "On the sphere: stop it moving", Color.Gold),
+    ]);
+
     // Create a sphere entity and position it above the ground
     sphereEntity = game.Create3DPrimitive(PrimitiveModelType.Sphere);
     sphereEntity.Transform.Position = new Vector3(0, 8, 0);
@@ -64,9 +71,6 @@ void Start(Scene scene)
 void Update(Scene scene, GameTime time)
 {
     if (mainCamera == null) return;
-
-    // Display on-screen instructions for the user
-    DisplayInstructions(game);
 
     // On left mouse button click, process the interaction
     if (game.Input.IsMouseButtonPressed(MouseButton.Left))
@@ -186,12 +190,6 @@ Entity CreateLineEntity(Game game)
     return new Entity { lineModelComponent };
 }
 
-// Displays on-screen instructions to guide the user
-static void DisplayInstructions(Game game)
-{
-    game.DebugTextSystem.Print("Click the ground to apply a direction impulse", new(5, 30));
-    game.DebugTextSystem.Print("Click the sphere to stop moving", new(5, 50));
-}
 /*
 ---example-metadata
 slug: raycast
@@ -227,7 +225,6 @@ tags:
 related:
   - E05_3D_CollisionGroup
   - E02_3D_GiveMeACube_SimulationUpdate
-media: stride-game-engine-example-14-raycast.webp
 enabled: true
 created: 2025-01-26
 ---

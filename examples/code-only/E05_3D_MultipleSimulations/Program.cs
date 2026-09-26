@@ -3,7 +3,6 @@ using Stride.BepuPhysics.Definitions;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -70,17 +69,17 @@ void Start(Scene scene)
 void AddInstructions()
 {
     // One shared on-screen block with the camera help: the overlay draws itself, so nothing here
-    // runs per frame. Bottom-left keeps it off the falling columns.
+    // runs per frame
     var overlay = DebugOverlay.GetOrCreate(game);
-
-    overlay.Position = DisplayPosition.BottomLeft;
 
     overlay.AddSection("Simulations", () =>
     [
-        new($"Left:  simulation 0, gravity {earthGravity.Y} m/s^2 (Earth)", Color.MediumSeaGreen),
-        new($"Right: simulation 1, gravity {moonGravity.Y} m/s^2 (Moon)", Color.LightSkyBlue),
-        new("Amber ball: simulation 1, over the Earth ground - it sinks straight through", Color.Orange),
-        new("Space: drop everything again", Color.Yellow),
+        new("Space", "Drop everything again", Color.Yellow),
+        new(""),
+        new($"Left: simulation 0, gravity {earthGravity.Y} m/s² (Earth)", Color.MediumSeaGreen),
+        new($"Right: simulation 1, gravity {moonGravity.Y} m/s² (Moon)", Color.LightSkyBlue),
+        new("Amber ball: simulation 1 over the Earth ground,", Color.Orange),
+        new("so it sinks straight through", Color.Orange),
     ]);
 }
 

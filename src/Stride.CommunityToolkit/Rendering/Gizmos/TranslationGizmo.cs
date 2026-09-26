@@ -110,7 +110,7 @@ public class TranslationGizmo : AxialGizmoBase
     /// the arrows they label.
     /// </para>
     /// <para>
-    /// Requires a <see cref="Renderers.WorldTextRenderer"/> in the graphics compositor. The
+    /// Requires a <see cref="WorldTextRenderer"/> in the graphics compositor. The
     /// <see cref="Engine.GameExtensions.AddGroundGizmo"/> helper arranges that; a gizmo added straight
     /// to an entity cannot, because it is handed only a graphics device.
     /// </para>

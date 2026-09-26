@@ -2,7 +2,6 @@ using E05_3D_Constraints_Rope;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering.ProceduralModels;
-using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
 using Stride.CommunityToolkit.Skyboxes;
 using Stride.Core.Mathematics;
@@ -200,14 +199,17 @@ IReadOnlyList<TextElement> BuildInstructions()
     // Anchor-to-weight distance is the giveaway. Both ropes are built to the same nominal length, so
     // a number that climbs and wanders is a rope being pulled apart faster than the solver can fix.
     return [
-        new("A rope is a chain of bodies. Keeping a heavy weight on"),
-        new("a light chain stable is the hard part."),
-        new($"Both ropes are identical: {LinkCount} links, one weight {WeightMass / LinkMass:0}x heavier than a link."),
-        new($"Naive  (left):  length {Length(naiveRope)}   lever arm at segment ends, neighbours only", Color.OrangeRed),
-        new($"Stable (right): length {Length(stableRope)}   {(stabilised ? $"zero lever arm, {SkipSpan - 1}x skip constraints" : "STABILISATION OFF - now built like the left one")}", Color.LimeGreen),
-        new($"Z - Stabilise right rope: {(stabilised ? "ON" : "OFF")}", Color.Yellow),
-        new("P - Swing both weights", Color.Yellow),
-        new("Left mouse - pick up a link or a weight and throw it", Color.Yellow),
+        new("Z", $"Stabilise the right rope: {(stabilised ? "on" : "off")}", Color.Yellow),
+        new("P", "Swing both weights", Color.Yellow),
+        new("Left mouse", "Pick up a link or a weight and throw it", Color.Yellow),
+        new(""),
+        new($"Naive (left): length {Length(naiveRope)}", Color.OrangeRed),
+        new("Lever arm at segment ends, neighbours only", Color.OrangeRed),
+        new($"Stable (right): length {Length(stableRope)}", Color.LimeGreen),
+        new(stabilised ? $"Zero lever arm, {SkipSpan - 1}x skip constraints" : "Stabilisation off: built like the left one", Color.LimeGreen),
+        new($"Both ropes: {LinkCount} links, a weight {WeightMass / LinkMass:0}x a link", Color.LightGray),
+        new("A rope is a chain of bodies. Keeping a heavy", Color.LightGray),
+        new("weight on a light chain stable is the hard part.", Color.LightGray),
     ];
 }
 
@@ -216,8 +218,6 @@ static string Length(Rope? rope) => rope is null ? "-" : rope.Length.ToString("0
 void InitializeDebugOverlay()
 {
     var overlay = DebugOverlay.GetOrCreate(game);
-
-    overlay.Position = DisplayPosition.BottomLeft;
 
     // BuildInstructions runs every frame the overlay is drawn, which is what keeps the measured rope
     // lengths live

@@ -9,6 +9,10 @@ Every code-only example, with a screenshot of what it actually renders. Each one
 
 Prefer a list? Each level has its own page, linked from the table of contents.
 
+> [!NOTE]
+> Most examples run from a copy of their project with the toolkit packages from NuGet. `Stride.CommunityToolkit.Box2D`, `Stride.CommunityToolkit.Charts` and `Stride.CommunityToolkit.ImGuiNet` are not on NuGet yet,
+> so the examples built on them run from a clone of the repository: [Box2D Explosion](box2d-explosion.md), [Box2D Joints](box2d-joints.md), [Box2D Car](box2d-car.md), [Box2D Character Mover](box2d-character-mover.md), [Charts 2D](charts-2d.md), [Charts 3D](charts-3d.md), [Basic 2D Scene (Stress Pile, Box2D)](stress-pile-2d-box2d.md), [Junkyard (Box2D)](junkyard-box2d.md), [Junkyard Playground (Box2D)](junkyard-playground-box2d.md), [Box2D.NET Physics](box2d-physics.md), [ImGui.NET Text Rendering](imgui-net.md).
+
 ## C# Getting Started
 
 <div class="row g-4 mb-4">
@@ -19,6 +23,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="capsule-with-rigid-body.md">Basic3D Scene (Capsule)</a></h3>
                 <p><span class="badge text-bg-secondary">Shapes</span></p>
                 <p class="card-text">Create a minimal 3D scene using toolkit helpers, add a skybox, and place a single capsule primitive.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/basic-scene-engine-only.webp" class="card-img-top" alt="Screenshot of the Basic3D Scene (Engine Only) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="basic-scene-engine-only.md">Basic3D Scene (Engine Only)</a></h3>
+                <p><span class="badge text-bg-secondary">Shapes</span></p>
+                <p class="card-text">A ground, a cube and a camera written against Stride alone, with no toolkit package: the graphics compositor, the camera, the lights, the procedural...</p>
             </div>
         </div>
     </div>
@@ -89,7 +103,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-01-material.webp" class="card-img-top" alt="Screenshot of the Material example" width="1280" height="720" loading="lazy">
+            <img src="media/material.webp" class="card-img-top" alt="Screenshot of the Material example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="material.md">Material</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
@@ -109,7 +123,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-01-mesh-line.webp" class="card-img-top" alt="Screenshot of the Mesh Line example" width="1280" height="720" loading="lazy">
+            <img src="media/mesh-line.webp" class="card-img-top" alt="Screenshot of the Mesh Line example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="mesh-line.md">Mesh Line</a></h3>
                 <p><span class="badge text-bg-secondary">Geometry</span></p>
@@ -139,7 +153,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example02-give-me-cube.webp" class="card-img-top" alt="Screenshot of the Give Me a Cube example" width="1280" height="720" loading="lazy">
+            <img src="media/give-me-cube-body.webp" class="card-img-top" alt="Screenshot of the Give Me a Cube example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="give-me-cube-body.md">Give Me a Cube</a></h3>
                 <p><span class="badge text-bg-secondary">Scripts</span></p>
@@ -254,7 +268,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
 <div class="row g-4 mb-4">
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-procedural-geometry.webp" class="card-img-top" alt="Screenshot of the Procedural Geometry example" width="1280" height="720" loading="lazy">
+            <img src="media/procedural-geometry.webp" class="card-img-top" alt="Screenshot of the Procedural Geometry example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="procedural-geometry.md">Procedural Geometry</a></h3>
                 <p><span class="badge text-bg-secondary">Geometry</span></p>
@@ -274,7 +288,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-05-cylinder-mesh.webp" class="card-img-top" alt="Screenshot of the Cylinder Mesh example" width="1280" height="720" loading="lazy">
+            <img src="media/cylinder-mesh.webp" class="card-img-top" alt="Screenshot of the Cylinder Mesh example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="cylinder-mesh.md">Cylinder Mesh</a></h3>
                 <p><span class="badge text-bg-secondary">Geometry</span></p>
@@ -284,7 +298,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-05-partial-torus-mesh.webp" class="card-img-top" alt="Screenshot of the Partial Torus Mesh example" width="1280" height="720" loading="lazy">
+            <img src="media/partial-torus-mesh.webp" class="card-img-top" alt="Screenshot of the Partial Torus Mesh example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="partial-torus-mesh.md">Partial Torus Mesh</a></h3>
                 <p><span class="badge text-bg-secondary">Geometry</span></p>
@@ -314,7 +328,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-14-raycast.webp" class="card-img-top" alt="Screenshot of the Raycast example" width="1280" height="720" loading="lazy">
+            <img src="media/raycast.webp" class="card-img-top" alt="Screenshot of the Raycast example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="raycast.md">Raycast</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
@@ -344,7 +358,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example16-collision-group.webp" class="card-img-top" alt="Screenshot of the Collision Group example" width="1280" height="720" loading="lazy">
+            <img src="media/collision-group.webp" class="card-img-top" alt="Screenshot of the Collision Group example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="collision-group.md">Collision Group</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
@@ -354,7 +368,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example16-collision-layer.webp" class="card-img-top" alt="Screenshot of the Collision Layer example" width="1280" height="720" loading="lazy">
+            <img src="media/collision-layer.webp" class="card-img-top" alt="Screenshot of the Collision Layer example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="collision-layer.md">Collision Layer</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
@@ -424,7 +438,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-15-simple-constraint.webp" class="card-img-top" alt="Screenshot of the Simple Constraint example" width="1280" height="720" loading="lazy">
+            <img src="media/simple-constraint.webp" class="card-img-top" alt="Screenshot of the Simple Constraint example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="simple-constraint.md">Simple Constraint</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
@@ -464,7 +478,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-12-particles.webp" class="card-img-top" alt="Screenshot of the Particles example" width="1280" height="720" loading="lazy">
+            <img src="media/particles.webp" class="card-img-top" alt="Screenshot of the Particles example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="particles.md">Particles</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
@@ -474,7 +488,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example08-debug-shapes.webp" class="card-img-top" alt="Screenshot of the Debug Shapes example" width="1280" height="720" loading="lazy">
+            <img src="media/debug-shapes.webp" class="card-img-top" alt="Screenshot of the Debug Shapes example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="debug-shapes.md">Debug Shapes</a></h3>
                 <p><span class="badge text-bg-secondary">Debug</span></p>
@@ -484,7 +498,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example08-debugshapes-usage.webp" class="card-img-top" alt="Screenshot of the Debug Shapes Usage example" width="1280" height="720" loading="lazy">
+            <img src="media/debug-shapes-usage.webp" class="card-img-top" alt="Screenshot of the Debug Shapes Usage example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="debug-shapes-usage.md">Debug Shapes Usage</a></h3>
                 <p><span class="badge text-bg-secondary">Debug</span></p>
@@ -504,7 +518,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example03-stride-ui-basic-window.webp" class="card-img-top" alt="Screenshot of the Stride UI - Capsule and Window example" width="1280" height="720" loading="lazy">
+            <img src="media/stride-ui-capsule-with-rigid-body.webp" class="card-img-top" alt="Screenshot of the Stride UI - Capsule and Window example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-ui-capsule-with-rigid-body.md">Stride UI - Capsule and Window</a></h3>
                 <p><span class="badge text-bg-secondary">UI</span></p>
@@ -524,7 +538,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-11-imgui-ui.webp" class="card-img-top" alt="Screenshot of the ImGui UI example" width="1280" height="720" loading="lazy">
+            <img src="media/imgui-ui.webp" class="card-img-top" alt="Screenshot of the ImGui UI example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="imgui-ui.md">ImGui UI</a></h3>
                 <p><span class="badge text-bg-secondary">UI</span></p>
@@ -579,7 +593,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
 <div class="row g-4 mb-4">
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example09-renderer.webp" class="card-img-top" alt="Screenshot of the Custom Scene Renderers example" width="1280" height="720" loading="lazy">
+            <img src="media/renderer.webp" class="card-img-top" alt="Screenshot of the Custom Scene Renderers example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="renderer.md">Custom Scene Renderers</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
@@ -589,7 +603,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-13-root-renderer-shader.webp" class="card-img-top" alt="Screenshot of the Root Renderer Shader example" width="1280" height="720" loading="lazy">
+            <img src="media/root-renderer-shader.webp" class="card-img-top" alt="Screenshot of the Root Renderer Shader example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="root-renderer-shader.md">Root Renderer Shader</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
@@ -599,7 +613,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-13-mesh-outline.webp" class="card-img-top" alt="Screenshot of the Mesh Outline Render Feature example" width="1280" height="720" loading="lazy">
+            <img src="media/mesh-outline.webp" class="card-img-top" alt="Screenshot of the Mesh Outline Render Feature example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="mesh-outline.md">Mesh Outline Render Feature</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
@@ -609,7 +623,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-06-image-processing.webp" class="card-img-top" alt="Screenshot of the Image Processing (TextureCanvas) example" width="1280" height="720" loading="lazy">
+            <img src="media/image-processing.webp" class="card-img-top" alt="Screenshot of the Image Processing (TextureCanvas) example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="image-processing.md">Image Processing (TextureCanvas)</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
@@ -669,7 +683,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-15-constraints.webp" class="card-img-top" alt="Screenshot of the Various Constraints example" width="1280" height="720" loading="lazy">
+            <img src="media/constraints.webp" class="card-img-top" alt="Screenshot of the Various Constraints example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="constraints.md">Various Constraints</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
@@ -689,7 +703,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-18-box2d.webp" class="card-img-top" alt="Screenshot of the Box2D.NET Physics example" width="1280" height="720" loading="lazy">
+            <img src="media/box2d-physics.webp" class="card-img-top" alt="Screenshot of the Box2D.NET Physics example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="box2d-physics.md">Box2D.NET Physics</a></h3>
                 <p><span class="badge text-bg-secondary">Physics</span></p>
@@ -719,7 +733,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/stride-game-engine-example-10-draggable-window.webp" class="card-img-top" alt="Screenshot of the Stride UI - Draggable Window example" width="1280" height="720" loading="lazy">
+            <img src="media/stride-ui-draggable-window.webp" class="card-img-top" alt="Screenshot of the Stride UI - Draggable Window example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="stride-ui-draggable-window.md">Stride UI - Draggable Window</a></h3>
                 <p><span class="badge text-bg-secondary">UI</span></p>

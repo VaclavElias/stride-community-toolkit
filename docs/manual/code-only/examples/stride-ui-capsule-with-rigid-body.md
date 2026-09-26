@@ -14,7 +14,7 @@ This example is organized into multiple methods for better readability and maint
 
 This modular approach makes the code easier to understand and maintain. Each method has a clear responsibility.
 
-![Stride UI Example](media/stride-game-engine-example03-stride-ui-basic-window.webp)
+![Stride UI Example](media/stride-ui-capsule-with-rigid-body.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E04_StrideUI_BasicWindow).
 

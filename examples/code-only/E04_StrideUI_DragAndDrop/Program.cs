@@ -118,7 +118,6 @@ related:
   - E04_StrideUI_BasicWindow
   - E04_StrideUI_DragAndDrop_Bullet
   - E04_CubeClicker
-media: stride-game-engine-example-10-draggable-window.webp
 enabled: true
 created: 2024-10-05
 ---

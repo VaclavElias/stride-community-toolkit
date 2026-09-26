@@ -3,7 +3,6 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Profiling;
 using Stride.Rendering.Images;
-using System.Reflection;
 
 namespace Stride.CommunityToolkit.Engine;
 
@@ -68,18 +67,9 @@ public static class ScreenshotCapture
                 ? parsed
                 : DefaultFrame;
 
-        // Without this, frame N is a different instant on every machine and every run.
-        game.IsFixedTimeStep = true;
-        game.IsDrawDesynchronized = false;
-
-        // A fixed timestep alone still lets a slow tick - the first frames, while shaders compile, or
-        // any run on a software renderer - run two or more updates before one draw to catch up, so
-        // frame N would sit at a different simulated time from one run to the next. One update per
-        // draw pins frame N to exactly N steps. The property is protected internal on GameBase,
-        // which a plain Game cannot reach; reflection is the honest cost of not subclassing.
-        typeof(GameBase)
-            .GetProperty("ForceOneUpdatePerDraw", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?.SetValue(game, true);
+        // Without this, frame N is a different instant on every machine and every run: fixed
+        // timestep, draws in step, one update per draw - see SetDeterministic for why all three
+        game.SetDeterministic();
 
         game.GameSystems.Add(new ScreenshotSystem(game, outputPath, frame));
 

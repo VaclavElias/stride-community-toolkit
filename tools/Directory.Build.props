@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    MSBuild imports only the NEAREST Directory.Build.props, so the repository-root one must be
+    imported explicitly or its settings (TargetFramework, StrideVersion, ...) would be lost here.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    Host-only runtime and a lean output, shared with examples/ and tests/. The Avalonia launcher is the
+    project that needs it here: without it Skia and HarfBuzz for 25 platforms land in its bin.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)../build/HostRuntime.props" />
+</Project>

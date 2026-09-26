@@ -97,7 +97,6 @@ related:
   - E07_3D_ProceduralGeometry
   - E07_3D_SimpleGeometry
   - E08_3D_DebugShapes
-media: stride-game-engine-example-01-mesh-line.webp
 enabled: true
 created: 2025-02-02
 ---

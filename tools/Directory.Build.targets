@@ -1,0 +1,11 @@
+<Project>
+  <!-- MSBuild imports only the NEAREST Directory.Build.targets; import the repository-root one explicitly. -->
+  <PropertyGroup>
+    <_ParentDirectoryBuildTargets>$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))</_ParentDirectoryBuildTargets>
+  </PropertyGroup>
+
+  <Import Project="$(_ParentDirectoryBuildTargets)" Condition="'$(_ParentDirectoryBuildTargets)' != ''" />
+
+  <!-- Drops package XML docs and native symbol files from the output; shared with examples/ and tests/. -->
+  <Import Project="$(MSBuildThisFileDirectory)../build/HostRuntime.targets" />
+</Project>

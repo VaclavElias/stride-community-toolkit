@@ -54,9 +54,8 @@ workflow are all in **[Contribute Examples](../../docs/contributing/examples/ind
 documented once, there, rather than restated here - the levels and categories are a closed set
 validated in code, and a second copy of them only drifts.
 
-Before starting, check the [example backlog](../../notes/example-backlog.md): the idea may already be
-listed, already built, or previously declined for a reason worth knowing. It also records which
-categories have no examples yet.
+Before starting, look through the existing examples and the open issues: the idea may already be
+built, in progress, or declined for a reason worth knowing.
 
 In short:
 

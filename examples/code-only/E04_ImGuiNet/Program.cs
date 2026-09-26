@@ -26,7 +26,7 @@ const int ObstacleStackCount = 3;
 const int BoxesPerStack = 3;
 const float BoxSize = 1f;
 
-// Overlay layout, in pixels from the window edge
+// Overlay layout, in pixels from the window edge on a 100% display; scaled at draw time
 const int TextMargin = 10;
 const int TextLineHeight = 20;
 
@@ -158,9 +158,12 @@ void DrawTopLeftPanel(ImGuiNetSystem imGui, GameTime gameTime)
         "Press ESC to exit"
     ];
 
+    // The font atlas is already scaled by the system; the layout has to follow it too
+    var scale = DisplayScale.GetOrCreate(game).Value;
+
     for (var i = 0; i < lines.Length; i++)
     {
-        imGui.DrawText(TextMargin, TextLineHeight * (i + 1), lines[i]);
+        imGui.DrawText((int)(TextMargin * scale), (int)(TextLineHeight * scale * (i + 1)), lines[i]);
     }
 }
 
@@ -202,7 +205,7 @@ void DrawBottomLeftPanel(ImGuiNetSystem imGui, Scene rootScene)
 
     for (var i = 0; i < lines.Length; i++)
     {
-        imGui.DrawText(TextMargin, windowHeight - TextLineHeight * (lines.Length - i), lines[i]);
+        imGui.DrawText((int)(TextMargin * displayScale), windowHeight - (int)(TextLineHeight * displayScale * (lines.Length - i)), lines[i]);
     }
 }
 

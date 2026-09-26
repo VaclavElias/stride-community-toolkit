@@ -50,6 +50,7 @@ public static class MetadataVocabulary
     [
         "Shapes",
         "Geometry",
+        "Mathematics",
         "Physics",
         "Rendering",
         "Audio",

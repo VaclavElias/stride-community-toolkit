@@ -19,6 +19,7 @@ The `Program.cs` file shows how to:
 - Why a high-DPI display renders a blurred window without a manifest
 - Declaring per-monitor DPI awareness in app.manifest
 - Wiring the manifest in with <ApplicationManifest>
+- The code alternative, WindowsDpiManager.EnablePerMonitorV2(), and why a project uses one route, not both
 - Reading the display's scale factor with DisplayScale, and why the overlay follows it by default
 - Referencing Stride.CommunityToolkit.Windows for Windows-only concerns
 - Using helpers: SetupBase3DScene, AddSkybox, Create3DPrimitive
@@ -27,4 +28,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E08_DpiAware).
 
-[!code-csharp[](../../../../examples/code-only/E08_DpiAware/Program.cs?start=1&end=46)]
+[!code-csharp[](../../../../examples/code-only/E08_DpiAware/Program.cs?start=1&end=54)]

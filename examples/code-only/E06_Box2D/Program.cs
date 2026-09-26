@@ -108,7 +108,6 @@ tags:
 related:
   - E06_Jitter2
   - E01_2D_BasicScene
-media: stride-game-engine-example-18-box2d.webp
 enabled: true
 created: 2025-08-11
 ---

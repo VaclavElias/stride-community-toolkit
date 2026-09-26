@@ -46,4 +46,8 @@ A Stride subsystem used directly, or several concepts combined. These assume you
 > every listing name them, and the linked project file on GitHub is authoritative. A few examples
 > also need a third-party package - Box2D.NET, Jitter2, Myra or ImGui - which their page calls out.
 
+
+> [!NOTE]
+> Most examples run from a copy of their project with the toolkit packages from NuGet. `Stride.CommunityToolkit.Box2D` and `Stride.CommunityToolkit.Charts` are not on NuGet yet,
+> so the examples built on them run from a clone of the repository: [Box2D Joints](box2d-joints.md), [Box2D Car](box2d-car.md), [Box2D Character Mover](box2d-character-mover.md), [Charts 2D](charts-2d.md), [Charts 3D](charts-3d.md).
 [!INCLUDE [basic-examples-outro](../../../includes/manual/examples/basic-examples-outro.md)]

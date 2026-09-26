@@ -192,7 +192,6 @@ related:
   - E07_3D_CylinderMesh
   - E07_3D_PartialTorus_FSharp
   - E07_3D_ProceduralGeometry
-media: stride-game-engine-example-05-partial-torus-mesh.webp
 enabled: true
 created: 2025-03-18
 ---

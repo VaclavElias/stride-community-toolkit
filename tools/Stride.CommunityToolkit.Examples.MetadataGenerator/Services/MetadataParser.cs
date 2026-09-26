@@ -61,6 +61,7 @@ public class MetadataParser(ILogger<MetadataParser> logger)
             metadata.ProjectPath = ToRelativePosixPath(exampleFilePath, examplesRootPath);
             metadata.Language ??= YamlMetadataExtractor.GetLanguage(exampleFilePath);
             metadata.BlockLocation = blockLocation;
+            metadata.RepositoryOnlyPackages = [.. ExampleScanner.FindRepositoryOnlyPackages(exampleFilePath)];
 
             NormaliseTrailingNewlines(metadata.Title);
             NormaliseTrailingNewlines(metadata.Description);

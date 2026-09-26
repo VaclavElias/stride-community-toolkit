@@ -274,7 +274,6 @@ related:
   - E07_3D_SimpleGeometry
   - E07_3D_CylinderMesh
   - E03_3D_MeshText
-media: stride-game-engine-procedural-geometry.webp
 enabled: true
 created: 2023-10-15
 ---

@@ -83,9 +83,18 @@ public class DocPageBuilder(DirectoryInfo? mediaDirectory)
             body.AppendLine();
         }
 
-        // No per-example package note. The old shared one named a fixed three packages and was wrong for
-        // 19 of 62 projects, and generating an accurate one per page would restate what the `using`
-        // directives at the top of the listing below already say. The landing pages explain it once.
+        // No per-example list of packages. The old shared one named a fixed three packages and was wrong
+        // for 19 of 62 projects, and an accurate one per page would restate what the `using` directives
+        // at the top of the listing already say. The landing pages explain it once. The exception is a
+        // package that is not on NuGet: that changes whether a copy of the project builds at all, so the
+        // page says so.
+        if (example.RepositoryOnlyPackages is { Count: > 0 } repositoryOnly)
+        {
+            body.AppendLine("> [!NOTE]");
+            body.AppendLine($"> This example references {PackageList(repositoryOnly)}, which {(repositoryOnly.Count == 1 ? "is" : "are")} not on NuGet yet. Run it from a clone of the");
+            body.AppendLine("> repository, where the package is a project reference; a copy of the project on its own will not build.");
+            body.AppendLine();
+        }
 
         // Only link a screenshot that exists. Most examples have none yet (see plan §5), and a broken
         // image is worse than no image.
@@ -140,6 +149,8 @@ public class DocPageBuilder(DirectoryInfo? mediaDirectory)
         page.AppendLine("Every code-only example, with a screenshot of what it actually renders. Each one is a complete, self-contained program you can copy and run.");
         page.AppendLine();
         page.AppendLine("Prefer a list? Each level has its own page, linked from the table of contents.");
+
+        AppendRepositoryOnlyNote(page, groups.SelectMany(group => group.Examples));
 
         foreach (var group in groups)
         {
@@ -251,6 +262,42 @@ public class DocPageBuilder(DirectoryInfo? mediaDirectory)
     //        $"            <p class=\"px-3 mb-3\"><a class=\"stretched-link\" href=\"{example.Slug}.md\">Open example</a></p>");
 
     /// <summary>
+    /// One paragraph naming the packages that are not on NuGet and the examples built on them, so a
+    /// reader knows before opening a page which examples need the repository. Nothing when none of
+    /// the listed examples needs it.
+    /// </summary>
+    private static void AppendRepositoryOnlyNote(StringBuilder page, IEnumerable<ExampleMetadata> examples)
+    {
+        var affected = examples.Where(example => example.RepositoryOnlyPackages is { Count: > 0 }).ToList();
+
+        if (affected.Count == 0)
+        {
+            return;
+        }
+
+        var packages = affected.SelectMany(example => example.RepositoryOnlyPackages!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        var names = affected.Select(example => $"[{Escape(TitleOf(example))}]({example.Slug}.md)").ToList();
+
+        page.AppendLine();
+        page.AppendLine("> [!NOTE]");
+        page.AppendLine($"> Most examples run from a copy of their project with the toolkit packages from NuGet. {PackageList(packages)} {(packages.Count == 1 ? "is" : "are")} not on NuGet yet,");
+        page.AppendLine($"> so the examples built on {(packages.Count == 1 ? "it" : "them")} run from a clone of the repository: {string.Join(", ", names)}.");
+    }
+
+    /// <summary>Package names as inline code, joined the way a sentence joins them.</summary>
+    private static string PackageList(IReadOnlyList<string> packages)
+    {
+        var quoted = packages.Select(package => $"`{package}`").ToList();
+
+        return quoted.Count switch
+        {
+            1 => quoted[0],
+            2 => $"{quoted[0]} and {quoted[1]}",
+            _ => $"{string.Join(", ", quoted.Take(quoted.Count - 1))} and {quoted[^1]}",
+        };
+    }
+
+    /// <summary>
     /// Renders a landing page listing every example in one language and level.
     /// </summary>
     /// <param name="language">The group's language.</param>
@@ -291,6 +338,8 @@ public class DocPageBuilder(DirectoryInfo? mediaDirectory)
         page.AppendLine("> every listing name them, and the linked project file on GitHub is authoritative. A few examples");
         page.AppendLine("> also need a third-party package - Box2D.NET, Jitter2, Myra or ImGui - which their page calls out.");
         page.AppendLine();
+
+        AppendRepositoryOnlyNote(page, examples);
         page.AppendLine($"[!INCLUDE [basic-examples-outro]({DocPaths.IncludesFolder}/basic-examples-outro.md)]");
 
         return page.ToString();

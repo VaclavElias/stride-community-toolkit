@@ -26,24 +26,28 @@ dotnet build Stride.CommunityToolkit.Core.slnf
 
 ## Why the examples build is fast
 
-Two files under `examples/` keep the example build small. Without them, **each** example project
-copies roughly 476 MB into `bin`, most of which is unreachable from a desktop example: about 239 MB
-of Android native runtimes, a further ~38 MB of iOS/tvOS/macOS, and 54 MB of XML documentation from
-referenced packages.
+Two shared files under `build/` keep the example, test and tool builds small. Without them, **each**
+Stride project copies roughly 476 MB into `bin`, most of which is unreachable from a desktop build:
+about 239 MB of Android native runtimes, a further ~38 MB of iOS/tvOS/macOS, and 54 MB of XML
+documentation from referenced packages. The Avalonia launcher was worse still, at 561 MB per
+configuration: Skia and HarfBuzz for 25 platforms, and 100 MB of native symbol files even for the
+one platform it runs on.
 
 | File | What it does |
 |---|---|
-| `examples/Directory.Build.props` | Restricts the build to the host runtime identifier, so only the current platform's native runtimes are copied |
-| `examples/Directory.Build.targets` | Removes package XML documentation from the output |
+| `build/HostRuntime.props` | Restricts the build to the host runtime identifier, so only the current platform's native runtimes are copied |
+| `build/HostRuntime.targets` | Removes package XML documentation and native symbol files from the output |
 
-Together these take an example from ~476 MB to ~90 MB, and a clean build of the whole solution to
-well under a minute.
+The `Directory.Build.props` and `.targets` under `examples/`, `tests/` and `tools/` import them; the
+library projects under `src/` do not, because a package has to stay runtime-neutral. Together these
+take an example from ~476 MB to ~80 MB, the test project from 495 MB to 89 MB and the launcher from
+561 MB to 28 MB, and a clean build of the whole solution to well under a minute.
 
 Two details worth knowing before editing them:
 
-1. **Both files explicitly import the repository-root equivalent.** MSBuild imports only the
-   *nearest* `Directory.Build.props`/`.targets`, so without that import the settings defined at the
-   repository root, such as `TargetFramework` and `StrideVersion`, would be silently lost.
+1. **Every nested `Directory.Build.props` and `.targets` explicitly imports the repository-root
+   equivalent.** MSBuild imports only the *nearest* one, so without that import the settings defined
+   at the repository root, such as `TargetFramework` and `StrideVersion`, would be silently lost.
 2. **The runtime identifier is derived from the host OS**, not hard-coded to Windows, so Linux and
    macOS builds keep working. `NETCoreSdkPortableRuntimeIdentifier` would be the obvious source for
    this but the SDK sets it *after* `Directory.Build.props` is evaluated, so explicit
@@ -52,7 +56,24 @@ Two details worth knowing before editing them:
 > [!NOTE]
 > `AppendRuntimeIdentifierToOutputPath` is disabled deliberately, so output stays at
 > `bin/<Configuration>/net10.0/` rather than gaining a `win-x64/` segment. This keeps documented
-> paths and launcher commands valid.
+> paths and launcher commands valid. With a runtime identifier set, native libraries land flat
+> beside the executable rather than under `runtimes/<rid>/`.
+
+## Cleaning build output
+
+Even at the smaller sizes above, a full tree of `bin` and `obj` folders runs to several gigabytes,
+and a stale `obj/stride` can keep shaders compiled from a previous Stride package (see the
+release notes for the asset-bundle trap). Two scripts at the repository root remove them:
+
+| Script | Removes |
+|---|---|
+| `delete-bin.bat` | Every `bin` and `obj` folder in the repository, or only under the folders given as arguments: `delete-bin.bat examples tests` |
+| `delete-bin-examples.bat` | The same under `examples/` only, snippets included; library, test and tool outputs stay |
+
+Each folder removed is printed. One that a running process holds open, such as Visual Studio with
+the project loaded, is reported as locked and skipped. Nothing git tracks is named `bin` or `obj`,
+so the scripts never touch source. They are deliberately not `git clean -xdf`, which would also
+delete every other ignored file, local settings included.
 
 ## Building local NuGet packages
 

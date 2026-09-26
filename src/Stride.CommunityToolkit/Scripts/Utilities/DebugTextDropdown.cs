@@ -221,12 +221,12 @@ public class DebugTextDropdown
         {
             var selection = Selected is null ? string.Empty : $": {Selected.Text}";
 
-            return [new($"{key} - {Title}{selection} {CollapsedMarker}", TitleColor)];
+            return [new(key, $"{Title}{selection}", TitleColor) { Marker = CollapsedMarker }];
         }
 
         var lines = new List<TextElement>(Items.Count + 1)
         {
-            new($"{key} - {Title} {ExpandedMarker}", TitleColor)
+            new(key, Title, TitleColor) { Marker = ExpandedMarker }
         };
 
         for (var i = 0; i < Items.Count; i++)
@@ -234,7 +234,8 @@ public class DebugTextDropdown
             var item = Items[i];
             var colour = i == SelectedIndex ? SelectedColor ?? item.Color : item.Color;
 
-            lines.Add(new($"  {KeyNames.Describe(item.Key)} - {item.Text}", colour));
+            // Under the title, one marker in, so the item keys sit under the title's key
+            lines.Add(new(KeyNames.Describe(item.Key), item.Text, colour) { Indented = true });
         }
 
         return lines;

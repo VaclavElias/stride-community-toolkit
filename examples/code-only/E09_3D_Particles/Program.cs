@@ -141,7 +141,6 @@ tags:
 related:
   - E02_3D_Material
   - E09_3D_SceneRenderer
-media: stride-game-engine-example-12-particles.webp
 enabled: true
 created: 2024-11-08
 ---

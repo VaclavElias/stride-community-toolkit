@@ -1,5 +1,6 @@
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.CommunityToolkit.Scripts.Utilities;
+using Stride.Core;
 using Stride.Engine;
 using Stride.Input;
 
@@ -14,6 +15,8 @@ namespace Stride.CommunityToolkit.Scripts;
 ///
 /// This functionality is inspired by Stride.Assets.Presentation, Assets->Scripts->Camera
 /// </remarks>
+[Display("Basic 3D Camera Controller")]
+[ComponentCategory("Camera")]
 public class Basic3DCameraController : SyncScript
 {
     private const float MaximumPitch = MathUtil.PiOverTwo * 0.99f;
@@ -133,17 +136,19 @@ public class Basic3DCameraController : SyncScript
 
                 return
                 [
-                    new("F3: Reposition Help", Color.LightGoldenrodYellow),
-                    new("F4: Hide Help", Color.LightGoldenrodYellow),
-                    new("H: Reset Camera", Color.LightGreen),
-                    new("WASD: Move", Color.LightGreen),
-                    new("Arrow Keys: Move", Color.LightGreen),
-                    new("Q/E: Ascend/Descend", Color.LightGreen),
-                    new("Hold Shift: Increase speed", Color.LightGreen),
-                    new("Numpad 2/4/6/8: Rotation", Color.LightGreen),
-                    new("Right Mouse Button: Rotate", Color.LightGreen),
-                    new($"Position: {position.X:0.##}, {position.Y:0.##}, {position.Z:0.##}", Color.Yellow),
-                    new($"Rotation (YPR): {MathUtil.RadiansToDegrees(rotation.X):0.##}, {MathUtil.RadiansToDegrees(rotation.Y):0.##}, {MathUtil.RadiansToDegrees(rotation.Z):0.##}", Color.Yellow),
+                    // Keys first, one per line, each in the brackets the title uses, then the live
+                    // values with two fixed decimals so they stop changing width as the camera flies
+                    new("F3", "Reposition help", Color.LightGoldenrodYellow),
+                    new("F4", "Hide help", Color.LightGoldenrodYellow),
+                    new("H", "Reset camera", Color.LightGreen),
+                    new("W A S D", "Move", Color.LightGreen),
+                    new("Arrow keys", "Move", Color.LightGreen),
+                    new(["Q", "E"], "Ascend / descend", Color.LightGreen),
+                    new("Numpad 2 4 6 8", "Rotate", Color.LightGreen),
+                    new("Shift", "Hold to move faster", Color.LightGreen),
+                    new("Right drag", "Rotate", Color.LightGreen),
+                    new($"Position: {position.X:0.00}, {position.Y:0.00}, {position.Z:0.00}", Color.Yellow),
+                    new($"Rotation (YPR): {MathUtil.RadiansToDegrees(rotation.X):0.00}, {MathUtil.RadiansToDegrees(rotation.Y):0.00}, {MathUtil.RadiansToDegrees(rotation.Z):0.00}", Color.Yellow),
                 ];
             }, HelpCollapsed, order: -100);
         }

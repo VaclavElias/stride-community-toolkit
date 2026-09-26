@@ -20,6 +20,10 @@ The `Program.cs` file shows how to:
 - Pulling on constrained bodies with Grabber2DScript
 - Using helpers: SetupBase2D, Add2DCameraController, AddShapeBatch, ShapeComponent
 
+> [!NOTE]
+> This example references `Stride.CommunityToolkit.Box2D`, which is not on NuGet yet. Run it from a clone of the
+> repository, where the package is a project reference; a copy of the project on its own will not build.
+
 ![Box2D Joints](media/box2d-joints.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E06_Box2D_Joints).
