@@ -20,13 +20,13 @@ namespace E02_3D_MaterialGallery;
 public sealed record HairStyle(int Strips, int Segments, float TopLength, float SideLength, float Width, float Droop, float Lift, float Sweep)
 {
     /// <summary>Short at the sides, long on top and swept up and back, the forehead clear.</summary>
-    public static HairStyle Quiff { get; } = new(260, 6, 0.75f, 0.28f, 0.16f, 0.35f, 0.9f, 0.8f);
+    public static HairStyle Quiff { get; } = new(520, 6, 0.75f, 0.28f, Width: 0.04f, 0.35f, 0.9f, 0.8f);
 
     /// <summary>Chin length all round, lying flat.</summary>
-    public static HairStyle Bob { get; } = new(200, 8, 1.1f, 1f, 0.28f, 1f, 0.15f, 0.5f);
+    public static HairStyle Bob { get; } = new(400, 8, 1.1f, 1f, Width: 0.07f, 1f, 0.15f, 0.5f);
 
     /// <summary>Hanging well past the shoulders; the head it sits on should be raised.</summary>
-    public static HairStyle Long { get; } = new(200, 12, 2.4f, 2.2f, 0.3f, 1.4f, 0.1f, 0.5f);
+    public static HairStyle Long { get; } = new(400, 12, 2.4f, 2.2f, Width: 0.08f, 1.4f, 0.1f, 0.5f);
 }
 
 /// <summary>
