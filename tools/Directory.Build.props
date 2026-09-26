@@ -5,6 +5,9 @@
   -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <!-- Host-only runtime and a lean output; shared with tests/ and tools/, explained in the file. -->
+  <!--
+    Host-only runtime and a lean output, shared with examples/ and tests/. The Avalonia launcher is the
+    project that needs it here: without it Skia and HarfBuzz for 25 platforms land in its bin.
+  -->
   <Import Project="$(MSBuildThisFileDirectory)../build/HostRuntime.props" />
 </Project>

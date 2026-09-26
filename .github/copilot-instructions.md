@@ -75,14 +75,14 @@ IDE load noticeably. See [Building the Toolkit](../docs/contributing/toolkit/bui
 |---|---|---|
 | `Directory.Build.props` (root) | Every project in the repository | `TargetFramework` (net10.0), `ImplicitUsings`, `Nullable`, `StrideVersion` |
 | `src/CommonSettings.props` | Library projects, imported explicitly | Package metadata: version, licence, authors, icon, readme, SourceLink |
-| `examples/Directory.Build.props` | Example projects only | Host-only `RuntimeIdentifier`, `SelfContained`, output-path settings that keep the example build small |
-| `examples/Directory.Build.targets` | Example projects only | Strips package XML documentation from build output |
+| `build/HostRuntime.props` | Imported by the `Directory.Build.props` under `examples/`, `tests/` and `tools/`; never by `src/` | Host-only `RuntimeIdentifier`, `SelfContained`, output-path settings that keep those builds small |
+| `build/HostRuntime.targets` | Imported by the `Directory.Build.targets` under the same three folders | Strips package XML documentation and native symbol files from build output |
 
 Two rules when editing these:
 
 - **MSBuild imports only the *nearest* `Directory.Build.props` / `.targets`.** A nested file must
   explicitly `Import` the one above it, or the parent's settings are silently lost. The files under
-  `examples/` do this; preserve it.
+  `examples/`, `tests/` and `tools/` do this; preserve it.
 - **`StrideVersion` is the single place the Stride version is set.** Reference it as
   `Version="$(StrideVersion)"` in a `PackageReference` rather than hard-coding a version.
 

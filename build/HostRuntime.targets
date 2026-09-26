@@ -1,0 +1,23 @@
+<Project>
+  <!--
+    Companion of HostRuntime.props: trims package assets that the output never reads. Imported by the
+    Directory.Build.targets under examples/, tests/ and tools/.
+
+    Referenced packages ship ~55 MB of XML documentation per Stride project (Silk.NET.Direct3D11.xml
+    alone is 22 MB), and Avalonia's native packages ship ~100 MB of symbol files for Skia and HarfBuzz
+    beside the 20 MB of DLLs that are actually loaded. Neither is read at runtime, and IntelliSense
+    resolves documentation from the package's ref path rather than from bin.
+
+    AllowedReferenceRelatedFileExtensions (in HostRuntime.props) does not reach these: it governs files
+    sitting beside a directly referenced assembly, whereas package assets arrive through
+    ReferenceCopyLocalPaths with an AssetType of "runtime", "native" or "resources", so they are removed
+    from that item group explicitly. Managed .pdb files are kept so stepping into Stride still works;
+    only native symbol files go.
+  -->
+  <Target Name="TrimPackageAssetsFromOutput" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)' == '.xml'" />
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)' == '.pdb' And '%(ReferenceCopyLocalPaths.AssetType)' == 'native'" />
+    </ItemGroup>
+  </Target>
+</Project>

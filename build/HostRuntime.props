@@ -1,0 +1,46 @@
+<Project>
+  <!--
+    Build for the host platform only, and keep the output to what the process can load.
+
+    Imported by the Directory.Build.props under examples/, tests/ and tools/. Library projects under
+    src/ must NOT import it: a package has to stay runtime-neutral.
+
+    Stride pulls in Silk.NET native runtimes for every RID it supports, and Avalonia does the same
+    for Skia and HarfBuzz. Without a RID, a Stride project copies ~355 MB of "runtimes/" next to its
+    executable (~239 MB of it Android, ~38 MB iOS/tvOS/macOS) and the Avalonia launcher ~550 MB across
+    25 platforms; only the host's folder can ever be loaded. Multiplied across the example projects
+    that is tens of GB of pure copy cost on every clean build.
+
+    The RID is derived from the host OS and architecture rather than hard-coded to Windows, so
+    contributors and CI on Linux or macOS still get a working build. NETCoreSdkPortableRuntimeIdentifier
+    would be the obvious source, but the SDK sets it *after* Directory.Build.props is evaluated, so it
+    is still empty here - hence the explicit IsOSPlatform checks.
+
+    SelfContained is pinned to false so setting a RID does not turn these into self-contained
+    publishes; they stay framework-dependent, exactly as before.
+
+    AppendRuntimeIdentifierToOutputPath is disabled so output stays at bin/<Config>/net10.0/
+    instead of gaining a win-x64/ segment, keeping every documented path and launcher command valid.
+  -->
+  <PropertyGroup>
+    <_HostArchitecture>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</_HostArchitecture>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))">win-$(_HostArchitecture)</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))">linux-$(_HostArchitecture)</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX'))">osx-$(_HostArchitecture)</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <!--
+      The RID above would otherwise make the SDK infer PlatformTarget=x64 and stamp the assemblies AMD64. They
+      contain no native code, and the RID-specific apphost already decides the process architecture, so keep
+      them AnyCPU - this also stops MSB3270 in AnyCPU projects that reference an example (the test project).
+    -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
+
+    <!--
+      Files that travel beside a directly referenced assembly: keep the .pdb so stepping into a project
+      reference works, drop its .xml documentation - IntelliSense reads that from the reference path,
+      never from bin. Package assets are a different item group; HostRuntime.targets trims those.
+    -->
+    <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
+  </PropertyGroup>
+</Project>

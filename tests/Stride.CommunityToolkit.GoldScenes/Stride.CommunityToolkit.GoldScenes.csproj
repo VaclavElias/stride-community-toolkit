@@ -7,18 +7,6 @@
              read for how to use the toolkit, and a scene changes only when the feature it pins does. -->
     </PropertyGroup>
 
-    <PropertyGroup>
-        <!-- The same host-only runtime the examples build for (examples/Directory.Build.props explains why):
-             without it every Silk.NET native runtime Stride knows about is copied next to the executable. -->
-        <_HostArchitecture>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</_HostArchitecture>
-        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))">win-$(_HostArchitecture)</RuntimeIdentifier>
-        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))">linux-$(_HostArchitecture)</RuntimeIdentifier>
-        <SelfContained>false</SelfContained>
-        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-        <PlatformTarget>AnyCPU</PlatformTarget>
-        <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
-    </PropertyGroup>
-
     <ItemGroup>
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit\Stride.CommunityToolkit.csproj" />
         <ProjectReference Include="..\..\src\Stride.CommunityToolkit.DebugShapes\Stride.CommunityToolkit.DebugShapes.csproj" />
