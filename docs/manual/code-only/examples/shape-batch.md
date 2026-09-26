@@ -36,6 +36,6 @@ The `Program.cs` file shows how to:
 
 ![ShapeBatch Gallery](media/shape-batch.webp)
 
-View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_ShapeBatch).
+View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E11_3D_ShapeBatch_Gallery).
 
-[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch/Program.cs?start=1&end=193)]
+[!code-csharp[](../../../../examples/code-only/E11_3D_ShapeBatch_Gallery/Program.cs?start=1&end=193)]
