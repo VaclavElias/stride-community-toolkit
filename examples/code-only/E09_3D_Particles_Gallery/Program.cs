@@ -53,10 +53,6 @@ void Start(Scene rootScene)
 {
     game.AddParticleRenderer();
 
-    // The text renderers, appended after the camera renderer, so labels land on top of everything
-    game.AddWorldTextRenderer();
-    game.AddEntityTextRenderer();
-
     textures = ParticleTextures.Load(game.GraphicsDevice);
 
     // The frame comes from Example.Common; what a particle station needs on top of it is the textures

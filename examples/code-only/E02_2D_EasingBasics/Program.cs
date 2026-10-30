@@ -70,8 +70,6 @@ game.Run(new SceneSetup2D
 
 void Start(Scene rootScene)
 {
-    game.AddEntityTextRenderer();
-
     shapes = game.AddShapeBatch();
 
     for (var lane = 0; lane < laneY.Length; lane++)

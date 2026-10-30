@@ -187,8 +187,6 @@ game.Run(new SceneSetup2D
 
 void Start(Scene scene)
 {
-    game.AddWorldTextRenderer();
-
     shapes = game.AddShapeBatch();
 
     // A code-only game has no font assets, so any font other than Stride's default one comes from

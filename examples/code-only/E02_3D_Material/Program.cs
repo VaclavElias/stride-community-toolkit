@@ -36,8 +36,6 @@ game.Run(new SceneSetup3D().UseBepu(), start: Start, update: Update);
 
 void Start(Scene scene)
 {
-    game.AddEntityTextRenderer();
-
     skyboxLight = game.AddSkybox().Get<LightComponent>();
     skyboxIntensity = skyboxLight?.Intensity ?? 1;
 
@@ -158,7 +156,7 @@ concepts:
   - Why the microfacet model's environment term matters in a code-only game
   - Labelling entities with screen-space EntityTextComponent
   - Adjusting the skybox light at runtime from keyboard input
-  - "Using helpers: SceneSetup3D, AddSkybox, AddEntityTextRenderer, CreatePrimitive, CreateMaterial"
+  - "Using helpers: SceneSetup3D, AddSkybox, CreatePrimitive, CreateMaterial"
 tags:
   - 3D
   - Rendering

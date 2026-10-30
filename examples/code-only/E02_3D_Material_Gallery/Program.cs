@@ -83,10 +83,6 @@ void Start(Scene rootScene)
         ],
     };
 
-    // The text renderers, appended after the camera renderer, so labels land on top of everything
-    game.AddWorldTextRenderer();
-    game.AddEntityTextRenderer();
-
     textures = new MaterialTextures(game.GraphicsDevice);
 
     // The frame comes from Example.Common; what a material station needs on top of it is the textures

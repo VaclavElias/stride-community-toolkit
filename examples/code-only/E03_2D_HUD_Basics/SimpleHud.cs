@@ -31,8 +31,6 @@ public sealed class SimpleHud
         _shapeBatch = shapeBatch;
         _style = style;
 
-        game.AddEntityTextRenderer();
-
         _healthLabel = AddLabel(scene, Anchor.BottomLeft);
         _energyLabel = AddLabel(scene, Anchor.MiddleCenter);
 

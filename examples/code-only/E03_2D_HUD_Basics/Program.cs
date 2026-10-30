@@ -113,8 +113,6 @@ void Start(Scene rootScene)
     grid.Visible = false;
 
     #region Step5Create
-    game.AddEntityTextRenderer();
-
     healthLabel = AddLabel(rootScene, Anchor.BottomLeft);
     energyLabel = AddLabel(rootScene, Anchor.MiddleCenter);
     #endregion

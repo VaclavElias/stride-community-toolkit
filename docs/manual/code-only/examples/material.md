@@ -20,10 +20,10 @@ The `Program.cs` file shows how to:
 - Why the microfacet model's environment term matters in a code-only game
 - Labelling entities with screen-space EntityTextComponent
 - Adjusting the skybox light at runtime from keyboard input
-- Using helpers: SceneSetup3D, AddSkybox, AddEntityTextRenderer, CreatePrimitive, CreateMaterial
+- Using helpers: SceneSetup3D, AddSkybox, CreatePrimitive, CreateMaterial
 
 ![3D Material](media/material.webp)
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E02_3D_Material).
 
-[!code-csharp[](../../../../examples/code-only/E02_3D_Material/Program.cs?start=1&end=135)]
+[!code-csharp[](../../../../examples/code-only/E02_3D_Material/Program.cs?start=1&end=133)]

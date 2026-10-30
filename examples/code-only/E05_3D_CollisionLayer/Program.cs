@@ -85,7 +85,6 @@ void Start(Scene scene)
     simulation = game.GetCameraEntity().GetSimulation();
     shapes = game.AddShapeBatch();
 
-    game.AddEntityTextRenderer();
     game.AddGrabber();
 
     shotMaterial = game.CreateMaterial(colours[2], metalness: 0f, glossiness: 0.6f);
@@ -441,7 +440,7 @@ concepts:
   - Filtering a raycast with a CollisionMask built from the same layers
   - Firing a body on one layer and watching the matrix decide what it flies through
   - When to prefer a layer matrix over a collision group's index rule
-  - "Using helpers: SceneSetup3D, UseBepu, UseSkybox, CreatePrimitive, AddShapeBatch, AddEntityTextRenderer, AddGrabber, TeleportAtRest, ScreenToWorldRay, TextOverlay"
+  - "Using helpers: SceneSetup3D, UseBepu, UseSkybox, CreatePrimitive, AddShapeBatch, AddGrabber, TeleportAtRest, ScreenToWorldRay, TextOverlay"
 tags:
   - 3D
   - Bepu
