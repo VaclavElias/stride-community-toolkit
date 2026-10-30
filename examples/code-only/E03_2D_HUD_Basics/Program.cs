@@ -133,7 +133,6 @@ void Start(Scene rootScene)
         new("1 to 8", "The HUD after that step", Color.Gold),
         new("J", "Take a hit", Color.Gold),
         new("K", "Heal", Color.Gold),
-        new("G", "Grid: off, world, screen", Color.Gold),
         new(""),
         new($"Step {step}: {stepNames[step - 1]}", Color.LightGreen),
     ]);

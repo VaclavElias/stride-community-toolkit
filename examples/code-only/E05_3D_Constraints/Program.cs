@@ -311,7 +311,7 @@ void AddInstructions()
 {
     TextOverlay.GetOrCreate(game).AddSection("Game", static () =>
     [
-        new("Left mouse", "Pick up any body, carry it, throw it", Color.Yellow),
+        new("Left mouse", "Pick up a dynamic body, carry it, throw it", Color.Yellow),
         new("Mouse wheel", "Carry distance", Color.Yellow),
         new("T", "Hold and move the mouse to turn the held body", Color.Yellow),
         new("Middle click", "Remove a stacked cube; the ones above collapse", Color.Yellow),

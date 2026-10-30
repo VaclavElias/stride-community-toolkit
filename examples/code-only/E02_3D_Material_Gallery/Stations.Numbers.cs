@@ -82,7 +82,7 @@ public static class NumberStations
 
         s.PlaceRow(
         [
-            s.Material(Recipes.SpecularWorkflow(diffuse: new Color(200, 40, 40), specular: new Color(10, 10, 10), glossiness: 0.8f)),
+            s.Material(Recipes.SpecularWorkflow(diffuse: new Color(200, 40, 40), specular: new Color(40, 40, 40), glossiness: 0.8f)),
             s.Material(Recipes.SpecularWorkflow(diffuse: Color.Black, specular: new Color(255, 180, 75), glossiness: 0.9f)),
             s.Material(Recipes.SpecularWorkflow(diffuse: Color.Black, specular: new Color(242, 237, 224), glossiness: 0.9f)),
         ], spacing: 2.4f);

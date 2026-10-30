@@ -127,7 +127,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="material.md">3D Material</a></h3>
                 <p><span class="badge text-bg-secondary">Rendering</span></p>
-                <p class="card-text">The four numbers of a material, one per row of cubes: a glossiness sweep from rough to mirror, a metalness sweep from dielectric to metal, and a front...</p>
+                <p class="card-text">The four numbers of a material over three rows of cubes: a glossiness sweep from rough to mirror, a metalness sweep from dielectric to metal, and a...</p>
             </div>
         </div>
     </div>

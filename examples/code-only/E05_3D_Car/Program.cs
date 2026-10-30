@@ -450,7 +450,7 @@ concepts:
   - Re-applying constraint targets only when they change, so the car sleeps when idle
   - Filtering chassis-wheel collisions with a collision layer that does not collide with itself
   - A chase camera in place of the camera controller, to free the driving keys
-  - "Using helpers: SceneSetup3D, Add3DGround, CreatePrimitive (both overloads), GrabberScript"
+  - "Using helpers: SceneSetup3D, Add3DGround, CreatePrimitive, GrabberScript"
 tags:
   - 3D
   - Bepu

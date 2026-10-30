@@ -276,7 +276,7 @@ public static class ThrusterStations
             SortingPolicy = EmitterSortingPolicy.ByDepth,
             ShapeBuilder = new ShapeBuilderBillboard(),
             // Particles are not lit: white smoke in daylight is brighter than 1
-            Material = ParticleMaterials.Flipbook(s.Textures.Billow, 8, 8, 64, new Color4(4f, 4f, 4f, 1f), softEdge: 0.5f),
+            Material = ParticleMaterials.Flipbook(s.Textures.Billow, 8, 8, 64, new Color4(1f, 1f, 1f, 1f), softEdge: 0.5f),
             MaxParticlesOverride = 900,
         };
 

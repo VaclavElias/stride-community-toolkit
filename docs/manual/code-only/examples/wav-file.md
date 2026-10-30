@@ -17,7 +17,7 @@ The `Program.cs` file shows how to:
 - One WavSound, many overlapping instances
 - Looping, volume and pan on a SoundInstance
 - The whole lifetime of a SoundInstance: created, played, stopped, disposed when played out or at exit
-- Why the files are mono: Pan and spatialisation need a single channel
+- Why the files are mono: spatialisation needs a single channel, and so does pan on OpenAL
 - Using helpers: SceneSetup3D, CreatePrimitive, TextOverlay
 
 ![Wav File](media/wav-file.webp)

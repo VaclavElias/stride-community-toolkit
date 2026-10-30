@@ -82,7 +82,7 @@ void Start(Scene scene)
 
 void Update(Scene scene, GameTime time)
 {
-    // The bodies hand over their simulation once they are attached, which takes a frame
+    // The bodies carry their simulation from the moment their entities join the scene; read once, here, and kept
     simulation ??= bodies[0].Body.Simulation;
 
     if (simulation is null) return;

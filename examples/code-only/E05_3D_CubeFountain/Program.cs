@@ -197,16 +197,14 @@ InterpolationMode Interpolation() => interpolated ? InterpolationMode.Interpolat
 /// </summary>
 Entity CreateBody(Scene scene, int kind, Vector3 position)
 {
-    // AddBepuPhysics derives the collider from the shape alone
-    var body = new Entity(shapes[kind].Name) { new ModelComponent(models[kind]) };
+    // AddBepuPhysics derives the collider from the shape alone, so no ModelComponent is needed for it
+    var body = new Entity(shapes[kind].Name);
 
     body.AddBepuPhysics(shapes[kind].Type, new BepuPhysicsOptions
     {
         // The toolkit interpolates a body by default; the I key turns it off to show the difference
         Interpolation = interpolated,
     });
-
-    body.Remove<ModelComponent>();
 
     body.Transform.Position = position;
     body.Scene = scene;

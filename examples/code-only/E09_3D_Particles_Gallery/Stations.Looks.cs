@@ -74,7 +74,7 @@ public static class LookStations
             SamplerMain = v switch
             {
                 0 => Curves.Color((0f, new Color4(0.8f, 0.9f, 1f, 1f)), (1f, new Color4(0.8f, 0.9f, 1f, 0f))),
-                1 => Curves.Color((0f, new Color4(2f, 2f, 1.6f, 1f)), (0.2f, new Color4(2f, 1.2f, 0.2f, 1f)), (0.5f, new Color4(1f, 0.2f, 0.05f, 0.8f)), (1f, new Color4(0f, 0f, 0f, 0f))),
+                1 => Curves.Color((0f, new Color4(1f, 1f, 0.8f, 1f)), (0.2f, new Color4(1f, 0.6f, 0.1f, 1f)), (0.5f, new Color4(1f, 0.2f, 0.05f, 0.8f)), (1f, new Color4(0f, 0f, 0f, 0f))),
                 _ => Curves.Color((0f, new Color4(1f, 0f, 0f, 1f)), (0.33f, new Color4(0f, 1f, 0f, 1f)), (0.66f, new Color4(0f, 0f, 1f, 1f)), (1f, new Color4(1f, 0f, 1f, 0f))),
             },
         });

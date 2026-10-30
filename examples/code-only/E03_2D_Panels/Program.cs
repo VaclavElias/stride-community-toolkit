@@ -157,7 +157,7 @@ GalleryStation[] stations =
         (text, theme) => { text.TextColor = theme.Text; text.Height = 0.22f; },
         BorderWidth: 0.75f),
 
-    new(21, "Twelve vertices, cornerRadius 0.1\nany count, one shape", "Two lines,\ncentred by default",
+    new(21, "Twelve vertices, cornerRadius 0.1\nany count, one shape", "Two lines,\ncentred by AddText",
         (text, theme) => text.TextColor = theme.Text,
         Sides: 12, CornerRadius: 0.1f),
 

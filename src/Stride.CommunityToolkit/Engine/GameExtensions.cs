@@ -718,7 +718,7 @@ public static partial class GameExtensions
     /// </summary>
     /// <param name="game">The game instance used to access the graphics device.</param>
     /// <param name="color">The colour. Defaults to null, which uses <see cref="GameDefaults.DefaultMaterialColor"/>.</param>
-    /// <param name="metalness">0 for a dielectric, which keeps its colour as diffuse and reflects a colourless 4 percent; 1 for a metal, which has no diffuse and reflects in its own colour. Defaults to 0, a matte coloured surface.</param>
+    /// <param name="metalness">0 for a dielectric, which keeps its colour as diffuse and reflects a colourless 2 percent; 1 for a metal, which has no diffuse and reflects in its own colour. Defaults to 0, a matte coloured surface.</param>
     /// <param name="glossiness">0 for rough, where the highlight is a haze; 1 for a mirror. Defaults to 0.65f.</param>
     /// <returns>A new material instance with the specified or default attributes.</returns>
     /// <remarks>

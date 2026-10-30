@@ -371,7 +371,7 @@ public class Basic3DCameraController : SyncScript
     }
 
     /// <summary>
-    /// Reset camera to default position and orthographic size when the 'H' key is pressed
+    /// Resets the camera to its default position and rotation when H is pressed
     /// </summary>
     private void ResetCameraToDefault()
     {

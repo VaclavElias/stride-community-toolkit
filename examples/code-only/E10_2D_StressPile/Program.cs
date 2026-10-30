@@ -152,9 +152,8 @@ Model ModelFor(Primitive3D type)
 {
     if (models.TryGetValue(type, out var cached)) return cached;
 
-    // Only the model is kept. The entity never joins a scene, so the dynamic body CreatePrimitive
-    // attaches to it is never simulated.
-    var model = game.CreatePrimitive(type, new PrimitiveEntityOptions()).Get<ModelComponent>().Model;
+    // Only the model is kept; the entity never joins a scene, and asks for no body
+    var model = game.CreatePrimitive(type, new PrimitiveEntityOptions { Body = BodyMode.None }).Get<ModelComponent>().Model;
 
     models[type] = model;
 
@@ -168,7 +167,8 @@ Model SleepingModelFor(Primitive3D type)
 
     var model = game.CreatePrimitive(type, new PrimitiveEntityOptions
     {
-        Material = game.CreateMaterial(Color.MediumSeaGreen)
+        Material = game.CreateMaterial(Color.MediumSeaGreen),
+        Body = BodyMode.None,
     }).Get<ModelComponent>().Model;
 
     sleepingModels[type] = model;
@@ -283,13 +283,11 @@ void Spawn(Vector3 position)
 {
     // Not CreatePrimitive, which would build one mesh and one pair of GPU buffers per body.
     // AddBepuPhysics derives the collider from the primitive type, not the mesh.
-    var entity = new Entity("InstancedItem") { new ModelComponent(models[shape]) };
+    // No ModelComponent of its own: the master draws every instance, and one per entity would draw the
+    // whole pile twice - once per entity, once instanced - which is slower than not instancing at all
+    var entity = new Entity("InstancedItem");
 
     entity.AddBepuPhysics(shape, new BepuPhysicsOptions { Component = new Body2DComponent { Collider = new CompoundCollider() } });
-
-    // The master draws every instance. Leaving each entity its own ModelComponent would draw the
-    // whole pile twice - once per entity, once instanced - which is slower than not instancing at all
-    entity.Remove<ModelComponent>();
 
     entity.Transform.Position = position;
 

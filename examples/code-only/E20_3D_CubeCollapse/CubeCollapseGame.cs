@@ -304,7 +304,8 @@ public class CubeCollapseGame(Game game, IProgressStore? progressStore = null)
         {
             Text = string.Empty,
             FontSize = 32,
-            PositionMode = TextPositionMode.Screen,
+            PositionMode = TextPositionMode.Anchored,
+            ScreenAnchor = Anchor.MiddleCenter,
             Anchor = Anchor.MiddleCenter,
             Alignment = TextAlignment.Center,
             TextColor = new Color(255, 220, 120),
@@ -333,7 +334,7 @@ public class CubeCollapseGame(Game game, IProgressStore? progressStore = null)
         // The hover preview rides on the same entity: it reads the grid the click writes
         _hover = new HoverHighlightScript { Grid = _grid, Materials = _materials, Click = _clickScript };
 
-        _scene.Entities.Add(new Entity(EntityNames.GameManager) { gameOver, _clickScript, new ScreenCentreTextScript { Text = gameOver }, _hover });
+        _scene.Entities.Add(new Entity(EntityNames.GameManager) { gameOver, _clickScript, _hover });
     }
 
     /// <summary>

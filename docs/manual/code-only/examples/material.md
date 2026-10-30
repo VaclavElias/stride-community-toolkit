@@ -5,7 +5,7 @@ slug: material
 
 # 3D Material
 
-The four numbers of a material, one per row of cubes: a glossiness sweep from rough to mirror, a
+The four numbers of a material over three rows of cubes: a glossiness sweep from rough to mirror, a
 metalness sweep from dielectric to metal, and a front row that builds the same numbers as a
 MaterialDescriptor feature by feature - which is what CreateMaterial does. Each cube carries its
 number. Z and X change the skybox light while it runs, because a metal is almost entirely a

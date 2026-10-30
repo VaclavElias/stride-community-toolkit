@@ -76,7 +76,7 @@ void Start(Scene scene)
 
 void Update(Scene scene, GameTime time)
 {
-    // The body hands over its simulation once it is attached, which takes a frame
+    // The body carries its simulation from the moment its entity joins the scene; read once, here, and kept
     if (simulation is null)
     {
         simulation = spinner.Simulation;
