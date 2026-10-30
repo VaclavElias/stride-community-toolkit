@@ -217,7 +217,8 @@ public static class LookStations
             ParticleLifetime = new Vector2(2f, 3f),
             SimulationSpace = EmitterSimulationSpace.World,
             ShapeBuilder = new ShapeBuilderBillboard(),
-            Material = new ParticleMaterialComputeColor { ComputeColor = graph, AlphaAdditive = v == 1 ? 1f : 0.3f },
+            // Times the particle's own colour, so the fade below reaches the shader
+            Material = new ParticleMaterialComputeColor { ComputeColor = new ComputeBinaryColor(graph, ParticleMaterials.ParticleColour(), BinaryOperator.Multiply), AlphaAdditive = v == 1 ? 1f : 0.3f },
         };
 
         emitter.Spawners.Add(new SpawnerPerSecond { SpawnCount = 16 });
@@ -256,7 +257,8 @@ public static class LookStations
             ShapeBuilder = new ShapeBuilderBillboard(),
             Material = new ParticleMaterialComputeColor
             {
-                ComputeColor = new ComputeBinaryColor(shape, new ComputeColor(tint), BinaryOperator.Multiply),
+                // Times the particle's own colour, so the fade below reaches the shader
+                ComputeColor = new ComputeBinaryColor(new ComputeBinaryColor(shape, new ComputeColor(tint), BinaryOperator.Multiply), ParticleMaterials.ParticleColour(), BinaryOperator.Multiply),
                 AlphaAdditive = 1f,
             },
         };

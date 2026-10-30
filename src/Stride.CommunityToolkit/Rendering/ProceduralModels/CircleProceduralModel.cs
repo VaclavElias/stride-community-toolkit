@@ -1,6 +1,6 @@
-using Stride.CommunityToolkit.Collections;
 using Stride.Graphics;
 using Stride.Rendering.ProceduralModels;
+using System.Collections.Concurrent;
 
 namespace Stride.CommunityToolkit.Rendering.ProceduralModels;
 
@@ -20,7 +20,7 @@ public class CircleProceduralModel : PrimitiveProceduralModelBase
     /// </summary>
     public int Tessellation { get; set; } = 32;
 
-    private static readonly Dictionary<(float Radius, int Tessellation, float UScale, float VScale, bool IsLeftHanded), GeometricMeshData<VertexPositionNormalTexture>> _meshCache = [];
+    private static readonly ConcurrentDictionary<(float Radius, int Tessellation, float UScale, float VScale, bool IsLeftHanded), GeometricMeshData<VertexPositionNormalTexture>> _meshCache = [];
 
     /// <summary>
     /// Creates mesh data for the current radius, tessellation, and UV scale settings.

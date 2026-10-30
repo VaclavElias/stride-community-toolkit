@@ -473,6 +473,8 @@ public static class ThrusterStations
     {
         FieldShape = new Cube { HalfSideX = 12f, HalfSideY = 2f, HalfSideZ = 12f },
         Position = new Vector3(0f, height, 0f),
+        // The directed force runs along the field's own axis, its Y, so the slab is turned to lay that axis along X
+        Rotation = Quaternion.RotationZ(-MathUtil.PiOverTwo),
         InheritPosition = false,
         InheritRotation = false,
         FieldFalloff = new FieldFalloff { StrengthInside = 1f, FalloffStart = 0.6f, StrengthOutside = 0f, FalloffEnd = 1f },

@@ -1,3 +1,4 @@
+using E03_2D_Panels;
 using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.Overlay;
@@ -59,7 +60,7 @@ KeyMenu? themeMenu = null;
 
 // The panel under the mouse, as the batch last drew it: every panel is drawn with its station as
 // the tag, and the batch answers from the frame on screen
-GalleryStation? hoveredPanel = null;
+PanelStation? hoveredPanel = null;
 
 // Dark grounds throughout: a glow is light added to what is behind it, so it only reads as a glow
 // against something dark. That is why every HUD in every spaceship is dark.
@@ -74,7 +75,7 @@ Theme[] themes =
 
 // One entry per station: how the panel is painted, and how the text on the copy below it is styled.
 // Panel settings are ShapeBatch state; text settings are WorldTextComponent properties.
-GalleryStation[] stations =
+PanelStation[] stations =
 [
     new(1, "Fill only\nBorderWidth 0", "Default text",
         (text, theme) => text.TextColor = theme.Text,
@@ -264,7 +265,7 @@ void Update(Scene scene, GameTime gameTime)
 {
     themeMenu?.Update(game.Input);
 
-    hoveredPanel = shapes.TryPick(game.Input.MousePosition, out var hit) ? hit.Tag as GalleryStation : null;
+    hoveredPanel = shapes.TryPick(game.Input.MousePosition, out var hit) ? hit.Tag as PanelStation : null;
 
     time += (float)gameTime.Elapsed.TotalSeconds;
 
@@ -280,7 +281,7 @@ void Update(Scene scene, GameTime gameTime)
 }
 
 /// <summary>Paints one panel: the stripe behind it, the panel itself, and any ornaments.</summary>
-void DrawPanel(GalleryStation station, Vector3 center, Theme theme)
+void DrawPanel(PanelStation station, Vector3 center, Theme theme)
 {
     // The stripe is what makes transparency visible. Drawn first: shapes blend in submission order
     // and never write depth, so within a batch "behind" simply means "earlier".
@@ -582,39 +583,6 @@ IReadOnlyList<TextElement> BuildOverlayLines() =>
 
 /// <summary>The same colour at a different alpha.</summary>
 static Color WithAlpha(Color color, byte alpha) => new(color.R, color.G, color.B, alpha);
-
-/// <summary>A palette: one accent, one dark ground, one text colour and one glow.</summary>
-sealed record Theme(string Name, Color Accent, Color Fill, Color Text, Color Glow);
-
-/// <summary>What a panel's fill gradient runs to, if anything.</summary>
-enum GradientTarget { None, Text, Transparent }
-
-/// <summary>
-/// One station of the gallery: a panel recipe, the caption naming it, and the text drawn on the
-/// second copy of the panel with the styling that names itself.
-/// </summary>
-sealed record GalleryStation(
-    int Number,
-    string Caption,
-    string Label,
-    Action<WorldTextComponent, Theme> StyleText,
-    float BorderWidth = 2f,
-    float FillAlpha = 1f,
-    float CornerRadius = 0f,
-    float GlowWidth = 0f,
-    byte GlowAlpha = 255,
-    bool DerivedFill = false,
-    bool WhiteGlow = false,
-    bool Ornaments = false,
-    bool Dashed = false,
-    GradientTarget GradientTo = GradientTarget.None,
-    float Opacity = 1f,
-    byte BorderAlpha = 255,
-    bool AdditiveGlow = false,
-    int Sides = 0,
-    bool Route = false,
-    bool Overlap = false,
-    bool Bracket = false);
 
 /*
 ---example-metadata

@@ -256,7 +256,7 @@ public static class ParticleMaterials
         => Textured(texture, tint, additive, new UVBuilderFlipbook { XDivisions = columns, YDivisions = rows, AnimationSpeed = speed }, softEdge);
 
     /// <summary>The node that reads a particle's own colour, as an updater or an initializer set it. White where the particles have none.</summary>
-    private static ComputeVertexStreamColor ParticleColour() => new() { Stream = new ColorVertexStreamDefinition() };
+    public static ComputeVertexStreamColor ParticleColour() => new() { Stream = new ColorVertexStreamDefinition() };
 }
 
 /// <summary>Initializers that spell out an engine default.</summary>
