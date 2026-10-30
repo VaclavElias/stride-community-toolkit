@@ -237,7 +237,8 @@ public static class MapStations
     /// The colour from the vertices: a cube built with <c>MeshBuilder</c> whose corners each carry
     /// a colour, read by the material through <c>ComputeVertexStreamColor</c> - no texture, no
     /// UVs, one colour per vertex interpolated across each face. What a painter's tool exports,
-    /// and what a procedural mesh can carry for free.
+    /// and what a procedural mesh can carry for free. The stream is saturated to 0..1 on the way
+    /// in, so a vertex colour cannot carry HDR.
     /// </summary>
     public static void VertexColours(MaterialStation s)
     {

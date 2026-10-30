@@ -16,7 +16,7 @@ The `Program.cs` file shows how to:
 - Loading a .wav at runtime with game.Audio.LoadWav instead of the asset pipeline
 - One WavSound, many overlapping instances
 - Looping, volume and pan on a SoundInstance
-- Disposing instances once they have played out
+- The whole lifetime of a SoundInstance: created, played, stopped, disposed when played out or at exit
 - Why the files are mono: Pan and spatialisation need a single channel
 - Using helpers: SceneSetup3D, CreatePrimitive, TextOverlay
 
@@ -24,4 +24,4 @@ The `Program.cs` file shows how to:
 
 View on [GitHub](https://github.com/stride3d/stride-community-toolkit/tree/main/examples/code-only/E12_Audio_WavFile).
 
-[!code-csharp[](../../../../examples/code-only/E12_Audio_WavFile/Program.cs?start=1&end=148)]
+[!code-csharp[](../../../../examples/code-only/E12_Audio_WavFile/Program.cs?start=1&end=152)]

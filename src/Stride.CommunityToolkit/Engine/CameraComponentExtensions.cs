@@ -1,6 +1,7 @@
 using Stride.CommunityToolkit.Mathematics;
 using Stride.CommunityToolkit.Rendering;
 using Stride.Engine;
+using Stride.Engine.Processors;
 using Stride.Graphics;
 
 namespace Stride.CommunityToolkit.Engine;
@@ -117,11 +118,52 @@ public static class CameraComponentExtensions
     /// <param name="camera">The camera component used to calculate the ray.</param>
     /// <param name="screenPosition">The screen position (in normalized coordinates) through which the ray passes.</param>
     /// <returns>A tuple containing the near vector (<c>VectorNear</c>) and the far vector (<c>VectorFar</c>) of the ray in world space, each with <c>W</c> of 1.</returns>
-    public static (Vector4 VectorNear, Vector4 VectorFar) ScreenPointToRay(this CameraComponent camera, Vector2 screenPosition)
+    public static (Vector4 VectorNear, Vector4 VectorFar) ScreenToWorldRayEnds(this CameraComponent camera, Vector2 screenPosition)
     {
         var ray = camera.ScreenToWorldRaySegment(screenPosition);
 
         return (new Vector4(ray.Start, 1f), new Vector4(ray.End, 1f));
+    }
+
+    /// <summary>
+    /// The width and height of the world an orthographic camera shows, in world units: the orthographic size is
+    /// the height, and the width follows the aspect ratio the projection was built with.
+    /// </summary>
+    /// <param name="camera">The orthographic camera.</param>
+    /// <returns>The visible width and height, in world units.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="camera"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">If the camera is not orthographic.</exception>
+    /// <remarks>
+    /// Read from <see cref="CameraComponent.ProjectionMatrix"/>, so it reflects a custom aspect ratio when one is
+    /// set, and is right once the camera has been updated for a frame.
+    /// </remarks>
+    public static Vector2 GetOrthographicVisibleSize(this CameraComponent camera)
+    {
+        ArgumentNullException.ThrowIfNull(camera);
+
+        if (camera.Projection != CameraProjectionMode.Orthographic) throw new InvalidOperationException("The camera is not orthographic.");
+
+        var projection = camera.ProjectionMatrix;
+
+        return new Vector2(2f / projection.M11, 2f / projection.M22);
+    }
+
+    /// <summary>
+    /// The rectangle of the XY plane an orthographic camera looking along Z shows, as its lower-left and upper-right
+    /// corners in world units: <see cref="GetOrthographicVisibleSize"/> centred on the camera's position. The edges of
+    /// a 2D scene's view, for placing things at them or keeping things inside them.
+    /// </summary>
+    /// <param name="camera">The orthographic camera.</param>
+    /// <returns>The lower-left and the upper-right corner of the visible rectangle, in world units.</returns>
+    /// <exception cref="ArgumentNullException">If <paramref name="camera"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">If the camera is not orthographic.</exception>
+    public static (Vector2 Min, Vector2 Max) GetOrthographicVisibleBounds(this CameraComponent camera)
+    {
+        var half = camera.GetOrthographicVisibleSize() * 0.5f;
+        var position = camera.Entity?.Transform.WorldMatrix.TranslationVector ?? Vector3.Zero;
+        var centre = new Vector2(position.X, position.Y);
+
+        return (centre - half, centre + half);
     }
 
     /// <summary>

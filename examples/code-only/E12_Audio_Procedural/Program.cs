@@ -50,6 +50,9 @@ var sceneSetup = new SceneSetup3D
 
 game.Run(sceneSetup, start: Start, update: Update);
 
+// The game has exited; the instance holds a native voice until it is disposed
+tone?.Dispose();
+
 void Start(Scene scene)
 {
     // Something to look at: the orb swells with the signal level.

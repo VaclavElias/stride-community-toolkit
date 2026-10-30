@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Engine;
 using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.Overlay;
 using Stride.CommunityToolkit.Rendering.Text;
@@ -590,12 +591,11 @@ public class Basic2DCameraController : SyncScript
                 // Calculate mouse delta in screen space
                 var mouseDelta = currentMousePos - _lastMousePosition.Value;
 
-                // Mouse position is normalised (0..1 across the window) and OrthographicSize is the
-                // visible height, so a cursor move of mouseDelta covers mouseDelta * size world units
-                // vertically and mouseDelta * size * aspect horizontally. Invert X so the world follows
+                // Mouse position is normalised (0..1 across the window), so a cursor move of mouseDelta
+                // covers that fraction of the visible width and height. Invert X so the world follows
                 // the cursor; Y is already flipped between screen space (down) and world space (up).
-                var height = _camera!.OrthographicSize;
-                var worldDelta = new Vector3(-mouseDelta.X * height * Game.GraphicsDevice.GetAspectRatio(), mouseDelta.Y * height, 0);
+                var visible = _camera!.GetOrthographicVisibleSize();
+                var worldDelta = new Vector3(-mouseDelta.X * visible.X, mouseDelta.Y * visible.Y, 0);
 
                 Pan(worldDelta);
             }

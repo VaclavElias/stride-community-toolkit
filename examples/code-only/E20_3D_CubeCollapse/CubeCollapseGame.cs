@@ -66,6 +66,7 @@ public class CubeCollapseGame(Game game, IProgressStore? progressStore = null)
     // palette switch should be a repaint, not an allocation
     private CubeMaterialSet[] _materialSets = [];
     private int _paletteIndex;
+    private int _colourCount = GameSettings.ColourCount;
 
     // Built in Start, once there is a scene to put them in
     private KeyMenu _paletteMenu = null!;
@@ -137,11 +138,19 @@ public class CubeCollapseGame(Game game, IProgressStore? progressStore = null)
             _paletteIndex = palette - 1;
         }
 
+        // "--colours 3" plays with the first three colours of every palette: larger groups, an easier board
+        var coloursAt = Array.IndexOf(arguments, "--colours");
+
+        if (coloursAt >= 0 && coloursAt + 1 < arguments.Length && int.TryParse(arguments[coloursAt + 1], out var colours) && colours >= 2 && colours <= 4)
+        {
+            _colourCount = colours;
+        }
+
         _materialSets = [.. ColourPalettes.All.Select(palette => MaterialFactory.CreateCubeMaterialSet(game, palette))];
         _materials = _materialSets[_paletteIndex];
 
         _spawner = new CubeSpawner(game, scene, _grid, _levels, Seed);
-        _spawner.UsePalette(ColourPalettes.All[_paletteIndex].Colours, _materials.Normal);
+        _spawner.UsePalette(Colours(_paletteIndex), _materials.Normal);
 
         _audio = new GameAudio(game);
 
@@ -396,6 +405,9 @@ public class CubeCollapseGame(Game game, IProgressStore? progressStore = null)
         ground.AddChild(new Entity("Ground surface", new Vector3(0f, -GroundGap, 0f)) { model });
     }
 
+    /// <summary>The colours the board plays with from a palette: the first <see cref="_colourCount"/> of them.</summary>
+    private IReadOnlyList<Color> Colours(int paletteIndex) => [.. ColourPalettes.All[paletteIndex].Colours.Take(_colourCount)];
+
     /// <summary>
     /// Switches the whole game to another palette: cubes yet to spawn, the hover variants, and every
     /// cube already standing.
@@ -411,8 +423,8 @@ public class CubeCollapseGame(Game game, IProgressStore? progressStore = null)
     {
         if (index == _paletteIndex) return;
 
-        var oldColours = ColourPalettes.All[_paletteIndex].Colours;
-        var newColours = ColourPalettes.All[index].Colours;
+        var oldColours = Colours(_paletteIndex);
+        var newColours = Colours(index);
 
         _paletteIndex = index;
         _materials = _materialSets[index];
