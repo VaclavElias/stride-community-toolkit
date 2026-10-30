@@ -25,7 +25,7 @@ public class CircleProceduralModel : PrimitiveProceduralModelBase
     /// <summary>
     /// Creates mesh data for the current radius, tessellation, and UV scale settings.
     /// </summary>
-    protected override GeometricMeshData<VertexPositionNormalTexture> CreatePrimitiveMeshData() => New(Radius, Tessellation, UvScale.X, UvScale.Y);
+    protected override GeometricMeshData<VertexPositionNormalTexture> CreatePrimitiveMeshData() => CachedMeshData.ForModel(New(Radius, Tessellation, UvScale.X, UvScale.Y), LocalOffset, Scale);
 
     /// <summary>
     /// Retrieves (or builds and caches) a circle mesh with the specified parameters.
@@ -45,14 +45,8 @@ public class CircleProceduralModel : PrimitiveProceduralModelBase
     /// <inheritdoc cref="New(float, int, float, float, bool)"/>
     public static GeometricMeshData<VertexPositionNormalTexture> CreateMesh(float radius = 0.5f, int tessellation = 32, float uScale = 1.0f, float vScale = 1.0f, bool toLeftHanded = false)
     {
-        // Use stack allocation for small arrays
-        var vertices = tessellation <= 128
-            ? stackalloc VertexPositionNormalTexture[tessellation + 1]
-            : new VertexPositionNormalTexture[tessellation + 1];
-
-        var indices = tessellation <= 128
-            ? stackalloc int[tessellation * 3]
-            : new int[tessellation * 3];
+        var vertices = new VertexPositionNormalTexture[tessellation + 1];
+        var indices = new int[tessellation * 3];
 
         var normal = Vector3.UnitZ;
         var uvScale = new Vector2(uScale, vScale);
@@ -77,6 +71,6 @@ public class CircleProceduralModel : PrimitiveProceduralModelBase
             indices[i * 3 + 2] = 1 + i;
         }
 
-        return new GeometricMeshData<VertexPositionNormalTexture>(vertices.ToArray(), indices.ToArray(), toLeftHanded) { Name = "Circle" };
+        return new GeometricMeshData<VertexPositionNormalTexture>(vertices, indices, toLeftHanded) { Name = "Circle" };
     }
 }

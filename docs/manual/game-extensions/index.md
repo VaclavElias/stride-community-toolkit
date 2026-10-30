@@ -105,3 +105,10 @@ These take `IGame`, since they need nothing from the scene.
 - [`SetMaxFPS()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetMaxFPS(Stride.Games.IGame,System.Int32)) - Caps the frame rate; `0` removes the cap.
 - [`SetFocusLostFPS()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.SetFocusLostFPS(Stride.Games.IGame,System.Int32)) - Caps it separately for when the window is in the background, so a minimised game stops burning a core.
 - [`EnableVSync()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.EnableVSync(Stride.Games.IGame)) / [`DisableVSync()`](xref:Stride.CommunityToolkit.Engine.GameExtensions.DisableVSync(Stride.Games.IGame)) - Sets the presentation interval at runtime. `EnableVSync()` waits for every *second* vertical blank (`PresentInterval.Two`), which caps the frame rate at half the display's refresh rate; `DisableVSync()` presents immediately.
+
+## See also
+
+- [Scene Setup](../code-only/scene-setup.md)
+- [Entity Extensions](../entity-extensions/index.md)
+- [Camera Extensions](../camera-extensions/index.md)
+- [Physics Extensions](../physics-extensions/index.md)

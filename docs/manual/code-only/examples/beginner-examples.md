@@ -11,12 +11,14 @@ One new idea at a time, on top of the base scene. Toolkit helpers only, with no 
 - [3D Primitives](primitives-3d.md): Nine of the toolkit's 3D primitives - cube, box, cone, capsule, sphere, cylinder, teapot, torus and triangular prism - dropped into one scene so the shapes, their default sizes and their generated colliders can be compared side by side.
 - [2D Primitives](primitives-2d.md): Create a minimal 2D scene using toolkit helpers and place multiple different primitive shapes.
 - [Basic Gum UI Setup](gum-stride-ui-basic.md): Initialise Gum UI in Stride using the official Gum.Stride runtime and the Stride Community Toolkit.
+- [Basic 3D Scene (Falling Shapes)](falling-shapes-3d.md): The next step after the basic 3D scene: thirty shapes of five kinds and five colours, dropped in a column that topples into a pile.
 - [3D Material](material.md): The four numbers of a material, one per row of cubes: a glossiness sweep from rough to mirror, a metalness sweep from dielectric to metal, and a front row that builds the same numbers as a MaterialDescriptor feature by feature - which is what CreateMaterial does.
 - [2D Material](material-2d.md): What each material helper does on a flat shape, in four rows of squares: the flat material a 2D scene wants, the same colours as a lit material, black because nothing in a 2D scene lights them, a checkerboard built in code as a screen material and as a lit textured one, and a translucent overlay drawn over a square.
 - [Post Effects](post-effects.md): Every post effect Stride ships, one key each: bloom, ambient occlusion, screen-space reflections, depth of field, light streaks, lens flare, fog, outline, FXAA, and the vignette, film-grain and dither colour transforms.
 - [Mesh Line](mesh-line.md): A line attached to a sphere, built as a real mesh rather than a debug primitive.
 - [Wav File](wav-file.md): Play a .wav read from disk at runtime, with no compiled asset: LoadWav decodes the file into memory and each CreateInstance is an independent playback.
 - [Procedural Sound](procedural-sound.md): A tone with no sound file: a callback computes the samples as they play.
+- [Basic 2D Scene (Falling Shapes)](falling-shapes-2d.md): The next step after the basic 2D scene: thirty shapes of five kinds and five colours, dropped in a column that topples into a pile.
 - [SyncScript - moving a body every frame](sync-script.md): A cube driven in a circle by a SyncScript, which is the ordinary way to run code every frame.
 - [Grabber](grabber.md): A gravity gun: click any body to pick it up, carry it on the end of the camera ray, and let go - with its velocity, so a flick throws it.
 - [Physics Materials](physics-materials.md): How to make something bouncy and how to make something slippery.

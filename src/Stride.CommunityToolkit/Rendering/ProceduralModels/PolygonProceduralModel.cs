@@ -56,7 +56,7 @@ public class PolygonProceduralModel : PrimitiveProceduralModelBase
 
     /// <inheritdoc />
     protected override GeometricMeshData<VertexPositionNormalTexture> CreatePrimitiveMeshData()
-        => New(Vertices.Length > 0 ? Vertices : GenerateRegularPolygonVertices(Radius, Sides), UvScale.X, UvScale.Y);
+        => CachedMeshData.ForModel(New(Vertices.Length > 0 ? Vertices : GenerateRegularPolygonVertices(Radius, Sides), UvScale.X, UvScale.Y), LocalOffset, Scale);
 
     /// <summary>
     /// Generates vertices for a regular polygon centered at the origin.
@@ -138,8 +138,8 @@ public class PolygonProceduralModel : PrimitiveProceduralModelBase
         var vertexCount = points.Length;
 
         // A convex polygon of n vertices is n-2 triangles, all fanned from vertex 0 below.
-        Span<VertexPositionNormalTexture> vertices = new VertexPositionNormalTexture[vertexCount];
-        Span<int> indices = new int[(vertexCount - 2) * 3];
+        var vertices = new VertexPositionNormalTexture[vertexCount];
+        var indices = new int[(vertexCount - 2) * 3];
 
         // UVs are measured from the polygon's own centre, not from the origin, so the same shape
         // maps the same texture wherever it sits in the XY plane.
@@ -190,7 +190,7 @@ public class PolygonProceduralModel : PrimitiveProceduralModelBase
             indices[i * 3 + 2] = i + 1;
         }
 
-        return new GeometricMeshData<VertexPositionNormalTexture>(vertices.ToArray(), indices.ToArray(), toLeftHanded) { Name = "Polygon" };
+        return new GeometricMeshData<VertexPositionNormalTexture>(vertices, indices, toLeftHanded) { Name = "Polygon" };
     }
 
     private static void ValidatePoints(Vector2[] points)

@@ -30,6 +30,7 @@ const int Rows = 6;
 const float ColumnPitch = 4.6f;
 const float RowPitch = 3.0f;
 const float PanelWidth = 4.0f;
+const int FontPixels = 48;
 const float PanelHeight = 2.0f;
 
 // The whole grid framed at once
@@ -192,10 +193,10 @@ void Start(Scene scene)
     // A code-only game has no font assets, so any font other than Stride's default one comes from
     // the machine. Asking for a list rather than a name is what keeps this working off Windows;
     // game.LoadSystemFont("Segoe UI", 48) is the one-family version.
-    sansFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 48);
-    boldFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 48, FontStyle.Bold);
-    italicFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, 48, FontStyle.Italic);
-    monoFont = SystemFonts.LoadFirst(game.Services, SystemFonts.MonospaceCandidates, 48);
+    sansFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, FontPixels);
+    boldFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, FontPixels, FontStyle.Bold);
+    italicFont = SystemFonts.LoadFirst(game.Services, SystemFonts.SansSerifCandidates, FontPixels, FontStyle.Italic);
+    monoFont = SystemFonts.LoadFirst(game.Services, SystemFonts.MonospaceCandidates, FontPixels);
 
     // Fills the band the overlay does not reach, and is itself a station: a big glowing title is
     // exactly what the text component is for
@@ -388,7 +389,7 @@ void DrawBracket(Vector3 center, Color color)
     const float Notch = 0.45f;
 
     var half = new Vector2(PanelWidth / 2f, PanelHeight / 2f);
-    var c = new Vector2(center.X, center.Y);
+    var flat = new Vector2(center.X, center.Y);
 
     // The fill, borderless, a touch inside the stroke
     var borderWidth = shapes.BorderWidth;
@@ -401,18 +402,18 @@ void DrawBracket(Vector3 center, Color color)
     // Twelve points: each corner is an inward notch of three
     ReadOnlySpan<Vector2> outline =
     [
-        c + new Vector2(-half.X + Notch, -half.Y),
-        c + new Vector2(half.X - Notch, -half.Y),
-        c + new Vector2(half.X - Notch, -half.Y + Notch),
-        c + new Vector2(half.X, -half.Y + Notch),
-        c + new Vector2(half.X, half.Y - Notch),
-        c + new Vector2(half.X - Notch, half.Y - Notch),
-        c + new Vector2(half.X - Notch, half.Y),
-        c + new Vector2(-half.X + Notch, half.Y),
-        c + new Vector2(-half.X + Notch, half.Y - Notch),
-        c + new Vector2(-half.X, half.Y - Notch),
-        c + new Vector2(-half.X, -half.Y + Notch),
-        c + new Vector2(-half.X + Notch, -half.Y + Notch),
+        flat + new Vector2(-half.X + Notch, -half.Y),
+        flat + new Vector2(half.X - Notch, -half.Y),
+        flat + new Vector2(half.X - Notch, -half.Y + Notch),
+        flat + new Vector2(half.X, -half.Y + Notch),
+        flat + new Vector2(half.X, half.Y - Notch),
+        flat + new Vector2(half.X - Notch, half.Y - Notch),
+        flat + new Vector2(half.X - Notch, half.Y),
+        flat + new Vector2(-half.X + Notch, half.Y),
+        flat + new Vector2(-half.X + Notch, half.Y - Notch),
+        flat + new Vector2(-half.X, half.Y - Notch),
+        flat + new Vector2(-half.X, -half.Y + Notch),
+        flat + new Vector2(-half.X + Notch, -half.Y + Notch),
     ];
 
     shapes.DrawPixelPolyline(outline, borderWidth, color, closed: true);
@@ -521,7 +522,7 @@ void AddText(Scene scene, Vector3 position, string content, float lineHeight, Ac
         // Height is the whole block, so scaling it by the line count keeps one-line and two-line
         // stations at the same letter size - the point of a comparison gallery
         Height = lineHeight * (content.AsSpan().Count('\n') + 1),
-        FontSize = 48,
+        FontSize = FontPixels,
         Font = font,
         Anchor = anchor,
         Alignment = TextAlignment.Center,

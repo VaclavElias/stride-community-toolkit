@@ -38,16 +38,6 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
-            <img src="media/falling-shapes-3d.webp" class="card-img-top" alt="Screenshot of the Basic 3D Scene (Falling Shapes) example" width="1280" height="720" loading="lazy">
-            <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="falling-shapes-3d.md">Basic 3D Scene (Falling Shapes)</a></h3>
-                <p><span class="badge text-bg-secondary">Shapes</span></p>
-                <p class="card-text">The next step after the basic 3D scene: thirty shapes of five kinds and five colours, dropped in a column that topples into a pile.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-xxl-4 col-md-6">
-        <div class="card h-100">
             <img src="media/file-based-app.webp" class="card-img-top" alt="Screenshot of the Basic 3D Scene (Capsule) - File-Based App example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="file-based-app.md">Basic 3D Scene (Capsule) - File-Based App</a></h3>
@@ -63,16 +53,6 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="basic-2d-scene.md">Basic 2D Scene (Capsule)</a></h3>
                 <p><span class="badge text-bg-secondary">Shapes</span></p>
                 <p class="card-text">Create a minimal 2D scene using toolkit helpers and place a single capsule primitive with a flat material.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-xxl-4 col-md-6">
-        <div class="card h-100">
-            <img src="media/falling-shapes-2d.webp" class="card-img-top" alt="Screenshot of the Basic 2D Scene (Falling Shapes) example" width="1280" height="720" loading="lazy">
-            <div class="card-body">
-                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="falling-shapes-2d.md">Basic 2D Scene (Falling Shapes)</a></h3>
-                <p><span class="badge text-bg-secondary">Shapes</span></p>
-                <p class="card-text">The next step after the basic 2D scene: thirty shapes of five kinds and five colours, dropped in a column that topples into a pile.</p>
             </div>
         </div>
     </div>
@@ -133,6 +113,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
     </div>
     <div class="col-xxl-4 col-md-6">
         <div class="card h-100">
+            <img src="media/falling-shapes-3d.webp" class="card-img-top" alt="Screenshot of the Basic 3D Scene (Falling Shapes) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="falling-shapes-3d.md">Basic 3D Scene (Falling Shapes)</a></h3>
+                <p><span class="badge text-bg-secondary">Shapes</span></p>
+                <p class="card-text">The next step after the basic 3D scene: thirty shapes of five kinds and five colours, dropped in a column that topples into a pile.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
             <img src="media/material.webp" class="card-img-top" alt="Screenshot of the 3D Material example" width="1280" height="720" loading="lazy">
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="material.md">3D Material</a></h3>
@@ -188,6 +178,16 @@ Prefer a list? Each level has its own page, linked from the table of contents.
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="procedural-sound.md">Procedural Sound</a></h3>
                 <p><span class="badge text-bg-secondary">Audio</span></p>
                 <p class="card-text">A tone with no sound file: a callback computes the samples as they play.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xxl-4 col-md-6">
+        <div class="card h-100">
+            <img src="media/falling-shapes-2d.webp" class="card-img-top" alt="Screenshot of the Basic 2D Scene (Falling Shapes) example" width="1280" height="720" loading="lazy">
+            <div class="card-body">
+                <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="falling-shapes-2d.md">Basic 2D Scene (Falling Shapes)</a></h3>
+                <p><span class="badge text-bg-secondary">Shapes</span></p>
+                <p class="card-text">The next step after the basic 2D scene: thirty shapes of five kinds and five colours, dropped in a column that topples into a pile.</p>
             </div>
         </div>
     </div>
@@ -1007,7 +1007,7 @@ Prefer a list? Each level has its own page, linked from the table of contents.
             <div class="card-body">
                 <h3 class="card-title h6"><a class="stretched-link text-decoration-none text-body" href="cube-collapse.md">Game - Cube Collapse</a></h3>
                 <p><span class="badge text-bg-secondary">Game</span></p>
-                <p class="card-text">A colour-match collapse puzzle built entirely from code.</p>
+                <p class="card-text">A colour-match collapse puzzle built from code, its six compiled sound assets the one exception.</p>
             </div>
         </div>
     </div>

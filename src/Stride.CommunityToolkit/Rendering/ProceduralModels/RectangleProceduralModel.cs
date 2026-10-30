@@ -21,7 +21,7 @@ public class RectangleProceduralModel : PrimitiveProceduralModelBase
 
     /// <inheritdoc />
     protected override GeometricMeshData<VertexPositionNormalTexture> CreatePrimitiveMeshData()
-        => New(Size, UvScale.X, UvScale.Y);
+        => CachedMeshData.ForModel(New(Size, UvScale.X, UvScale.Y), LocalOffset, Scale);
 
     /// <summary>
     /// Creates (or retrieves from cache) a rectangle mesh of the given size and UV scale.

@@ -30,7 +30,7 @@ public class Capsule2DProceduralModel : PrimitiveProceduralModelBase
     /// <summary>
     /// Creates mesh data using current property values, honoring UV scale.
     /// </summary>
-    protected override GeometricMeshData<VertexPositionNormalTexture> CreatePrimitiveMeshData() => New(Height, Radius, Tessellation, UvScale.X, UvScale.Y);
+    protected override GeometricMeshData<VertexPositionNormalTexture> CreatePrimitiveMeshData() => CachedMeshData.ForModel(New(Height, Radius, Tessellation, UvScale.X, UvScale.Y), LocalOffset, Scale);
 
     /// <summary>
     /// Retrieves (or builds and caches) a capsule mesh with the specified dimensions and options.
