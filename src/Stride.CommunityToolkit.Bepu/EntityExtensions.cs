@@ -155,8 +155,9 @@ public static class EntityExtensions
                 Length = depth,
                 RotationLocal = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90))
             },
-            // A capsule's Length is the straight part between the two semicircles; the shape's Height is the whole thing
-            Primitive2D.CapsuleShape capsule => new CapsuleCollider { Radius = capsule.Radius, Length = capsule.Height - 2 * capsule.Radius },
+            // A capsule's Length is the straight part between the two semicircles; the shape's Height is the whole thing. A
+            // height under two radii would make it negative, which Bepu rejects, so it is clamped the way the mesh clamps it
+            Primitive2D.CapsuleShape capsule => new CapsuleCollider { Radius = capsule.Radius, Length = MathF.Max(capsule.Height, capsule.Radius * 2.01f) - 2 * capsule.Radius },
             Primitive2D.TriangleShape triangle => TriangularPrismCollider.Create(new Vector3(triangle.Size.X, triangle.Size.Y, depth)),
             Primitive2D.RegularPolygonShape polygon => PolygonCollider.Create(polygon, depth),
             Primitive2D.PolygonShape polygon => PolygonCollider.Create(polygon, depth),
