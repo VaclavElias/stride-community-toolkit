@@ -15,3 +15,7 @@ The toolkit moves faster than the Stride Game Engine, so expect frequent release
 ### 🎉 New Features
 
 ### 🐞 Bug Fixes
+
+### 📄 Docs
+
+- Physics extensions manual: a paragraph on the loading stall, why a scene's first fall differs from a restart and how to hold the simulation until the first short frame.
