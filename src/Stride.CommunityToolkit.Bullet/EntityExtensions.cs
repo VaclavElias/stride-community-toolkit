@@ -35,12 +35,6 @@ public static class EntityExtensions
 
         options ??= new();
 
-        // Bullet's 2D circle is a sphere; the flat model is turned to face the camera the same way
-        if (shape is Primitive2D.CircleShape)
-        {
-            entity.Transform.Rotation = Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(90));
-        }
-
         var component = ComponentFor(options);
 
         if (component is null) return entity;
@@ -143,8 +137,9 @@ public static class EntityExtensions
         {
             Primitive2D.RectangleShape rectangle => new BoxColliderShapeDesc { Size = new Vector3(rectangle.Size.X, rectangle.Size.Y, 0), Is2D = true },
             Primitive2D.CircleShape circle => new SphereColliderShapeDesc { Radius = circle.Radius, Is2D = true },
-            // A capsule's Length is the straight part between the two semicircles; the shape's Height is the whole thing
-            Primitive2D.CapsuleShape capsule => new CapsuleColliderShapeDesc { Radius = capsule.Radius, Length = capsule.Height - 2 * capsule.Radius, Is2D = true },
+            // A capsule's Length is the straight part between the two semicircles; the shape's Height is the whole thing. The
+            // mesh decides the straight part, and its sliver for a height under two radii, so the two always agree
+            Primitive2D.CapsuleShape capsule => new CapsuleColliderShapeDesc { Radius = capsule.Radius, Length = Capsule2DProceduralModel.StraightLength(capsule.Height, capsule.Radius), Is2D = true },
             Primitive2D.TriangleShape triangle => HullOf(TriangularPrismProceduralModel.New(new Vector3(triangle.Size.X, triangle.Size.Y, depth))),
             Primitive2D.RegularPolygonShape polygon => HullOf(new PolygonProceduralModel { Radius = polygon.Radius, Sides = polygon.Sides }, depth),
             Primitive2D.PolygonShape polygon => HullOf(new PolygonProceduralModel { Vertices = polygon.Vertices }, depth),

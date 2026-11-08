@@ -75,6 +75,9 @@ public class ImmediateDebugRenderSystem : GameSystemBase
         var queue = timed ? _renderMessagesWithLifetime : _renderMessages;
         var capacity = timed ? MaxPrimitivesWithLifetime : MaxPrimitives;
 
+        // No capacity means no shapes of that kind, rather than a clamp with its bounds crossed
+        if (capacity <= 0) return;
+
         if (queue.Count >= capacity) queue.RemoveRange(0, Math.Clamp(capacity / 16, 1, queue.Count));
 
         queue.Add(msg);

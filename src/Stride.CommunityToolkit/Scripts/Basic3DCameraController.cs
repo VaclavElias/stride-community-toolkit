@@ -26,6 +26,9 @@ public class Basic3DCameraController : SyncScript
     private Quaternion _defaultCameraRotation;
     private float _yaw;
     private float _pitch;
+    private bool _rotating;
+    private bool _cursorWasVisible;
+    private bool _cursorWasLocked;
 
     private TextOverlaySection? _instructions;
 
@@ -309,19 +312,36 @@ public class Basic3DCameraController : SyncScript
 
         if (Input.HasMouse)
         {
-            // Rotate with a mouse
-            if (Input.IsMouseButtonDown(MouseButton.Right))
-            {
-                Input.LockMousePosition();
-                Game.IsMouseVisible = false;
+            var rotating = Input.IsMouseButtonDown(MouseButton.Right);
 
+            // Lock and hide the cursor when the drag starts and put back what was there when it ends: a game that
+            // hides the cursor for a crosshair, or locks it for its own look, finds its setting as it left it
+            if (rotating != _rotating)
+            {
+                _rotating = rotating;
+
+                if (rotating)
+                {
+                    _cursorWasVisible = Game.IsMouseVisible;
+                    _cursorWasLocked = Input.IsMousePositionLocked;
+
+                    if (!_cursorWasLocked) Input.LockMousePosition();
+
+                    Game.IsMouseVisible = false;
+                }
+                else
+                {
+                    if (!_cursorWasLocked) Input.UnlockMousePosition();
+
+                    Game.IsMouseVisible = _cursorWasVisible;
+                }
+            }
+
+            // Rotate with a mouse
+            if (rotating)
+            {
                 _yaw -= Input.MouseDelta.X * MouseRotationSpeed.X;
                 _pitch -= Input.MouseDelta.Y * MouseRotationSpeed.Y;
-            }
-            else
-            {
-                Input.UnlockMousePosition();
-                Game.IsMouseVisible = true;
             }
         }
 

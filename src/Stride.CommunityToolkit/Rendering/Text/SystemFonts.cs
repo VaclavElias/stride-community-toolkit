@@ -96,9 +96,11 @@ public static class SystemFonts
             return null;
         }
 
-        try
+        foreach (var family in families)
         {
-            foreach (var family in families)
+            // A family whose file is installed but will not load is skipped for the next one, which is what
+            // "the first of several" promises
+            try
             {
                 var runtimeFonts = fontSystem.RuntimeFonts;
 
@@ -113,10 +115,10 @@ public static class SystemFonts
 
                 return fontSystem.LoadRuntimeFont(family, size, style);
             }
-        }
-        catch (Exception exception)
-        {
-            _log.Warning($"A system font could not be loaded. {exception.Message}");
+            catch (Exception exception)
+            {
+                _log.Warning($"The system font '{family}' could not be loaded; trying the next candidate. {exception.Message}");
+            }
         }
 
         return null;

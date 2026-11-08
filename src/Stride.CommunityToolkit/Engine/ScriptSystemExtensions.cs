@@ -380,7 +380,9 @@ public static class ScriptSystemExtensions
         {
             while (game.IsRunning && watcher.IsActive)
             {
-                if (receiver.TryReceive(out var data))
+                // Everything that arrived since the last frame, so a burst of events is handled in the frame it
+                // came in rather than one per frame from then on
+                while (watcher.IsActive && receiver.TryReceive(out var data))
                     await invoke(data);
 
                 await scriptSystem.NextFrame();

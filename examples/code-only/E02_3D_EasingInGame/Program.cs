@@ -46,6 +46,7 @@ var door = new Tween(1.2f, EasingFunction.CubicEaseInOut);
 var bob = Tween.Run(1.6f, EasingFunction.SineEaseInOut, TweenLoop.PingPong);
 var flight = new Tween(1.5f, EasingFunction.SmootherStep);
 var pops = crystalSpots.Select(_ => new Tween(0.7f, EasingFunction.BackEaseOut)).ToArray();
+var popDelays = new float[crystalSpots.Length];
 
 BodyComponent? liftBody = null;
 Entity? doorEntity = null;
@@ -192,6 +193,14 @@ void Update(Scene scene, GameTime time)
 
     for (var i = 0; i < crystals.Length; i++)
     {
+        // Each crystal waits its turn, then its tween starts; a tween cannot be wound back before zero
+        if (popDelays[i] > 0f)
+        {
+            popDelays[i] -= dt;
+
+            if (popDelays[i] <= 0f) pops[i].Start();
+        }
+
         pops[i].Update(time);
 
         crystals[i].Transform.Scale = new Vector3(pops[i].Lerp(0f, 1f));
@@ -251,13 +260,16 @@ void HandleInput()
     }
 }
 
-// Each crystal starts a little after the one before, which is all a stagger is
+// Each crystal starts a little after the one before, which is all a stagger is: the first pops now, the
+// others wait their delay out in Update
 void Pop()
 {
     for (var i = 0; i < pops.Length; i++)
     {
-        pops[i].Start();
-        pops[i].Update(-0.15f * i);
+        popDelays[i] = 0.15f * i;
+
+        if (i == 0) pops[i].Start();
+        else pops[i].Reset();
     }
 }
 

@@ -21,11 +21,12 @@ public class AddBepuPhysicsColliderTests
     [Fact]
     public void WideCapsuleGetsAColliderClampedLikeItsMesh()
     {
-        // A height under two radii: the mesh keeps a straight part of a hundredth of a radius, and so does the collider
+        // A height under two radii: the mesh keeps a straight part of a hundredth of a unit, and so does the collider
         var collider = Assert.IsType<CapsuleCollider>(CommunityToolkit.Bepu.EntityExtensions.ColliderFor(Primitive2D.Capsule(radius: 0.5f, height: 0.8f), depth: 1f));
 
         Assert.Equal(0.5f, collider.Radius);
-        Assert.Equal(0.005f, collider.Length, 0.0001f);
+        Assert.Equal(Capsule2DProceduralModel.StraightLength(0.8f, 0.5f), collider.Length);
+        Assert.Equal(0.01f, collider.Length, 0.0001f);
     }
 
     [Fact]

@@ -166,13 +166,22 @@ public partial class MainWindow : Window
                 Task.Run(() => ReadLinesAsync(process.StandardOutput, isError: false, token)),
                 Task.Run(() => ReadLinesAsync(process.StandardError, isError: true, token)));
 
-            process.WaitForExit();
+            // Stop, or Run on another example, disposed this process while the readers were draining
+            if (token.IsCancellationRequested) return;
+
+            await process.WaitForExitAsync(token);
             AppendLine($"✅ Process exited with code: {process.ExitCode}");
+        }
+        catch (OperationCanceledException)
+        {
+            // Stopped on purpose; StopRunning already said so
         }
         catch (Exception ex)
         {
             AppendLine($"❌ Error: {ex.Message}");
-            StopRunning();
+
+            // Only this run's process: by now _running may be the next example, started while this one was ending
+            if (ReferenceEquals(_running, process)) StopRunning();
         }
     }
 

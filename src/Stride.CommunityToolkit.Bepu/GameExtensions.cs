@@ -54,7 +54,7 @@ public static class GameExtensions
 
         var entity = new Entity("Physics Debug")
         {
-            new CollidableGizmoScript { Color = gizmoColor, Visible = gizmosVisible },
+            new CollidableGizmoScript { Color = gizmoColor ?? default, Visible = gizmosVisible },
             new DebugRenderComponentScript { Visible = meshesVisible, ShowContacts = contactsVisible },
         };
 

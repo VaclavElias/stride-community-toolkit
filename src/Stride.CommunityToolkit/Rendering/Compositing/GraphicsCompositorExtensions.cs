@@ -293,6 +293,9 @@ public static class GraphicsCompositorExtensions
 
     private static void AddRenderStagesAndFeatures(GraphicsCompositor graphicsCompositor)
     {
+        // Once is enough: a second call would stack another UI stage, feature and renderer on the first
+        if (graphicsCompositor.TryGetRenderStage(UiStageName, out _)) return;
+
         var cameraSlot = graphicsCompositor.Cameras[0];
 
         // A stage without a sort mode draws its objects in the order the engine collected them, and

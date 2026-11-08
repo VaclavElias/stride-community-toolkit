@@ -159,6 +159,9 @@ internal sealed class ChartScaffold(IGame game, Chart chart) : IDisposable
         var axisY = Math.Clamp(0f, o.Range.YMin, o.Range.YMax);
         var axisX = Math.Clamp(0f, o.Range.XMin, o.Range.XMax);
 
+        // The same depth the axes and their tick labels are drawn at, so the titles sit on the axes
+        var axisZ = chart.Is3D ? Math.Clamp(0f, o.Range.ZMin, o.Range.ZMax) : 0f;
+
         if (o.Title.Text is { Length: > 0 } title)
         {
             if (_title is null)
@@ -179,12 +182,12 @@ internal sealed class ChartScaffold(IGame game, Chart chart) : IDisposable
 
         if (o.Axes.XTitle is { Length: > 0 } xTitle)
         {
-            Place(xTitle, new Vector3(o.Range.XMax, axisY, 0f), Anchor.TopRight, new Vector2(-4f, 10f));
+            Place(xTitle, new Vector3(o.Range.XMax, axisY, axisZ), Anchor.TopRight, new Vector2(-4f, 10f));
         }
 
         if (o.Axes.YTitle is { Length: > 0 } yTitle)
         {
-            Place(yTitle, new Vector3(axisX, o.Range.YMax, 0f), Anchor.TopLeft, new Vector2(10f, 4f));
+            Place(yTitle, new Vector3(axisX, o.Range.YMax, axisZ), Anchor.TopLeft, new Vector2(10f, 4f));
         }
 
         if (chart.Is3D && o.Axes.ZTitle is { Length: > 0 } zTitle)

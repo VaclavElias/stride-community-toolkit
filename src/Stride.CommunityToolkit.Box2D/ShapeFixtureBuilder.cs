@@ -232,10 +232,23 @@ public static class ShapeFixtureBuilder
         b2CreatePolygonShape(bodyId, in shapeDef, in triangle);
     }
 
-    // The shape's Height is the whole capsule, caps included; Box2D wants the half length of the straight part
+    // The shape's Height is the whole capsule, caps included; Box2D wants the half length of the straight part. The mesh
+    // of a capsule shorter than two radii is a circle, and Box2D.NET attaches nothing for a capsule shorter than its
+    // linear slop (the shape id comes back null), so that case is attached as the circle it draws as
     private static void AttachCapsule(float radius, float height, B2BodyId bodyId, in B2ShapeDef shapeDef)
     {
+        // Box2D's linear slop, at one length unit per metre, below which it declines the capsule
+        const float LinearSlop = 0.005f;
+
         var halfLength = height / 2 - radius;
+
+        if (halfLength <= LinearSlop)
+        {
+            AttachCircle(radius, bodyId, shapeDef);
+
+            return;
+        }
+
         var capsule = new B2Capsule(new B2Vec2(0, -halfLength), new B2Vec2(0, halfLength), radius);
 
         b2CreateCapsuleShape(bodyId, in shapeDef, in capsule);

@@ -4,6 +4,7 @@ using Stride.Core.Diagnostics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
+using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -44,16 +45,13 @@ public class PerfMonitor : BaseWindow
     public bool MonitorSampleAlloc;
 
     /// <summary>
-    /// Circumvents the <see cref="_cpuSamples"/> dictionary lookup, but
-    /// only works for <see cref="_threadStaticMonitor"/>
+    /// This thread's sample collection and the monitor it belongs to, so most samples skip the dictionary lookup.
+    /// Checked against the sampler's monitor, so two monitors on one thread do not cross-wire.
     /// </summary>
-    [ThreadStatic] private static ThreadSampleCollection? _threadStaticCollection;
+    [ThreadStatic] private static (PerfMonitor? Monitor, ThreadSampleCollection? Collection) _threadCache;
 
-    /// <summary> Owner of <see cref="_threadStaticCollection"/> </summary>
-    private static PerfMonitor? _threadStaticMonitor;
-
-    // Work agnostic data
-    private readonly Dictionary<Thread, ThreadSampleCollection> _cpuSamples = [];
+    // Work agnostic data. Written from whichever thread opens its first sample and read on the game thread
+    private readonly ConcurrentDictionary<Thread, ThreadSampleCollection> _cpuSamples = [];
     private LightweightTimer _timer = LightweightTimer.StartNew();
     private (TimeSpan start, double duration) _cpuFrame;
 
@@ -80,7 +78,7 @@ public class PerfMonitor : BaseWindow
         bool sample = true,
         [CallerLineNumber] int line = 0,
         [CallerMemberName] string? member = null,
-        [CallerFilePath] string? filePath = null) => Sample($"{filePath} . {member}:{S(line)}", sample);
+        [CallerFilePath] string? filePath = null) => Sample($"{filePath} . {member}:{line}", sample);
 
     /// <summary> Place within a using statement to monitor the code within it </summary>
     public PerfSampler Sample(string id, bool sample = true) => sample ? new PerfSampler(id, this) : default;
@@ -147,7 +145,11 @@ public class PerfMonitor : BaseWindow
     protected override void OnDestroy()
     {
         if (IsStrideProfilingAll()) Profiler.DisableAll();
-        if (_threadStaticMonitor == this) _threadStaticMonitor = null;
+
+        // Ends the marker loop too, or it would stay subscribed and fill the dead sorter once anything re-enables profiling
+        _stopProfiling?.Cancel();
+        _stopProfiling?.Dispose();
+        _stopProfiling = null;
 
         _autoSampler?.Dispose();
         _autoSampler = null;
@@ -302,8 +304,9 @@ public class PerfMonitor : BaseWindow
         }
         else
         {
+            _stopProfiling?.Dispose();
             _stopProfiling = new CancellationTokenSource();
-            StartProcessingMarkers(_sorter, _stopProfiling.Token);
+            _ = StartProcessingMarkers(_sorter, _stopProfiling.Token);
             Profiler.EnableAll();
         }
     }
@@ -327,11 +330,9 @@ public class PerfMonitor : BaseWindow
     {
         using (Sample($"{nameof(PerfSampler)}:{nameof(EndFrame)}"))
         {
-            _threadStaticMonitor ??= this;
-
             // The first frame opens this thread's root scope; every later one closes the previous frame's sample
             if (_frame is { } frame) frame.Dispose();
-            else Guaranteed(_cpuSamples, Thread.CurrentThread).EnterScope();
+            else CollectionFor(Thread.CurrentThread).EnterScope();
 
             _frame = new PerfSampler("Frame", this, 0);
 
@@ -380,6 +381,9 @@ public class PerfMonitor : BaseWindow
         _graph[^1] = newPoint;
     }
 
+    /// <summary>The sample collection of <paramref name="thread"/>, made on its first sample.</summary>
+    private ThreadSampleCollection CollectionFor(Thread thread) => _cpuSamples.GetOrAdd(thread, static _ => new());
+
     /// <summary>
     /// Put this within a using statement to log performance of the code within it.
     /// Creates a new <see cref="SampleInstance"/> for the attached <see cref="PerfMonitor"/>
@@ -407,9 +411,9 @@ public class PerfMonitor : BaseWindow
             _id = id;
 
             // Cached per thread, so most samples skip the dictionary lookup
-            if (_threadStaticCollection is null || _threadStaticMonitor != monitor) _threadStaticCollection = Guaranteed(monitor._cpuSamples, Thread.CurrentThread);
+            if (_threadCache.Monitor != monitor) _threadCache = (monitor, monitor.CollectionFor(Thread.CurrentThread));
 
-            _target = _threadStaticCollection;
+            _target = _threadCache.Collection!;
             _customDepth = customDepthParam >= 0;
             _depth = _customDepth ? customDepthParam : _target.EnterScope();
             _timer = LightweightTimer.StartNew();
@@ -530,6 +534,14 @@ public class PerfMonitor : BaseWindow
         {
             _monitor._update = _monitor.Sample(nameof(Update));
             base.Update(gameTime);
+        }
+
+        // Disposing a game system does not take it out of the collection; left in, it would open a sample every
+        // frame that the closed monitor never closes
+        protected override void Destroy()
+        {
+            Game.GameSystems.Remove(this);
+            base.Destroy();
         }
     }
 }

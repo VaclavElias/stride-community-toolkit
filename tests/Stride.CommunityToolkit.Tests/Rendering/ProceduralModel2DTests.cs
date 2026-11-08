@@ -12,6 +12,13 @@ namespace Stride.CommunityToolkit.Tests.Rendering;
 public class ProceduralModel2DTests
 {
     [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public void Circle_RefusesFewerThanThreeSegments(int tessellation)
+        // Zero divides by nothing and two make a line; both used to fail later, in the mesh draw
+        => Assert.Throws<ArgumentOutOfRangeException>(() => CircleProceduralModel.CreateMesh(0.5f, tessellation));
+
+    [Theory]
     [InlineData(4)]
     [InlineData(16)]
     [InlineData(32)]

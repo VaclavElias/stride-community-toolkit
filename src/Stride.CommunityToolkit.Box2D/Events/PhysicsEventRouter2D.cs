@@ -111,7 +111,8 @@ public sealed class PhysicsEventRouter2D
 
         var data = new ContactEventData(type, entityA, entityB, shapeIdA, shapeIdB, point, normal, approachSpeed);
 
-        foreach (var handler in _contactHandlers) handler.OnContactEvent(data);
+        // Backwards by index, so a handler may unregister from inside its callback
+        for (var i = _contactHandlers.Count - 1; i >= 0; i--) _contactHandlers[i].OnContactEvent(data);
     }
 
     private void Dispatch(Func<B2BodyId, Entity?> entityResolver, B2ShapeId sensorShape, B2ShapeId visitorShape, SensorEventType type)
@@ -120,6 +121,6 @@ public sealed class PhysicsEventRouter2D
 
         var data = new SensorEventData(type, sensor, visitor, sensorShape, visitorShape);
 
-        foreach (var handler in _sensorHandlers) handler.OnSensorEvent(data);
+        for (var i = _sensorHandlers.Count - 1; i >= 0; i--) _sensorHandlers[i].OnSensorEvent(data);
     }
 }

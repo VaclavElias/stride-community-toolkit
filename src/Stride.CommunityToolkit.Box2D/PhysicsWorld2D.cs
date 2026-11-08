@@ -146,6 +146,11 @@ public sealed class PhysicsWorld2D : IDisposable
             perFixedStep?.Invoke(fixedStep);
         }
 
+        // The cap stopped the catch-up: the rest of the debt is dropped, or the next frames would replay the
+        // stall at up to MaxStepsPerFrame times speed, which is the spiral the cap is there to avoid. The
+        // time a stall swallowed is simply not simulated
+        if (_accumulator >= fixedStep) _accumulator = 0f;
+
         return performed;
     }
 

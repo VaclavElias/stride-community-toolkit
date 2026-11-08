@@ -231,6 +231,9 @@ public class TextureCanvas : IDisposable
     /// </remarks>
     public void Load(Stream stream)
     {
+        // The secondary buffer goes too: it is sized for the old texture, and the next filter would render into it
+        _secondaryBuffer?.Dispose();
+        _secondaryBuffer = null;
         _primaryBuffer?.Dispose();
         _primaryBuffer = Texture.Load(GraphicsDevice, stream, TextureFlags.ShaderResource | TextureFlags.RenderTarget);
         _size = new Size2(_primaryBuffer.Size.Width, _primaryBuffer.Size.Height);
@@ -244,7 +247,7 @@ public class TextureCanvas : IDisposable
     /// <param name="fileType">The file type to write or null for automatic inference based on the file extension</param>
     public void Store(string path, ImageFileType? fileType = null)
     {
-        using var stream = File.Open(path, FileMode.Create);
+        // The format is settled before the file is created, so an unsupported extension leaves no empty file behind
         fileType ??= Path.GetExtension(path) switch
         {
             ".stride" => ImageFileType.Stride,
@@ -257,6 +260,9 @@ public class TextureCanvas : IDisposable
             ".tga" => ImageFileType.Tga,
             _ => throw new NotSupportedException($"'{Path.GetExtension(path)}' is not an image format the canvas can write. Use .png, .jpg, .bmp, .gif, .tiff, .tga, .dds or .stride, or pass the fileType.")
         };
+
+        using var stream = File.Open(path, FileMode.Create);
+
         Store(stream, fileType.Value);
     }
 
@@ -281,6 +287,8 @@ public class TextureCanvas : IDisposable
     /// </remarks>
     public void SetData(byte[] data, int width, int height, PixelFormat pixelFormat)
     {
+        _secondaryBuffer?.Dispose();
+        _secondaryBuffer = null;
         _primaryBuffer?.Dispose();
         _primaryBuffer = Texture.New2D(GraphicsDevice, width, height, pixelFormat, data,
             TextureFlags.ShaderResource | TextureFlags.RenderTarget);

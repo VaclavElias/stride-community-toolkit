@@ -197,9 +197,11 @@ public sealed class Box2DSimulation : IDisposable
         if (Enabled) _world.Step((float)elapsed.TotalSeconds, perFixedStep: _afterFixedStep, beforeFixedStep: _beforeFixedStep);
     }
 
+    // The handler loops run backwards by index, so a handler may unregister itself, or another, from inside its
+    // callback without the collection-modified exception a foreach would throw
     private void BeforeFixedStep(float deltaTime)
     {
-        foreach (var handler in _simulationUpdates) handler.SimulationUpdate(this, deltaTime);
+        for (var i = _simulationUpdates.Count - 1; i >= 0; i--) _simulationUpdates[i].SimulationUpdate(this, deltaTime);
     }
 
     // Events first, then the transforms, then the handlers, which see both. The router checks the
@@ -210,7 +212,7 @@ public sealed class Box2DSimulation : IDisposable
         _eventRouter.ProcessSensors(_world.WorldId, _resolveEntity, EnableSensorEvents);
         _bridge.SyncTransformsFromPhysics();
 
-        foreach (var handler in _simulationUpdates) handler.AfterSimulationUpdate(this, deltaTime);
+        for (var i = _simulationUpdates.Count - 1; i >= 0; i--) _simulationUpdates[i].AfterSimulationUpdate(this, deltaTime);
     }
 
     /// <summary>Removes the body associated with <paramref name="entity"/> from the world if present.</summary>

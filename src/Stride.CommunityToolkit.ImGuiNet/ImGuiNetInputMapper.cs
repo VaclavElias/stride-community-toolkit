@@ -5,8 +5,10 @@ using Stride.Input;
 namespace Stride.CommunityToolkit.ImGuiNet;
 
 /// <summary>
-/// Feeds one frame of Stride input into ImGui.NET: mouse position and buttons, text and wheel
-/// events, and the modifier keys. Split out of <see cref="ImGuiNetSystem"/>; stateless.
+/// Feeds one frame of Stride input into ImGui.NET: mouse position and buttons, text and wheel events. Keys
+/// and modifiers are not forwarded; the overlay this system draws takes no keyboard input, and the legacy
+/// modifier flags ImGui 1.87 and later recompute at every frame would be overwritten anyway. Split out of
+/// <see cref="ImGuiNetSystem"/>; stateless.
 /// </summary>
 internal static class ImGuiNetInputMapper
 {
@@ -36,10 +38,5 @@ internal static class ImGuiNetInputMapper
                     break;
             }
         }
-
-        io.KeyAlt = inputManager.IsKeyDown(Keys.LeftAlt) || inputManager.IsKeyDown(Keys.RightAlt);
-        io.KeyShift = inputManager.IsKeyDown(Keys.LeftShift) || inputManager.IsKeyDown(Keys.RightShift);
-        io.KeyCtrl = inputManager.IsKeyDown(Keys.LeftCtrl) || inputManager.IsKeyDown(Keys.RightCtrl);
-        io.KeySuper = inputManager.IsKeyDown(Keys.LeftWin) || inputManager.IsKeyDown(Keys.RightWin);
     }
 }

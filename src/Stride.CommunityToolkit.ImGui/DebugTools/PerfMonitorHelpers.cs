@@ -19,9 +19,9 @@ internal static class PerfMonitorHelpers
 
     /// <summary>
     /// Subscribes to Stride's profiler and keeps every event's begin and end marker in <paramref name="sortedList"/>,
-    /// in time order, until <paramref name="token"/> is cancelled.
+    /// in time order, until <paramref name="token"/> is cancelled. Cancelling is the normal way out, not a fault.
     /// </summary>
-    internal static async void StartProcessingMarkers(List<PerfMonitor.EventWrapper> sortedList, CancellationToken token)
+    internal static async Task StartProcessingMarkers(List<PerfMonitor.EventWrapper> sortedList, CancellationToken token)
     {
         var events = Profiler.Subscribe();
 
@@ -37,6 +37,10 @@ internal static class PerfMonitorHelpers
                     Insert(new PerfMonitor.EventWrapper(perfEvent, false, perfEvent.TimeStamp + perfEvent.ElapsedTime));
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Stop Profiling, or the window closing
         }
         finally
         {
@@ -144,13 +148,5 @@ internal static class PerfMonitorHelpers
         Profiler.Disable(_dummyKey);
 
         return Profiler.IsEnabled(_dummyKey);
-    }
-
-    /// <summary> Guarantees that this key exist and returns at least a default new() value </summary>
-    internal static TValue Guaranteed<TKey, TValue>(IDictionary<TKey, TValue> dictionary, TKey key) where TValue : new()
-    {
-        if (!dictionary.TryGetValue(key, out var value)) dictionary[key] = value = new TValue();
-
-        return value;
     }
 }

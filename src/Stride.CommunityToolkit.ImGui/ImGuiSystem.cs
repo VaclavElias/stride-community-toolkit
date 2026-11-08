@@ -192,11 +192,12 @@ public class ImGuiSystem : GameSystemBase
 
         _pipeline = PipelineState.New(_device, pipeline);
 
-        _indexBinding = new IndexBufferBinding(Stride.Graphics.Buffer.Index.New(_device, InitialIndexBufferSize * sizeof(ushort), GraphicsResourceUsage.Dynamic), Is32BitIndices, 0);
+        // Default usage, like the buffers CheckBuffers grows into: UpdateBuffers uploads each draw list at an offset,
+        // and Stride allows an offset only on a Default buffer. The argument is named so the size-based overload
+        // is picked over the generic New<T>(device, ref readonly T value, usage) one, which would make a 4-byte buffer.
+        _indexBinding = new IndexBufferBinding(Stride.Graphics.Buffer.Index.New(_device, bufferSize: InitialIndexBufferSize * sizeof(ushort)), Is32BitIndices, 0);
 
-        // BufferFlags is passed explicitly: without it, C# picks the generic New<T>(device, ref readonly T value, usage)
-        // overload with T = int (it needs no default argument) and creates a 4-byte buffer holding the size value.
-        var vertexBuffer = Stride.Graphics.Buffer.Vertex.New(_device, InitialVertexBufferSize * _vertexLayout.CalculateSize(), GraphicsResourceUsage.Dynamic, BufferFlags.None);
+        var vertexBuffer = Stride.Graphics.Buffer.Vertex.New(_device, bufferSize: InitialVertexBufferSize * _vertexLayout.CalculateSize());
 
         _vertexBinding = new VertexBufferBinding(vertexBuffer, _vertexLayout, 0);
     }
@@ -244,10 +245,13 @@ public class ImGuiSystem : GameSystemBase
         else _input.TextInput.DisableTextInput();
 
         ForwardInputEvents();
-        ForwardMouseButtonsAndModifiers();
+        ForwardModifiers();
     }
 
-    /// <summary>Forwards this frame's text, key and wheel events to ImGui.</summary>
+    /// <summary>
+    /// Forwards this frame's text, key, mouse button and wheel events to ImGui, each with the state the event
+    /// carries: a press and release inside one frame is two events, not the current state read twice.
+    /// </summary>
     private void ForwardInputEvents()
     {
         foreach (var ev in _input.Events)
@@ -258,7 +262,11 @@ public class ImGuiSystem : GameSystemBase
                     _io.AddInputCharactersUTF8(tev.Text);
                     break;
                 case KeyEvent kev when _keys.TryGetValue(kev.Key, out var imGuiKey):
-                    _io.AddKeyEvent(imGuiKey, _input.IsKeyDown(kev.Key));
+                    _io.AddKeyEvent(imGuiKey, kev.IsDown);
+                    break;
+                case MouseButtonEvent { Button: MouseButton.Left or MouseButton.Right or MouseButton.Middle } mb:
+                    // ImGui numbers them left, right, middle; Stride's enum has middle second
+                    _io.AddMouseButtonEvent(mb.Button switch { MouseButton.Left => 0, MouseButton.Right => 1, _ => 2 }, mb.IsDown);
                     break;
                 case MouseWheelEvent mw:
                     _io.AddMouseWheelEvent(0, mw.WheelDelta);
@@ -267,13 +275,9 @@ public class ImGuiSystem : GameSystemBase
         }
     }
 
-    /// <summary>Forwards the mouse button and modifier key states to ImGui.</summary>
-    private void ForwardMouseButtonsAndModifiers()
+    /// <summary>Forwards the modifier key states to ImGui.</summary>
+    private void ForwardModifiers()
     {
-        _io.AddMouseButtonEvent(0, _input.IsMouseButtonDown(MouseButton.Left));
-        _io.AddMouseButtonEvent(1, _input.IsMouseButtonDown(MouseButton.Right));
-        _io.AddMouseButtonEvent(2, _input.IsMouseButtonDown(MouseButton.Middle));
-
         _io.AddKeyEvent(ImGuiKey.ModAlt, _input.IsKeyDown(Keys.LeftAlt) || _input.IsKeyDown(Keys.RightAlt));
         _io.AddKeyEvent(ImGuiKey.ModShift, _input.IsKeyDown(Keys.LeftShift) || _input.IsKeyDown(Keys.RightShift));
         _io.AddKeyEvent(ImGuiKey.ModCtrl, _input.IsKeyDown(Keys.LeftCtrl) || _input.IsKeyDown(Keys.RightCtrl));

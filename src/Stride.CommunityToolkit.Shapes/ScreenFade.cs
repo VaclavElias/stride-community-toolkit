@@ -71,8 +71,16 @@ public sealed class ScreenFade : SyncScript
         Covered = covered ? 1f : 0f;
     }
 
-    /// <summary>Takes the batch the fade draws with.</summary>
-    public override void Start() => _batch = Game.AddShapeBatch(afterPostEffects: true);
+    /// <summary>Makes the batch the fade draws with: its own, after the post effects, and not the game's default shape batch.</summary>
+    public override void Start() => _batch = ShapeBatchExtensions.Create(Game, depthTest: false, fill: null, afterPostEffects: true);
+
+    /// <summary>Takes the batch out of rendering when the fade leaves the scene.</summary>
+    public override void Cancel()
+    {
+        if (_batch is { } batch) Game.RemoveShapeBatch(batch);
+
+        _batch = null;
+    }
 
     /// <summary>Advances the transition and draws the cover.</summary>
     public override void Update()
@@ -128,7 +136,6 @@ public sealed class ScreenFade : SyncScript
         var size = batch.ScreenSize;
 
         batch.Screen = true;
-        batch.BorderWidth = 0f;
 
         if (_wipe)
         {

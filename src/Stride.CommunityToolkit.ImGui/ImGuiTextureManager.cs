@@ -81,8 +81,12 @@ internal sealed class ImGuiTextureManager(GraphicsDevice device, CommandList com
 
     private Texture Create(ImTextureDataPtr textureData)
     {
-        var pixelFormat = textureData.Format == ImTextureFormat.Rgba32 ? PixelFormat.R8G8B8A8_UNorm : PixelFormat.R8_UNorm;
-        var texture = Texture.New2D(device, textureData.Width, textureData.Height, pixelFormat, TextureFlags.ShaderResource);
+        // The shader multiplies by the whole RGBA sample, so a single-channel atlas would draw every glyph as an
+        // opaque red box; ImGui's default format is the one that works
+        if (textureData.Format != ImTextureFormat.Rgba32)
+            throw new NotSupportedException($"ImGui texture format {textureData.Format} is not supported; leave io.Fonts.TexDesiredFormat at Rgba32.");
+
+        var texture = Texture.New2D(device, textureData.Width, textureData.Height, PixelFormat.R8G8B8A8_UNorm, TextureFlags.ShaderResource);
 
         Upload(texture, textureData);
 

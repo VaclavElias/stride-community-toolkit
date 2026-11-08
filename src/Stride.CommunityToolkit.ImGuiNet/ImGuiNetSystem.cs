@@ -61,17 +61,36 @@ public class ImGuiNetSystem : GameSystemBase
     // DPI / scaling state
     private float _dpiScale = 1f;
     private bool _pendingFontRebuild;
+    private DisplayScale? _displayScale;
+    private EventHandler? _onDisplayScaleChanged;
 
     /// <summary>
     /// Optional path to a custom TTF font. If the file exists, it will be used instead of the default font.
-    /// Defaults to 'data/droid_sans.ttf'.
+    /// Defaults to 'data/droid_sans.ttf'. A change applies on the next frame, when the atlas is rebuilt.
     /// </summary>
-    public string? FontPath { get; set; } = Path.Combine("data", "droid_sans.ttf");
+    public string? FontPath
+    {
+        get;
+        set
+        {
+            field = value;
+            _pendingFontRebuild = true;
+        }
+    } = Path.Combine("data", "droid_sans.ttf");
 
     /// <summary>
-    /// Font size in pixels for the custom TTF font. Ignored if <see cref="FontPath"/> doesn't exist.
+    /// Font size in pixels for the custom TTF font. Ignored if <see cref="FontPath"/> doesn't exist. A change
+    /// applies on the next frame, when the atlas is rebuilt.
     /// </summary>
-    public float FontSize { get; set; } = 15f;
+    public float FontSize
+    {
+        get;
+        set
+        {
+            field = value;
+            _pendingFontRebuild = true;
+        }
+    } = 15f;
 
     /// <summary>
     /// When true (default), the font atlas is rebuilt when the display scale changes, for example
@@ -179,20 +198,24 @@ public class ImGuiNetSystem : GameSystemBase
 
             // The backbuffer-to-window ratio alone is 1 on Windows at any scaling; the display
             // scale service also knows the monitor's DPI, and says when the window moves
-            var displayScale = DisplayScale.GetOrCreate(_game);
+            _displayScale = DisplayScale.GetOrCreate(_game);
 
-            displayScale.Refresh();
-            _dpiScale = displayScale.Value;
+            _displayScale.Refresh();
+            _dpiScale = _displayScale.Value;
 
-            displayScale.Changed += (_, _) =>
+            // Kept in a field so Destroy can unsubscribe: the service outlives this system, and a monitor change
+            // after the context is gone would otherwise reach a context-less ImGui call
+            _onDisplayScaleChanged = (_, _) =>
             {
-                if (AutoScaleFonts) SetDpiScale(displayScale.Value);
+                if (AutoScaleFonts) SetDpiScale(_displayScale.Value);
             };
+            _displayScale.Changed += _onDisplayScaleChanged;
 
             _logger.Info($"ImGuiNetSystem: display scale {_dpiScale:F2}");
 
             // Build the font atlas at the current DPI - this keeps fonts crisp
             SetupFontAtlas(_dpiScale);
+            _pendingFontRebuild = false;
             CreateRenderingResources();
 
             _camera = _game.Services.GetService<SceneSystem>()?.SceneInstance.RootScene.GetCamera();
@@ -475,13 +498,17 @@ public class ImGuiNetSystem : GameSystemBase
     /// <inheritdoc/>
     protected override void Destroy()
     {
+        if (_displayScale is not null && _onDisplayScaleChanged is not null) _displayScale.Changed -= _onDisplayScaleChanged;
+
         _fontTexture?.Dispose();
         _fontTexture = null;
         _vertexBinding.Buffer?.Dispose();
         _indexBinding?.Buffer?.Dispose();
         _imguiShader?.Dispose();
+        _pipelineState?.Dispose();
 
-        if (IsInitialized && _context != IntPtr.Zero) ImGui.DestroyContext(_context);
+        // The context exists from CreateContext on, whether or not Initialize got as far as IsInitialized
+        if (_context != IntPtr.Zero) ImGui.DestroyContext(_context);
 
         base.Destroy();
     }

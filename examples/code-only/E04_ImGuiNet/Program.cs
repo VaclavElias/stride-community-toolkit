@@ -135,6 +135,9 @@ void MoveOrbitingCube()
     // The path's own velocity, plus a gentle pull towards the path: it brings the cube out from
     // its start in the middle and keeps small errors from adding up
     orbitingCubeBody.LinearVelocity = pathVelocity + (onPath - orbitingCubeBody.Position) * PathCorrectionStrength;
+
+    // A kinematic body that starts still is put to sleep, and a sleeping body ignores its velocity
+    orbitingCubeBody.Awake = true;
 }
 
 /// <summary>

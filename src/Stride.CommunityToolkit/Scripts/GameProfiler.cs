@@ -10,9 +10,17 @@ namespace Stride.CommunityToolkit.Scripts;
 /// This script facilitates the toggling of profiling, setting display preferences, and navigating through profiling data.
 /// </summary>
 /// <remarks>
-/// This class provides keyboard shortcuts for toggling the profiler on/off with Shift + Ctrl + P,
-/// changing the filtering mode with F1, altering the sorting mode with F2, navigating result pages with F3 and F4,
-/// and adjusting the refresh interval with the plus and minus keys.
+/// <para>
+/// Every key is chorded with Ctrl, so the plain F2, F3 and F4 stay with the camera help and the
+/// <see cref="Rendering.Overlay.TextOverlay"/>, which are on screen in the same scenes.
+/// <list type="bullet">
+///   <item><description>Shift + Ctrl + P toggles the profiler on and off.</description></item>
+///   <item><description>Ctrl + F1 changes the filter: frame rate, CPU events or GPU events.</description></item>
+///   <item><description>Ctrl + F2 changes the sort order.</description></item>
+///   <item><description>Ctrl + F3 and Ctrl + F4 page back and forward; Ctrl + 1 to Ctrl + 5 jump to a page.</description></item>
+///   <item><description>Ctrl + minus and Ctrl + plus halve and double the refresh rate.</description></item>
+/// </list>
+/// </para>
 /// </remarks>
 [Display("Game Profiler")]
 [ComponentCategory("Debug")]
@@ -84,13 +92,15 @@ public class GameProfiler : AsyncScript
                 }
             }
 
-            if (Enabled)
+            // Every key below is chorded with Ctrl: the plain F2 belongs to the camera help, F3 and F4 to the text
+            // overlay, and both are on screen in the same scenes as the profiler
+            if (Enabled && (Input.IsKeyDown(Keys.LeftCtrl) || Input.IsKeyDown(Keys.RightCtrl)))
             {
-                // F1 and F2 cycle the filter and the sort order
+                // Ctrl+F1 and Ctrl+F2 cycle the filter and the sort order
                 if (Input.IsKeyPressed(Keys.F1)) FilteringMode = Next(FilteringMode);
                 if (Input.IsKeyPressed(Keys.F2)) SortingMode = Next(SortingMode);
 
-                // F3 and F4 page back and forward; 1 to 5 jump to that page
+                // Ctrl+F3 and Ctrl+F4 page back and forward; Ctrl+1 to Ctrl+5 jump to that page
                 if (Input.IsKeyPressed(Keys.F3)) ResultPage = Math.Max(1u, ResultPage - 1);
                 if (Input.IsKeyPressed(Keys.F4)) ResultPage++;
 
@@ -99,7 +109,7 @@ public class GameProfiler : AsyncScript
                     if (Input.IsKeyPressed(Keys.D0 + page)) ResultPage = (uint)page;
                 }
 
-                // Minus refreshes half as often, plus twice as often
+                // Ctrl+minus refreshes half as often, Ctrl+plus twice as often
                 if (Input.IsKeyPressed(Keys.Subtract) || Input.IsKeyPressed(Keys.OemMinus)) RefreshTime = Math.Min(RefreshTime * 2, 10000);
                 if (Input.IsKeyPressed(Keys.Add) || Input.IsKeyPressed(Keys.OemPlus)) RefreshTime = Math.Max(RefreshTime / 2, 100);
             }

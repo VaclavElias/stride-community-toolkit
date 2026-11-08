@@ -70,7 +70,7 @@ off still takes effect.
 > [!NOTE]
 > The camera controllers claim <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>, <kbd>Q</kbd> <kbd>E</kbd>,
 > the arrow keys, the numeric keypad, <kbd>H</kbd> and <kbd>F2</kbd>; the overlay itself claims
-> <kbd>F3</kbd> and <kbd>F4</kbd>. Bind section toggles and example
+> <kbd>F3</kbd> and <kbd>F4</kbd>; the profiler's keys are all chorded with <kbd>Ctrl</kbd>. Bind section toggles and example
 > keys elsewhere; <kbd>G</kbd> is the reference grid's and <kbd>T</kbd> the grabbers'. Safe single
 > letters include <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> <kbd>M</kbd> <kbd>N</kbd> <kbd>P</kbd> <kbd>R</kbd> <kbd>Z</kbd>.
 

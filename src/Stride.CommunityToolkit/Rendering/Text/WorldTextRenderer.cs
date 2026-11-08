@@ -111,7 +111,7 @@ public class WorldTextRenderer : SceneRendererBase
         // not cosmetic: SpriteBatch builds its quads with Y increasing downwards, the screen
         // convention, so without the flip every string is drawn upside down in the world.
         var scale = component.Height / textSize.Y;
-        var textToWorld = Matrix.Scaling(scale, -scale, scale) * GetOrientation(component, entity, origin, cameraPosition);
+        var textToWorld = Matrix.Scaling(scale, -scale, scale) * GetOrientation(component, in world, origin, cameraPosition);
 
         textToWorld.TranslationVector = origin;
 
@@ -193,19 +193,17 @@ public class WorldTextRenderer : SceneRendererBase
             component.Alignment);
 
     /// <summary>
-    /// Builds the rotation part of the text's world matrix.
+    /// Builds the rotation part of the text's world matrix from the entity's world matrix.
     /// </summary>
-    private static Matrix GetOrientation(WorldTextComponent component, Entity entity, Vector3 origin, Vector3 cameraPosition)
+    internal static Matrix GetOrientation(WorldTextComponent component, in Matrix world, Vector3 origin, Vector3 cameraPosition)
     {
         if (!component.Billboard)
         {
-            // Keep the entity's own orientation, but strip its scale: scale is applied through Height
-            // so the text does not end up sized twice
-            var rotation = entity.Transform.WorldMatrix;
-
-            rotation.TranslationVector = Vector3.Zero;
-
-            return Matrix.RotationQuaternion(Quaternion.RotationMatrix(rotation));
+            // Keep the entity's own orientation, but strip its scale: scale is applied through Height so the text
+            // is not sized twice. Decomposed, because a quaternion read straight off a scaled matrix is not a unit
+            // one and skews the text. A matrix with a zero scale on an axis has no rotation to recover, and the text
+            // then stays world-aligned, still at its Height
+            return world.Decompose(out _, out Quaternion rotation, out _) ? Matrix.RotationQuaternion(rotation) : Matrix.Identity;
         }
 
         var toCamera = cameraPosition - origin;

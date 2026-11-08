@@ -136,6 +136,23 @@ public class EarClippingTests
             [new(0, 0), new(6, 0), new(6, 2), new(3.5f, 2.2f), new(6, 2.4f), new(6, 5), new(0, 5)],
             [[new(1, 1.5f), new(2, 1.5f), new(2, 3), new(1, 3)]]);
 
+    [Theory]
+    [InlineData(2000f)]
+    [InlineData(0.001f)]
+    public void TheUnitDoesNotMatter_HolesBridgeTheSameAtAnyScale(float scale)
+    {
+        // The bridge search compares lengths and areas against one relative tolerance; in pixel units at
+        // extent 2,000 a length tolerance taken in area units is four pixels, wide enough to pick a corner
+        // the hole cannot see. Every hole case above, scaled, must still triangulate
+        AssertValidTriangulation(Scaled(TestGeometry.Square(0, 0, 6), scale), [Scaled(TestGeometry.Square(1, 1, 1.5f), scale), Scaled(TestGeometry.Square(3.5f, 1, 1.5f), scale)]);
+        AssertValidTriangulation(Scaled(TestGeometry.Square(0, 0, 4), scale), [Scaled(TestGeometry.Square(1, 0.5f, 2), scale), Scaled(TestGeometry.Square(1, 3f, 0.8f), scale)]);
+        AssertValidTriangulation(
+            Scaled([new(0, 0), new(6, 0), new(6, 2), new(3.5f, 2.2f), new(6, 2.4f), new(6, 5), new(0, 5)], scale),
+            [Scaled([new(1, 1.5f), new(2, 1.5f), new(2, 3), new(1, 3)], scale)]);
+    }
+
+    private static Vector2[] Scaled(Vector2[] corners, float scale) => corners.Select(c => c * scale).ToArray();
+
     [Fact]
     public void NoHolesIsThePlainCase()
     {
