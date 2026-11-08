@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Input;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Input;
 
@@ -145,7 +146,8 @@ public class KeyMenu
 
         if (!input.HasKeyboard) return false;
 
-        if (input.IsKeyPressed(ToggleKey))
+        // Plain keys only, so a Ctrl chord bound elsewhere, such as the profiler's Ctrl+1 to 5, does not pick an item
+        if (input.IsKeyPressedUnmodified(ToggleKey))
         {
             IsOpen = !IsOpen;
 
@@ -163,7 +165,7 @@ public class KeyMenu
 
         for (var i = 0; i < Items.Count; i++)
         {
-            if (!input.IsKeyPressed(Items[i].Key)) continue;
+            if (!input.IsKeyPressedUnmodified(Items[i].Key)) continue;
 
             SelectedIndex = i;
 

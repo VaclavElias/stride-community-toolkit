@@ -126,7 +126,7 @@ void Start(Scene rootScene)
     [
         new("C", "Pop the next coin in", Color.Gold),
         new("Space", "Collect every coin on screen", Color.Gold),
-        new("X", "Shake the camera", Color.Gold),
+        new("X", "Shake the camera, as a game does on a hit", Color.Gold),
         new("L", "Pause and resume the lift", Color.Gold),
         new("R", "Drop the boxes back onto the lift", Color.Gold),
         new(""),
@@ -172,8 +172,9 @@ void Update(Scene scene, GameTime time)
 
         if (coin.Fly.IsRunning || coin.Fly.IsComplete)
         {
+            // The smaller of the two, so a coin collected mid-pop keeps its size instead of jumping to full
             coin.Entity.Transform.Position = coin.Fly.Lerp(coin.Spot, scoreSpot);
-            coin.Entity.Transform.Scale = new Vector3(coin.Fly.Lerp(1f, 0.3f));
+            coin.Entity.Transform.Scale = new Vector3(MathF.Min(coin.Pop.Lerp(0f, 1f), coin.Fly.Lerp(1f, 0.3f)));
 
             if (coin.Fly.IsComplete)
             {
@@ -221,9 +222,10 @@ void HandleInput(Scene scene)
 
     if (input.IsKeyPressed(Keys.Space))
     {
+        // Every coin on screen, a coin still popping in included; a coin that has never popped is not there yet
         foreach (var coin in coins)
         {
-            if (coin.Pop.IsComplete && !coin.Fly.IsRunning && !coin.Counted) coin.Fly.Start();
+            if ((coin.Pop.IsRunning || coin.Pop.IsComplete) && !coin.Fly.IsRunning && !coin.Counted) coin.Fly.Start();
         }
     }
 

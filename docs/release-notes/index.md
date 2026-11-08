@@ -17,6 +17,8 @@ The toolkit moves faster than the Stride Game Engine, so expect frequent release
 
 ### 🎉 New Features
 
+- `GameProfiler` lists its keys on the text overlay behind F1 (`HelpToggleKey`), with the current filter, sort, page and refresh rate; the list's title names the chord just used, for three seconds, since Stride's profiler text has no line of ours to say it on.
+- `InputManager.IsKeyPressedUnmodified(key)`: a key pressed with neither Ctrl nor Alt held. The text overlay, its collapsible sections and `KeyMenu` read their keys through it, so the profiler's Ctrl+F2 no longer also collapses the camera help, and Ctrl+1 to 5 do not pick a menu item.
 - `Capsule2DProceduralModel.StraightLength(height, radius)`: the straight part the mesh draws for a capsule, with its minimum sliver. The Bepu and Bullet 2D capsule colliders take their length from it, so a collider is exactly as tall as its mesh; the Bepu one used to be half the mesh's sliver for a wide capsule under one unit.
 
 ### 🐞 Bug Fixes
@@ -40,7 +42,7 @@ The toolkit moves faster than the Stride Game Engine, so expect frequent release
 - ImGuiNet: `FontPath` and `FontSize` set after `AddImGuiNet()` apply on the next frame; the display-scale subscription and the pipeline state are released on `Destroy`, and the context is destroyed even when initialisation failed part way; the dead legacy modifier writes are gone and the package description says what input it forwards.
 - Tools: the examples launcher no longer kills the next example, or logs an error, after Stop; the metadata generator's YAML inspector treats an apostrophe inside a value as text, so an unquoted `#` after a contraction is reported.
 - Tests: the overlay key tests build the overlay on a bare registry instead of a `Game` outside the serialised collection; the lock-rotation and run-on-game-thread tests pace on time, not frames.
-- `E02_3D_EasingInGame` pops the crystals in staggered, as its comment says; `E04_ImGuiNet` keeps the orbiting kinematic body awake.
+- `E02_3D_EasingInGame` pops the crystals in staggered, as its comment says; `E04_ImGuiNet` keeps the orbiting kinematic body awake; `E02_2D_EasingInGame`'s Space collects a coin that is still popping in, which used to need a second press.
 
 ### 📄 Docs
 

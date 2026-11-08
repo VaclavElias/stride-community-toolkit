@@ -1,3 +1,5 @@
+using Stride.CommunityToolkit.Rendering.Overlay;
+using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Engine;
 using Stride.Input;
 using Stride.Profiling;
@@ -18,6 +20,8 @@ namespace Stride.CommunityToolkit.Scripts;
 ///   <item><description>Ctrl + F2 changes the sort order.</description></item>
 ///   <item><description>Ctrl + F3 and Ctrl + F4 page back and forward; Ctrl + 1 to Ctrl + 5 jump to a page.</description></item>
 ///   <item><description>Ctrl + minus and Ctrl + plus halve and double the refresh rate.</description></item>
+///   <item><description><see cref="HelpToggleKey"/>, F1, expands this list on the <see cref="TextOverlay"/> with the
+///   current values; the list's title names the chord last used, for a few seconds.</description></item>
 /// </list>
 /// </para>
 /// </remarks>
@@ -25,10 +29,26 @@ namespace Stride.CommunityToolkit.Scripts;
 [ComponentCategory("Debug")]
 public class GameProfiler : AsyncScript
 {
+    /// <summary>How long the title names the chord last used, in seconds.</summary>
+    private const double FeedbackSeconds = 3;
+
+    private const string HelpTitle = "Profiler";
+
+    private TextOverlay? _overlay;
+    private TextOverlaySection? _help;
+    private double _feedbackUntil;
+
     /// <summary>
     /// Gets or sets whether profiling is enabled.
     /// </summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the key that expands and collapses the profiler's key list on the <see cref="TextOverlay"/>.
+    /// Defaults to <see cref="Keys.F1"/>. Must be set before the script starts.
+    /// </summary>
+    [DataMemberIgnore]
+    public Keys HelpToggleKey { get; set; } = Keys.F1;
 
     /// <summary>
     /// The color of the text displayed during profiling
@@ -68,6 +88,10 @@ public class GameProfiler : AsyncScript
         if (Enabled)
             GameProfiler.EnableProfiling();
 
+        // The key list, collapsed to its title, which doubles as the place a chord is acknowledged
+        _overlay = TextOverlay.GetOrCreate(Game);
+        _help = _overlay.AddCollapsibleSection("Profiler", HelpTitle, HelpToggleKey, HelpLines, collapsed: true);
+
         while (Game.IsRunning)
         {
             GameProfiler.TextColor = TextColor;
@@ -96,26 +120,59 @@ public class GameProfiler : AsyncScript
             if (Enabled && (Input.IsKeyDown(Keys.LeftCtrl) || Input.IsKeyDown(Keys.RightCtrl)))
             {
                 // Ctrl+F1 and Ctrl+F2 cycle the filter and the sort order
-                if (Input.IsKeyPressed(Keys.F1)) FilteringMode = Next(FilteringMode);
-                if (Input.IsKeyPressed(Keys.F2)) SortingMode = Next(SortingMode);
+                if (Input.IsKeyPressed(Keys.F1)) Acknowledge("Ctrl+F1", $"filter {FilteringMode = Next(FilteringMode)}");
+                if (Input.IsKeyPressed(Keys.F2)) Acknowledge("Ctrl+F2", $"sort {SortingMode = Next(SortingMode)}");
 
                 // Ctrl+F3 and Ctrl+F4 page back and forward; Ctrl+1 to Ctrl+5 jump to that page
-                if (Input.IsKeyPressed(Keys.F3)) ResultPage = Math.Max(1u, ResultPage - 1);
-                if (Input.IsKeyPressed(Keys.F4)) ResultPage++;
+                if (Input.IsKeyPressed(Keys.F3)) Acknowledge("Ctrl+F3", $"page {ResultPage = Math.Max(1u, ResultPage - 1)}");
+                if (Input.IsKeyPressed(Keys.F4)) Acknowledge("Ctrl+F4", $"page {++ResultPage}");
 
                 for (var page = 1; page <= 5; page++)
                 {
-                    if (Input.IsKeyPressed(Keys.D0 + page)) ResultPage = (uint)page;
+                    if (Input.IsKeyPressed(Keys.D0 + page)) Acknowledge($"Ctrl+{page}", $"page {ResultPage = (uint)page}");
                 }
 
                 // Ctrl+minus refreshes half as often, Ctrl+plus twice as often
-                if (Input.IsKeyPressed(Keys.Subtract) || Input.IsKeyPressed(Keys.OemMinus)) RefreshTime = Math.Min(RefreshTime * 2, 10000);
-                if (Input.IsKeyPressed(Keys.Add) || Input.IsKeyPressed(Keys.OemPlus)) RefreshTime = Math.Max(RefreshTime / 2, 100);
+                if (Input.IsKeyPressed(Keys.Subtract) || Input.IsKeyPressed(Keys.OemMinus)) Acknowledge("Ctrl+-", $"refresh every {RefreshTime = Math.Min(RefreshTime * 2, 10000):0} ms");
+                if (Input.IsKeyPressed(Keys.Add) || Input.IsKeyPressed(Keys.OemPlus)) Acknowledge("Ctrl++", $"refresh every {RefreshTime = Math.Max(RefreshTime / 2, 100):0} ms");
+            }
+
+            _help.Enabled = Enabled;
+
+            if (_feedbackUntil > 0 && Game.UpdateTime.Total.TotalSeconds >= _feedbackUntil)
+            {
+                _help.Title = HelpTitle;
+                _feedbackUntil = 0;
             }
 
             await Script.NextFrame();
         }
     }
+
+    /// <inheritdoc />
+    public override void Cancel()
+    {
+        if (_help is not null) _overlay?.RemoveSection(_help);
+
+        _help = null;
+    }
+
+    // The title says what the chord did, for a moment: the profiler's own text has no line of ours to say it on
+    private void Acknowledge(string chord, string effect)
+    {
+        _help!.Title = $"{HelpTitle} - {chord}: {effect}";
+        _feedbackUntil = Game.UpdateTime.Total.TotalSeconds + FeedbackSeconds;
+    }
+
+    private IReadOnlyList<TextElement> HelpLines() =>
+    [
+        new("Ctrl+Shift+P", "Profiler on and off", Color.Gold),
+        new("Ctrl+F1", $"Filter: {FilteringMode}", Color.Gold),
+        new("Ctrl+F2", $"Sort: {SortingMode}", Color.Gold),
+        new(["Ctrl+F3", "Ctrl+F4"], $"Page back and forward: page {ResultPage}", Color.Gold),
+        new("Ctrl+1 to 5", "Jump to a page", Color.Gold),
+        new(["Ctrl+-", "Ctrl++"], $"Refresh slower and faster: {RefreshTime:0} ms", Color.Gold),
+    ];
 
     /// <summary>The value after <paramref name="value"/> in its enum, wrapping round to the first.</summary>
     private static T Next<T>(T value) where T : struct, Enum

@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Input;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Games;
 using Stride.Graphics;
@@ -169,8 +170,8 @@ public sealed class TextOverlay : GameSystemBase
     /// </summary>
     public float LineSpacing { get; set; } = 2f;
 
-    /// <summary>Gets or sets how many blank lines separate one section from the next - the empty line under the camera controls, for one. Defaults to 1; <c>0</c> runs a section straight on from the one above it.</summary>
-    public int SectionGap { get; set; } = 1;
+    /// <summary>Gets or sets how many blank lines separate one section from the next - the empty line under the camera controls, for one. Defaults to 0; <c>1</c> runs a section 1 line from the one above it.</summary>
+    public int SectionGap { get; set; }
 
     /// <summary>
     /// Gets or sets how far the text is shifted inside its background strip, in screen pixels, positive downwards. Defaults to <c>-1</c>: a font's line gap sits above its ascender, so glyphs land about a pixel low in a strip sized from the line height, and one pixel up centres them. Not multiplied by the scale: the imbalance stays close to one pixel at the sizes the overlay is drawn at.
@@ -362,15 +363,16 @@ public sealed class TextOverlay : GameSystemBase
 
         if (_input is null || !_input.HasKeyboard) return;
 
-        if (_input.IsKeyPressed(ToggleKey)) Visible = !Visible;
+        // Plain keys only: the profiler's Ctrl chords share F1 to F4 with the overlay and its sections
+        if (_input.IsKeyPressedUnmodified(ToggleKey)) Visible = !Visible;
 
-        if (_input.IsKeyPressed(RepositionKey) && Position is not null) CyclePosition();
+        if (_input.IsKeyPressedUnmodified(RepositionKey) && Position is not null) CyclePosition();
 
         // Section keys are read even while the overlay is hidden, so a collapse toggle pressed with
         // everything off still takes effect rather than silently doing nothing
         foreach (var section in _sections)
         {
-            if (section.IsCollapsible && _input.IsKeyPressed(section.ToggleKey!.Value))
+            if (section.IsCollapsible && _input.IsKeyPressedUnmodified(section.ToggleKey!.Value))
             {
                 section.Collapsed = !section.Collapsed;
             }
