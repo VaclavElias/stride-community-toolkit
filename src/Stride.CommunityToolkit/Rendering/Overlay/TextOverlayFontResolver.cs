@@ -2,6 +2,7 @@ using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Core.Diagnostics;
 using Stride.Core.Serialization.Contents;
 using Stride.Graphics;
+using Stride.Graphics.Font;
 
 namespace Stride.CommunityToolkit.Rendering.Overlay;
 
@@ -17,8 +18,11 @@ internal sealed class TextOverlayFontResolver : IDisposable
 
     private SpriteFont? _defaultFont;
     private SpriteFont? _systemFont;
-    private string? _systemFontKey;
+    private FontKey _systemFontKey;
     private bool _systemFontFailed;
+
+    /// <summary>The overlay's font settings as one value, compared each frame to notice a change without building a string.</summary>
+    private readonly record struct FontKey(TextOverlayFontFamily Family, string? Name, FontStyle Style, string? File);
 
     /// <summary>
     /// <see cref="TextOverlay.Font"/> if set; otherwise an installed font - <see cref="TextOverlay.FontName"/>, or the first of <see cref="TextOverlay.FontFamily"/> 's candidates that is present - registered with Stride's font system from its file the first time it is needed; otherwise Stride's default font.
@@ -27,7 +31,7 @@ internal sealed class TextOverlayFontResolver : IDisposable
     {
         if (overlay.Font != null) return overlay.Font;
 
-        var key = $"{overlay.FontFamily}|{overlay.FontName}|{overlay.FontStyle}|{overlay.FontFile}";
+        var key = new FontKey(overlay.FontFamily, overlay.FontName, overlay.FontStyle, overlay.FontFile);
 
         if (key != _systemFontKey)
         {

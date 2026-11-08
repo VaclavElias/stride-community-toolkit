@@ -36,6 +36,8 @@ public static partial class EntityExtensions
         bool helpCollapsed = true,
         bool showHelp = true)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+
         var controller = new Basic3DCameraController(helpPosition)
         {
             HelpToggleKey = helpToggleKey,
@@ -60,6 +62,8 @@ public static partial class EntityExtensions
         Keys helpToggleKey = Keys.F2,
         bool helpCollapsed = true)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+
         var controller = new Basic2DCameraController
         {
             HelpToggleKey = helpToggleKey,
@@ -92,6 +96,8 @@ public static partial class EntityExtensions
     /// </example>
     public static TranslationGizmo AddGizmo(this Entity entity, GraphicsDevice graphicsDevice, Color? redColor = null, Color? greenColor = null, Color? blueColor = null, bool showAxisName = false, bool rotateAxisNames = true)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+
         var gizmo = new TranslationGizmo(graphicsDevice, redColor, greenColor, blueColor);
 
         gizmo.Create(entity, showAxisName, rotateAxisNames);
@@ -120,6 +126,8 @@ public static partial class EntityExtensions
     /// </example>
     public static LightDirectionalGizmo AddLightDirectionalGizmo(this Entity entity, GraphicsDevice graphicsDevice, Color? color = null)
     {
+        ArgumentNullException.ThrowIfNull(entity);
+
         var gizmo = new LightDirectionalGizmo(graphicsDevice, color);
 
         gizmo.Create(entity);

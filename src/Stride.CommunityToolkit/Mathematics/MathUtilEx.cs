@@ -3,7 +3,8 @@ using System.Runtime.CompilerServices;
 namespace Stride.CommunityToolkit.Mathematics;
 
 /// <summary>
-/// Some more common utility methods for math operations.
+/// Integer rounding, <c>MoveTowards</c>, look-at rotations, Euler conversions and eased <c>Interpolate</c> overloads,
+/// beside Stride's <see cref="MathUtil"/>.
 /// </summary>
 public static class MathUtilEx
 {

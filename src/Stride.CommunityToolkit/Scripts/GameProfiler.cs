@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Input;
 using Stride.CommunityToolkit.Rendering.Overlay;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Engine;
@@ -25,6 +26,7 @@ namespace Stride.CommunityToolkit.Scripts;
 /// </list>
 /// </para>
 /// </remarks>
+[DataContract(nameof(GameProfiler))]
 [Display("Game Profiler")]
 [ComponentCategory("Debug")]
 public class GameProfiler : AsyncScript
@@ -117,7 +119,7 @@ public class GameProfiler : AsyncScript
 
             // Every key below is chorded with Ctrl: the plain F2 belongs to the camera help, F3 and F4 to the text
             // overlay, and both are on screen in the same scenes as the profiler
-            if (Enabled && (Input.IsKeyDown(Keys.LeftCtrl) || Input.IsKeyDown(Keys.RightCtrl)))
+            if (Enabled && Input.IsCtrlDown())
             {
                 // Ctrl+F1 and Ctrl+F2 cycle the filter and the sort order
                 if (Input.IsKeyPressed(Keys.F1)) Acknowledge("Ctrl+F1", $"filter {FilteringMode = Next(FilteringMode)}");

@@ -1,15 +1,28 @@
 namespace Stride.CommunityToolkit.Scripts;
 
 /// <summary>
-/// The geometry behind <see cref="Scripts.Basic2DCameraController"/>, as pure functions.
+/// The geometry behind the camera controllers, as pure functions.
 /// </summary>
 /// <remarks>
-/// These two calculations are the only parts of the controller that can be reasoned about, and
-/// checked, without a running game: they read no camera, no input and no clock. Keeping them here
-/// says which parts of the controller are maths and which are plumbing.
+/// These calculations are the parts of the controllers that can be reasoned about, and checked, without
+/// a running game: they read no camera, no input and no clock. Keeping them here says which parts of a
+/// controller are maths and which are plumbing.
 /// </remarks>
-internal static class Camera2DMath
+internal static class CameraMath
 {
+    /// <summary>
+    /// The zoom value after <paramref name="wheel"/> notches: multiplicative, so every notch changes the value by the
+    /// same fraction whether the camera is zoomed far in or far out, and clamped to the range.
+    /// </summary>
+    /// <param name="value">The orthographic size or the orbit distance before the notches.</param>
+    /// <param name="wheel">The wheel delta; positive zooms in.</param>
+    /// <param name="step">The fraction one notch changes the value by.</param>
+    /// <param name="min">The smallest value allowed.</param>
+    /// <param name="max">The largest value allowed.</param>
+    /// <returns>The clamped value after the notches.</returns>
+    internal static float StepZoom(float value, float wheel, float step, float min, float max)
+        => Math.Clamp(value * MathF.Pow(1f + step, -wheel), min, max);
+
     /// <summary>
     /// Works out which way an RTS-style camera should pan for a cursor near the window edges.
     /// </summary>

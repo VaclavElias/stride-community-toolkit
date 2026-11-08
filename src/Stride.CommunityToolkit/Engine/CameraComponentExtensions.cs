@@ -366,7 +366,15 @@ public static class CameraComponentExtensions
             return false;
         }
 
-        cameraComponent.WorldToScreenPoint(ref position, out screenPoint);
+        // X and Y come from the clip position already in hand; only Z needs the view transform
+        Vector3.TransformCoordinate(ref position, ref cameraComponent.ViewMatrix, out var viewSpace);
+
+        screenPoint = new Vector3
+        {
+            X = (clip.X / clip.W + 1f) / 2f,
+            Y = 1f - (clip.Y / clip.W + 1f) / 2f,
+            Z = viewSpace.Z + cameraComponent.NearClipPlane,
+        };
 
         return true;
     }

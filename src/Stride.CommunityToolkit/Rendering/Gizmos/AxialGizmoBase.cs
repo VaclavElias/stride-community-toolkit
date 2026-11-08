@@ -47,9 +47,9 @@ public abstract class AxialGizmoBase
     /// </summary>
     private protected const float GizmoDefaultSize = 133f;
 
-    private static readonly Color _redUniformColor = new(0xFC, 0x37, 0x37);
-    private static readonly Color _greenUniformColor = new(0x32, 0xE3, 0x35);
-    private static readonly Color _blueUniformColor = new(0x2F, 0x6A, 0xE1);
+    private static readonly Color _redUniformColor = GizmoColors.X;
+    private static readonly Color _greenUniformColor = GizmoColors.Y;
+    private static readonly Color _blueUniformColor = GizmoColors.Z;
 
     /// <summary>
     /// Represents the color for the X-axis (Red).

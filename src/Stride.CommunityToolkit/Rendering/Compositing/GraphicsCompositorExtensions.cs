@@ -11,8 +11,9 @@ namespace Stride.CommunityToolkit.Rendering.Compositing;
 /// </summary>
 public static class GraphicsCompositorExtensions
 {
-    private const string UiStageName = "UiStage";
     private const string MainStageName = "Main";
+
+    // The engine's own name for the UI feature's transparent-stage effect, see GraphicsCompositorHelper.CreateDefault
     private const string TestEffectName = "Test";
     private const string UiStageEffectName = "UiStage";
 
@@ -39,8 +40,11 @@ public static class GraphicsCompositorExtensions
     /// stage is drawn last, after them.
     /// </para>
     /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> is <see langword="null"/>.</exception>
     public static GraphicsCompositor AddCleanUIStage(this GraphicsCompositor graphicsCompositor)
     {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+
         ResetPostEffects(graphicsCompositor);
         AddRenderStagesAndFeatures(graphicsCompositor);
 
@@ -57,8 +61,11 @@ public static class GraphicsCompositorExtensions
     /// Renderers already hanging off the compositor (see <see cref="AddSceneRenderer"/>) are kept; the UI
     /// stage is drawn last, after them.
     /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> is <see langword="null"/>.</exception>
     public static GraphicsCompositor AddUIStage(this GraphicsCompositor graphicsCompositor)
     {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+
         AddRenderStagesAndFeatures(graphicsCompositor);
 
         return graphicsCompositor;
@@ -168,8 +175,12 @@ public static class GraphicsCompositorExtensions
     /// <param name="graphicsCompositor">The GraphicsCompositor to which the scene renderer will be added.</param>
     /// <param name="sceneRenderer">The new <see cref="SceneRendererBase"/> instance that will be added to the GraphicsCompositor's game.</param>
     /// <returns>Returns the modified GraphicsCompositor instance, allowing for method chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> or <paramref name="sceneRenderer"/> is <see langword="null"/>.</exception>
     public static GraphicsCompositor AddSceneRenderer(this GraphicsCompositor graphicsCompositor, SceneRendererBase sceneRenderer)
     {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+        ArgumentNullException.ThrowIfNull(sceneRenderer);
+
         if (graphicsCompositor.Game is SceneRendererCollection sceneRendererCollection)
         {
             sceneRendererCollection.Children.Add(sceneRenderer);
@@ -193,8 +204,12 @@ public static class GraphicsCompositorExtensions
     /// <param name="graphicsCompositor">The graphics compositor to which the render feature will be added. Cannot be null.</param>
     /// <param name="renderFeature">The root render feature to add. Cannot be null.</param>
     /// <returns>The compositor, so a chain of setup calls continues.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> or <paramref name="renderFeature"/> is <see langword="null"/>.</exception>
     public static GraphicsCompositor AddRootRenderFeature(this GraphicsCompositor graphicsCompositor, RootRenderFeature renderFeature)
     {
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+        ArgumentNullException.ThrowIfNull(renderFeature);
+
         graphicsCompositor.RenderFeatures.Add(renderFeature);
 
         return graphicsCompositor;
@@ -240,12 +255,12 @@ public static class GraphicsCompositorExtensions
     /// <exception cref="InvalidOperationException">The "Opaque" or "Transparent" render stage is not in the graphics compositor.</exception>
     public static GraphicsCompositor AddParticleStagesAndFeatures(this GraphicsCompositor graphicsCompositor)
     {
-        if (!graphicsCompositor.TryGetRenderStage("Opaque", out var opaqueRenderStage))
+        if (!graphicsCompositor.TryGetRenderStage(RenderStageNames.Opaque, out var opaqueRenderStage))
         {
             throw new InvalidOperationException("The graphics compositor has no 'Opaque' render stage, which the particle feature draws into. AddGraphicsCompositor() creates it.");
         }
 
-        if (!graphicsCompositor.TryGetRenderStage("Transparent", out var transparentRenderStage))
+        if (!graphicsCompositor.TryGetRenderStage(RenderStageNames.Transparent, out var transparentRenderStage))
         {
             throw new InvalidOperationException("The graphics compositor has no 'Transparent' render stage, which the particle feature draws into. AddGraphicsCompositor() creates it.");
         }
@@ -294,13 +309,13 @@ public static class GraphicsCompositorExtensions
     private static void AddRenderStagesAndFeatures(GraphicsCompositor graphicsCompositor)
     {
         // Once is enough: a second call would stack another UI stage, feature and renderer on the first
-        if (graphicsCompositor.TryGetRenderStage(UiStageName, out _)) return;
+        if (graphicsCompositor.TryGetRenderStage(RenderStageNames.Ui, out _)) return;
 
         var cameraSlot = graphicsCompositor.Cameras[0];
 
         // A stage without a sort mode draws its objects in the order the engine collected them, and
         // it collects them on several threads: two objects that overlap would swap from frame to frame
-        var uiStage = new RenderStage(UiStageName, MainStageName) { SortMode = new BackToFrontSortMode() };
+        var uiStage = new RenderStage(RenderStageNames.Ui, MainStageName) { SortMode = new BackToFrontSortMode() };
 
         graphicsCompositor.RenderStages.Add(uiStage);
 

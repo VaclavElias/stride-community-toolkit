@@ -202,8 +202,7 @@ void Start(Scene scene) => game.GetCameraEntity().Add(new MyOrbitCameraControlle
 ```
 
 If you keep a controller but want the on-screen help gone, pass `showHelp: false` to the 3D helper,
-or set `ShowHelp = false` on the 2D or 3D controller, before it starts or at any time after. The
-orbit controller has no `ShowHelp`. Hiding the
+or set `ShowHelp = false` on any of the four controllers, before it starts or at any time after. Hiding the
 whole overlay with <kbd>F4</kbd> is the runtime equivalent.
 
 ## See them in use

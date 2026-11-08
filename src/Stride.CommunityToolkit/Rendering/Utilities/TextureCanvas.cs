@@ -27,7 +27,7 @@ public class TextureCanvas : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="TextureCanvas"/> class.
     /// </summary>
-    public TextureCanvas(RenderContext renderContext, Size2? size, PixelFormat pixelFormat = PixelFormat.R8G8B8A8_UNorm)
+    public TextureCanvas(RenderContext renderContext, Size2? size = null, PixelFormat pixelFormat = PixelFormat.R8G8B8A8_UNorm)
     {
         RenderContext = renderContext;
         _size = size ?? new Size2(1024, 1024);
@@ -310,8 +310,18 @@ public class TextureCanvas : IDisposable
     /// <summary>
     ///     Copies the current texture data to a new texture
     /// </summary>
+    /// <remarks>
+    ///     A copy on the GPU: the same size and format, so the command list copies the resource without reading the
+    ///     pixels back to the CPU and uploading them again.
+    /// </remarks>
     public Texture ToTexture(TextureFlags flags = TextureFlags.ShaderResource)
-        => Texture.New2D(GraphicsDevice, _size.Width, _size.Height, PixelFormat, GetData(), flags);
+    {
+        var texture = Texture.New2D(GraphicsDevice, _size.Width, _size.Height, PixelFormat, flags);
+
+        CommandList.Copy(EnsurePrimary(), texture);
+
+        return texture;
+    }
 
     /// <summary>
     ///     Applies a <see cref="Stride.Rendering.Images.BrightFilter" /> effect.

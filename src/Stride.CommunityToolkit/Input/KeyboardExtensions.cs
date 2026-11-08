@@ -3,10 +3,49 @@ using Stride.Input;
 namespace Stride.CommunityToolkit.Input;
 
 /// <summary>
-/// Keyboard reads on <see cref="InputManager"/> that tell a plain key from a chord.
+/// Keyboard reads on <see cref="InputManager"/>: the modifier keys as one question each, and a plain key told from a chord.
 /// </summary>
 public static class KeyboardExtensions
 {
+    /// <summary>
+    /// Whether either Shift key is held: the sprint and fast-zoom modifier of every camera controller.
+    /// </summary>
+    /// <param name="input">The input manager.</param>
+    /// <returns><see langword="true"/> while the left or the right Shift is down.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is <see langword="null"/>.</exception>
+    public static bool IsShiftDown(this InputManager input)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+
+        return input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift);
+    }
+
+    /// <summary>
+    /// Whether either Ctrl key is held: the modifier of the profiler's chords.
+    /// </summary>
+    /// <param name="input">The input manager.</param>
+    /// <returns><see langword="true"/> while the left or the right Ctrl is down.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is <see langword="null"/>.</exception>
+    public static bool IsCtrlDown(this InputManager input)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+
+        return input.IsKeyDown(Keys.LeftCtrl) || input.IsKeyDown(Keys.RightCtrl);
+    }
+
+    /// <summary>
+    /// Whether either Alt key is held.
+    /// </summary>
+    /// <param name="input">The input manager.</param>
+    /// <returns><see langword="true"/> while the left or the right Alt is down.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is <see langword="null"/>.</exception>
+    public static bool IsAltDown(this InputManager input)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+
+        return input.IsKeyDown(Keys.LeftAlt) || input.IsKeyDown(Keys.RightAlt);
+    }
+
     /// <summary>
     /// Whether <paramref name="key"/> was pressed this frame on its own, with neither Ctrl nor Alt held.
     /// </summary>
@@ -26,6 +65,6 @@ public static class KeyboardExtensions
 
         if (!input.IsKeyPressed(key)) return false;
 
-        return !input.IsKeyDown(Keys.LeftCtrl) && !input.IsKeyDown(Keys.RightCtrl) && !input.IsKeyDown(Keys.LeftAlt) && !input.IsKeyDown(Keys.RightAlt);
+        return !input.IsCtrlDown() && !input.IsAltDown();
     }
 }

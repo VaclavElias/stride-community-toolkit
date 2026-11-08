@@ -69,8 +69,13 @@ public static class SystemFonts
     /// folders. <see langword="null"/>, the default, searches those folders.
     /// </param>
     /// <returns>The font, or <see langword="null"/> if no file for the family was found.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="family"/> is <see langword="null"/>.</exception>
     public static SpriteFont? Load(IServiceRegistry services, string family, float size, FontStyle style = FontStyle.Regular, string? fontFile = null)
-        => LoadFirst(services, [family], size, style, fontFile);
+    {
+        ArgumentNullException.ThrowIfNull(family);
+
+        return LoadFirst(services, [family], size, style, fontFile);
+    }
 
     /// <summary>
     /// Loads the first of several families that is installed - the way to ask for "a monospace font"
@@ -211,8 +216,8 @@ public static class SystemFonts
 
     private static IEnumerable<string> FileNameCandidates(string family, FontStyle style)
     {
-        var bold = (style & FontStyle.Bold) == FontStyle.Bold;
-        var italic = (style & FontStyle.Italic) == FontStyle.Italic;
+        var bold = style.HasFlag(FontStyle.Bold);
+        var italic = style.HasFlag(FontStyle.Italic);
         var styleIndex = (bold ? 1 : 0) + (italic ? 2 : 0);
 
         if (KnownFontFiles.TryGetValue(family, out var known))

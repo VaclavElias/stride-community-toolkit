@@ -1,3 +1,4 @@
+using Stride.CommunityToolkit.Rendering.Compositing;
 using Stride.Engine;
 using Stride.Graphics;
 using Stride.Rendering;
@@ -35,8 +36,8 @@ public static class GraphicsCompositorHelper2D
     /// features for opaque and transparent objects.</returns>
     public static GraphicsCompositor CreateDefault(bool enablePostEffects = false, string modelEffectName = "StrideForwardShadingEffect", CameraComponent? camera = null, Color4? clearColor = null, RenderGroupMask groupMask = RenderGroupMask.All, MultisampleCount msaa = MultisampleCount.None)
     {
-        var opaqueRenderStage = new RenderStage("Opaque", "Main") { SortMode = new StateChangeSortMode() };
-        var transparentRenderStage = new RenderStage("Transparent", "Main") { SortMode = new BackToFrontSortMode() };
+        var opaqueRenderStage = new RenderStage(RenderStageNames.Opaque, "Main") { SortMode = new StateChangeSortMode() };
+        var transparentRenderStage = new RenderStage(RenderStageNames.Transparent, "Main") { SortMode = new BackToFrontSortMode() };
 
         var singleView = new ForwardRenderer
         {

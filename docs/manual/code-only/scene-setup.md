@@ -41,7 +41,7 @@ The pieces are applied in a fixed order: the compositor, the camera and its cont
 | `PostEffects` | `null` | Configures the compositor's post effects, which are otherwise all off but the tone map: `fx => fx.Bloom.Enabled = true`. |
 | `GameSettings` | `null` | Configures the engine's `GameSettings` before the window is created: the graphics profile, the colour space, the window size. |
 | `TextOverlay` | `false` | Creates the [text overlay](../rendering/text-overlay.md), so the first section added shows at once. |
-| `Profiler` | `false` | Adds the frame-time profiler readout. |
+| `Profiler` | `false` | Starts the frame-time profiler readout on. Every setup adds the profiler script, so <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> brings it up in any scene; this shows it from the first frame. |
 | `Instancing` | `false` | Puts the instancing render feature in the compositor, so instanced masters draw from the first frame. Set through `UseInstancing()`. Without it a master draws as one model and the run loop warns. |
 | `WindowTitle` | `null` | The window's title; `null` leaves the engine's. |
 | `Resizable` | `false` | Whether the window can be resized by dragging its edges. |

@@ -20,6 +20,14 @@ The toolkit moves faster than the Stride Game Engine, so expect frequent release
 - `GameProfiler` lists its keys on the text overlay behind F1 (`HelpToggleKey`), with the current filter, sort, page and refresh rate; the list's title names the chord just used, for three seconds, since Stride's profiler text has no line of ours to say it on.
 - `InputManager.IsKeyPressedUnmodified(key)`: a key pressed with neither Ctrl nor Alt held. The text overlay, its collapsible sections and `KeyMenu` read their keys through it, so the profiler's Ctrl+F2 no longer also collapses the camera help, and Ctrl+1 to 5 do not pick a menu item.
 - `Capsule2DProceduralModel.StraightLength(height, radius)`: the straight part the mesh draws for a capsule, with its minimum sliver. The Bepu and Bullet 2D capsule colliders take their length from it, so a collider is exactly as tall as its mesh; the Bepu one used to be half the mesh's sliver for a wide capsule under one unit.
+- Every `SceneSetup` adds the `GameProfiler` script, off unless `Profiler = true`, so Ctrl+Shift+P brings the profiler up in any scene. `AddProfiler(enabled)` takes the starting state, and on a root scene that already has the script it turns it on instead of adding a second.
+- `Basic3DFollowCameraController` and `Basic3DOrbitCameraController` have `ShowHelp`, as the 2D and 3D controllers do.
+- `InputManager.IsShiftDown()`, `IsCtrlDown()` and `IsAltDown()` in `Stride.CommunityToolkit.Input`; the camera controllers and the profiler read their modifiers through them. `IsGamePadButtonPressed(button, index)` completes the gamepad button family.
+- `RenderStageNames`: the `Opaque`, `Transparent` and `Ui` stage names the toolkit's compositors create, where the helpers re-spelled the strings.
+- `SpriteTextRendererBase`: the frame `EntityTextRenderer`, `WorldTextRenderer` and `EntityInfoRenderer` share, the sprite batch, the default font, the background texture, the display scale and the per-frame camera and viewport checks. The three derive from it, and `EntityInfoRenderer` now loads its default font through the same fallback as the other two, so it draws in Game Studio's viewport.
+- `TextureCanvas` and `CreateTextureCanvas` default `size` to 1024 by 1024, so it can be left out.
+- `MeshBuilder` 16-bit indices take the whole unsigned range the GPU reads, 0 to 65,535; the limit was 32,767.
+- The four camera controllers and `GameProfiler` carry `[DataContract]`, so Game Studio lists them; the follow controller's `ObstacleTest` delegate is `[DataMemberIgnore]`.
 
 ### 🐞 Bug Fixes
 
@@ -43,6 +51,15 @@ The toolkit moves faster than the Stride Game Engine, so expect frequent release
 - Tools: the examples launcher no longer kills the next example, or logs an error, after Stop; the metadata generator's YAML inspector treats an apostrophe inside a value as text, so an unquoted `#` after a contraction is reported.
 - Tests: the overlay key tests build the overlay on a bare registry instead of a `Game` outside the serialised collection; the lock-rotation and run-on-game-thread tests pace on time, not frames.
 - `E02_3D_EasingInGame` pops the crystals in staggered, as its comment says; `E04_ImGuiNet` keeps the orbiting kinematic body awake; `E02_2D_EasingInGame`'s Space collects a coin that is still popping in, which used to need a second press.
+- `Delay`, `DelayWarped`, `ExecuteInTime`, `ExecuteInWarpedTime` and `WaitFor` throw at the call for a null script or action and a non-positive delay, instead of returning a faulted task; `ExecuteInTime` with a null action is refused rather than becoming a delay.
+- `SetMaxFPS` and `SetFocusLostFPS` throw `ArgumentException` for a game that is not a `GameBase`, as `Exit` does, instead of `InvalidCastException`.
+- `Add3DCamera`, `AddRootRenderFeature` and `AddParticleRenderer` throw `InvalidOperationException` when the game has no compositor, like the other compositor helpers, instead of a null reference; `AddGroundGizmo(showAxisName: true)` does too, where it used to leave the axis letters out silently.
+- The compositor, entity-info, render-texture (a zero size), texture-loader, system-font, camera-controller and gizmo helpers validate their arguments first, so a null fails at the call with its name; `TextOverlay.AddCollapsibleSection` refuses an empty title, which left the toggle key doing nothing; `MeshBuilder.AddIndex` on a builder without indices says so instead of "between 0 and -1"; `TextMesh` names `options` as the parameter in every range exception and the property in the message.
+- The camera controllers read the frame's `MouseDelta` for their drags instead of tracking the last cursor position, so the first frame of a drag counts; the follow controller ignores the wheel while the middle button orbits, as the other two do.
+- Per-frame work cut: `TryWorldToScreenPoint` transforms the position once, not three times; `TextureCanvas.ToTexture` copies on the GPU instead of reading the pixels back and uploading them; `ListExtensions.EnsureSize` and `SetCount` resize in one step; the text overlay builds no key string per line and measures each prefix once, its font resolver compares a struct key, `KeyNames` caches, `EntityInfoRenderer` builds its style once a frame and `PcmSoundSource` reuses its reclaim list.
+- `TextureExtensions.FindAssetSourceDir` returns an empty string when the executing assembly has no solution folder above it, where it used to search the working directory; `PolygonProceduralModel.New` validates the outline once, on the cache miss.
+- `RandomExtensions.NextSingle(Random)` is gone: `Random.NextSingle()` is the BCL's since .NET 6 and every call already bound to it.
+- Housekeeping: `GameExtensions` is split into `Run`, `Cameras`, `Lights` and `Materials` partials beside the existing two; `Camera2DMath` is `CameraMath` with the controllers' shared zoom step; the editor's axis colours, the instancing growth rule, the display-scale threshold and the bevel halving limit are each one constant; `SkyboxGenerator` spells Lambert right.
 
 ### 📄 Docs
 

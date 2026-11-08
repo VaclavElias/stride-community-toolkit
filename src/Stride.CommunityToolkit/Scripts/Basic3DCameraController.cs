@@ -15,6 +15,7 @@ namespace Stride.CommunityToolkit.Scripts;
 ///
 /// This functionality is inspired by Stride.Assets.Presentation, Assets->Scripts->Camera
 /// </remarks>
+[DataContract(nameof(Basic3DCameraController))]
 [Display("Basic 3D Camera Controller")]
 [ComponentCategory("Camera")]
 public class Basic3DCameraController : SyncScript
@@ -384,7 +385,7 @@ public class Basic3DCameraController : SyncScript
 
         // Adjust pitch. Prevent it from exceeding up and down facing. Stabilize edge cases.
         var currentPitch = MathUtil.PiOverTwo - MathF.Acos(Vector3.Dot(rotation.Forward, Vector3.UnitY));
-        _pitch = MathUtil.Clamp(currentPitch + _pitch, -MaximumPitch, MaximumPitch) - currentPitch;
+        _pitch = Math.Clamp(currentPitch + _pitch, -MaximumPitch, MaximumPitch) - currentPitch;
 
         Vector3 finalTranslation = _translation;
         finalTranslation.Z = -finalTranslation.Z;
