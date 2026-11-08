@@ -18,10 +18,10 @@ internal static class PerfMonitorHelpers
     private static readonly ProfilingKey _dummyKey = new("dummy");
 
     /// <summary>
-    /// Subscribes to Stride's profiler and keeps every event's begin and end marker in <paramref name="sortedList"/>,
-    /// in time order, until <paramref name="token"/> is cancelled. Cancelling is the normal way out, not a fault.
+    /// Subscribes to Stride's profiler and appends every event to <paramref name="incoming"/> as it ends, until
+    /// <paramref name="token"/> is cancelled. Cancelling is the normal way out, not a fault.
     /// </summary>
-    internal static async Task StartProcessingMarkers(List<PerfMonitor.EventWrapper> sortedList, CancellationToken token)
+    internal static async Task StartProcessingMarkers(List<ProfilingEvent> incoming, CancellationToken token)
     {
         var events = Profiler.Subscribe();
 
@@ -31,11 +31,7 @@ internal static class PerfMonitorHelpers
             {
                 var perfEvent = await events.ReadAsync(token);
 
-                lock (sortedList)
-                {
-                    Insert(new PerfMonitor.EventWrapper(perfEvent, true, perfEvent.TimeStamp));
-                    Insert(new PerfMonitor.EventWrapper(perfEvent, false, perfEvent.TimeStamp + perfEvent.ElapsedTime));
-                }
+                lock (incoming) incoming.Add(perfEvent);
             }
         }
         catch (OperationCanceledException)
@@ -46,63 +42,30 @@ internal static class PerfMonitorHelpers
         {
             Profiler.Unsubscribe(events);
         }
-
-        // Binary search gives the slot of an equal stamp, or the bitwise complement of where one would go
-        void Insert(PerfMonitor.EventWrapper wrapper)
-        {
-            var index = sortedList.BinarySearch(wrapper);
-
-            sortedList.Insert(index < 0 ? ~index : index, wrapper);
-        }
     }
 
     /// <summary>
-    /// Turns the frame's collected Stride profiler begin/end markers into displayable samples, or just
-    /// clears them while the monitor is paused. Depth bookkeeping and the min/max window come along verbatim.
+    /// Hands the Stride profiler events that arrived since the last frame to their strips, GPU or systems, and lets
+    /// each keep its newest complete frame, shown when <paramref name="refresh"/> is set; or just discards the
+    /// events while the monitor is paused. See <see cref="PerfMonitor.ProfilerStrip"/> for why the strips hold
+    /// events back.
     /// </summary>
-    internal static void ParseStrideProfilerEvents(
-        List<PerfMonitor.EventWrapper> sorter,
-        ref (List<PerfMonitor.SampleInstance> samples, TimeSpan start, double duration, int depth) gpu,
-        ref (List<PerfMonitor.SampleInstance> samples, TimeSpan start, double duration, int depth) stride,
-        bool pauseEval)
+    internal static void ParseStrideProfilerEvents(List<ProfilingEvent> incoming, PerfMonitor.ProfilerStrip gpu, PerfMonitor.ProfilerStrip stride, bool pauseEval, bool refresh)
     {
-        if (pauseEval)
+        lock (incoming)
         {
-            lock (sorter) sorter.Clear();
-
-            return;
-        }
-
-        TimeSpan min = TimeSpan.MaxValue, max = TimeSpan.MinValue;
-
-        stride.samples.Clear();
-        gpu.samples.Clear();
-
-        lock (sorter)
-        {
-            foreach (var e in sorter)
+            if (!pauseEval)
             {
-                ref var data = ref e.Event.IsGPUEvent() ? ref gpu : ref stride;
-
-                if (e.Begin)
-                {
-                    data.depth++;
-                    continue;
-                }
-
-                var end = e.Event.TimeStamp + e.Event.ElapsedTime;
-
-                min = min <= e.Event.TimeStamp ? min : e.Event.TimeStamp;
-                max = max > end ? max : end;
-                data.samples.Add(new PerfMonitor.SampleInstance(e.Event.Key.Name, data.depth, e.Event.TimeStamp, e.Event.ElapsedTime.TotalMilliseconds, null));
-                data.depth--;
+                foreach (var e in incoming) (e.IsGPUEvent() ? gpu : stride).Add(e);
             }
 
-            sorter.Clear();
+            incoming.Clear();
         }
 
-        if (stride.samples.Count > 0) stride = stride with { start = min, duration = (max - min).TotalMilliseconds };
-        if (gpu.samples.Count > 0) gpu = gpu with { start = min, duration = (max - min).TotalMilliseconds };
+        if (pauseEval) return;
+
+        gpu.Advance(refresh);
+        stride.Advance(refresh);
     }
 
     /// <summary>One sample as a button on its row of the strip, sized and placed by its share of the frame.</summary>
