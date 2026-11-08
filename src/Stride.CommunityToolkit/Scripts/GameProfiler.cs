@@ -1,4 +1,3 @@
-using Stride.Core;
 using Stride.Engine;
 using Stride.Input;
 using Stride.Profiling;
