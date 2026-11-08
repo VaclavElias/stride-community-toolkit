@@ -216,7 +216,8 @@ IReadOnlyList<TextElement> BuildOverlayLines() =>
     new("Right drag", "Swing the camera round", Color.Gold),
     new("Mouse wheel", "Closer or further", Color.Gold),
     new(""),
-    new("Walk behind a pillar or down a step: the camera comes forward", Color.White),
+    new("Walk behind a pillar or down a step:", Color.White),
+    new("the camera comes forward", Color.White),
 ];
 
 /*
