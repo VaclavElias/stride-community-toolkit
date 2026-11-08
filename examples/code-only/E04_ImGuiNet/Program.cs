@@ -55,6 +55,8 @@ game.Run(new SceneSetup3D
 
 void Start(Scene rootScene)
 {
+    game.AddGrabber();
+
     imGuiSystem = game.AddImGuiNet();
 
     orbitingCube = CreateOrbitingCube(rootScene);
