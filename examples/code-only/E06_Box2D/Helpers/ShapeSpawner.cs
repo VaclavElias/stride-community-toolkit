@@ -106,7 +106,7 @@ public sealed class ShapeSpawner(Scene scene, Box2DSimulation simulation, ShapeF
 
     private B2BodyId AttachBody(Shape2DModel shapeModel, Entity entity)
     {
-        var bodyId = simulation.CreateDynamicBody(entity, entity.Transform.Position);
+        var bodyId = simulation.CreateDynamicBody(entity, entity.Transform.Position.XY());
 
         ShapeFixtureBuilder.AttachShape(shapeModel.Type, bodyId, DefaultShapeDef());
 

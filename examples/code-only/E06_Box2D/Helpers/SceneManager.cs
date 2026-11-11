@@ -72,7 +72,7 @@ public class SceneManager
         // One shape with no gravity, so it hangs where it was put
         var shape = ShapeFactory.Rectangle;
         var entity = _shapeFactory.CreateEntity(shape, position: new Vector2(0, 2));
-        var bodyId = _simulation.CreateDynamicBody(entity, entity.Transform.Position);
+        var bodyId = _simulation.CreateDynamicBody(entity, entity.Transform.Position.XY());
 
         b2Body_SetGravityScale(bodyId, 0);
 
@@ -85,7 +85,7 @@ public class SceneManager
     {
         // Junkyard-style yard: one static body carrying rows of slightly overlapping squares,
         // each square also an entity drawn by a ShapeComponent
-        var groundId = _simulation.CreateStaticBody(Vector3.Zero);
+        var groundId = _simulation.CreateStaticBody(Vector2.Zero);
         var shapeDef = ShapeSpawner.DefaultShapeDef();
 
         for (var i = 0; i <= 50; i++)

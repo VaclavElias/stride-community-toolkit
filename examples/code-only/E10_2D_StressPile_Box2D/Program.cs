@@ -136,7 +136,7 @@ void CreateWall(Vector3 position, Vector3 size, float rotation = 0f)
     wall.Transform.Rotation = Quaternion.RotationZ(rotation);
     wall.Scene = scene;
 
-    var bodyId = simulation.CreateStaticBody(wall, position, rotation);
+    var bodyId = simulation.CreateStaticBody(wall, position.XY(), rotation);
 
     ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(size.X, size.Y), bodyId);
 }
@@ -308,11 +308,10 @@ void Spawn(Vector3 position)
     // No ModelComponent: the master draws the entity
     var entity = new Entity("InstancedItem");
 
-    var bodyId = simulation.CreateDynamicBody(entity, position);
+    var bodyId = simulation.CreateDynamicBody(entity, position.XY());
     ShapeFixtureBuilder.AttachShape(FixtureFor(shape), bodyId, pileShapeDef);
 
     // The instancing reads this component to skip all its work while every body is asleep
-    entity.Add(new Box2DBodyComponent { BodyId = bodyId });
 
     entity.Transform.Position = position;
 

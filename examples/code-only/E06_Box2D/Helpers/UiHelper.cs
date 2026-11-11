@@ -74,7 +74,7 @@ public class UiHelper
 
         if (_simulation is { } simulation)
         {
-            lines.Add(new($"Gravity {simulation.Gravity.Y:0.0}, time scale {simulation.TimeScale:0.00}", Color.LightGreen));
+            lines.Add(new($"Gravity {simulation.Gravity.Y:0.0}, time scale {simulation.Settings.TimeScale:0.00}", Color.LightGreen));
             lines.Add(new(simulation.Enabled ? "Simulation enabled" : "Simulation disabled", simulation.Enabled ? Color.LightGreen : Color.OrangeRed));
         }
 

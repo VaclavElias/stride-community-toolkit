@@ -109,7 +109,7 @@ void Start(Scene scene)
 B2BodyId BuildGround(string path, Vector2 bodyPosition, Vector2 svgOffset)
 {
     var local = SvgPath2D.Parse(path, svgOffset, Scale);
-    var body = simulation.CreateStaticBody(new Vector3(bodyPosition, 0));
+    var body = simulation.CreateStaticBody(bodyPosition);
 
     ShapeFixtureBuilder.AttachChain(local, body, isLoop: true);
     terrain.Add([.. local.Select(p => p + bodyPosition)]);
@@ -131,10 +131,9 @@ void BuildBridge(Scene scene, B2BodyId ground1, B2BodyId ground2)
         var centre = new Vector2(BridgeStart + 0.5f + i, BridgeHeight);
         var entity = Spawn(scene, "Plank", new ShapeComponent { Vertices = [.. plank], Color = Color.RoyalBlue }, centre);
 
-        var body = simulation.CreateDynamicBody(entity, new Vector3(centre, 0));
+        var body = simulation.CreateDynamicBody(entity, centre);
         b2Body_SetAngularDamping(body, 0.2f);
         ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(1f, 0.25f), body);
-        entity.Add(new Box2DBodyComponent { BodyId = body });
 
         simulation.Joints.CreateRevolute(previous, body, new Vector2(BridgeStart + i, BridgeHeight), options);
         previous = body;
@@ -150,7 +149,7 @@ void BuildFriend(Scene scene)
     var position = new Vector2(32, 4.5f);
     var entity = Spawn(scene, "Friend", new ShapeComponent { Vertices = [new(0, -0.5f), new(0, 0.5f)], Radius = 0.3f, Color = Color.PaleGreen }, position);
 
-    var body = simulation.CreateStaticBody(entity, new Vector3(position, 0));
+    var body = simulation.CreateStaticBody(entity, position);
     var def = b2DefaultShapeDef();
     def.filter = new B2Filter(CharacterMover2D.MoverCategory, ulong.MaxValue, 0);
     var capsule = new B2Capsule(new B2Vec2(0, -0.5f), new B2Vec2(0, 0.5f), 0.3f);
@@ -164,14 +163,13 @@ void BuildBall(Scene scene)
 {
     var entity = Spawn(scene, "Ball", new ShapeComponent { Vertices = [Vector2.Zero], Radius = 0.3f, Color = Color.Goldenrod }, ballStart);
 
-    ballBody = simulation.CreateDynamicBody(entity, new Vector3(ballStart, 0));
+    ballBody = simulation.CreateDynamicBody(entity, ballStart);
     var def = b2DefaultShapeDef();
     def.filter = new B2Filter(CharacterMover2D.DebrisCategory, ulong.MaxValue, 0);
     // Bouncy, with a little rolling resistance so it settles.
     def.material.restitution = 0.7f;
     def.material.rollingResistance = 0.2f;
     ShapeFixtureBuilder.AttachShape(Primitive2D.Circle(0.3f), ballBody, def);
-    entity.Add(new Box2DBodyComponent { BodyId = ballBody });
 }
 
 // A kinematic platform in the dynamic category, rigid to the mover: a push limit of ten
@@ -182,14 +180,13 @@ void BuildElevator(Scene scene)
     Vector2[] slab = [new(-2, -0.1f), new(2, -0.1f), new(2, 0.1f), new(-2, 0.1f)];
     var entity = Spawn(scene, "Elevator", new ShapeComponent { Vertices = [.. slab], Color = Color.Plum }, start);
 
-    var body = simulation.CreateKinematicBody(entity, new Vector3(start, 0));
+    var body = simulation.CreateKinematicBody(entity, start);
     var def = b2DefaultShapeDef();
     def.filter = new B2Filter(CharacterMover2D.DynamicCategory, ulong.MaxValue, 0);
     var box = b2MakeBox(2f, 0.1f);
     var shape = b2CreatePolygonShape(body, in def, in box);
 
     CharacterMover2D.SetResponse(shape, maxPush: 0.1f, clipVelocity: true);
-    entity.Add(new Box2DBodyComponent { BodyId = body });
 
     simulation.RegisterSimulationUpdate(new Elevator(body, elevatorBase, ElevatorAmplitude));
 }

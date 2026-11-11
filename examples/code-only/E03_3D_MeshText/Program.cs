@@ -49,7 +49,7 @@ void Start(Scene scene)
 
     // The base scene's single directional light shines from behind this gallery, leaving the front
     // caps in the dark. Six lights down the six world axes make solid lettering read from any side
-    game.AddAllDirectionLighting(intensity: 20f, showLightGizmo: false);
+    game.AddAllDirectionsLighting(intensity: 20f, showLightGizmo: false);
 
     var gold = game.CreateMaterial(Color.Gold);
     var silver = game.CreateMaterial(new Color(210, 215, 225));
@@ -175,7 +175,7 @@ concepts:
   - TextMeshOptions - size per EM, depth, bevel, anchor, alignment, line spacing, curve quality
   - Words as primitives with bodies - Primitive3D.Text through CreatePrimitive, one convex hull per glyph
   - Static lettering built once versus text that changes, and releasing the old buffers
-  - "Using helpers: SceneSetup3D, AddAllDirectionLighting, CreatePrimitive, TextOverlay"
+  - "Using helpers: SceneSetup3D, AddAllDirectionsLighting, CreatePrimitive, TextOverlay"
 tags:
   - 3D
   - Text

@@ -115,7 +115,7 @@ void Start(Scene rootScene)
 /// </summary>
 void CreateGround(Scene scene)
 {
-    var groundId = simulation.CreateStaticBody(Vector3.Zero);
+    var groundId = simulation.CreateStaticBody(Vector2.Zero);
     var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
 
     var floorSquare = ShapeComponent.Box(new Vector2(1.1f * GridSize, GridSize));
@@ -169,7 +169,7 @@ void CreateSensorGate(Scene scene)
     entity.Transform.Position = new Vector3(0, 22, 0);
     entity.Scene = scene;
 
-    var bodyId = simulation.CreateStaticBody(entity, new Vector3(0, 22, 0));
+    var bodyId = simulation.CreateStaticBody(entity, new Vector2(0, 22));
 
     var sensorDef = ShapeFixtureBuilder.CreateCustomShapeDef(1f, 0.6f, 0f, isSensor: true);
     sensorDef.enableSensorEvents = true;
@@ -187,7 +187,7 @@ void CreatePusher(Scene scene)
 
     entity.Scene = scene;
 
-    var pusherId = simulation.CreateKinematicBody(entity, Vector3.Zero);
+    var pusherId = simulation.CreateKinematicBody(entity, Vector2.Zero);
 
     var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
     var pusherBox = b2MakeOffsetBox(2.0f, 4.0f, new B2Vec2(0.0f, 4.0f), b2Rot_identity);
@@ -238,14 +238,13 @@ void Spawn(Scene scene, ShapeDefinition definition, Vector2 position)
     var component = new ShapeComponent { Vertices = [.. definition.Vertices], Radius = definition.Radius, Color = pink };
     var entity = new Entity("Shape") { component };
 
-    var bodyId = simulation.CreateDynamicBody(entity, new Vector3(position.X, position.Y, 0));
+    var bodyId = simulation.CreateDynamicBody(entity, position);
 
     var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
     shapeDef.enableSensorEvents = true;
 
     AttachCollider(definition, bodyId, shapeDef);
 
-    entity.Add(new Box2DBodyComponent { BodyId = bodyId });
     entity.Transform.Position = new Vector3(position.X, position.Y, 0);
     entity.Scene = scene;
 
@@ -417,19 +416,22 @@ public sealed class SensorWatcher : ISensorEventHandler
 
     public void OnSensorEvent(SensorEventData eventData)
     {
+        // A body made without an entity has none to count; every shape dropped here has one
+        if (eventData.VisitorEntity is not { } visitor) return;
+
         if (eventData.Type == SensorEventType.BeginTouch)
         {
-            _inside[eventData.VisitorEntity] = _inside.GetValueOrDefault(eventData.VisitorEntity) + 1;
+            _inside[visitor] = _inside.GetValueOrDefault(visitor) + 1;
         }
-        else if (_inside.TryGetValue(eventData.VisitorEntity, out var depth))
+        else if (_inside.TryGetValue(visitor, out var depth))
         {
             if (depth <= 1)
             {
-                _inside.Remove(eventData.VisitorEntity);
+                _inside.Remove(visitor);
             }
             else
             {
-                _inside[eventData.VisitorEntity] = depth - 1;
+                _inside[visitor] = depth - 1;
             }
         }
     }

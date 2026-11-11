@@ -218,7 +218,7 @@ void Update(Scene scene, GameTime time)
         var eye = viewpoints[viewpoint];
 
         camera.Position = flight.Lerp(flightFrom, eye);
-        camera.Rotation = flight.Slerp(flightFromRotation, MathUtilEx.LookRotation(eye, lookTarget, Vector3.UnitY));
+        camera.Rotation = flight.Slerp(flightFromRotation, QuaternionUtil.LookAt(eye, lookTarget));
 
         if (flight.IsComplete) flight.Reset();
     }
@@ -278,7 +278,7 @@ void LookFrom(Vector3 eye)
     var camera = game.GetCameraEntity().Transform;
 
     camera.Position = eye;
-    camera.Rotation = MathUtilEx.LookRotation(eye, lookTarget, Vector3.UnitY);
+    camera.Rotation = QuaternionUtil.LookAt(eye, lookTarget);
 }
 
 IReadOnlyList<TextElement> BuildOverlayLines() =>

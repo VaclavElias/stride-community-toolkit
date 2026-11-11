@@ -62,8 +62,8 @@ void ConfigurePhysicsWorld()
     simulation.EnableContactEvents = true;
     simulation.EnableSensorEvents = true;
 
-    simulation.TimeScale = 1.0f;
-    simulation.MaxStepsPerFrame = 3;
+    simulation.Settings.TimeScale = 1.0f;
+    simulation.Settings.MaxStepsPerFrame = 3;
 }
 /*
 ---example-metadata

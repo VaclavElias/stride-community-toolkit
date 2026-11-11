@@ -82,7 +82,7 @@ void Start(Scene rootScene)
 
     // The testbed steps once per rendered frame, with no catch-up; the default three catch-up steps
     // would only deepen the slow motion on a loaded machine.
-    simulation.MaxStepsPerFrame = 1;
+    simulation.Settings.MaxStepsPerFrame = 1;
 
     // Left mouse picks a rock up and throws it - the one interaction the replica adds to the testbed
     game.AddGrabber2D(simulation);
@@ -103,7 +103,7 @@ void Start(Scene rootScene)
 /// </summary>
 void CreateGround()
 {
-    var groundId = simulation.CreateStaticBody(Vector3.Zero);
+    var groundId = simulation.CreateStaticBody(Vector2.Zero);
     var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
 
     var y = 0.0f;
@@ -155,7 +155,7 @@ void SpawnRocks()
             var position = new Vector3(x + side, y, 0);
             side = -side;
 
-            var bodyId = simulation.CreateDynamicBody(position);
+            var bodyId = simulation.CreateDynamicBody(position.XY());
 
             ShapeFixtureBuilder.AttachPolygon(pentagon, bodyId);
 
@@ -171,7 +171,7 @@ void SpawnRocks()
 /// </summary>
 void CreatePusher()
 {
-    pusherId = simulation.CreateKinematicBody(Vector3.Zero);
+    pusherId = simulation.CreateKinematicBody(Vector2.Zero);
 
     var shapeDef = ShapeFixtureBuilder.CreateDefaultShapeDef();
     var pusherBox = b2MakeOffsetBox(2.0f, 4.0f, new B2Vec2(0.0f, 4.0f), b2Rot_identity);

@@ -243,7 +243,7 @@ void Ground(Scene scene)
     entity.Scene = scene;
     spawned.Add(entity);
 
-    var body = simulation.CreateStaticBody(entity, new Vector3(0, -0.5f, 0));
+    var body = simulation.CreateStaticBody(entity, new Vector2(0, -0.5f));
     ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(48, 1), body);
 }
 
@@ -254,7 +254,7 @@ Entity StaticBox(Scene scene, Vector2 centre, Vector2 size)
     entity.Scene = scene;
     spawned.Add(entity);
 
-    var body = simulation.CreateStaticBody(entity, new Vector3(centre, 0));
+    var body = simulation.CreateStaticBody(entity, centre);
     ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(size.X, size.Y), body);
 
     return entity;
@@ -267,9 +267,8 @@ Entity DynamicBox(Scene scene, Vector2 centre, Vector2 size, Color color)
     entity.Scene = scene;
     spawned.Add(entity);
 
-    var body = simulation.CreateDynamicBody(entity, new Vector3(centre, 0));
+    var body = simulation.CreateDynamicBody(entity, centre);
     ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(size.X, size.Y), body);
-    entity.Add(new Box2DBodyComponent { BodyId = body });
 
     return entity;
 }
@@ -281,9 +280,8 @@ Entity DynamicCircle(Scene scene, Vector2 centre, float radius, Color color)
     entity.Scene = scene;
     spawned.Add(entity);
 
-    var body = simulation.CreateDynamicBody(entity, new Vector3(centre, 0));
+    var body = simulation.CreateDynamicBody(entity, centre);
     ShapeFixtureBuilder.AttachShape(Primitive2D.Circle(radius), body);
-    entity.Add(new Box2DBodyComponent { BodyId = body });
 
     return entity;
 }

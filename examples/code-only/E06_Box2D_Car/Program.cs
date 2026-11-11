@@ -113,7 +113,7 @@ void BuildTerrain()
     points.Reverse();
     terrain = [.. points];
 
-    var ground = simulation.CreateStaticBody(Vector3.Zero);
+    var ground = simulation.CreateStaticBody(Vector2.Zero);
     ShapeFixtureBuilder.AttachChain(terrain, ground, friction: 0.6f);
 }
 
@@ -144,9 +144,8 @@ void SpawnCar(Scene scene, Vector2 position)
     chassis.Scene = scene;
     spawned.Add(chassis);
 
-    chassisBody = simulation.CreateDynamicBody(chassis, new Vector3(chassisPosition, 0));
+    chassisBody = simulation.CreateDynamicBody(chassis, chassisPosition);
     b2CreatePolygonShape(chassisBody, in chassisDef, in chassisShape);
-    chassis.Add(new Box2DBodyComponent { BodyId = chassisBody });
 
     // The wheels: heavy, grippy, with rolling resistance so the car does not coast forever.
     var wheelDef = ShapeFixtureBuilder.CreateCustomShapeDef(2f / Scale, 1.5f, 0f);
@@ -186,9 +185,8 @@ B2BodyId Wheel(Scene scene, Vector2 centre, B2ShapeDef shapeDef)
     entity.Scene = scene;
     spawned.Add(entity);
 
-    var body = simulation.CreateDynamicBody(entity, new Vector3(centre, 0));
+    var body = simulation.CreateDynamicBody(entity, centre);
     ShapeFixtureBuilder.AttachShape(Primitive2D.Circle(radius), body, shapeDef);
-    entity.Add(new Box2DBodyComponent { BodyId = body });
 
     return body;
 }

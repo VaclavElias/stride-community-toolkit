@@ -104,7 +104,7 @@ description:
     any other and look flat without one.
 concepts:
   - Both debug views on one entity with AddPhysicsDebug, the colliders on P and the debug meshes on F11
-  - Why one entity is enough, since CollidableGizmoScript and DebugRenderComponentScript act on the whole scene
+  - Why one entity is enough, since CollidableGizmoScript and DebugRenderComponent act on the whole scene
   - Lighting a 2D scene with a LightSpot
   - Giving each shape its own colour with a flat material
   - "Using helpers: SceneSetup2D, CreatePrimitive, CreateFlatMaterial, AddPhysicsDebug, AddGrabber"

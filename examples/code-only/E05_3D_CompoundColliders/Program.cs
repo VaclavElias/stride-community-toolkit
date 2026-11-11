@@ -126,7 +126,7 @@ Rig AddCompound(Scene scene, string name, Piece[] pieces, Vector3 position)
 
     foreach (var piece in pieces)
     {
-        var collider = Stride.CommunityToolkit.Bepu.EntityExtensions.ColliderFor(piece.Shape);
+        var collider = Colliders.For(piece.Shape);
 
         collider.PositionLocal = piece.Position;
         collider.RotationLocal = piece.Rotation;
@@ -242,7 +242,7 @@ concepts:
   - The body's mass as the sum, and CenterOfMass where the masses put it
   - Models as child entities of the body, so one transform moves the lot
   - The same pieces as separate bodies for the contrast
-  - "Using helpers: SceneSetup3D, UseBepu, UseSkybox, CreatePrimitive, ColliderFor, CreateMaterial, TeleportAtRest, ShapeBatch, TextOverlay"
+  - "Using helpers: SceneSetup3D, UseBepu, UseSkybox, CreatePrimitive, Colliders.For, CreateMaterial, TeleportAtRest, ShapeBatch, TextOverlay"
 tags:
   - 3D
   - Physics
