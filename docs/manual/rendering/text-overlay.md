@@ -108,17 +108,16 @@ picked by `FontFamily`:
 The first family found in the system font folders wins. Monospace is the default so that columns
 line up and a number does not shift its neighbours as its digits change.
 
-To be specific rather than pick a family:
+To be specific rather than pick a family, load the font yourself and set `Font`:
 
-- `FontName = "Cascadia Mono"` names an installed family; `FontStyle` chooses `Regular`, `Bold`,
-  `Italic` or `BoldItalic`.
-- `FontFile = "/path/to/font.ttf"` points at a file that is not in the system font folders.
-- `Font = someSpriteFont` supplies a font asset of your own and overrides all of the above.
-- When none of the candidates is installed, or the named font fails to load, the overlay falls back to
-  Stride's default font and logs one warning naming the fonts tried.
+- `Font = game.LoadSystemFont("Cascadia Mono", 14, FontStyle.Bold)` names an installed family and a
+  weight; the last argument takes the path of a TrueType file that is not in the system font folders.
+- `Font = someSpriteFont` supplies a font asset of your own; either way `Font` overrides `FontFamily`.
+- When none of the family's candidates is installed, the overlay falls back to Stride's default font
+  and logs one warning naming the fonts tried.
 
 The lookup finds files by the common naming conventions (`consola.ttf`, `LiberationMono-Regular.ttf`,
-`DejaVuSansMono.ttf`); it does not consult fontconfig, so an unusually named file needs `FontFile`.
+`DejaVuSansMono.ttf`); it does not consult fontconfig, so an unusually named file needs the file path.
 
 ## Background
 

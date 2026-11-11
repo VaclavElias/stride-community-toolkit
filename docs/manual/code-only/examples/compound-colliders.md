@@ -16,7 +16,7 @@ The `Program.cs` file shows how to:
 - The body's mass as the sum, and CenterOfMass where the masses put it
 - Models as child entities of the body, so one transform moves the lot
 - The same pieces as separate bodies for the contrast
-- Using helpers: SceneSetup3D, UseBepu, UseSkybox, CreatePrimitive, ColliderFor, CreateMaterial, TeleportAtRest, ShapeBatch, TextOverlay
+- Using helpers: SceneSetup3D, UseBepu, UseSkybox, CreatePrimitive, Colliders.For, CreateMaterial, TeleportAtRest, ShapeBatch, TextOverlay
 
 ![Compound Colliders](media/compound-colliders.webp)
 

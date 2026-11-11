@@ -73,7 +73,7 @@ All off unless stated, and all plain properties on the script:
   for levels with an edge.
 - **`EnableScreenEdgeMovement`** (`ScreenEdgeBorderWidth` 10 px) - RTS-style panning when the
   cursor sits at a window edge.
-- **`FollowTarget`** (`FollowOffset`, `FollowSmoothing` 5) - tracks an entity; while set, the
+- **`FollowTarget`** (`FollowOffset`, `FollowSmoothing` 0.12 s) - tracks an entity; while set, the
   manual movement controls are ignored, though zoom, bounds and reset still work.
 
 ### Changing settings after setup

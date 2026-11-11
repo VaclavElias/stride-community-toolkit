@@ -20,7 +20,7 @@ The pieces are applied in a fixed order: the compositor, the camera and its cont
 | Call | What it does |
 |---|---|
 | `game.Run(setup, start: Start, update: Update)` | Applies `setup`, runs `start` once with the root scene, then `update` every frame. `start` may be `async`. |
-| `game.Run(start: Start)` | The same with `SceneSetup3D.Default`. |
+| `game.Run(start: Start)` | The same with a default `new SceneSetup3D()`. |
 | `game.Run(SceneSetup.None, start: Start)` | Adds nothing to the scene: for a game that builds its compositor and scene by hand, and for headless tests. What is not scene still applies when set - the physics engine, game settings, DPI awareness, window title, resizing, instancing, overlay and profiler - so `SceneSetup.None.UseBepu()` is a hand-built scene whose primitives get Bepu bodies. |
 
 `DpiAware`, `GameSettings` and `Physics` are applied before the engine starts, because they must be in place before the window and the engine's systems are created; everything else once the root scene exists. See [`Run`](xref:Stride.CommunityToolkit.Engine.GameExtensions.Run(Stride.Engine.Game,Stride.CommunityToolkit.Engine.SceneSetup,System.Action{Stride.Engine.Scene},System.Action{Stride.Engine.Scene,Stride.Games.GameTime},Stride.Games.GameContext)).

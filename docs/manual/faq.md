@@ -308,7 +308,7 @@ processing time each frame, even when they are culled. See the
 
 ### How do I save a screenshot?
 
-Call [`TakeScreenShot`](game-extensions/index.md).
+Call [`TakeScreenshot`](game-extensions/index.md).
 
 ### Does Stride have LOD, terrain, tile maps or baked lighting?
 

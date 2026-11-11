@@ -5,14 +5,14 @@ slug: debug-render-component
 
 # Debug Render Component
 
-The companion to the collidable gizmo: DebugRenderComponentScript draws the wireframe of every
-entity's mesh rather than its collider, from one script on an empty entity. Having both on the same scene is how you tell the two apart -
+The companion to the collidable gizmo: Bepu's own DebugRenderComponent draws the wireframe of every
+entity's mesh rather than its collider, from one component on an empty entity. Having both on the same scene is how you tell the two apart -
 when a body behaves oddly, the question is usually whether the mesh and the collider agree, and each
 script answers one half of that.
 
 The `Program.cs` file shows how to:
 
-- Drawing every entity's mesh as a wireframe overlay, from one script on an empty entity
+- Drawing every entity's mesh as a wireframe overlay, from one engine component on an empty entity
 - How this differs from CollidableGizmoScript, which draws the collider
 - Toggling the overlay with its Visible property
 - Comparing mesh against collider when a body misbehaves
