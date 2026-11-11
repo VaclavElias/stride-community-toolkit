@@ -16,7 +16,7 @@ internal static class Box2DFixtures
     /// <summary>A unit box, dynamic, so it has mass and a joint has something to hold.</summary>
     internal static B2BodyId Box(Box2DSimulation simulation, Vector3 position)
     {
-        var body = simulation.CreateDynamicBody(position);
+        var body = simulation.CreateDynamicBody(position.XY());
 
         b2CreatePolygonShape(body, b2DefaultShapeDef(), b2MakeBox(0.5f, 0.5f));
 
@@ -26,7 +26,7 @@ internal static class Box2DFixtures
     /// <summary>A static box at <paramref name="position"/>, with the half extents and category bits given.</summary>
     internal static B2BodyId StaticBox(Box2DSimulation simulation, Vector2 position, float halfWidth, float halfHeight, ulong categoryBits)
     {
-        var body = simulation.CreateStaticBody(new Vector3(position, 0));
+        var body = simulation.CreateStaticBody(position);
         var def = b2DefaultShapeDef();
         def.filter.categoryBits = categoryBits;
         var box = b2MakeBox(halfWidth, halfHeight);

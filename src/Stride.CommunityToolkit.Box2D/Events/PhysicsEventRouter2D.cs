@@ -41,7 +41,7 @@ public sealed class PhysicsEventRouter2D
     /// Reads this step's contact events from the world and dispatches them to registered handlers.
     /// </summary>
     /// <param name="worldId">The world to read events from.</param>
-    /// <param name="entityResolver">Maps a body id to its entity; events with unresolved entities are dropped.</param>
+    /// <param name="entityResolver">Maps a body id to its entity, or to <see langword="null"/> for a body without one; every event is dispatched either way.</param>
     /// <param name="enableContactEvents">Whether begin/end touch events are dispatched.</param>
     /// <param name="enableHitEvents">Whether hit (impact) events are dispatched.</param>
     public void ProcessContacts(B2WorldId worldId, Func<B2BodyId, Entity?> entityResolver, bool enableContactEvents, bool enableHitEvents)
@@ -81,7 +81,7 @@ public sealed class PhysicsEventRouter2D
     /// Reads this step's sensor events from the world and dispatches them to registered handlers.
     /// </summary>
     /// <param name="worldId">The world to read events from.</param>
-    /// <param name="entityResolver">Maps a body id to its entity; events with unresolved entities are dropped.</param>
+    /// <param name="entityResolver">Maps a body id to its entity, or to <see langword="null"/> for a body without one; every event is dispatched either way.</param>
     /// <param name="enableSensorEvents">Whether sensor events are dispatched.</param>
     public void ProcessSensors(B2WorldId worldId, Func<B2BodyId, Entity?> entityResolver, bool enableSensorEvents)
     {
@@ -104,12 +104,10 @@ public sealed class PhysicsEventRouter2D
         }
     }
 
-    // Both bodies must belong to an entity, or the event is dropped
+    // A body without an entity, a ground made from a position alone, still takes part: its side is null
     private void Dispatch(Func<B2BodyId, Entity?> entityResolver, B2ShapeId shapeIdA, B2ShapeId shapeIdB, ContactEventType type, Vector2 point, Vector2 normal, float approachSpeed)
     {
-        if (entityResolver(b2Shape_GetBody(shapeIdA)) is not { } entityA || entityResolver(b2Shape_GetBody(shapeIdB)) is not { } entityB) return;
-
-        var data = new ContactEventData(type, entityA, entityB, shapeIdA, shapeIdB, point, normal, approachSpeed);
+        var data = new ContactEventData(type, entityResolver(b2Shape_GetBody(shapeIdA)), entityResolver(b2Shape_GetBody(shapeIdB)), shapeIdA, shapeIdB, point, normal, approachSpeed);
 
         // Backwards by index, so a handler may unregister from inside its callback
         for (var i = _contactHandlers.Count - 1; i >= 0; i--) _contactHandlers[i].OnContactEvent(data);
@@ -117,9 +115,7 @@ public sealed class PhysicsEventRouter2D
 
     private void Dispatch(Func<B2BodyId, Entity?> entityResolver, B2ShapeId sensorShape, B2ShapeId visitorShape, SensorEventType type)
     {
-        if (entityResolver(b2Shape_GetBody(sensorShape)) is not { } sensor || entityResolver(b2Shape_GetBody(visitorShape)) is not { } visitor) return;
-
-        var data = new SensorEventData(type, sensor, visitor, sensorShape, visitorShape);
+        var data = new SensorEventData(type, entityResolver(b2Shape_GetBody(sensorShape)), entityResolver(b2Shape_GetBody(visitorShape)), sensorShape, visitorShape);
 
         for (var i = _sensorHandlers.Count - 1; i >= 0; i--) _sensorHandlers[i].OnSensorEvent(data);
     }

@@ -1,7 +1,6 @@
 using Box2D.NET;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Stride.CommunityToolkit.Box2D;
 
@@ -77,16 +76,14 @@ public sealed class SimulationJoints2D
 
     // Destroy, IsValid and GetAnchors need no world id, so they could be static; they stay instance
     // members so that simulation.Joints is the one place a caller reaches every joint operation.
+    // The root .editorconfig turns CA1822 off for this file for that reason.
     /// <inheritdoc cref="Joints2D.Destroy"/>
-    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Part of the simulation.Joints facade; a static member would send the caller to Joints2D for the same call.")]
     public void Destroy(B2JointId joint, bool wakeBodies = true) => Joints2D.Destroy(joint, wakeBodies);
 
     /// <inheritdoc cref="Joints2D.IsValid"/>
-    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Part of the simulation.Joints facade; a static member would send the caller to Joints2D for the same call.")]
     public bool IsValid(B2JointId joint) => Joints2D.IsValid(joint);
 
     /// <inheritdoc cref="Joints2D.GetAnchors"/>
-    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Part of the simulation.Joints facade; a static member would send the caller to Joints2D for the same call.")]
     public (Vector2 A, Vector2 B) GetAnchors(B2JointId joint) => Joints2D.GetAnchors(joint);
 
     private B2BodyId Body(Entity entity)

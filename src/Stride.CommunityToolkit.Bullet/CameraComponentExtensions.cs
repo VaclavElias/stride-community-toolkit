@@ -28,20 +28,6 @@ public static class CameraComponentExtensions
         => camera.Raycast(component, component.Input.MousePosition, collisionGroups, collisionFilterGroupFlags);
 
     /// <summary>
-    /// Performs a raycasting operation from the specified <see cref="CameraComponent"/>'s position through a specified screen position,
-    /// using the provided <see cref="Simulation"/>, and returns information about the hit result.
-    /// </summary>
-    /// <param name="camera">The <see cref="CameraComponent"/> from which the ray should be cast.</param>
-    /// <param name="simulation">The <see cref="Simulation"/> used to perform the raycasting operation.</param>
-    /// <param name="screenPosition">The screen position, normalised from (0, 0) top left to (1, 1) bottom right, as <c>Input.MousePosition</c> gives it.</param>
-    /// <param name="collisionGroups">Optional. The collision filter group to consider during the raycasting. Default is <see cref="CollisionFilterGroups.DefaultFilter"/>.</param>
-    /// <param name="collisionFilterGroupFlags">Optional. The collision filter group flags to consider during the raycasting. Default is <see cref="CollisionFilterGroupFlags.DefaultFilter"/>.</param>
-    /// <returns>A <see cref="HitResult"/> containing information about the hit result, including the hit location and other collision data.</returns>
-    [Obsolete("Use Raycast(simulation, screenPosition, ...): the same cast, under a name that does not say mouse for a position that can be any screen point. This method will be removed in a later release.")]
-    public static HitResult RaycastMouse(this CameraComponent camera, Simulation simulation, Vector2 screenPosition, CollisionFilterGroups collisionGroups = CollisionFilterGroups.DefaultFilter, CollisionFilterGroupFlags collisionFilterGroupFlags = CollisionFilterGroupFlags.DefaultFilter)
-        => camera.Raycast(simulation, screenPosition, collisionGroups, collisionFilterGroupFlags);
-
-    /// <summary>
     /// Performs a raycasting operation from the specified <see cref="CameraComponent"/>'s position through the specified normalised screen position,
     /// using the <see cref="Simulation"/> from the specified <see cref="ScriptComponent"/>, and returns information about the hit result.
     /// </summary>

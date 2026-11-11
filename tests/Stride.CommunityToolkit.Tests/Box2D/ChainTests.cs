@@ -23,7 +23,7 @@ public class ChainTests
     public void AttachChain_CreatesOneSegmentPerEdge()
     {
         using var simulation = new Box2DSimulation();
-        var ground = simulation.CreateStaticBody(Vector3.Zero);
+        var ground = simulation.CreateStaticBody(Vector2.Zero);
 
         var chain = ShapeFixtureBuilder.AttachChain([new(-5, 0), new(0, 0), new(5, 1), new(10, 1)], ground);
 
@@ -34,7 +34,7 @@ public class ChainTests
     public void AttachChain_ListedRightToLeft_HoldsABodyUp()
     {
         using var simulation = new Box2DSimulation();
-        var ground = simulation.CreateStaticBody(Vector3.Zero);
+        var ground = simulation.CreateStaticBody(Vector2.Zero);
 
         // A chain collides on the right of its direction of travel: a floor runs right to left.
         ShapeFixtureBuilder.AttachChain([new(20, 0), new(-20, 0)], ground);
@@ -52,7 +52,7 @@ public class ChainTests
     public void AttachChain_RefusesTooFewPoints()
     {
         using var simulation = new Box2DSimulation();
-        var ground = simulation.CreateStaticBody(Vector3.Zero);
+        var ground = simulation.CreateStaticBody(Vector2.Zero);
 
         Assert.Throws<ArgumentException>(() => ShapeFixtureBuilder.AttachChain([new(0, 0)], ground));
         Assert.Throws<ArgumentException>(() => ShapeFixtureBuilder.AttachChain([new(0, 0), new(1, 0), new(1, 1)], ground, isLoop: true));

@@ -27,7 +27,7 @@ internal sealed class Text3DScene : IGoldScene
 
         // The setup's one light shines from behind the lettering and leaves the caps black; six lights
         // down the world axes light solids from every side, as the example does
-        game.AddAllDirectionLighting(intensity: 20f, showLightGizmo: false);
+        game.AddAllDirectionsLighting(intensity: 20f, showLightGizmo: false);
 
         GoldSetup.AddGround(game, scene);
 

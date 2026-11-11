@@ -18,7 +18,7 @@ public sealed record LightingSetup(LightingRig Rig, float Intensity, bool Shadow
     /// <summary>The key, fill and rim lights of <see cref="GameExtensions.AddStudioLighting"/>.</summary>
     public static LightingSetup Studio(float intensity = 15f, float yawDegrees = 45f, bool shadows = true) => new(LightingRig.Studio, intensity, shadows, yawDegrees);
 
-    /// <summary>Six lights, one down each world axis, of <see cref="GameExtensions.AddAllDirectionLighting"/>; no shadows.</summary>
+    /// <summary>Six lights, one down each world axis, of <see cref="GameExtensions.AddAllDirectionsLighting"/>; no shadows.</summary>
     public static LightingSetup AllDirections(float intensity = 5f) => new(LightingRig.AllDirections, intensity, Shadows: false);
 
     internal void Apply(Game game)
@@ -32,7 +32,7 @@ public sealed record LightingSetup(LightingRig Rig, float Intensity, bool Shadow
                 game.AddStudioLighting(Intensity, YawDegrees, Shadows);
                 break;
             case LightingRig.AllDirections:
-                game.AddAllDirectionLighting(Intensity, showLightGizmo: false);
+                game.AddAllDirectionsLighting(Intensity, showLightGizmo: false);
                 break;
         }
     }

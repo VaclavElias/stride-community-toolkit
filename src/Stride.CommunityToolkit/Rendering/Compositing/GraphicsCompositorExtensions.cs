@@ -26,6 +26,10 @@ public static class GraphicsCompositorExtensions
     /// This alters the GraphicsCompositor's <see cref="PostProcessingEffects"/>, <see cref="RenderStage"/>, and <see cref="RenderFeature"/>.
     /// </summary>
     /// <param name="graphicsCompositor">The GraphicsCompositor to modify.</param>
+    /// <param name="toneMap">
+    /// Whether the tone map in the colour transforms is on. <see langword="false"/> keeps it in place but disabled, so a
+    /// 2D scene with bloom keeps its flat colours as written; <see cref="Engine.SceneSetup2D"/> passes it.
+    /// </param>
     /// <returns>Returns the modified GraphicsCompositor instance, allowing for method chaining.</returns>
     /// <remarks>
     /// <para>
@@ -37,15 +41,15 @@ public static class GraphicsCompositorExtensions
     /// </para>
     /// <para>
     /// Renderers already hanging off the compositor (see <see cref="AddSceneRenderer"/>) are kept; the UI
-    /// stage is drawn last, after them.
+    /// stage is drawn last, after them. <see cref="AddUIStage"/> says which UI the stage takes.
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> is <see langword="null"/>.</exception>
-    public static GraphicsCompositor AddCleanUIStage(this GraphicsCompositor graphicsCompositor)
+    public static GraphicsCompositor AddCleanUIStage(this GraphicsCompositor graphicsCompositor, bool toneMap = true)
     {
         ArgumentNullException.ThrowIfNull(graphicsCompositor);
 
-        ResetPostEffects(graphicsCompositor);
+        ResetPostEffects(graphicsCompositor, toneMap);
         AddRenderStagesAndFeatures(graphicsCompositor);
 
         return graphicsCompositor;
@@ -58,8 +62,16 @@ public static class GraphicsCompositorExtensions
     /// <param name="graphicsCompositor">The GraphicsCompositor to modify.</param>
     /// <returns>Returns the modified GraphicsCompositor instance, allowing for method chaining.</returns>
     /// <remarks>
+    /// <para>
     /// Renderers already hanging off the compositor (see <see cref="AddSceneRenderer"/>) are kept; the UI
     /// stage is drawn last, after them.
+    /// </para>
+    /// <para>
+    /// Only UI in <see cref="RenderGroup.Group31"/>, the toolkit's HUD group where <c>TextOverlay</c>, the shape batch
+    /// and the UI pages sit, is routed to the UI stage and so drawn after the post effects. UI in any other group
+    /// stays in the transparent stage and takes the scene's bloom and tone map, so a world-space panel on a wall is
+    /// lit like the wall. The split is deliberate; put a page in Group31 to keep it clean.
+    /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> is <see langword="null"/>.</exception>
     public static GraphicsCompositor AddUIStage(this GraphicsCompositor graphicsCompositor)
@@ -216,10 +228,11 @@ public static class GraphicsCompositorExtensions
     }
 
     /// <summary>
-    /// Attempts to retrieve a render stage from the specified <see cref="GraphicsCompositor"/> based on the provided effect name.
+    /// Attempts to retrieve a render stage of the given name from the specified <see cref="GraphicsCompositor"/>;
+    /// <see cref="RenderStageNames"/> has the names the toolkit's compositors use.
     /// </summary>
     /// <param name="graphicsCompositor">The <see cref="GraphicsCompositor"/> containing the render stages.</param>
-    /// <param name="effectName">The name of the render stage to search for.</param>
+    /// <param name="stageName">The name of the render stage to search for, such as <see cref="RenderStageNames.Opaque"/>.</param>
     /// <param name="renderStage">
     /// When this method returns, contains the <see cref="RenderStage"/> if the render stage was found; otherwise, <c>null</c>.
     /// This parameter is passed uninitialized.
@@ -227,11 +240,14 @@ public static class GraphicsCompositorExtensions
     /// <returns>
     /// <c>true</c> if the render stage is found; otherwise, <c>false</c>.
     /// </returns>
-    public static bool TryGetRenderStage(this GraphicsCompositor graphicsCompositor, string effectName, out RenderStage? renderStage)
+    /// <exception cref="ArgumentNullException"><paramref name="graphicsCompositor"/> is <see langword="null"/>.</exception>
+    public static bool TryGetRenderStage(this GraphicsCompositor graphicsCompositor, string stageName, out RenderStage? renderStage)
     {
-        foreach (var stage in graphicsCompositor.RenderSystem.RenderStages)
+        ArgumentNullException.ThrowIfNull(graphicsCompositor);
+
+        foreach (var stage in graphicsCompositor.RenderStages)
         {
-            if (stage.Name == effectName)
+            if (stage.Name == stageName)
             {
                 renderStage = stage;
 
@@ -291,13 +307,13 @@ public static class GraphicsCompositorExtensions
     /// ambient occlusion, screen-space reflections, light streaks, lens flare and FXAA, and only turning
     /// them off one by one - or all at once - yields the "nothing but tone mapping" that the name promises.
     /// </remarks>
-    private static void ResetPostEffects(GraphicsCompositor graphicsCompositor)
+    private static void ResetPostEffects(GraphicsCompositor graphicsCompositor, bool toneMap)
     {
         var forwardRenderer = (ForwardRenderer)graphicsCompositor.SingleView;
 
         var postEffects = new PostProcessingEffects
         {
-            ColorTransforms = { Transforms = { new ToneMap() } }
+            ColorTransforms = { Transforms = { new ToneMap { Enabled = toneMap } } }
         };
 
         postEffects.DisableAll();

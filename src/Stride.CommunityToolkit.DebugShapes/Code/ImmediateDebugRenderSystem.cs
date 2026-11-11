@@ -111,15 +111,17 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     /// <summary>
     /// Draws multiple independent line segments from a vertex list (pairs form segments).
     /// </summary>
-    /// <param name="vertices">Array of vertices; each consecutive pair defines a line.</param>
-    /// <param name="color">Color for all lines. Uses <see cref="PrimitiveColor"/> when null.</param>
+    /// <param name="vertices">The vertices; each consecutive pair defines a line, and an odd last one is ignored.</param>
+    /// <param name="color">Color for all lines. Uses <see cref="PrimitiveColor"/> when default.</param>
     /// <param name="duration">Duration in seconds the lines remain visible. 0 draws for a single frame.</param>
     /// <param name="depthTest">Whether depth testing is enabled.</param>
-    public void DrawLines(Vector3[] vertices, Color? color = null, float duration = 0.0f, bool depthTest = true)
+    public void DrawLines(ReadOnlySpan<Vector3> vertices, Color color = default, float duration = 0.0f, bool depthTest = true)
     {
+        color = Resolve(color);
+
         for (var i = 0; i + 1 < vertices.Length; i += 2)
         {
-            DrawLine(vertices[i], vertices[i + 1], color ?? PrimitiveColor, duration, depthTest);
+            DrawLine(vertices[i], vertices[i + 1], color, duration, depthTest);
         }
     }
 
@@ -198,7 +200,8 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     /// <param name="solid">Whether rendered solid or wireframe.</param>
     public void DrawBounds(Vector3 start, Vector3 end, Quaternion rotation = default, Color color = default, float duration = 0.0f, bool depthTest = true, bool solid = false)
     {
-        var cmd = new Cube { Start = start + ((end - start) / 2), End = end + ((end - start) / 2), Rotation = Resolve(rotation), Color = Resolve(color) };
+        var size = end - start;
+        var cmd = new Cube { Center = start + size / 2, Size = size, Rotation = Resolve(rotation), Color = Resolve(color) };
 
         PushMessage(new DebugRenderable(in cmd, Flags(depthTest, solid), duration));
     }
@@ -209,7 +212,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     /// <remarks>This method allows for flexible rendering of cubes in the scene, with options for wireframe
     /// or solid rendering, depth testing, and custom colors. Use this method to visualize objects, debug spatial
     /// layouts, or create temporary visual markers.</remarks>
-    /// <param name="start">The starting position of the cube, representing its center.</param>
+    /// <param name="center">The centre of the cube.</param>
     /// <param name="size">The dimensions of the cube, specified as a <see cref="Vector3"/>.</param>
     /// <param name="rotation">The rotation of the cube, specified as a <see cref="Quaternion"/>. Defaults to no rotation.</param>
     /// <param name="color">The color of the cube, specified as a <see cref="Color"/>. Defaults to the primitive color.</param>
@@ -219,9 +222,9 @@ public class ImmediateDebugRenderSystem : GameSystemBase
     /// enable depth testing; otherwise, <see langword="false"/>. Defaults to <see langword="true"/>.</param>
     /// <param name="solid">A value indicating whether the cube should be rendered as a solid shape. Set to <see langword="true"/> for solid
     /// rendering; otherwise, <see langword="false"/> for wireframe rendering. Defaults to <see langword="false"/>.</param>
-    public void DrawCube(Vector3 start, Vector3 size, Quaternion rotation = default, Color color = default, float duration = 0.0f, bool depthTest = true, bool solid = false)
+    public void DrawCube(Vector3 center, Vector3 size, Quaternion rotation = default, Color color = default, float duration = 0.0f, bool depthTest = true, bool solid = false)
     {
-        var cmd = new Cube { Start = start, End = start + size, Rotation = Resolve(rotation), Color = Resolve(color) };
+        var cmd = new Cube { Center = center, Size = size, Rotation = Resolve(rotation), Color = Resolve(color) };
 
         PushMessage(new DebugRenderable(in cmd, Flags(depthTest, solid), duration));
     }
@@ -412,7 +415,7 @@ public class ImmediateDebugRenderSystem : GameSystemBase
                     ChooseRenderer(msg.Flags, msg.LineData.Color.A).DrawLine(in msg.LineData.Start, in msg.LineData.End, in msg.LineData.Color, depthTest: useDepthTest);
                     break;
                 case DebugPrimitiveType.Cube:
-                    ChooseRenderer(msg.Flags, msg.CubeData.Color.A).DrawCube(in msg.CubeData.Start, in msg.CubeData.End, in msg.CubeData.Rotation, in msg.CubeData.Color, depthTest: useDepthTest);
+                    ChooseRenderer(msg.Flags, msg.CubeData.Color.A).DrawCube(in msg.CubeData.Center, in msg.CubeData.Size, in msg.CubeData.Rotation, in msg.CubeData.Color, depthTest: useDepthTest);
                     break;
                 case DebugPrimitiveType.Sphere:
                     ChooseRenderer(msg.Flags, msg.SphereData.Color.A).DrawSphere(in msg.SphereData.Position, msg.SphereData.Radius, in msg.SphereData.Color, depthTest: useDepthTest);

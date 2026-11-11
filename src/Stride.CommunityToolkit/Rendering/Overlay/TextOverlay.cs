@@ -2,7 +2,6 @@ using Stride.CommunityToolkit.Input;
 using Stride.CommunityToolkit.Rendering.Text;
 using Stride.Games;
 using Stride.Graphics;
-using Stride.Graphics.Font;
 using Stride.Input;
 
 namespace Stride.CommunityToolkit.Rendering.Overlay;
@@ -48,35 +47,17 @@ public sealed class TextOverlay : GameSystemBase
     private int _stickyLineCount;
 
     /// <summary>
-    /// Gets or sets a font to draw with, overriding <see cref="FontName"/>. <see langword="null"/>, the default, uses the system font named by <see cref="FontName"/>.
+    /// Gets or sets a font to draw with, overriding <see cref="FontFamily"/>. <see langword="null"/>, the default, uses an installed font of that family. For a specific installed font, a weight or a file, load one with <c>game.LoadSystemFont("Consolas", 14, FontStyle.Bold)</c> and set it here.
     /// </summary>
     public SpriteFont? Font { get; set; }
 
     /// <summary>
-    /// Gets or sets which kind of installed font to draw with when <see cref="FontName"/> is not set. Defaults to <see cref="TextOverlayFontFamily.Monospace"/>, the character of Stride's own debug text.
+    /// Gets or sets which kind of installed font to draw with when <see cref="Font"/> is not set. Defaults to <see cref="TextOverlayFontFamily.Monospace"/>, the character of Stride's own debug text.
     /// </summary>
     /// <remarks>
     /// The font file is located in the system font folders and rasterised at the size asked for, so it stays sharp at any <see cref="FontSize"/> and <see cref="Scale"/>. If none of the family's fonts is installed, Stride's default font is used - which is bold and proportional.
     /// </remarks>
     public TextOverlayFontFamily FontFamily { get; set; } = TextOverlayFontFamily.Monospace;
-
-    /// <summary>
-    /// Gets or sets the family name of a specific installed font to draw with, such as <c>"Consolas"</c> or <c>"Segoe UI"</c>, overriding <see cref="FontFamily"/>. <see langword="null"/>, the default, chooses from <see cref="FontFamily"/>. A font that cannot be found falls back the same way.
-    /// </summary>
-    /// <remarks>
-    /// Set <see cref="FontFile"/> to point at a specific file instead of searching the system font folders.
-    /// </remarks>
-    public string? FontName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the weight and slant of <see cref="FontName"/>. Defaults to <see cref="FontStyle.Regular"/>.
-    /// </summary>
-    public FontStyle FontStyle { get; set; } = FontStyle.Regular;
-
-    /// <summary>
-    /// Gets or sets the path of the TrueType file for <see cref="FontName"/>, for fonts that are not in the system font folders. <see langword="null"/>, the default, searches those folders.
-    /// </summary>
-    public string? FontFile { get; set; }
 
     /// <summary>
     /// Gets or sets the text height in unscaled pixels. Defaults to 14.
@@ -162,7 +143,7 @@ public sealed class TextOverlay : GameSystemBase
     /// <summary>
     /// Gets or sets a fixed vertical distance between lines, in unscaled pixels. <see langword="null"/>, the default, derives it from the font: the text height plus the background padding plus <see cref="LineSpacing"/>, so lines neither overlap nor drift apart when <see cref="FontSize"/> changes.
     /// </summary>
-    public int? LineHeight { get; set; }
+    public float? LineHeight { get; set; }
 
     /// <summary>
     /// Gets or sets the gap between one line's background strip and the next, in unscaled pixels, when <see cref="LineHeight"/> is not set. Defaults to 2; <c>0</c> makes the strips touch.
@@ -359,12 +340,6 @@ public sealed class TextOverlay : GameSystemBase
     /// <param name="x">Pixels from the left edge of the window, unscaled.</param>
     /// <param name="y">Pixels from the top edge of the window, unscaled.</param>
     public void SetPosition(int x, int y) => SetPosition(new Int2(x, y));
-
-    /// <summary>
-    /// Places the overlay at an anchor. The same as setting <see cref="Position"/>; here so an anchor and a pixel position are chosen through one method.
-    /// </summary>
-    /// <param name="position">The corner, edge or centre, or <see langword="null"/> to draw at <see cref="CustomPosition"/> as last set.</param>
-    public void SetPosition(Anchor? position) => Position = position;
 
     /// <inheritdoc />
     public override void Update(GameTime gameTime)

@@ -1,5 +1,6 @@
 using Stride.CommunityToolkit.Rendering.Overlay;
 using Stride.Input;
+using System.Collections.Concurrent;
 
 namespace Stride.CommunityToolkit.Rendering.Text;
 
@@ -8,8 +9,9 @@ namespace Stride.CommunityToolkit.Rendering.Text;
 /// </summary>
 internal static class KeyNames
 {
-    // Filled on first use, on the game thread: the keys a game names are few and fixed, and the name is asked for every frame
-    private static readonly Dictionary<Keys, string> Names = [];
+    // Filled on first use: the keys a game names are few and fixed, and the name is asked for every frame.
+    // Concurrent, because the cache is process-wide and two games, or two tests, may ask at once
+    private static readonly ConcurrentDictionary<Keys, string> Names = [];
 
     /// <summary>
     /// Produces a readable name for a key, so <see cref="Keys.D2"/> shows as "2" rather than "D2".

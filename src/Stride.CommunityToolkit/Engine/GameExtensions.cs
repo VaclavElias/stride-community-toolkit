@@ -53,7 +53,7 @@ public static partial class GameExtensions
     /// <returns>The newly created 2D graphics compositor.</returns>
     public static GraphicsCompositor Add2DGraphicsCompositor(this IGame game, Color? clearColor = null, MultisampleCount msaa = MultisampleCount.None)
     {
-        var graphicsCompositor = GraphicsCompositorHelper2D.CreateDefault(enablePostEffects: false, clearColor: clearColor, msaa: msaa);
+        var graphicsCompositor = GraphicsCompositorHelper2D.CreateDefault(clearColor, msaa);
 
         game.GetSceneSystem().GraphicsCompositor = graphicsCompositor;
 
@@ -196,7 +196,7 @@ public static partial class GameExtensions
     /// <param name="game">The game instance providing the current graphics context and render target.</param>
     /// <param name="fileName">The file path where the screenshot will be saved.</param>
     /// <param name="fileType">The image file format to use when saving the screenshot.</param>
-    public static void TakeScreenShot(this IGame game, string fileName, ImageFileType fileType = ImageFileType.Png)
+    public static void TakeScreenshot(this IGame game, string fileName, ImageFileType fileType = ImageFileType.Png)
     {
         using var stream = File.Create(fileName);
 

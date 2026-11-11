@@ -76,7 +76,7 @@ public class SimulationSteppingTests
         StaticBoxFor(simulation, ground, new Vector2(0, -0.5f), halfWidth: 5f, halfHeight: 0.5f, def);
 
         // Resting on the ground from the first step, so the contact begins at once
-        var body = simulation.CreateDynamicBody(box, new Vector3(0, 0.5f, 0));
+        var body = simulation.CreateDynamicBody(box, new Vector2(0, 0.5f));
         ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(1f, 1f), body, def);
 
         var oneShot = new OneShotContact(simulation);
@@ -89,10 +89,83 @@ public class SimulationSteppingTests
     }
 
     [Fact]
+    public void AContactWithABodyWithoutAnEntity_IsDispatched_WithANullEntityAndItsBodyId()
+    {
+        using var simulation = new Box2DSimulation();
+        var box = new Entity("box");
+
+        var def = ShapeFixtureBuilder.CreateDefaultShapeDef();
+        def.enableContactEvents = true;
+
+        // The ground has no entity, as a ground made from a position alone has not; the event used to be dropped
+        var ground = simulation.CreateStaticBody(new Vector2(0, -0.5f));
+        ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(10f, 1f), ground, def);
+
+        var body = simulation.CreateDynamicBody(box, new Vector2(0, 0.5f));
+        ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(1f, 1f), body, def);
+
+        var recorder = new ContactRecorder();
+
+        simulation.RegisterContactEventHandler(recorder);
+
+        for (var i = 0; i < 10; i++) simulation.Update(Frame);
+
+        var begin = Assert.Single(recorder.Events, e => e.Type == ContactEventType.BeginTouch);
+
+        // Box2D decides which shape is A, so the pair is read either way round
+        var (entities, bodies) = (new[] { begin.EntityA, begin.EntityB }, new[] { begin.BodyIdA, begin.BodyIdB });
+
+        Assert.Contains(box, entities);
+        Assert.Contains(null, entities);
+        Assert.Contains(ground, bodies);
+        Assert.Contains(body, bodies);
+    }
+
+    [Fact]
+    public void CreatingABodyForAnEntity_AddsItsComponent_AndRemovingClearsTheId()
+    {
+        using var simulation = new Box2DSimulation();
+        var entity = new Entity("box");
+
+        var body = simulation.CreateDynamicBody(entity, Vector2.Zero);
+
+        var component = Assert.Single(entity.Components.OfType<Box2DBodyComponent>());
+
+        Assert.Equal(body, component.BodyId);
+
+        simulation.RemoveBody(entity);
+
+        Assert.Equal(default, component.BodyId);
+    }
+
+    [Fact]
+    public void TeleportAtRest_MovesTheBodyAndStopsIt()
+    {
+        using var simulation = new Box2DSimulation();
+        var entity = new Entity("ball");
+
+        var body = simulation.CreateDynamicBody(entity, Vector2.Zero);
+        ShapeFixtureBuilder.AttachShape(Primitive2D.Circle(0.5f), body);
+
+        // Falling for a while, so it has a velocity to lose
+        for (var i = 0; i < 10; i++) simulation.Update(Frame);
+
+        var component = entity.Get<Box2DBodyComponent>();
+
+        Assert.NotEqual(Vector2.Zero, component.LinearVelocity);
+
+        component.TeleportAtRest(new Vector2(3, 4));
+
+        Assert.Equal(new Vector2(3, 4), b2Body_GetPosition(body).ToVector2());
+        Assert.Equal(Vector2.Zero, component.LinearVelocity);
+        Assert.Equal(0f, component.AngularVelocity);
+    }
+
+    [Fact]
     public void ACapsuleShorterThanTwoRadii_IsACircle_LikeItsMesh()
     {
         using var simulation = new Box2DSimulation();
-        var body = simulation.CreateStaticBody(Vector3.Zero);
+        var body = simulation.CreateStaticBody(Vector2.Zero);
 
         // Box2D.NET attaches nothing for a capsule shorter than its slop, so the builder has to make the circle
         ShapeFixtureBuilder.AttachShape(Primitive2D.Capsule(radius: 0.5f, height: 0.5f), body);
@@ -109,7 +182,7 @@ public class SimulationSteppingTests
     public void ACapsuleTallerThanTwoRadii_StaysACapsule()
     {
         using var simulation = new Box2DSimulation();
-        var body = simulation.CreateStaticBody(Vector3.Zero);
+        var body = simulation.CreateStaticBody(Vector2.Zero);
 
         ShapeFixtureBuilder.AttachShape(Primitive2D.Capsule(radius: 0.25f, height: 1f), body);
 
@@ -123,7 +196,7 @@ public class SimulationSteppingTests
     public void Dispose_Twice_IsAllowed()
     {
         // More than one worker, so the task scheduler exists and is disposed too
-        var simulation = new Box2DSimulation(new PhysicsStepSettings(WorkerCount: 2));
+        var simulation = new Box2DSimulation(new PhysicsStepSettings { WorkerCount = 2 });
 
         simulation.Update(Frame);
         simulation.Dispose();
@@ -132,7 +205,7 @@ public class SimulationSteppingTests
 
     private static void StaticBoxFor(Box2DSimulation simulation, Entity entity, Vector2 position, float halfWidth, float halfHeight, B2ShapeDef def)
     {
-        var body = simulation.CreateStaticBody(entity, new Vector3(position, 0));
+        var body = simulation.CreateStaticBody(entity, position);
 
         ShapeFixtureBuilder.AttachShape(Primitive2D.Rectangle(halfWidth * 2, halfHeight * 2), body, def);
     }
@@ -153,6 +226,13 @@ public class SimulationSteppingTests
             Calls++;
             simulation.UnregisterSimulationUpdate(this);
         }
+    }
+
+    private sealed class ContactRecorder : IContactEventHandler
+    {
+        public List<ContactEventData> Events { get; } = [];
+
+        public void OnContactEvent(ContactEventData eventData) => Events.Add(eventData);
     }
 
     private sealed class OneShotContact(Box2DSimulation simulation) : IContactEventHandler

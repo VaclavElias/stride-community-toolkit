@@ -59,7 +59,7 @@ internal sealed class PrimitiveInstanceStore
                     Instances[offsets.HalfSpheres++] = new InstanceData(cmd.HalfSphereData.Position, cmd.HalfSphereData.Rotation, new Vector3(cmd.HalfSphereData.Radius * 2), cmd.HalfSphereData.Color);
                     break;
                 case DebugPrimitiveType.Cube:
-                    Instances[offsets.Cubes++] = new InstanceData(cmd.CubeData.Start, cmd.CubeData.Rotation, cmd.CubeData.End - cmd.CubeData.Start, cmd.CubeData.Color);
+                    Instances[offsets.Cubes++] = new InstanceData(cmd.CubeData.Center, cmd.CubeData.Rotation, cmd.CubeData.Size, cmd.CubeData.Color);
                     break;
                 case DebugPrimitiveType.Capsule:
                     Instances[offsets.Capsules++] = new InstanceData(cmd.CapsuleData.Position, cmd.CapsuleData.Rotation, new Vector3(cmd.CapsuleData.Radius * 2.0f, cmd.CapsuleData.Height, cmd.CapsuleData.Radius * 2.0f), cmd.CapsuleData.Color);

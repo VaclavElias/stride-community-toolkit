@@ -1,6 +1,6 @@
 using Stride.CommunityToolkit.Input;
-using Stride.CommunityToolkit.Rendering.Overlay;
 using Stride.CommunityToolkit.Rendering;
+using Stride.CommunityToolkit.Rendering.Overlay;
 using Stride.Engine;
 using Stride.Input;
 

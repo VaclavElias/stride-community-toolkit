@@ -182,19 +182,14 @@ public sealed class ChartTrajectory : ChartSeries
     }
 
     /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    private protected override void Release()
     {
-        if (disposing)
+        _ribbon?.Dispose();
+
+        if (_entity is not null)
         {
-            _ribbon?.Dispose();
-
-            if (_entity is not null)
-            {
-                _entity.Transform.Parent = null;
-            }
+            _entity.Transform.Parent = null;
         }
-
-        base.Dispose(disposing);
     }
 
     private void Record(Vector3 point)

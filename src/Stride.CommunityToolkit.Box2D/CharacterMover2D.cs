@@ -295,7 +295,7 @@ public sealed class CharacterMover2D : IBox2DSimulationUpdate
         var rayLength = PogoRestLength + Radius;
         var origin = new Vector2(_position.X, _position.Y - HalfHeight);
         Vector2 translation;
-        ShapeCastHit? hit;
+        QueryHit? hit;
 
         switch (PogoShape)
         {

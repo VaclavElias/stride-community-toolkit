@@ -172,36 +172,36 @@ public static class ImGuiExtension
     }
 
     /// <summary>
-    /// Adds a texture to the ImGui element with the Texture width and height
+    /// Draws a texture in the current ImGui window at the texture's own width and height.
     /// </summary>
-    /// <param name="texture"></param>
+    /// <param name="texture">The texture to draw; it is registered with the ImGui renderer the first time it is seen.</param>
     public static void Image(Texture texture) => Hexa.NET.ImGui.ImGui.Image(GetTextureKey(texture), new Vector2(texture.Width, texture.Height));
 
     /// <summary>
-    /// Adds a texture to the ImGui element with a custom width and height
+    /// Draws a texture in the current ImGui window at the given size.
     /// </summary>
-    /// <param name="texture"></param>
-    /// <param name="width"></param>
-    /// <param name="height"></param>
+    /// <param name="texture">The texture to draw; it is registered with the ImGui renderer the first time it is seen.</param>
+    /// <param name="width">The width to draw it at, in pixels.</param>
+    /// <param name="height">The height to draw it at, in pixels.</param>
     public static void Image(Texture texture, int width, int height) => Hexa.NET.ImGui.ImGui.Image(GetTextureKey(texture), new Vector2(width, height));
 
     /// <summary>
-    /// Adds a texture to the ImGui element button with the Texture width and height
+    /// Draws a button showing a texture at the texture's own width and height.
     /// </summary>
-    /// <param name="text"></param>
-    /// <param name="texture"></param>
-    /// <returns></returns>
-    public static bool ImageButton(string text, Texture texture) => Hexa.NET.ImGui.ImGui.ImageButton(text, GetTextureKey(texture), new Vector2(texture.Width, texture.Height));
+    /// <param name="id">The ImGui id of the button, unique among its siblings.</param>
+    /// <param name="texture">The texture on the button; it is registered with the ImGui renderer the first time it is seen.</param>
+    /// <returns><see langword="true"/> on the frame the button is clicked.</returns>
+    public static bool ImageButton(string id, Texture texture) => Hexa.NET.ImGui.ImGui.ImageButton(id, GetTextureKey(texture), new Vector2(texture.Width, texture.Height));
 
     /// <summary>
-    /// Adds a texture to the ImGui element button with a custom width and height
+    /// Draws a button showing a texture at the given size.
     /// </summary>
-    /// <param name="strid"></param>
-    /// <param name="texture"></param>
-    /// <param name="width"></param>
-    /// <param name="height"></param>
-    /// <returns></returns>
-    public static bool ImageButton(string strid, Texture texture, int width, int height) => Hexa.NET.ImGui.ImGui.ImageButton(strid, GetTextureKey(texture), new Vector2(width, height));
+    /// <param name="id">The ImGui id of the button, unique among its siblings.</param>
+    /// <param name="texture">The texture on the button; it is registered with the ImGui renderer the first time it is seen.</param>
+    /// <param name="width">The width to draw it at, in pixels.</param>
+    /// <param name="height">The height to draw it at, in pixels.</param>
+    /// <returns><see langword="true"/> on the frame the button is clicked.</returns>
+    public static bool ImageButton(string id, Texture texture, int width, int height) => Hexa.NET.ImGui.ImGui.ImageButton(id, GetTextureKey(texture), new Vector2(width, height));
 
     /// <summary>
     /// Begins the window's menu bar; disposing the result ends it when it was opened.

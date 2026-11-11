@@ -96,7 +96,7 @@ public class Grabber2DScriptTests
             var camera = new Entity("camera") { new CameraComponent(), grabber };
             camera.Scene = scene;
 
-            wall = simulation.CreateStaticBody(Vector3.Zero);
+            wall = simulation.CreateStaticBody(Vector2.Zero);
         }, update: (_, _) =>
         {
             if (++frames < 2) return;

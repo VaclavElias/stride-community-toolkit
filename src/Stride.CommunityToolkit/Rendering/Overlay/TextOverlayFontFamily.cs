@@ -1,7 +1,7 @@
 namespace Stride.CommunityToolkit.Rendering.Overlay;
 
 /// <summary>
-/// The kind of system font a <see cref="TextOverlay"/> looks for when no <see cref="TextOverlay.FontName"/> is set.
+/// The kind of system font a <see cref="TextOverlay"/> looks for when no <see cref="TextOverlay.Font"/> is set.
 /// </summary>
 public enum TextOverlayFontFamily
 {

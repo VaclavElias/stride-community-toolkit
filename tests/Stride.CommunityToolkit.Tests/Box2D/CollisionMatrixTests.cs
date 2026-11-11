@@ -24,7 +24,7 @@ public class CollisionMatrixTests
 
         simulation.CollisionMatrix.SetCollision(1, 2, false);
 
-        var floor = simulation.CreateStaticBody(Vector3.Zero);
+        var floor = simulation.CreateStaticBody(Vector2.Zero);
         var floorDef = b2DefaultShapeDef().InCollisionGroup(1);
         var floorBox = b2MakeBox(10f, 0.5f);
 
@@ -49,7 +49,7 @@ public class CollisionMatrixTests
     /// <summary>A unit dynamic box in a collision group.</summary>
     private static B2BodyId Box(Box2DSimulation simulation, Vector3 position, int group)
     {
-        var body = simulation.CreateDynamicBody(position);
+        var body = simulation.CreateDynamicBody(position.XY());
         var def = b2DefaultShapeDef().InCollisionGroup(group);
         var box = b2MakeBox(0.5f, 0.5f);
 

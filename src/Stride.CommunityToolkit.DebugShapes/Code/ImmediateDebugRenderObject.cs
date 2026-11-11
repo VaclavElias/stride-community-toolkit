@@ -92,14 +92,14 @@ public class ImmediateDebugRenderObject : RenderObject
     /// <summary>
     /// Adds a cube to the debug render queue.
     /// </summary>
-    /// <param name="start">The centre of the cube.</param>
-    /// <param name="end"><paramref name="start"/> plus the cube's size.</param>
+    /// <param name="center">The centre of the cube.</param>
+    /// <param name="size">The cube's size.</param>
     /// <param name="rotation">The rotation of the cube.</param>
     /// <param name="color">The color of the cube.</param>
     /// <param name="depthTest">Whether to use depth testing for rendering.</param>
-    public void DrawCube(in Vector3 start, in Vector3 end, in Quaternion rotation, in Color color, bool depthTest = true)
+    public void DrawCube(in Vector3 center, in Vector3 size, in Quaternion rotation, in Color color, bool depthTest = true)
     {
-        var cmd = new Cube { Start = start, End = end, Rotation = rotation, Color = color };
+        var cmd = new Cube { Center = center, Size = size, Rotation = rotation, Color = color };
 
         Push(new Renderable(in cmd), depthTest);
     }

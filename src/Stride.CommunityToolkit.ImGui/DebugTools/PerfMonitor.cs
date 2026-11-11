@@ -108,12 +108,10 @@ public class PerfMonitor : BaseWindow
     /// <summary>
     /// Changes how many frames the history graphs keep, preserving the most recent samples.
     /// </summary>
-    /// <param name="newSize">The number of frames to keep.</param>
-    /// <param name="force">When <see langword="false"/>, <paramref name="newSize"/> is clamped to 10..2048.</param>
-    public void SetGraphSize(int newSize, bool force = false)
+    /// <param name="frames">The number of frames to keep, clamped to 10..2048.</param>
+    public void SetGraphSize(int frames)
     {
-        if (!force) newSize = Math.Clamp(newSize, 10, 2048);
-
+        var newSize = Math.Clamp(frames, 10, 2048);
         var delta = newSize - _graph.Length;
 
         if (delta == 0) return;

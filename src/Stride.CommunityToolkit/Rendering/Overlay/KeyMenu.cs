@@ -66,20 +66,10 @@ public class KeyMenu
     /// </summary>
     public Color? TitleColor { get; set; }
 
-    /// <summary>
-    /// Gets or sets the marker drawn before the toggle key while the list is collapsed.
-    /// </summary>
-    /// <remarks>
-    /// Printable ASCII only - see the remarks on <see cref="KeyMenu"/>. Arrow glyphs such as
-    /// <c>▼</c> render as blanks.
-    /// </remarks>
-    public string CollapsedMarker { get; set; } = "[+]";
-
-    /// <summary>
-    /// Gets or sets the marker drawn before the toggle key while the list is expanded.
-    /// </summary>
-    /// <inheritdoc cref="CollapsedMarker" path="/remarks"/>
-    public string ExpandedMarker { get; set; } = "[-]";
+    // The markers before the toggle key, the same glyphs TextOverlay draws for its collapsible sections; the
+    // overlay's CollapsedMarker and ExpandedMarker are the one place to restyle them
+    private const string CollapsedMarker = "[+]";
+    private const string ExpandedMarker = "[-]";
 
     /// <summary>
     /// Gets or sets the colour used for the currently selected entry while the list is expanded.

@@ -1,7 +1,7 @@
 using Stride.CommunityToolkit.Input;
+using Stride.CommunityToolkit.Rendering;
 using Stride.CommunityToolkit.Rendering.Overlay;
 using Stride.CommunityToolkit.Rendering.Text;
-using Stride.CommunityToolkit.Rendering;
 using Stride.Engine;
 using Stride.Input;
 
@@ -151,12 +151,11 @@ public class Basic2DCameraController : SyncScript
     public Vector3 FollowOffset { get; set; } = Vector3.Zero;
 
     /// <summary>
-    /// Gets or sets the smoothing factor for the camera follow movement.
+    /// Gets or sets how long the camera takes to close most of the gap to the <see cref="FollowTarget"/>, in seconds:
+    /// the lag that smooths a character's steps out of the view, the same measure as the 3D follow controller's.
+    /// <c>0</c> or less follows exactly. Defaults to <c>0.12</c>.
     /// </summary>
-    /// <remarks>
-    /// A value of 0 results in instant following, while higher values produce smoother, more gradual movement.
-    /// </remarks>
-    public float FollowSmoothing { get; set; } = 5.0f;
+    public float FollowSmoothing { get; set; } = 0.12f;
 
     // Smooth Movement Properties
     /// <summary>
@@ -509,17 +508,20 @@ public class Basic2DCameraController : SyncScript
     /// </summary>
     /// <remarks>
     /// <para>The camera moves towards the target's position plus <see cref="FollowOffset"/>.
-    /// If <see cref="FollowSmoothing"/> is greater than 0, the camera smoothly interpolates towards the target using lerp.
-    /// If <see cref="FollowSmoothing"/> is 0, the camera instantly snaps to the target position.</para>
+    /// If <see cref="FollowSmoothing"/> is greater than 0, the camera closes the gap exponentially with that time
+    /// constant in seconds; otherwise it snaps to the target position.</para>
     /// <para>Both the target position (for internal tracking) and the actual transform position are updated.</para>
     /// </remarks>
     private void ProcessCameraFollow(Entity target)
     {
         var wanted = target.Transform.Position + FollowOffset;
 
-        // Ease towards the target or jump to it; the camera keeps its own Z either way
+        // Ease towards the target with FollowSmoothing as the time constant, or jump to it; the camera keeps its
+        // own Z either way
+        var position = Entity.Transform.Position;
+
         _targetPosition = FollowSmoothing > 0
-            ? Vector3.Lerp(Entity.Transform.Position, wanted, Math.Clamp(FollowSmoothing * DeltaTime, 0, 1))
+            ? position + (wanted - position) * (1f - MathF.Exp(-DeltaTime / FollowSmoothing))
             : wanted;
         _targetPosition.Z = _defaultCameraPosition.Z;
 

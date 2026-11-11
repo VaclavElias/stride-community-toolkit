@@ -27,14 +27,14 @@ public static class PhysicsQueries2D
 
     private static readonly b2CastResultFcn CollectHit = static (shapeId, point, normal, fraction, context) =>
     {
-        ((List<QueryRaycastHit>)context).Add(new QueryRaycastHit(b2Shape_GetBody(shapeId), shapeId, point.ToVector2(), normal.ToVector2(), fraction));
+        ((List<QueryHit>)context).Add(new QueryHit(b2Shape_GetBody(shapeId), shapeId, point.ToVector2(), normal.ToVector2(), fraction));
 
         return 1f; // every hit is wanted, so the ray keeps its full length
     };
 
     private static readonly b2CastResultFcn KeepClosest = static (shapeId, point, normal, fraction, context) =>
     {
-        ((ClosestHit)context).Hit = new ShapeCastHit(shapeId, b2Shape_GetBody(shapeId), point.ToVector2(), normal.ToVector2(), fraction);
+        ((ClosestHit)context).Hit = new QueryHit(b2Shape_GetBody(shapeId), shapeId, point.ToVector2(), normal.ToVector2(), fraction);
 
         // Returning the fraction clips the sweep to this hit, so only a nearer one can replace it
         return fraction;
@@ -45,7 +45,7 @@ public static class PhysicsQueries2D
 
     private sealed class ClosestHit
     {
-        internal ShapeCastHit? Hit { get; set; }
+        internal QueryHit? Hit { get; set; }
     }
 
     /// <summary>
@@ -56,11 +56,11 @@ public static class PhysicsQueries2D
     /// <param name="direction">Normalized direction vector.</param>
     /// <param name="maxDistance">Maximum ray length.</param>
     /// <returns>The closest hit, or <see langword="null"/> when the ray strikes nothing.</returns>
-    public static QueryRaycastHit? RaycastClosest(B2WorldId worldId, Vector2 origin, Vector2 direction, float maxDistance)
+    public static QueryHit? RaycastClosest(B2WorldId worldId, Vector2 origin, Vector2 direction, float maxDistance)
     {
         var result = b2World_CastRayClosest(worldId, origin.ToB2Vec2(), (direction * maxDistance).ToB2Vec2(), b2DefaultQueryFilter());
 
-        return result.hit ? new QueryRaycastHit(b2Shape_GetBody(result.shapeId), result.shapeId, result.point.ToVector2(), result.normal.ToVector2(), result.fraction) : null;
+        return result.hit ? new QueryHit(b2Shape_GetBody(result.shapeId), result.shapeId, result.point.ToVector2(), result.normal.ToVector2(), result.fraction) : null;
     }
 
     /// <summary>
@@ -102,9 +102,9 @@ public static class PhysicsQueries2D
     /// <param name="direction">Normalized direction vector.</param>
     /// <param name="maxDistance">Maximum ray length.</param>
     /// <returns>List of raw hit data (unsorted). Empty when nothing is hit.</returns>
-    public static List<QueryRaycastHit> RaycastAll(B2WorldId worldId, Vector2 origin, Vector2 direction, float maxDistance)
+    public static List<QueryHit> RaycastAll(B2WorldId worldId, Vector2 origin, Vector2 direction, float maxDistance)
     {
-        var hits = new List<QueryRaycastHit>();
+        var hits = new List<QueryHit>();
 
         b2World_CastRay(worldId, origin.ToB2Vec2(), (direction * maxDistance).ToB2Vec2(), b2DefaultQueryFilter(), CollectHit, hits);
 
@@ -167,7 +167,7 @@ public static class PhysicsQueries2D
     /// <param name="translation">The sweep, as a world-space displacement.</param>
     /// <param name="filter">Category and mask bits the struck shapes must satisfy.</param>
     /// <returns>The closest hit, or null when the sweep is clear.</returns>
-    public static ShapeCastHit? CastCircleClosest(B2WorldId worldId, Vector2 center, float radius, Vector2 translation, B2QueryFilter filter)
+    public static QueryHit? CastCircleClosest(B2WorldId worldId, Vector2 center, float radius, Vector2 translation, B2QueryFilter filter)
     {
         var proxy = b2MakeProxy(center.ToB2Vec2(), 1, radius);
 
@@ -184,7 +184,7 @@ public static class PhysicsQueries2D
     /// <param name="translation">The sweep, as a world-space displacement.</param>
     /// <param name="filter">Category and mask bits the struck shapes must satisfy.</param>
     /// <returns>The closest hit, or null when the sweep is clear.</returns>
-    public static ShapeCastHit? CastSegmentClosest(B2WorldId worldId, Vector2 a, Vector2 b, Vector2 translation, B2QueryFilter filter)
+    public static QueryHit? CastSegmentClosest(B2WorldId worldId, Vector2 a, Vector2 b, Vector2 translation, B2QueryFilter filter)
     {
         var proxy = b2MakeProxy(a.ToB2Vec2(), b.ToB2Vec2(), 2, 0f);
 
@@ -200,7 +200,7 @@ public static class PhysicsQueries2D
     /// <param name="translation">The sweep, as a world-space displacement.</param>
     /// <param name="filter">Category and mask bits the struck shapes must satisfy.</param>
     /// <returns>The closest hit, or null when the sweep is clear.</returns>
-    public static ShapeCastHit? CastShapeClosest(B2WorldId worldId, ref B2ShapeProxy proxy, Vector2 translation, B2QueryFilter filter)
+    public static QueryHit? CastShapeClosest(B2WorldId worldId, ref B2ShapeProxy proxy, Vector2 translation, B2QueryFilter filter)
     {
         var closest = _closest.Value!;
 

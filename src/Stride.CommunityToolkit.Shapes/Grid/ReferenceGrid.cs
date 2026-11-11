@@ -45,7 +45,7 @@ namespace Stride.CommunityToolkit.Shapes;
 [DataContract(nameof(ReferenceGrid))]
 [Display("Reference grid")]
 [ComponentCategory("Debug")]
-public class ReferenceGrid : SyncScript
+public sealed class ReferenceGrid : SyncScript
 {
     /// <summary>The X axis colour, as in Game Studio.</summary>
     public static readonly Color AxisXColor = new(0xFC, 0x37, 0x37);

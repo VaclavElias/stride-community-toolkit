@@ -61,7 +61,7 @@ public static partial class GameExtensions
     /// Creates six directional lights, one shining along each world axis, for even lighting from all directions.
     /// </para>
     /// </remarks>
-    public static IReadOnlyList<Entity> AddAllDirectionLighting(this IGame game, float intensity = 5, bool showLightGizmo = true)
+    public static IReadOnlyList<Entity> AddAllDirectionsLighting(this IGame game, float intensity = 5, bool showLightGizmo = true)
     {
         var position = new Vector3(7f, 2f, 0);
 
@@ -119,7 +119,7 @@ public static partial class GameExtensions
     /// shade differently on every face - which is what makes shapes look solid.
     /// </para>
     /// <para>
-    /// Compare <see cref="AddAllDirectionLighting"/>, which lights evenly from all six axes: nothing
+    /// Compare <see cref="AddAllDirectionsLighting"/>, which lights evenly from all six axes: nothing
     /// is ever dark, but everything is lit the same, so shape flattens. Prefer the studio rig for
     /// showing off models and lettering; prefer all-direction lighting when reading a surface's
     /// colour matters more than reading its form, as on a game board of colour-coded cubes.

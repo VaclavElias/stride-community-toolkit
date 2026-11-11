@@ -52,7 +52,7 @@ public static partial class GameExtensions
     /// </code>
     /// </example>
     public static void Run(this Game game, Action<Scene>? start = null, Action<Scene, GameTime>? update = null, GameContext? context = null)
-        => game.Run(SceneSetup3D.Default, start, update, context);
+        => game.Run(new SceneSetup3D(), start, update, context);
 
     /// <summary>
     /// Starts the game loop with an asynchronous <paramref name="start"/>: the update loop begins only
@@ -98,7 +98,7 @@ public static partial class GameExtensions
     /// </code>
     /// </example>
     public static void Run(this Game game, Func<Scene, Task> start, Action<Scene, GameTime>? update = null, GameContext? context = null)
-        => game.Run(SceneSetup3D.Default, start, update, context);
+        => game.Run(new SceneSetup3D(), start, update, context);
 
     /// <summary>
     /// Applies <paramref name="setup"/> and runs the game: the setup's pieces are added to the root scene in a fixed
